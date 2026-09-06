@@ -627,16 +627,11 @@ export class Renderer {
   }
   demo(time, dt = 1 / 60) {
     const c = this.ctx;
-    if (
-      !this.demoWorld ||
-      this.demoWorld.phase === "countdown" ||
-      this.demoWorld.phase === "match"
-    ) {
+    if (!this.demoWorld || this.demoWorld.phase === "countdown") {
       const w = (this.demoWorld = new World({
         players: [0, 1, 2],
         arena: 0,
         shuffle: false,
-        target: 5,
       }));
       w.phase = "fight";
       w.weaponTimer = 999;

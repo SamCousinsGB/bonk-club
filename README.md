@@ -1,10 +1,10 @@
 # Bonk Club
 
-A browser physics brawler for 2–4 people. Original stick-figure artwork and arenas, inspired by the feel of party fighting games including Stick Fight: The Game. Not affiliated with Landfall.
+A browser physics brawler for 1–4 people. Original stick-figure artwork and arenas, inspired by the feel of party fighting games including Stick Fight: The Game. Not affiliated with Landfall.
 
 ## Play
 
-Choose **Local multiplayer**, assign a separate control set to each player, and start a match. Two players can share a keyboard; connect controllers for three or four players. There is no playable single-player mode. The title screen runs a non-interactive physics demonstration.
+Choose **Single player** to start immediately against three AI opponents. **Online multiplayer → Create a room** starts a game with AI filling empty slots; copy the invite link during play and friends join directly into the current round. **Local multiplayer** supports two people sharing a keyboard and additional controllers. All modes have four fighters, with AI filling unused slots.
 
 | Action          | Player 1 / online | Player 2                | Standard controller |
 | --------------- | ----------------- | ----------------------- | ------------------- |
@@ -18,7 +18,7 @@ Choose **Local multiplayer**, assign a separate control set to each player, and 
 
 Weapons are picked up automatically when an unarmed player walks close enough. Throw the held weapon to free the slot; a thrown weapon can hit another player and retains its ammunition.
 
-On phones, use **Online multiplayer** with one player per device. A phone can also provide one touch player in a local match alongside connected controllers. The game still requires 2–4 players.
+On phones, use **Online multiplayer** with one player per device. A phone can also provide one touch player in a local match alongside connected controllers. Single player supports the same touch controls against three AI opponents.
 
 | Touch area   | Gesture                                                        |
 | ------------ | -------------------------------------------------------------- |
@@ -29,9 +29,9 @@ On phones, use **Online multiplayer** with one player per device. A phone can al
 | Right        | Double-tap to throw the held weapon without firing first       |
 | Block button | Hold to guard; tap just before a hit to parry                  |
 
-Portrait uses a camera that follows the local player, an arena overview, and a separate thumb-control area. Landscape shows the full arena with transparent thumb controls. Gestures reset on pause, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
+Portrait uses a camera that follows the local player, an arena overview, and a separate thumb-control area. Landscape shows the full arena with transparent thumb controls. Gestures reset on opening a menu, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
 
-Escape pauses local play. A host pause pauses the online simulation. Guests can open their menu but the online match continues. Public rooms require at least two real players and have no bots.
+Escape opens or closes the game menu. The simulation continues while menus are open, while another tab is visible, and after focus loss. A dedicated worker clock drives simulation and network sends independently of rendering. Closing the browser or the operating system suspending/discarding the tab still stops its execution.
 
 ## Combat
 
@@ -45,18 +45,20 @@ Escape pauses local play. A host pause pauses the online simulation. Guests can 
 - Ten weapons: bat, sword, pistol, shotgun, rocket launcher, grenade, minigun, railgun, plasma cannon and triple rocket launcher. The railgun penetrates wooden cover and players; plasma bounces off solid surfaces; the triple launcher fires three rockets with strong recoil. Explosions can hurt their owner.
 - Swept projectile collisions stop fast rounds at the first obstacle and prevent shots skipping thin cover.
 - Eight environmental hazards: falling rocks and cargo, lightning, wind gusts, gas leaks, steam vents, electrical faults and lava vents. The host randomly chooses a suitable surface and hazard for the map. Each has a two-second marked warning and sound cue, followed by a short active period. Wind pushes players (less while prone); vents launch them; other hazards damage them. Solid floors contain hazards to their own storey. No hazards run during countdown or after a round ends.
-- First to 3, 5 or 10 wins; shuffled or fixed arenas; sudden death after 120 seconds; rematches.
+- Continuous rounds with no winning score or match end. Each round win adds one point. The HUD marks the current leader or tied leaders. Scores persist across maps, but a slot starts at zero when a human replaces its AI or leaves and is replaced by AI.
+- AI routes trace jump and double-jump trajectories against the arena platforms and ceilings. Bots seek weapons, aim with imperfect target leading, attack cover, guard against incoming attacks and move out of marked hazards. They use the same controls and physics as human players.
+- Shuffled or fixed arenas; sudden death after 120 seconds.
 - Procedural sound effects, hitstop, particles and optional screen shake. Reduced-motion preferences disable screen shake.
 
 ## Online architecture and prototype limits
 
-The **game and assets are static files hosted on GitHub Pages**. The host's browser runs the authoritative 120 Hz simulation. Guests send only bounded controls at 30 Hz, receive state snapshots, and interpolate player skeletons, moving platforms and falling hazards. Hazard warnings and activation, cover health, debris, thrown weapons and projectiles are included in validated snapshots. Room protocol v4 separates this release from older clients. A guest cannot submit health, weapon, position or score changes. A trusted host can still modify the simulation: this is not an anti-cheat system.
+The **game and assets are static files hosted on GitHub Pages**. The host's browser runs the authoritative 120 Hz simulation. Guests send only bounded controls at 30 Hz, receive state snapshots, and interpolate player skeletons, moving platforms and falling hazards. Hazard warnings and activation, cover health, debris, thrown weapons and projectiles are included in validated snapshots. Room protocol v5 separates this release from older clients. A guest cannot submit health, weapon, position or score changes. A trusted host can still modify the simulation: this is not an anti-cheat system.
 
 Online rooms use PeerJS and its public signaling service to connect browsers over WebRTC. This is an external dependency; GitHub Pages cannot run a signaling service. Connections use the library's default STUN/TURN settings. Availability and connectivity on restrictive networks are not guaranteed. There is no voice/video capture, user account, analytics, or gameplay database.
 
-**Quick match** searches eight fixed public tables using unique peer-ID claims. The first visitor becomes host; later visitors join that table. When at least two players are ready, the host starts the match automatically after a short wait. Full or running tables are skipped. This is a small public queue, not region-aware or skill-based global matchmaking. If nobody else is online, the room waits. No fake players or population counts are shown.
+**Quick match** searches eight fixed public tables using unique peer-ID claims. The first visitor becomes host; later visitors join that table. Every room starts immediately with AI in empty slots. Joining players replace bots in the running game; full rooms are skipped. This is a small public queue, not region-aware or skill-based global matchmaking. AI slots are explicitly labelled in the scoreboard.
 
-The host must keep the game open and visible. Host migration, rollback netcode, reconnecting to a running round, durable leaderboards, and multiple touch players sharing one screen are not implemented. Any participant disconnecting returns the remaining players to the lobby for a fresh match. The free room service may fail; local play does not depend on it.
+The host must keep the game open; it can run in a background tab. Joining or leaving affects only that slot, and other scores and the current round are preserved. A living fighter is taken over in place with its health and weapon; if an incoming player replaces an eliminated bot during combat, they spawn on a clear platform. Returning through the link is a new player and starts at zero. A stale disconnected peer cannot send controls into a reused slot. Host migration, rollback netcode, durable leaderboards, and multiple touch players sharing one screen are not implemented. Closing the host ends the room. The free room service may fail; single player and local play do not depend on it.
 
 ## Development
 

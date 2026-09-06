@@ -93,9 +93,9 @@ test("a falling object stops at cover and breaks it before reaching a player bel
   assert.equal(p.hp, 100);
   assert.ok(h.done);
 });
-test("hazards stop during countdown, results and match end, and reset on a new round", () => {
+test("hazards stop during countdown and results, and reset on a new round", () => {
   const { w, h, p } = lab("gas");
-  for (const phase of ["countdown", "result", "match"]) {
+  for (const phase of ["countdown", "result"]) {
     w.phase = phase;
     advance(w, 9);
     assert.equal(h.warning, 2);

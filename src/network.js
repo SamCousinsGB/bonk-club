@@ -5,7 +5,7 @@ const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v4-";
+const PREFIX = "bonkclub-v5-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -115,10 +115,12 @@ export class Room {
     this.host = true;
     this.id = 0;
     this.code = code;
-    this.roster = [{ id: 0, ready: true }];
+    this.roster = [{ id: 0 }];
     await this.openPeer(PREFIX + this.code);
     this.peer.on("connection", (c) => this.accept(c));
+    this.running = true;
     this.emit("onRoster", this.roster);
+    this.emit("onStart");
     return this.code;
   }
   accept(c) {
@@ -133,34 +135,34 @@ export class Room {
       this.clear(t);
       this.pending.delete(c);
       if (this.closed) return c.close();
-      if (this.running || this.connections.size >= 3) {
+      if (this.connections.size >= 3) {
         this.send(c, {
           t: "reject",
-          code: this.running ? "room-busy" : "room-full",
-          reason: this.running
-            ? "This match has already started. Join after it finishes."
-            : "This room is full (4 players).",
+          code: "room-full",
+          reason: "This room is full (4 players).",
         });
         this.later(() => c.close(), 300);
         return;
       }
       id = [1, 2, 3].find((n) => !this.connections.has(n));
       this.connections.set(id, c);
-      this.roster.push({ id, ready: false });
+      this.roster.push({ id });
       this.send(c, { t: "welcome", id, code: this.code });
       this.publishRoster();
+      if (this.latestState)
+        this.send(c, { t: "state", state: this.latestState });
     });
     c.on("data", (m) => {
-      if (id === null || !m || typeof m !== "object") return;
+      if (
+        id === null ||
+        this.connections.get(id) !== c ||
+        !m ||
+        typeof m !== "object"
+      )
+        return;
       if (m.t === "input") {
         this.lastInputs[id] = cleanInput(m.input);
         this.inputTimes[id] = performance.now();
-      }
-      if (m.t === "ready" && !this.running) {
-        this.roster = this.roster.map((p) =>
-          p.id === id ? { ...p, ready: m.ready === true } : p,
-        );
-        this.publishRoster();
       }
       if (m.t === "ping" && typeof m.time === "number")
         this.send(c, { t: "pong", time: m.time });
@@ -168,22 +170,11 @@ export class Room {
     c.on("close", () => {
       this.clear(t);
       this.pending.delete(c);
-      if (id === null || this.closed) return;
+      if (id === null || this.closed || this.connections.get(id) !== c) return;
       this.connections.delete(id);
       delete this.lastInputs[id];
       delete this.inputTimes[id];
       this.roster = this.roster.filter((p) => p.id !== id);
-      if (this.running) {
-        this.running = false;
-        this.broadcast({
-          t: "end",
-          reason: "A player disconnected. Back to the room for a fresh match.",
-        });
-        this.emit(
-          "onEnd",
-          "A player disconnected. Back to the room for a fresh match.",
-        );
-      }
       this.publishRoster();
     });
     c.on("error", () => c.close());
@@ -210,6 +201,7 @@ export class Room {
       c.on("data", (m) => {
         if (!m || typeof m !== "object") return;
         if (
+          !welcomed &&
           m.t === "welcome" &&
           Number.isInteger(m.id) &&
           m.id > 0 &&
@@ -219,6 +211,8 @@ export class Room {
           this.joinReject = null;
           this.clear(t);
           this.id = m.id;
+          this.running = true;
+          this.emit("onStart");
           resolve();
         }
         if (m.t === "reject") {
@@ -238,22 +232,11 @@ export class Room {
         ) {
           this.roster = m.players
             .filter((p) => Number.isInteger(p.id) && p.id >= 0 && p.id < 4)
-            .map((p) => ({ id: p.id, ready: p.ready === true }));
+            .map((p) => ({ id: p.id }));
           this.emit("onRoster", this.roster);
-        }
-        if (m.t === "start") {
-          this.running = true;
-          this.emit("onStart");
         }
         if (m.t === "state" && this.running && validSnapshot(m.state))
           this.emit("onState", m.state);
-        if (m.t === "end") {
-          this.running = false;
-          this.emit(
-            "onEnd",
-            String(m.reason || "Back to the room.").slice(0, 180),
-          );
-        }
         if (m.t === "pong")
           this.emit("onPing", Math.round(performance.now() - m.time));
       });
@@ -282,21 +265,6 @@ export class Room {
     this.broadcast({ t: "roster", players: this.roster });
     this.emit("onRoster", this.roster);
   }
-  ready(value) {
-    this.send(this.connection, { t: "ready", ready: value });
-  }
-  start() {
-    if (
-      !this.host ||
-      this.running ||
-      this.roster.length < 2 ||
-      !this.roster.every((p) => p.ready)
-    )
-      return false;
-    this.running = true;
-    this.broadcast({ t: "start" });
-    return true;
-  }
   sendInput(input) {
     this.send(this.connection, { t: "input", input: cleanInput(input) });
   }
@@ -310,16 +278,13 @@ export class Room {
     return out;
   }
   sendState(state) {
-    if (this.host && this.running) this.broadcast({ t: "state", state });
+    if (this.host && this.running) {
+      this.latestState = state;
+      this.broadcast({ t: "state", state });
+    }
   }
   ping() {
     this.send(this.connection, { t: "ping", time: performance.now() });
-  }
-  end(reason = "Back to the room.") {
-    if (!this.host) return;
-    this.running = false;
-    this.broadcast({ t: "end", reason });
-    this.emit("onEnd", reason);
   }
   close() {
     this.closed = true;
@@ -348,10 +313,9 @@ export function validSnapshot(s) {
   return (
     !!s &&
     typeof s === "object" &&
-    ["countdown", "fight", "result", "match"].includes(s.phase) &&
+    ["countdown", "fight", "result"].includes(s.phase) &&
     integer(s.arenaIndex, 0, ARENAS.length - 1) &&
-    integer(s.round, 1, 100000) &&
-    [3, 5, 10].includes(s.target) &&
+    integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
     [s.phaseTime, s.elapsed, s.time].every(finite) &&
     (s.winner === null || integer(s.winner, 0, 3)) &&
     list(
@@ -359,6 +323,8 @@ export function validSnapshot(s) {
       4,
       (p) =>
         integer(p.id, 0, 3) &&
+        typeof p.bot === "boolean" &&
+        integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&
         [
           p.vx,
@@ -459,7 +425,7 @@ export function validSnapshot(s) {
     ) &&
     Array.isArray(s.scores) &&
     s.scores.length === 4 &&
-    s.scores.every((n) => integer(n, 0, 100000)) &&
+    s.scores.every((n) => integer(n, 0, Number.MAX_SAFE_INTEGER)) &&
     list(
       s.events,
       35,
@@ -468,7 +434,6 @@ export function validSnapshot(s) {
         [
           "hazard",
           "fight",
-          "match",
           "round",
           "jump",
           "swing",

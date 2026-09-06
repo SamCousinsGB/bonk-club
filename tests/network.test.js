@@ -63,70 +63,100 @@ test("room codes and network snapshots are validated", () => {
   assert.ok(validSnapshot(new World().snapshot()));
   assert.ok(!validSnapshot({ players: [] }));
 });
-test("four peers join, ready, start, send only controls, synchronise state, then recover from disconnect", async () => {
-  const state = [],
-    ends = [];
-  const host = new Room({ onEnd: (r) => ends.push(r) }, FakePeer),
-    clients = Array.from(
-      { length: 3 },
-      () => new Room({ onState: (s) => state.push(s) }, FakePeer),
-    );
+test("rooms start with one human, hot joins replace AI and departures preserve the running match", async () => {
+  let world;
+  const states = [];
+  const host = new Room(
+    {
+      onStart: () => {
+        world = new World({ players: [0] });
+      },
+      onRoster: (roster) => {
+        if (!world) return;
+        for (const p of world.players)
+          world.replacePlayer(p.id, !roster.some((q) => q.id === p.id));
+        host.sendState(world.snapshot());
+      },
+    },
+    FakePeer,
+  );
+  const clients = Array.from(
+    { length: 4 },
+    () => new Room({ onState: (s) => states.push(s) }, FakePeer),
+  );
   try {
     const code = await host.create();
-    assert.ok(validCode(code));
-    assert.equal(host.start(), false);
-    for (const client of clients) await client.join(code);
+    assert.ok(host.running);
+    assert.equal(world.players.filter((p) => p.bot).length, 3);
+    world.phase = "fight";
+    world.elapsed = 32;
+    world.round = 7;
+    world.scores = [8, 6, 4, 2];
+    for (const c of clients.slice(0, 3)) await c.join(code);
     await tick();
     assert.equal(host.roster.length, 4);
-    assert.equal(host.start(), false);
-    for (const c of clients) c.ready(true);
-    await tick();
-    assert.ok(host.roster.every((p) => p.ready));
-    assert.equal(host.start(), true);
-    await tick();
-    assert.ok(clients.every((c) => c.running));
+    assert.ok(clients.slice(0, 3).every((c) => c.running));
+    assert.equal(world.players.filter((p) => p.bot).length, 0);
+    assert.equal(world.round, 7);
+    assert.equal(world.elapsed, 32);
+    assert.deepEqual(world.scores, [8, 0, 0, 0]);
+    assert.ok(states.some((s) => s.round === 7));
+    await assert.rejects(() => clients[3].join(code), /full/);
     clients[0].sendInput({ attack: true, x: 99, hp: 1000 });
     await tick();
     assert.equal(host.getInputs()[1].attack, true);
     assert.equal(host.getInputs()[1].x, undefined);
     assert.equal(host.getInputs(performance.now() + 1000)[1].attack, false);
-    const world = new World({ players: [0, 1, 2, 3] });
-    host.sendState(world.snapshot());
+    world.scores = [8, 12, 3, 2];
+    const oldConnection = host.connections.get(1);
+    clients[0].close();
     await tick();
-    assert.equal(state.length, 3);
-    assert.deepEqual(state[0].scores, world.scores);
-    clients[2].close();
-    await tick();
-    assert.equal(host.running, false);
-    assert.equal(host.roster.length, 3);
-    assert.equal(ends.length, 1);
-  } finally {
-    host.close();
-    clients.forEach((c) => c.close());
-  }
-});
-test("a fifth player and late arrivals receive clear rejection", async () => {
-  const host = new Room({}, FakePeer),
-    clients = Array.from({ length: 4 }, () => new Room({}, FakePeer));
-  try {
-    const code = await host.create();
-    for (const c of clients.slice(0, 3)) await c.join(code);
-    await assert.rejects(() => clients[3].join(code), /full/);
-    assert.equal(host.roster.length, 4);
-    for (const c of clients.slice(0, 3)) c.ready(true);
-    await tick();
-    host.start();
-    const late = new Room({}, FakePeer);
+    assert.ok(host.running);
+    assert.ok(world.players[1].bot);
+    assert.deepEqual(world.scores, [8, 0, 3, 2]);
+    assert.equal(world.round, 7);
+    assert.equal(host.getInputs()[1], undefined);
+    const replacement = new Room({}, FakePeer);
     try {
-      await assert.rejects(() => late.join(code), /already started/);
+      await replacement.join(code);
+      await tick();
+      assert.equal(replacement.id, 1);
+      assert.equal(world.players[1].bot, false);
+      assert.equal(world.players[1].occupant, 3);
+      oldConnection.emit("data", { t: "input", input: { attack: true } });
+      oldConnection.emit("close");
+      assert.equal(host.getInputs()[1], undefined);
+      assert.equal(host.connections.size, 3);
+      assert.equal(world.players[1].bot, false);
     } finally {
-      late.close();
+      replacement.close();
     }
   } finally {
     host.close();
     clients.forEach((c) => c.close());
   }
 });
+
+test("a late join gets the current snapshot immediately without a start or ready message", async () => {
+  let received;
+  const host = new Room({}, FakePeer),
+    guest = new Room({ onState: (s) => (received = s) }, FakePeer);
+  try {
+    const code = await host.create();
+    const world = new World({ players: [0] });
+    world.round = 14;
+    world.phase = "fight";
+    host.sendState(world.snapshot());
+    await guest.join(code);
+    await tick();
+    assert.equal(guest.running, true);
+    assert.equal(received.round, 14);
+  } finally {
+    host.close();
+    guest.close();
+  }
+});
+
 test("invalid codes fail without opening a peer", async () => {
   const c = new Room({}, FakePeer);
   await assert.rejects(() => c.join("bad"), /six-character/);
@@ -145,9 +175,9 @@ test("public table claims are exclusive and other visitors can join the claimed 
     );
     claim.close();
     await guest.join("PUBAAA");
-    guest.ready(true);
     await tick();
-    assert.equal(host.start(), true);
+    assert.equal(host.running, true);
+    assert.equal(guest.running, true);
   } finally {
     host.close();
     claim.close();

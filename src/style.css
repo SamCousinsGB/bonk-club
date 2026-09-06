@@ -440,12 +440,44 @@ footer i {
 .score {
   width: 105px;
 }
+.score.leader {
+  border-top: 2px solid currentColor;
+  margin-top: -2px;
+}
+#invite {
+  position: absolute;
+  right: 0;
+  top: 64px;
+  min-width: 62px;
+  min-height: 44px;
+  border: 1px solid #ffffff55;
+  border-radius: 5px;
+  background: #172127ee;
+  font-size: 11px;
+  font-weight: 700;
+}
+#leader-label {
+  color: #e8f5c6;
+  font-size: 10px;
+}
+#invite-link {
+  font-size: 13px;
+  letter-spacing: 0;
+}
 .score-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
   font-weight: 800;
+}
+.score-top em {
+  display: block;
+  min-height: 10px;
+  font-size: 8px;
+  font-style: normal;
+  line-height: 1.3;
+  font-weight: 500;
 }
 .score-top b {
   font-size: 24px;
@@ -705,7 +737,27 @@ body.playing #scene-label {
     gap: 10px;
   }
   .round-meta {
-    display: none;
+    position: absolute;
+    left: 0;
+    top: 67px;
+    display: flex;
+    align-items: flex-start;
+    text-align: left;
+    max-width: calc(100% - 140px);
+    gap: 3px;
+    margin: 0;
+  }
+  .round-meta b {
+    font-size: 11px;
+  }
+  .round-meta span {
+    font-size: 8px;
+  }
+  #leader-label {
+    font-size: 9px;
+  }
+  #round-status {
+    top: 138px;
   }
 }
 @media (max-width: 600px) {
@@ -1003,7 +1055,7 @@ body.touch-playing #stage {
   .touch-playing #overview {
     display: block;
     z-index: 1;
-    top: max(76px, calc(env(safe-area-inset-top) + 64px));
+    top: max(132px, calc(env(safe-area-inset-top) + 124px));
     right: max(10px, env(safe-area-inset-right));
     width: 112px;
     height: 63px;

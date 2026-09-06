@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#15191b" />
     <meta
       name="description"
-      content="Bonk Club: a browser fighting game for 2–4 players with physics combat, local multiplayer and online rooms."
+      content="Bonk Club: a browser physics fighting game with AI opponents, local multiplayer and online rooms."
     />
     <title>Bonk Club</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -44,14 +44,14 @@
         <div id="hud" class="hidden">
           <div id="scoreboard"></div>
           <div class="round-meta">
-            <span id="arena-name"></span><b id="round-label"></b>
+            <span id="arena-name"></span><b id="round-label"></b
+            ><span id="leader-label"></span>
           </div>
-          <button
-            id="pause"
-            class="icon-button"
-            aria-label="Pause or leave match"
-          >
-            Ⅱ
+          <button id="pause" class="icon-button" aria-label="Open game menu">
+            ☰
+          </button>
+          <button id="invite" class="hidden" aria-label="Copy invite link">
+            INVITE
           </button>
           <div id="round-status" class="hidden" role="status"></div>
         </div>
@@ -59,10 +59,14 @@
         <section id="menu" class="menu-panel">
           <h1>BONK<br /><span>CLUB</span></h1>
           <div class="menu-buttons">
-            <button id="local" class="button primary">
-              LOCAL MULTIPLAYER <span>↗</span></button
-            ><button id="online" class="button secondary">
+            <button id="solo" class="button primary">
+              SINGLE PLAYER <span>↗</span>
+            </button>
+            <button id="online" class="button secondary">
               ONLINE MULTIPLAYER <span>↗</span>
+            </button>
+            <button id="local" class="button secondary">
+              LOCAL MULTIPLAYER <span>↗</span>
             </button>
             <button id="menu-controls" class="button secondary">
               CONTROLS

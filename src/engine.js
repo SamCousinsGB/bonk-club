@@ -1,3 +1,4 @@
+import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
 import { updateHazards } from "./hazards.js";
 import { SKYSCRAPERS } from "./skyscrapers.js";
@@ -292,21 +293,27 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 export class World {
   constructor({
     players = [0, 1],
-    target = 5,
+    bots = [],
     arena = 0,
     shuffle = true,
     random = Math.random,
     arenaPool = null,
   } = {}) {
     if (
-      players.length < 2 ||
+      players.length < 1 ||
       players.length > 4 ||
       new Set(players).size !== players.length ||
       players.some((i) => !Number.isInteger(i) || i < 0 || i > 3)
     )
-      throw new Error("Bonk Club requires 2–4 distinct players.");
-    this.ids = players;
-    this.target = target;
+      throw new Error("Choose 1–4 distinct player slots.");
+    this.ids = players.length === 1 ? [0, 1, 2, 3] : [...players];
+    this.botIds = new Set(
+      players.length === 1
+        ? this.ids.filter((id) => !players.includes(id))
+        : bots,
+    );
+    this.occupants = [0, 0, 0, 0];
+    this.ai = new BotController();
     this.arenaIndex = arena;
     this.shuffle = shuffle;
     this.arenaPool = arenaPool || ARENAS.map((_, i) => i);
@@ -329,42 +336,8 @@ export class World {
       dx: 0,
       dy: 0,
     }));
-    this.players = this.ids.map((id, n) => {
-      const [x, y] = this.arena.spawns[n];
-      return {
-        id,
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        hp: 100,
-        alive: true,
-        facing: n % 2 ? -1 : 1,
-        ground: false,
-        coyote: 0,
-        jumps: 0,
-        jumpHeld: false,
-        throwHeld: false,
-        pickupCooldown: 0,
-        support: null,
-        block: false,
-        blockTime: 0,
-        stamina: 100,
-        stun: 0,
-        cooldown: 0,
-        swing: 0,
-        weapon: null,
-        ammo: 0,
-        walk: 0,
-        flash: 0,
-        prone: false,
-        aimAngle: n % 2 ? Math.PI : 0,
-        rig: null,
-        bodyAngle: 0,
-        angularVelocity: 0,
-        landing: 0,
-      };
-    });
+    this.players = this.ids.map((id) => this.makePlayer(id));
+    this.ai.reset();
     this.projectiles = [];
     this.drops = (this.arena.weapons || []).map(([x, y, type]) => ({
       x,
@@ -394,6 +367,100 @@ export class World {
     this.winner = null;
     this.events = [];
   }
+  makePlayer(id) {
+    const [x, y] = this.arena.spawns[this.ids.indexOf(id)];
+    return {
+      id,
+      bot: this.botIds.has(id),
+      occupant: this.occupants[id],
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      hp: 100,
+      alive: true,
+      facing: id % 2 ? -1 : 1,
+      ground: false,
+      coyote: 0,
+      jumps: 0,
+      jumpHeld: false,
+      throwHeld: false,
+      pickupCooldown: 0,
+      support: null,
+      block: false,
+      blockTime: 0,
+      stamina: 100,
+      stun: 0,
+      cooldown: 0,
+      swing: 0,
+      weapon: null,
+      ammo: 0,
+      walk: 0,
+      flash: 0,
+      prone: false,
+      aimAngle: id % 2 ? Math.PI : 0,
+      rig: null,
+      bodyAngle: 0,
+      angularVelocity: 0,
+      landing: 0,
+    };
+  }
+  replacePlayer(id, bot) {
+    if (!this.ids.includes(id) || this.botIds.has(id) === bot) return;
+    if (bot) this.botIds.add(id);
+    else this.botIds.delete(id);
+    this.scores[id] = 0;
+    this.occupants[id]++;
+    this.ai.forget(id);
+    const previous = this.players.find((p) => p.id === id);
+    // A live fighter is taken over in place. Eliminated arrivals enter at a clear spawn.
+    const p =
+      !previous.alive && this.phase === "fight"
+        ? this.makePlayer(id)
+        : previous;
+    if (p !== previous) {
+      const surfaces = this.platforms.filter(
+        (s) => !s.move && !s.travel && s.w >= 100,
+      );
+      const choices = surfaces
+        .flatMap((s) =>
+          [s.x + 35, s.x + s.w - 35].map((x) => ({ x, y: s.y - 30 })),
+        )
+        .filter(
+          (q) =>
+            !this.solids().some(
+              (s) =>
+                q.x + 16 > s.x &&
+                q.x - 16 < s.x + s.w &&
+                q.y + 29 > s.y &&
+                q.y - 29 < s.y + s.h,
+            ),
+        )
+        .filter(
+          (q) =>
+            !this.hazards.some(
+              (h) =>
+                Math.abs(q.x - h.x) < h.w / 2 + 30 &&
+                q.y > h.y - h.h - 30 &&
+                q.y < h.y + 30,
+            ),
+        );
+      choices.sort(
+        (a, b) =>
+          Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
+      );
+      if (choices[0]) Object.assign(p, choices[0]);
+      this.players[this.players.indexOf(previous)] = p;
+    }
+    Object.assign(p, {
+      bot,
+      occupant: this.occupants[id],
+      jumpHeld: false,
+      throwHeld: false,
+      block: false,
+    });
+    if (this.phase === "result" && this.winner === id) this.winner = null;
+  }
   event(type, data = {}) {
     this.events.push({ id: ++this.nextEvent, type, ...data });
     if (this.events.length > 35) this.events.shift();
@@ -401,7 +468,6 @@ export class World {
   step(dt, inputs = {}) {
     dt = clamp(dt, 0, 0.025);
     this.time += dt;
-    if (this.phase === "match") return;
     if (this.hitstop > 0) {
       this.hitstop -= dt;
       return;
@@ -417,30 +483,27 @@ export class World {
       this.updateRagdolls(dt);
       this.phaseTime -= dt;
       if (this.phaseTime <= 0) {
-        if (this.winner !== null && this.scores[this.winner] >= this.target) {
-          this.phase = "match";
-          this.event("match", { winner: this.winner });
-        } else {
-          this.round++;
-          if (this.shuffle) {
-            if (!this.remainingArenas.length)
-              this.remainingArenas = [...this.arenaPool];
-            const choices = this.remainingArenas.filter(
-              (i) => i !== this.arenaIndex,
-            );
-            this.arenaIndex =
-              choices[Math.floor(this.random() * choices.length)] ??
-              this.arenaIndex;
-            this.remainingArenas = this.remainingArenas.filter(
-              (i) => i !== this.arenaIndex,
-            );
-          }
-          this.startRound();
+        this.round++;
+        if (this.shuffle) {
+          if (!this.remainingArenas.length)
+            this.remainingArenas = [...this.arenaPool];
+          const choices = this.remainingArenas.filter(
+            (i) => i !== this.arenaIndex,
+          );
+          this.arenaIndex =
+            choices[Math.floor(this.random() * choices.length)] ??
+            this.arenaIndex;
+          this.remainingArenas = this.remainingArenas.filter(
+            (i) => i !== this.arenaIndex,
+          );
         }
+        this.startRound();
       }
       return;
     }
     const active = this.phase === "fight";
+    if (active && this.botIds.size)
+      inputs = { ...inputs, ...this.ai.inputs(this, dt) };
     if (!active) {
       this.phaseTime -= dt;
       if (this.phaseTime <= 0) {
@@ -1199,7 +1262,6 @@ export class World {
       elapsed: this.elapsed,
       time: this.time,
       winner: this.winner,
-      target: this.target,
       events: this.events,
     };
   }

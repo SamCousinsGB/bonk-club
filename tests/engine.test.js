@@ -15,8 +15,11 @@ function fight() {
   Object.assign(b, { x: 650, y: 535, ground: true, facing: -1 });
   return w;
 }
-test("no single player or duplicate slots can start a match", () => {
-  assert.throws(() => new World({ players: [0] }));
+test("single player fills empty slots with AI and invalid slots cannot start", () => {
+  const solo = new World({ players: [0] });
+  assert.equal(solo.players.length, 4);
+  assert.equal(solo.players.filter((p) => p.bot).length, 3);
+  assert.throws(() => new World({ players: [] }));
   assert.throws(() => new World({ players: [0, 0] }));
   assert.throws(() => new World({ players: [0, 1, 2, 3, 4] }));
 });
@@ -174,15 +177,61 @@ test("a ring-out awards exactly one point then advances to a fresh round", () =>
   assert.equal(w.scores[0], 1);
   assert.equal(w.phase, "countdown");
 });
-test("reaching the target ends the match", () => {
+test("scores keep increasing beyond the old match limit without ending play", () => {
   const w = fight();
-  w.target = 1;
-  w.players[1].y = H + 180;
-  w.step(STEP);
-  advance(w, 2.9);
-  assert.equal(w.phase, "match");
-  assert.equal(w.winner, 0);
+  w.scores[0] = 50;
+  for (let n = 0; n < 12; n++) {
+    w.phase = "fight";
+    w.players[1].y = H + 180;
+    w.step(STEP);
+    advance(w, 2.9);
+    assert.equal(w.phase, "countdown");
+    assert.equal(w.round, n + 2);
+    assert.equal(w.scores[0], 51 + n);
+  }
 });
+
+test("slot replacement resets only its score, keeps a live body and persists into the next round", () => {
+  const w = new World({ players: [0] });
+  w.phase = "fight";
+  w.elapsed = 42;
+  w.scores = [9, 12, 4, 7];
+  const body = w.players[1];
+  body.hp = 52;
+  body.weapon = "minigun";
+  body.ammo = 20;
+  w.replacePlayer(1, false);
+  assert.equal(w.players[1], body);
+  assert.equal(body.hp, 52);
+  assert.equal(body.weapon, "minigun");
+  assert.equal(body.bot, false);
+  assert.equal(body.occupant, 1);
+  assert.deepEqual(w.scores, [9, 0, 4, 7]);
+  assert.equal(w.elapsed, 42);
+  w.scores[1] = 5;
+  w.replacePlayer(1, false);
+  assert.equal(w.scores[1], 5, "unchanged roster must not reset a score");
+  w.startRound();
+  assert.equal(w.players[1].bot, false);
+  assert.equal(w.players[1].occupant, 1);
+  w.replacePlayer(1, true);
+  assert.equal(w.scores[1], 0);
+  assert.equal(w.players[1].bot, true);
+});
+
+test("joining an eliminated bot spawns a living player without restarting the round", () => {
+  const w = new World({ players: [0], arena: 18 });
+  w.phase = "fight";
+  w.round = 8;
+  w.kill(w.players[2]);
+  w.replacePlayer(2, false);
+  assert.equal(w.players[2].alive, true);
+  assert.equal(w.players[2].bot, false);
+  assert.equal(w.players[2].hp, 100);
+  assert.equal(w.round, 8);
+  assert.equal(w.phase, "fight");
+});
+
 test("simultaneous ring-outs produce a draw without awarding a point", () => {
   const w = fight();
   for (const p of w.players) p.y = H + 180;
@@ -229,7 +278,6 @@ test("seeded four-player combat stays finite across every arena", () => {
       arena,
       random: rand,
       shuffle: false,
-      target: 10,
     });
     let inputs = {};
     for (let n = 0; n < 7200; n++) {
