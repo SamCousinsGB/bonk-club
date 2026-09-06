@@ -26,7 +26,7 @@ test("network input only accepts literal booleans, never player position or dama
       jump: false,
       attack: true,
       block: false,
-      pickup: false,
+      throw: false,
       duck: false,
       aim: null,
     },
@@ -106,7 +106,7 @@ test("jump has a rising edge and allows exactly one extra air jump", () => {
   w.step(STEP, { 0: { jump: true } });
   assert.equal(p.jumps, 2);
 });
-test("weapon pickup swaps equipment and empty ammo returns to fists", () => {
+test("weapon pickup equips an unarmed player and empty ammo returns to fists", () => {
   const w = fight(),
     p = w.players[0];
   w.drops = [
@@ -118,7 +118,7 @@ test("weapon pickup swaps equipment and empty ammo returns to fists", () => {
   assert.equal(p.weapon, null);
   assert.equal(w.projectiles[0].kind, "rocket");
 });
-test("all six weapons have a working attack and consume ammunition", () => {
+test("all weapons have a working attack and consume ammunition", () => {
   for (const type of Object.keys(WEAPONS)) {
     const w = fight(),
       p = w.players[0];
@@ -239,7 +239,7 @@ test("seeded four-player combat stays finite across every arena", () => {
               attack: rand() < 0.8,
               block: rand() < 0.25,
               jump: rand() < 0.5,
-              pickup: rand() < 0.5,
+              throw: rand() < 0.5,
             },
           ]),
         );

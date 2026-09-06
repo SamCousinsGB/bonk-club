@@ -50,9 +50,11 @@ button:hover {
 #stage:has(.dialog:not(.hidden)) #menu,
 #stage:has(.dialog:not(.hidden)) #scene-label {
   pointer-events: none;
-  opacity: .25;
+  opacity: 0.25;
 }
-body.playing canvas { cursor: crosshair; }
+body.playing canvas {
+  cursor: crosshair;
+}
 #app {
   max-width: 1800px;
   margin: auto;
@@ -754,4 +756,11 @@ body.playing #scene-label {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+footer {
+  justify-content: center;
+}
+body:not(.playing) footer {
+  visibility: hidden;
 }

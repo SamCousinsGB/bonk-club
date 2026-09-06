@@ -1,9 +1,9 @@
 import PeerModule from "peerjs";
 const Peer = PeerModule.Peer ?? PeerModule;
-import { cleanInput } from "./engine.js";
+import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v1-";
+const PREFIX = "bonkclub-v2-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -336,7 +336,7 @@ export class Room {
 const finite = (n) =>
   typeof n === "number" && Number.isFinite(n) && Math.abs(n) < 10000000;
 const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
-const weaponTypes = ["bat", "sword", "blaster", "shotgun", "rocket", "grenade"];
+const weaponTypes = Object.keys(WEAPONS);
 const list = (value, max, check) =>
   Array.isArray(value) &&
   value.length <= max &&
@@ -347,7 +347,7 @@ export function validSnapshot(s) {
     !!s &&
     typeof s === "object" &&
     ["countdown", "fight", "result", "match"].includes(s.phase) &&
-    integer(s.arenaIndex, 0, 7) &&
+    integer(s.arenaIndex, 0, ARENAS.length - 1) &&
     integer(s.round, 1, 100000) &&
     [3, 5, 10].includes(s.target) &&
     [s.phaseTime, s.elapsed, s.time].every(finite) &&
@@ -383,11 +383,28 @@ export function validSnapshot(s) {
       12,
       (p) =>
         xy(p) &&
-        [p.w, p.h, p.baseX, p.dx].every(finite) &&
+        [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
         p.w > 0 &&
         p.w < 2000 &&
         p.h > 0 &&
         p.h < 1000,
+    ) &&
+    list(
+      s.cover,
+      20,
+      (c) =>
+        xy(c) &&
+        [c.w, c.h, c.hp, c.maxHp].every(finite) &&
+        c.w > 0 &&
+        c.h > 0 &&
+        c.hp >= 0 &&
+        c.hp <= c.maxHp &&
+        c.kind === "table",
+    ) &&
+    list(
+      s.debris,
+      90,
+      (d) => xy(d) && [d.w, d.h, d.angle, d.life].every(finite),
     ) &&
     list(
       s.projectiles,
@@ -395,7 +412,9 @@ export function validSnapshot(s) {
       (p) =>
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
-        ["bullet", "pellet", "rocket", "grenade"].includes(p.kind),
+        ["bullet", "pellet", "rocket", "grenade", "rail", "plasma"].includes(
+          p.kind,
+        ),
     ) &&
     list(
       s.drops,
@@ -433,6 +452,9 @@ export function validSnapshot(s) {
           "shoot",
           "explosion",
           "pickup",
+          "throw",
+          "coverhit",
+          "break",
         ].includes(e.type) &&
         (e.x === undefined || xy(e)) &&
         (e.color === undefined ||

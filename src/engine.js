@@ -1,3 +1,5 @@
+import { SKYSCRAPERS } from "./skyscrapers.js";
+import { segmentBox, playerBox } from "./collision.js";
 import {
   JOINTS,
   makeRig,
@@ -13,8 +15,7 @@ export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
 const platform = (x, y, w, h = 22, extra = {}) => ({ x, y, w, h, ...extra });
 export const ARENAS = [
   {
-    name: "THE USUAL SUSPECTS",
-    tag: "A classic place to lose friends.",
+    name: "PLATFORMS",
     color: "#283c38",
     platforms: [
       platform(180, 565, 920, 38),
@@ -30,8 +31,7 @@ export const ARENAS = [
     spikes: [],
   },
   {
-    name: "MIND THE GAP",
-    tag: "Your friendship has a small gap in it.",
+    name: "SPLIT FLOOR",
     color: "#33364b",
     platforms: [
       platform(130, 535, 350, 40),
@@ -47,8 +47,7 @@ export const ARENAS = [
     spikes: [{ x: 493, y: 675, w: 294 }],
   },
   {
-    name: "POINT TAKEN",
-    tag: "Blocking is a perfectly good weapon.",
+    name: "SPIKES",
     color: "#41372f",
     platforms: [platform(200, 570, 880, 32), platform(440, 410, 400)],
     spawns: [
@@ -64,8 +63,7 @@ export const ARENAS = [
     ],
   },
   {
-    name: "SOCIAL CLIMBERS",
-    tag: "It is lonely at the top.",
+    name: "TIERS",
     color: "#293c46",
     platforms: [
       platform(140, 590, 280),
@@ -83,8 +81,7 @@ export const ARENAS = [
     spikes: [],
   },
   {
-    name: "SLIPPERY SLOPE",
-    tag: "No brakes. Absolutely no dignity.",
+    name: "ICE",
     color: "#304449",
     platforms: [
       platform(170, 565, 940, 38, { ice: true }),
@@ -103,8 +100,7 @@ export const ARENAS = [
     ],
   },
   {
-    name: "MOVING OUT",
-    tag: "The floor has other plans.",
+    name: "MOVING PLATFORMS",
     color: "#413344",
     platforms: [
       platform(120, 570, 260),
@@ -122,8 +118,7 @@ export const ARENAS = [
     spikes: [],
   },
   {
-    name: "BAD NEIGHBOURS",
-    tag: "A very short commute to violence.",
+    name: "SIDE BALCONIES",
     color: "#403c28",
     platforms: [
       platform(310, 570, 660, 40),
@@ -142,8 +137,7 @@ export const ARENAS = [
     ],
   },
   {
-    name: "LAST RESORT",
-    tag: "Smaller island. Bigger problems.",
+    name: "ISLAND",
     color: "#2e4241",
     platforms: [
       platform(400, 555, 480, 45),
@@ -162,10 +156,12 @@ export const ARENAS = [
       { x: 850, y: 675, w: 380 },
     ],
   },
+  ...SKYSCRAPERS,
 ];
+export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const WEAPONS = {
   bat: {
-    name: "BONK BAT",
+    name: "BAT",
     range: 94,
     damage: 35,
     force: 760,
@@ -174,7 +170,7 @@ export const WEAPONS = {
     kind: "melee",
   },
   sword: {
-    name: "POOL NOODLE",
+    name: "SWORD",
     range: 112,
     damage: 28,
     force: 520,
@@ -183,7 +179,7 @@ export const WEAPONS = {
     kind: "melee",
   },
   blaster: {
-    name: "PEW PEW",
+    name: "PISTOL",
     damage: 17,
     force: 350,
     cooldown: 0.25,
@@ -192,7 +188,7 @@ export const WEAPONS = {
     speed: 1300,
   },
   shotgun: {
-    name: "PERSONAL SPACE",
+    name: "SHOTGUN",
     damage: 10,
     force: 230,
     cooldown: 0.85,
@@ -201,7 +197,7 @@ export const WEAPONS = {
     speed: 1050,
   },
   rocket: {
-    name: "BAD IDEA",
+    name: "ROCKET LAUNCHER",
     damage: 64,
     force: 1100,
     cooldown: 1.1,
@@ -210,13 +206,57 @@ export const WEAPONS = {
     speed: 680,
   },
   grenade: {
-    name: "HOT POTATO",
+    name: "GRENADE",
     damage: 58,
     force: 1050,
     cooldown: 0.9,
     ammo: 4,
     kind: "grenade",
     speed: 470,
+  },
+  minigun: {
+    name: "MINIGUN",
+    damage: 10,
+    force: 190,
+    cooldown: 0.075,
+    ammo: 80,
+    kind: "bullet",
+    speed: 1650,
+    recoil: 24,
+    spread: 0.045,
+  },
+  railgun: {
+    name: "RAILGUN",
+    damage: 85,
+    force: 1250,
+    cooldown: 1.25,
+    ammo: 4,
+    kind: "rail",
+    speed: 4600,
+    recoil: 350,
+  },
+  plasma: {
+    name: "PLASMA CANNON",
+    damage: 48,
+    force: 850,
+    cooldown: 0.65,
+    ammo: 7,
+    kind: "plasma",
+    speed: 850,
+    recoil: 150,
+    radius: 105,
+  },
+  barrage: {
+    name: "TRIPLE ROCKET LAUNCHER",
+    damage: 52,
+    force: 1150,
+    cooldown: 1.6,
+    ammo: 3,
+    kind: "rocket",
+    speed: 780,
+    recoil: 340,
+    count: 3,
+    radius: 180,
   },
 };
 export const emptyInput = () => ({
@@ -225,7 +265,7 @@ export const emptyInput = () => ({
   jump: false,
   attack: false,
   block: false,
-  pickup: false,
+  throw: false,
   duck: false,
   aim: null,
 });
@@ -245,6 +285,7 @@ export class World {
     arena = 0,
     shuffle = true,
     random = Math.random,
+    arenaPool = null,
   } = {}) {
     if (
       players.length < 2 ||
@@ -257,6 +298,7 @@ export class World {
     this.target = target;
     this.arenaIndex = arena;
     this.shuffle = shuffle;
+    this.arenaPool = arenaPool || ARENAS.map((_, i) => i);
     this.random = random;
     this.scores = [0, 0, 0, 0];
     this.round = 1;
@@ -267,10 +309,13 @@ export class World {
   }
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
-    this.platforms = this.arena.platforms.map((p) => ({
+    this.platforms = this.arena.platforms.map((p, i) => ({
+      id: "floor" + i,
       ...p,
       baseX: p.x,
+      baseY: p.y,
       dx: 0,
+      dy: 0,
     }));
     this.players = this.ids.map((id, n) => {
       const [x, y] = this.arena.spawns[n];
@@ -287,7 +332,9 @@ export class World {
         coyote: 0,
         jumps: 0,
         jumpHeld: false,
-        pickHeld: false,
+        throwHeld: false,
+        pickupCooldown: 0,
+        support: null,
         block: false,
         blockTime: 0,
         stamina: 100,
@@ -307,7 +354,22 @@ export class World {
       };
     });
     this.projectiles = [];
-    this.drops = [];
+    this.drops = (this.arena.weapons || []).map(([x, y, type]) => ({
+      x,
+      y,
+      type,
+      ammo: WEAPONS[type].ammo,
+      vx: 0,
+      vy: 0,
+      life: 35,
+    }));
+    this.cover = (this.arena.cover || []).map((c, i) => ({
+      ...c,
+      id: "cover" + i,
+      dx: 0,
+      dy: 0,
+    }));
+    this.debris = [];
     this.ragdolls = [];
     this.phase = "countdown";
     this.phaseTime = 2.4;
@@ -325,11 +387,17 @@ export class World {
     dt = clamp(dt, 0, 0.025);
     this.time += dt;
     if (this.phase === "match") return;
+    if (this.hitstop > 0) {
+      this.hitstop -= dt;
+      return;
+    }
+    this.movePlatforms();
+    this.updateDebris(dt);
     if (this.phase === "result") {
       for (const p of this.players)
         if (p.alive) {
           this.move(p, emptyInput(), dt);
-          updateRig(p, dt, this.platforms, this.time);
+          updateRig(p, dt, this.solids(), this.time);
         }
       this.updateRagdolls(dt);
       this.phaseTime -= dt;
@@ -339,25 +407,16 @@ export class World {
           this.event("match", { winner: this.winner });
         } else {
           this.round++;
-          this.arenaIndex = this.shuffle
-            ? (this.arenaIndex +
-                1 +
-                Math.floor(this.random() * (ARENAS.length - 1))) %
-              ARENAS.length
-            : this.arenaIndex;
+          if (this.shuffle) {
+            const choices = this.arenaPool.filter((i) => i !== this.arenaIndex);
+            this.arenaIndex =
+              choices[Math.floor(this.random() * choices.length)] ??
+              this.arenaIndex;
+          }
           this.startRound();
         }
       }
       return;
-    }
-    if (this.hitstop > 0) {
-      this.hitstop -= dt;
-      return;
-    }
-    for (const p of this.platforms) {
-      const old = p.x;
-      if (p.move) p.x = p.baseX + Math.sin(this.time * p.speed) * p.move;
-      p.dx = p.x - old;
     }
     const active = this.phase === "fight";
     if (!active) {
@@ -383,21 +442,22 @@ export class World {
     for (const p of this.players) {
       if (!p.alive) continue;
       const i = active ? cleanInput(inputs[p.id]) : emptyInput();
-      if (i.attack && p.cooldown <= 0 && p.stun <= 0 && !p.block)
+      if (i.throw && !p.throwHeld && p.stun <= 0) this.throwWeapon(p);
+      p.throwHeld = i.throw;
+      if (!i.throw && i.attack && p.cooldown <= 0 && p.stun <= 0 && !p.block)
         this.attack(p);
-      if (i.pickup && !p.pickHeld) this.pickup(p);
-      p.pickHeld = i.pickup;
     }
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         this.collidePlayers(this.players[a], this.players[b]);
     for (const p of this.players)
-      if (p.alive) updateRig(p, dt, this.platforms, this.time);
+      if (p.alive) updateRig(p, dt, this.solids(), this.time);
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         collideRigs(this.players[a], this.players[b]);
     this.updateProjectiles(dt);
     this.updateDrops(dt);
+    if (active) for (const p of this.players) if (p.alive) this.pickup(p);
     this.updateRagdolls(dt);
     if (active) {
       for (const p of this.players) {
@@ -426,13 +486,36 @@ export class World {
       }
     }
   }
+  solids() {
+    return [...this.platforms, ...this.cover.filter((c) => c.hp > 0)];
+  }
+  movePlatforms() {
+    for (const p of this.platforms) {
+      const oldX = p.x,
+        oldY = p.y;
+      if (p.move) p.x = p.baseX + Math.sin(this.time * p.speed) * p.move;
+      if (p.travel)
+        p.y =
+          p.baseY +
+          ((1 - Math.cos(this.time * p.speed + (p.phase || 0))) * p.travel) / 2;
+      p.dx = p.x - oldX;
+      p.dy = p.y - oldY;
+    }
+  }
   move(p, i, dt) {
+    const solids = this.solids();
+    const support = p.ground && solids.find((s) => s.id === p.support);
+    if (support) {
+      p.x += support.dx || 0;
+      p.y += support.dy || 0;
+    }
+    p.pickupCooldown = Math.max(0, p.pickupCooldown - dt);
     const wasProne = p.prone;
     p.prone = !!i.duck;
     if (
       wasProne &&
       !p.prone &&
-      this.platforms.some(
+      solids.some(
         (s) =>
           p.x + 15 > s.x &&
           p.x - 15 < s.x + s.w &&
@@ -482,8 +565,9 @@ export class World {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.ground = false;
+    p.support = null;
     p.ice = false;
-    for (const s of this.platforms) {
+    for (const s of solids) {
       if (
         p.x + radius <= s.x ||
         p.x - radius >= s.x + s.w ||
@@ -491,7 +575,10 @@ export class World {
         p.y - top >= s.y + s.h
       )
         continue;
-      if (oldY + bottom <= s.y + 3 && p.vy >= 0) {
+      if (
+        oldY + bottom <= s.y - (support === s ? 0 : s.dy || 0) + 3 &&
+        p.vy >= 0
+      ) {
         p.y = s.y - bottom;
         if (p.vy > 220) {
           p.landing = Math.min(1, p.vy / 900);
@@ -501,7 +588,7 @@ export class World {
         p.ground = true;
         p.jumps = 0;
         p.ice = !!s.ice;
-        p.x += s.dx;
+        p.support = s.id;
       } else if (oldY - top >= s.y + s.h - 3 && p.vy < 0) {
         p.y = s.y + s.h + top;
         p.vy = Math.abs(p.vy) * 0.2;
@@ -546,13 +633,37 @@ export class World {
     impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 90, ay * 90);
     if (w.kind === "melee") {
       let hit = false;
+      const obstruction = this.solids()
+        .map((s) => ({
+          s,
+          hit: segmentBox(
+            p.x,
+            p.y - 10,
+            p.x + ax * w.range,
+            p.y - 10 + ay * w.range,
+            s,
+            4,
+          ),
+        }))
+        .filter((c) => c.hit)
+        .sort((a, b) => a.hit.t - b.hit.t)[0];
+      const reach = obstruction ? obstruction.hit.t * w.range : w.range;
+      if (obstruction?.s.kind === "table") {
+        this.damageCover(
+          obstruction.s,
+          w.damage * 1.4,
+          ax * w.force,
+          ay * w.force,
+        );
+        hit = true;
+      }
       for (const q of this.players) {
         if (q.id === p.id || !q.alive) continue;
         const dx = q.x - p.x,
           dy = q.y - (p.y - 10),
           along = dx * ax + dy * ay,
           across = Math.abs(-dx * ay + dy * ax);
-        if (along > -9 && along < w.range && across < (q.prone ? 17 : 40)) {
+        if (along > -9 && along < reach && across < (q.prone ? 17 : 40)) {
           this.hit(
             q,
             p,
@@ -566,12 +677,15 @@ export class World {
       }
       if (!hit) this.event("swing", { x: p.x, y: p.y });
     } else {
-      const count = w.kind === "pellet" ? 5 : 1;
+      const count = w.count || (w.kind === "pellet" ? 5 : 1);
       for (let n = 0; n < count; n++) {
-        const spread = count > 1 ? (n - 2) * 0.12 : 0;
+        const spread =
+          count > 1
+            ? (n - (count - 1) / 2) * (w.kind === "rocket" ? 0.18 : 0.12)
+            : (this.random() - 0.5) * (w.spread || 0);
         this.projectiles.push({
-          x: p.x + ax * 40,
-          y: p.y - 10 + ay * 40,
+          x: p.x + ax * 12,
+          y: p.y - 10 + ay * 12,
           vx: w.speed * Math.cos(angle + spread),
           vy:
             w.speed * Math.sin(angle + spread) -
@@ -580,11 +694,23 @@ export class World {
           kind: w.kind,
           damage: w.damage,
           force: w.force,
-          life: w.kind === "grenade" ? 1.5 : 2.2,
-          r: w.kind === "rocket" ? 8 : w.kind === "grenade" ? 7 : 4,
+          life: w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.5 : 2.2,
+          radius: w.radius || 145,
+          bounces: w.kind === "plasma" ? 2 : 0,
+          hitIds: [],
+          r:
+            w.kind === "plasma"
+              ? 11
+              : w.kind === "rocket"
+                ? 8
+                : w.kind === "grenade"
+                  ? 7
+                  : 4,
         });
       }
-      const recoil = w.kind === "rocket" ? 240 : w.kind === "pellet" ? 150 : 40;
+      const recoil =
+        w.recoil ||
+        (w.kind === "rocket" ? 240 : w.kind === "pellet" ? 150 : 40);
       p.vx -= ax * recoil;
       p.vy -= ay * recoil;
       impulseRig(
@@ -664,155 +790,329 @@ export class World {
     this.event("ko", { x: p.x, y: p.y, color: COLORS[p.id] });
   }
   pickup(p) {
+    if (p.weapon || p.pickupCooldown > 0 || !p.alive) return;
     let best = null,
-      dist = 62;
+      dist = 48;
     for (const d of this.drops) {
+      if (d.armed || d.lock > 0 || (d.owner === p.id && d.ownerLock > 0))
+        continue;
       const v = Math.hypot(p.x - d.x, p.y - d.y);
-      if (v < dist) {
+      if (
+        v < dist &&
+        !this.solids().some((s) => segmentBox(p.x, p.y, d.x, d.y, s))
+      ) {
         best = d;
         dist = v;
       }
     }
     if (best) {
-      if (p.weapon)
-        this.drops.push({
-          x: p.x,
-          y: p.y - 20,
-          vx: -p.facing * 120,
-          vy: -220,
-          type: p.weapon,
-          ammo: p.ammo,
-          life: 12,
-        });
       p.weapon = best.type;
       p.ammo = best.ammo;
       this.drops = this.drops.filter((d) => d !== best);
       this.event("pickup", { x: p.x, y: p.y, color: COLORS[p.id] });
     }
   }
-  spawnWeapon() {
-    if (this.drops.length >= 5) return;
-    const s = this.platforms[Math.floor(this.random() * this.platforms.length)];
-    const type = Object.keys(WEAPONS)[Math.floor(this.random() * 6)];
+  throwWeapon(p) {
+    if (!p.weapon) return;
+    const ax = Math.cos(p.aimAngle),
+      ay = Math.sin(p.aimAngle);
     this.drops.push({
-      x: s.x + s.w * (0.2 + this.random() * 0.6),
-      y: s.y - 180,
+      x: p.x + ax * 12,
+      y: p.y - 10 + ay * 12,
+      vx: ax * 850 + p.vx * 0.4,
+      vy: ay * 850 - 140 + p.vy * 0.2,
+      type: p.weapon,
+      ammo: p.ammo,
+      life: 18,
+      owner: p.id,
+      lock: 0.22,
+      ownerLock: 1,
+      armed: true,
+      angle: p.aimAngle,
+      spin: p.facing * 17,
+    });
+    p.weapon = null;
+    p.ammo = 0;
+    p.pickupCooldown = 0.35;
+    p.swing = 0.22;
+    p.cooldown = Math.max(p.cooldown, 0.22);
+    impulseRig(p, p.x + ax * 25, p.y - 10, ax * 250, ay * 250);
+    this.event("throw", { x: p.x, y: p.y });
+  }
+  spawnWeapon() {
+    if (this.drops.length >= 6) return;
+    const platforms = this.platforms.filter((p) => p.w >= 90);
+    const s = platforms[Math.floor(this.random() * platforms.length)];
+    const types = Object.keys(WEAPONS);
+    const type = types[Math.floor(this.random() * types.length)];
+    const x = s.x + s.w * (0.2 + this.random() * 0.6);
+    // Spawn within the chosen storey instead of falling onto the roof above it.
+    this.drops.push({
+      x,
+      y: s.y - 75,
       vx: 0,
       vy: 0,
       type,
       ammo: WEAPONS[type].ammo,
-      life: 18,
+      life: 25,
     });
   }
   updateDrops(dt) {
     for (const d of this.drops) {
       d.life -= dt;
-      const oldY = d.y;
+      d.lock = Math.max(0, (d.lock || 0) - dt);
+      d.ownerLock = Math.max(0, (d.ownerLock || 0) - dt);
+      const support = this.solids().find((s) => s.id === d.support);
+      if (support) {
+        d.x += support.dx || 0;
+        d.y += support.dy || 0;
+      }
+      d.support = null;
+      const x = d.x,
+        y = d.y;
       d.vy += 1000 * dt;
+      const endX = x + d.vx * dt,
+        endY = y + d.vy * dt;
+      d.angle = (d.angle || 0) + (d.spin || 0) * dt;
+      const hits = this.solids().map((s) => ({
+        s,
+        hit: segmentBox(x, y, endX, endY, s, 7),
+      }));
+      if (d.armed)
+        for (const p of this.players) {
+          if (!p.alive || (p.id === d.owner && d.ownerLock > 0)) continue;
+          hits.push({ p, hit: segmentBox(x, y, endX, endY, playerBox(p), 7) });
+        }
+      const collision = hits
+        .filter((c) => c.hit)
+        .sort((a, b) => a.hit.t - b.hit.t)[0];
+      d.x = endX;
+      d.y = endY;
+      if (collision) {
+        const { s, p, hit } = collision;
+        d.x = x + (endX - x) * hit.t + hit.nx * 0.2;
+        d.y = y + (endY - y) * hit.t + hit.ny * 0.2;
+        if (p)
+          this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 560, Math.sign(d.vx) || 1);
+        if (s?.kind === "table" && d.armed) this.damageCover(s, 38, d.vx, d.vy);
+        if (s && hit.ny === -1) {
+          d.y = s.y - 7;
+          d.vy = 0;
+          d.vx *= 0.85;
+          d.spin = 0;
+          d.angle = -0.12;
+          d.support = s.id;
+        } else {
+          if (hit.nx) d.vx *= -0.3;
+          if (hit.ny) d.vy *= -0.3;
+          if (p) {
+            d.vx *= -0.25;
+            d.vy = -160;
+          }
+          d.spin = (d.spin || 0) * 0.4;
+        }
+        d.armed = false;
+      }
+    }
+    this.drops = this.drops.filter(
+      (d) => d.life > 0 && d.y < H + 100 && d.x > -150 && d.x < W + 150,
+    );
+  }
+  damageCover(c, damage, vx = 0, vy = 0) {
+    if (c.hp <= 0) return;
+    c.hp = Math.max(0, c.hp - damage);
+    this.event(c.hp ? "coverhit" : "break", {
+      x: c.x + c.w / 2,
+      y: c.y + c.h / 2,
+      color: "#c89566",
+    });
+    if (c.hp > 0) return;
+    for (let n = 0; n < 9; n++)
+      this.debris.push({
+        x: c.x + ((n % 3) * c.w) / 3,
+        y: c.y + (Math.floor(n / 3) * c.h) / 3,
+        vx: vx * 0.2 + (this.random() - 0.5) * 320,
+        vy: Math.min(-80, vy * 0.2 - this.random() * 260),
+        angle: this.random() * Math.PI,
+        spin: (this.random() - 0.5) * 18,
+        w: 12 + this.random() * 20,
+        h: 5 + this.random() * 6,
+        life: 2.5,
+      });
+    this.debris = this.debris.slice(-90);
+  }
+  updateDebris(dt) {
+    for (const d of this.debris) {
+      d.life -= dt;
+      d.vy += 1500 * dt;
+      const oldY = d.y;
       d.x += d.vx * dt;
       d.y += d.vy * dt;
+      d.angle += d.spin * dt;
       for (const s of this.platforms)
-        if (
-          d.x > s.x &&
-          d.x < s.x + s.w &&
-          oldY + 8 <= s.y + 2 &&
-          d.y + 8 >= s.y &&
-          d.vy > 0
-        ) {
-          d.y = s.y - 8;
-          d.vy = 0;
-          d.vx *= 0.9;
-          d.x += s.dx;
+        if (d.x > s.x && d.x < s.x + s.w && oldY <= s.y && d.y >= s.y) {
+          d.y = s.y - 1;
+          d.vy *= -0.3;
+          d.vx *= 0.65;
+          d.spin *= 0.5;
         }
     }
-    this.drops = this.drops.filter((d) => d.life > 0 && d.y < H + 100);
+    this.debris = this.debris.filter((d) => d.life > 0 && d.y < H + 100);
   }
   explode(b) {
+    const radius = b.radius || 145;
     this.event("explosion", { x: b.x, y: b.y });
+    // Cover present at detonation absorbs this blast, even if the blast breaks it.
+    const cover = this.cover.filter((c) => c.hp > 0);
     for (const p of this.players) {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
-      if (dist < 145) {
-        const scale = 1 - dist / 190;
-        const source = { x: b.x, y: b.y, vx: 0, vy: 0, stun: 0 };
-        this.hit(
-          p,
-          source,
-          b.damage * scale,
-          b.force * scale,
-          Math.sign(p.x - b.x) || 1,
-          -0.7,
+      const walls = this.platforms.some((s) =>
+        segmentBox(b.x, b.y, p.x, p.y, s),
+      );
+      if (dist >= radius || walls) continue;
+      const shield = cover.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
+      const scale = (1 - dist / (radius * 1.32)) * (shield ? 0.12 : 1);
+      this.hit(
+        p,
+        { x: b.x, y: b.y, vx: 0, vy: 0, stun: 0 },
+        b.damage * scale,
+        b.force * scale,
+        Math.sign(p.x - b.x) || 1,
+        -0.7,
+      );
+    }
+    for (const c of cover) {
+      const x = clamp(b.x, c.x, c.x + c.w),
+        y = clamp(b.y, c.y, c.y + c.h);
+      if (
+        Math.hypot(b.x - x, b.y - y) < radius &&
+        !this.platforms.some((s) => segmentBox(b.x, b.y, x, y, s))
+      )
+        this.damageCover(
+          c,
+          b.damage * 1.7,
+          Math.sign(c.x + c.w / 2 - b.x) * b.force,
+          -b.force * 0.5,
         );
-      }
     }
   }
   updateProjectiles(dt) {
     for (const b of this.projectiles) {
       b.life -= dt;
-      const oldY = b.y;
+      const x = b.x,
+        y = b.y;
+      b.px = x;
+      b.py = y;
       if (b.kind === "grenade") b.vy += 1100 * dt;
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-      let impact = false;
-      for (const s of this.platforms)
-        if (
-          b.x > s.x - b.r &&
-          b.x < s.x + s.w + b.r &&
-          b.y > s.y - b.r &&
-          b.y < s.y + s.h + b.r
-        ) {
-          if (b.kind === "grenade") {
-            if (oldY <= s.y) {
-              b.y = s.y - b.r;
-              b.vy = -Math.abs(b.vy) * 0.6;
-              b.vx *= 0.75;
-            } else b.vx *= -0.6;
-          } else impact = true;
-        }
+      const endX = x + b.vx * dt,
+        endY = y + b.vy * dt;
+      const collisions = this.solids().map((s) => ({
+        s,
+        hit: segmentBox(x, y, endX, endY, s, b.r),
+      }));
       if (b.kind !== "grenade")
         for (const p of this.players) {
-          if (
-            !p.alive ||
-            p.id === b.owner ||
-            Math.abs(p.x - b.x) > (p.prone ? 34 : 18) + b.r ||
-            Math.abs(p.y - b.y) > (p.prone ? 10 : 28) + b.r
-          )
+          if (!p.alive || p.id === b.owner || b.hitIds?.includes(p.id))
             continue;
-          impact = true;
-          if (b.kind !== "rocket") {
-            const source = {
-              x: b.x - Math.sign(b.vx) * 35,
-              y: b.y,
-              vx: 0,
-              vy: 0,
-              stun: 0,
-            };
-            if (
-              p.block &&
-              p.blockTime < 0.18 &&
-              (source.x - p.x) * p.facing > 0
-            ) {
-              b.owner = p.id;
-              b.vx *= -1;
-              b.x = p.x + p.facing * 35;
-              impact = false;
-              this.event("parry", { x: p.x, y: p.y, color: COLORS[p.id] });
-              break;
-            }
-            this.hit(p, source, b.damage, b.force, Math.sign(b.vx));
+          collisions.push({
+            p,
+            hit: segmentBox(x, y, endX, endY, playerBox(p), b.r),
+          });
+        }
+      collisions.sort((a, b) => (a.hit?.t ?? 2) - (b.hit?.t ?? 2));
+      b.x = endX;
+      b.y = endY;
+      let impact = false,
+        redirected = false;
+      for (const collision of collisions) {
+        if (!collision.hit) continue;
+        const { s, p, hit } = collision;
+        if (s?.kind === "table" && s.hp <= 0) continue;
+        b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
+        b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
+        if (s) {
+          if (s.kind === "table") {
+            this.damageCover(
+              s,
+              b.kind === "rail" ? 180 : b.damage,
+              b.vx * 0.3,
+              b.vy * 0.3,
+            );
+            if (b.kind === "rail" && s.hp <= 0) continue;
           }
+          if (b.kind === "grenade" || (b.kind === "plasma" && b.bounces > 0)) {
+            const damp = b.kind === "grenade" ? 0.6 : 1;
+            if (hit.nx) b.vx *= -damp;
+            if (hit.ny) {
+              b.vy *= -damp;
+              if (b.kind === "grenade") b.vx *= 0.8;
+            }
+            b.bounces = (b.bounces || 0) - 1;
+            redirected = true;
+            break;
+          }
+          impact = true;
           break;
         }
+        if (["rocket", "plasma"].includes(b.kind)) {
+          impact = true;
+          break;
+        }
+        const source = {
+          x: b.x - Math.sign(b.vx) * 35,
+          y: b.y,
+          vx: 0,
+          vy: 0,
+          stun: 0,
+        };
+        if (p.block && p.blockTime < 0.18 && (source.x - p.x) * p.facing > 0) {
+          b.owner = p.id;
+          b.vx *= -1;
+          b.vy *= -1;
+          b.hitIds = [];
+          b.x = p.x + p.facing * ((p.prone ? 34 : 18) + b.r + 2);
+          this.event("parry", { x: p.x, y: p.y, color: COLORS[p.id] });
+          redirected = true;
+          break;
+        }
+        this.hit(
+          p,
+          source,
+          b.damage,
+          b.force,
+          Math.sign(b.vx) || 0.1,
+          Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
+        );
+        if (b.kind === "rail") {
+          (b.hitIds ||= []).push(p.id);
+          continue;
+        }
+        impact = true;
+        break;
+      }
+      // A piercing beam carries on to the end of its swept segment after passing cover or a player.
+      if (!impact && !redirected && b.kind === "rail") {
+        b.x = endX;
+        b.y = endY;
+      }
       if (
         (impact || b.life <= 0) &&
-        (b.kind === "rocket" || b.kind === "grenade")
+        ["rocket", "grenade", "plasma"].includes(b.kind)
       )
         this.explode(b);
       if (impact) b.life = 0;
     }
-    this.projectiles = this.projectiles.filter(
-      (b) => b.life > 0 && b.x > -200 && b.x < W + 200 && b.y < H + 200,
-    );
+    this.projectiles = this.projectiles
+      .filter(
+        (b) =>
+          b.life > 0 &&
+          b.x > -200 &&
+          b.x < W + 200 &&
+          b.y > -300 &&
+          b.y < H + 200,
+      )
+      .slice(-100);
   }
   updateRagdolls(dt) {
     const joints = JOINTS;
@@ -859,6 +1159,8 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
+      cover: this.cover,
+      debris: this.debris,
       projectiles: this.projectiles,
       drops: this.drops,
       ragdolls: this.ragdolls,

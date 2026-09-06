@@ -31,7 +31,7 @@ class FakePeer extends EventEmitter {
     super();
     this.id = id || "client-" + Math.random();
     if (FakePeer.peers.has(this.id)) {
-      queueMicrotask(() => this.emit("error", {type:"unavailable-id"}));
+      queueMicrotask(() => this.emit("error", { type: "unavailable-id" }));
       return;
     }
     FakePeer.peers.set(this.id, this);
@@ -133,8 +133,24 @@ test("invalid codes fail without opening a peer", async () => {
   assert.equal(c.peer, null);
   c.close();
 });
-test("public table claims are exclusive and other visitors can join the claimed table",async()=>{
-  const host=new Room({},FakePeer),claim=new Room({},FakePeer),guest=new Room({},FakePeer);
-  try {await host.create('PUBAAA');await assert.rejects(()=>claim.create('PUBAAA'),error=>error.type==='unavailable-id');claim.close();await guest.join('PUBAAA');guest.ready(true);await tick();assert.equal(host.start(),true);}
-  finally {host.close();claim.close();guest.close();}
+test("public table claims are exclusive and other visitors can join the claimed table", async () => {
+  const host = new Room({}, FakePeer),
+    claim = new Room({}, FakePeer),
+    guest = new Room({}, FakePeer);
+  try {
+    await host.create("PUBAAA");
+    await assert.rejects(
+      () => claim.create("PUBAAA"),
+      (error) => error.type === "unavailable-id",
+    );
+    claim.close();
+    await guest.join("PUBAAA");
+    guest.ready(true);
+    await tick();
+    assert.equal(host.start(), true);
+  } finally {
+    host.close();
+    claim.close();
+    guest.close();
+  }
 });

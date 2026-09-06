@@ -34,7 +34,12 @@ export class Renderer {
     for (const e of events || []) {
       if (e.id <= this.lastEvent) continue;
       this.lastEvent = e.id;
-      sound?.play(e.type);
+      sound?.play(
+        e.type === "shoot" &&
+          ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
+          ? e.kind
+          : e.type,
+      );
       if (
         [
           "hit",
@@ -45,6 +50,8 @@ export class Renderer {
           "jump",
           "shoot",
           "pickup",
+          "coverhit",
+          "break",
         ].includes(e.type)
       ) {
         const count = e.type === "explosion" ? 38 : e.type === "ko" ? 28 : 12;
@@ -64,19 +71,6 @@ export class Renderer {
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
           this.shake = e.type === "explosion" ? 16 : e.type === "ko" ? 12 : 7;
-          const words = {
-            hit: "BONK!",
-            ko: "SEE YA.",
-            parry: "NOPE!",
-            explosion: "OOPS.",
-          };
-          this.words.push({
-            x: e.x,
-            y: e.y - 55,
-            text: words[e.type],
-            color: e.type === "parry" ? "#d5fa43" : "#f5f7e9",
-            life: 0.7,
-          });
         }
       }
     }
@@ -131,14 +125,177 @@ export class Renderer {
       c.fillRect(0, 0, 800, H);
     }
   }
+  city(arena, platforms) {
+    if (!arena.city) return;
+    const c = this.ctx;
+    // Distant windows establish the height beyond the open building edges.
+    for (let n = 0; n < 17; n++) {
+      const x = n * 83 - 20,
+        roof = 270 + Math.sin(n * 7.1) * 125;
+      c.fillStyle = "#0a192b99";
+      c.fillRect(x, roof, 66, H - roof);
+      for (let y = roof + 15; y < H; y += 28)
+        for (let k = 0; k < 3; k++) {
+          c.fillStyle =
+            (n + k + Math.floor(y / 28)) % 3 ? "#a6c7ef12" : "#ffcd791e";
+          c.fillRect(x + 10 + k * 17, y, 7, 11);
+        }
+    }
+    for (const tower of arena.towers || []) {
+      c.fillStyle = "#0916219c";
+      c.fillRect(tower.x, tower.y, tower.w, tower.h);
+      c.strokeStyle = "#819aab22";
+      c.lineWidth = 3;
+      c.strokeRect(tower.x, tower.y, tower.w, tower.h);
+      c.save();
+      c.beginPath();
+      c.rect(tower.x, tower.y, tower.w, tower.h);
+      c.clip();
+      for (let y = tower.y + 28; y < H; y += 180) {
+        for (let x = tower.x + 18; x < tower.x + tower.w - 30; x += 90) {
+          const light = c.createLinearGradient(x, y, x + 66, y + 110);
+          light.addColorStop(0, "#8ebed51c");
+          light.addColorStop(1, "#57789508");
+          c.fillStyle = light;
+          c.fillRect(x, y, 66, 118);
+          c.strokeStyle = "#9ccad525";
+          c.lineWidth = 2;
+          c.strokeRect(x, y, 66, 118);
+          this.line(
+            [
+              [x + 33, y],
+              [x + 33, y + 118],
+            ],
+            "#9ccad51a",
+            1,
+          );
+        }
+        c.fillStyle = "#e7dcb855";
+        c.fillRect(tower.x + 35, y - 15, 80, 3);
+        c.fillRect(tower.x + tower.w - 115, y - 15, 80, 3);
+      }
+      c.restore();
+    }
+    for (const p of platforms)
+      if (p.elevator) {
+        const top = Math.min(p.baseY, p.baseY + p.travel) - 90;
+        const bottom = Math.max(p.baseY, p.baseY + p.travel) + p.h;
+        c.fillStyle = "#050f1bd9";
+        c.fillRect(p.x - 3, top, p.w + 6, bottom - top);
+        for (const x of [p.x + 3, p.x + p.w - 3]) {
+          this.line(
+            [
+              [x, top],
+              [x, bottom],
+            ],
+            "#637e8a77",
+            3,
+          );
+          this.line(
+            [
+              [x + 5, top],
+              [x + 5, p.y],
+            ],
+            "#a5bac644",
+            1,
+          );
+        }
+        for (let y = top + 18; y < bottom; y += 40) {
+          this.line(
+            [
+              [p.x - 5, y],
+              [p.x + 8, y],
+            ],
+            "#70859466",
+            2,
+          );
+          this.line(
+            [
+              [p.x + p.w - 8, y],
+              [p.x + p.w + 5, y],
+            ],
+            "#70859466",
+            2,
+          );
+        }
+      }
+  }
+  table(p) {
+    if (p.hp <= 0) return;
+    const c = this.ctx;
+    c.fillStyle = "#14202a99";
+    c.fillRect(p.x + 7, p.y + p.h - 3, p.w, 7);
+    c.fillStyle = "#362d2b";
+    c.fillRect(p.x + 5, p.y + 7, 7, p.h - 7);
+    c.fillRect(p.x + p.w - 12, p.y + 7, 7, p.h - 7);
+    c.fillStyle = "#825941";
+    c.fillRect(p.x + 8, p.y + 8, p.w - 16, p.h - 18);
+    c.fillStyle = "#b88b62";
+    c.fillRect(p.x, p.y, p.w, 9);
+    c.fillStyle = "#e1b582";
+    c.fillRect(p.x, p.y, p.w, 3);
+    this.line(
+      [
+        [p.x + 15, p.y + 21],
+        [p.x + p.w - 17, p.y + 21],
+      ],
+      "#d29c6533",
+      1,
+    );
+    if (p.hp < p.maxHp * 0.7)
+      this.line(
+        [
+          [p.x + p.w * 0.48, p.y + 2],
+          [p.x + p.w * 0.4, p.y + 19],
+          [p.x + p.w * 0.57, p.y + 26],
+          [p.x + p.w * 0.49, p.y + p.h - 12],
+        ],
+        "#271f23",
+        3,
+      );
+    if (p.hp < p.maxHp * 0.35)
+      this.line(
+        [
+          [p.x + 13, p.y + 8],
+          [p.x + 29, p.y + 27],
+          [p.x + 17, p.y + p.h - 10],
+        ],
+        "#271f23",
+        3,
+      );
+  }
+  fragments(debris) {
+    const c = this.ctx;
+    for (const d of debris || []) {
+      c.save();
+      c.translate(d.x, d.y);
+      c.rotate(d.angle);
+      c.globalAlpha = Math.min(1, d.life);
+      c.fillStyle = "#b48660";
+      c.fillRect(-d.w / 2, -d.h / 2, d.w, d.h);
+      c.restore();
+    }
+  }
   platform(p, time) {
     const c = this.ctx;
     c.save();
     c.fillStyle = "#0714143d";
     c.fillRect(p.x + 18, p.y + 22, p.w, p.h + 150);
-    c.fillStyle = p.ice ? "#638f95" : "#677665";
+    c.fillStyle = p.elevator
+      ? "#3c4853"
+      : p.material
+        ? "#586774"
+        : p.ice
+          ? "#638f95"
+          : "#677665";
     c.fillRect(p.x, p.y, p.w, p.h);
-    c.fillStyle = p.ice ? "#b4e6eb" : "#c1cc8f";
+    c.fillStyle = p.elevator
+      ? "#efb656"
+      : p.material
+        ? "#a0b3bc"
+        : p.ice
+          ? "#b4e6eb"
+          : "#c1cc8f";
     c.fillRect(p.x, p.y, p.w, 5);
     c.fillStyle = "#182c2755";
     c.fillRect(p.x, p.y + p.h - 7, p.w, 7);
@@ -149,6 +306,35 @@ export class Renderer {
       c.moveTo(x, p.y + 7);
       c.lineTo(x - 10, p.y + p.h - 7);
       c.stroke();
+    }
+    if (p.elevator) {
+      for (let x = p.x + 8; x < p.x + p.w - 6; x += 20)
+        this.line(
+          [
+            [x, p.y + 8],
+            [x - 5, p.y + 14],
+          ],
+          "#e4ac56",
+          4,
+        );
+      this.line(
+        [
+          [p.x + 3, p.y - 38],
+          [p.x + 3, p.y],
+        ],
+        "#aebdc5",
+        4,
+      );
+      this.line(
+        [
+          [p.x + p.w - 3, p.y - 38],
+          [p.x + p.w - 3, p.y],
+        ],
+        "#aebdc5",
+        4,
+      );
+      c.fillStyle = "#e9b450";
+      c.fillRect(p.x + 10, p.y + 8, 4, 4);
     }
     if (p.move) {
       c.setLineDash([3, 8]);
@@ -250,6 +436,99 @@ export class Renderer {
         7,
       );
     }
+    if (["minigun", "railgun", "plasma", "barrage"].includes(type)) {
+      const accent = {
+        minigun: "#f3c66e",
+        railgun: "#76e9ff",
+        plasma: "#d699ff",
+        barrage: "#ffa780",
+      }[type];
+      c.fillStyle = "#18212c";
+      c.fillRect(-12, -10, 36, 19);
+      c.fillRect(-2, 6, 9, 14);
+      c.fillStyle = "#6b7a86";
+      c.fillRect(-9, -9, 23, 10);
+      if (type === "minigun") {
+        this.circle(-7, 6, 11, "#424c55");
+        for (let y = -7; y <= 7; y += 7)
+          this.line(
+            [
+              [14, y],
+              [45, y],
+            ],
+            "#a7b8c0",
+            4,
+          );
+        c.fillStyle = "#3e4e59";
+        c.fillRect(30, -11, 7, 22);
+      } else if (type === "railgun") {
+        this.line(
+          [
+            [8, -7],
+            [57, -7],
+          ],
+          "#93adbb",
+          5,
+        );
+        this.line(
+          [
+            [8, 7],
+            [57, 7],
+          ],
+          "#93adbb",
+          5,
+        );
+        this.line(
+          [
+            [10, 0],
+            [58, 0],
+          ],
+          accent,
+          3,
+        );
+        for (let x = 12; x < 40; x += 9) {
+          c.fillStyle = accent;
+          c.fillRect(x, -11, 3, 22);
+        }
+      } else if (type === "plasma") {
+        this.circle(19, 0, 13, "#584279");
+        this.circle(19, 0, 8, accent);
+        c.fillStyle = "#9aaec2";
+        c.fillRect(30, -9, 10, 18);
+        this.line(
+          [
+            [40, -7],
+            [48, -11],
+          ],
+          accent,
+          3,
+        );
+        this.line(
+          [
+            [40, 7],
+            [48, 11],
+          ],
+          accent,
+          3,
+        );
+      } else {
+        c.fillStyle = "#4d5860";
+        c.fillRect(-20, -15, 57, 29);
+        for (let y = -10; y <= 10; y += 10) {
+          this.line(
+            [
+              [-15, y],
+              [38, y],
+            ],
+            "#91a3a5",
+            6,
+          );
+          this.circle(38, y, 3, accent);
+        }
+      }
+      c.fillStyle = accent;
+      c.fillRect(-8, -8, 13, 3);
+    }
     if (type === "grenade") {
       this.circle(8, 0, 10, "#9fc66f");
       this.line(
@@ -350,13 +629,32 @@ export class Renderer {
         { x: 635, y: 570, w: 390, h: 35 },
         { x: 1055, y: 430, w: 220, h: 30 },
         { x: 815, y: 305, w: 155, h: 25 },
-      ].map((s) => ({ ...s, baseX: s.x, dx: 0 }));
+      ].map((s, i) => ({
+        ...s,
+        id: "floor" + i,
+        baseX: s.x,
+        baseY: s.y,
+        dx: 0,
+        dy: 0,
+      }));
       w.players.forEach((p, i) =>
         Object.assign(p, { x: [720, 940, 1150][i], y: [400, 400, 325][i] }),
       );
       w.players[1].weapon = "bat";
       w.players[1].ammo = 99;
-      w.players[2].weapon = "blaster";
+      w.cover = [
+        {
+          id: "cover0",
+          x: 820,
+          y: 520,
+          w: 90,
+          h: 50,
+          hp: 75,
+          maxHp: 75,
+          kind: "table",
+        },
+      ];
+      w.players[2].weapon = "plasma";
       w.players[2].ammo = 99;
     }
     const w = this.demoWorld;
@@ -385,17 +683,14 @@ export class Renderer {
       });
     }
     this.background("#283b35", time, true);
-    c.save();
-    c.globalAlpha = 0.045;
-    c.translate(1000, 190);
-    c.rotate(-0.13);
-    c.fillStyle = "#d5fa43";
-    c.font = "900 140px 'Barlow Condensed',Impact,sans-serif";
-    c.textAlign = "center";
-    c.fillText("BAD COMPANY", 0, 0);
-    c.restore();
+    this.city(
+      { city: true, towers: [{ x: 635, y: 130, w: 640, h: 650 }] },
+      w.platforms,
+    );
     for (const p of w.platforms) this.platform(p, time);
     for (const p of w.players) this.fighter(p, time, 1.2, false);
+    for (const c of w.cover) this.table(c);
+    this.fragments(w.debris);
     for (const r of w.ragdolls) {
       for (const [a, b] of JOINTS)
         this.line(
@@ -427,6 +722,7 @@ export class Renderer {
       return;
     }
     this.background(ARENAS[state.arenaIndex].color, time);
+    this.city(ARENAS[state.arenaIndex], state.platforms);
     c.save();
     if (!this.reduced && this.shake > 0)
       c.translate(
@@ -464,7 +760,13 @@ export class Renderer {
       c.save();
       c.shadowBlur = 20;
       c.shadowColor = "#d5fa43";
-      this.weapon(d.type, d.x, d.y - 4, 1, -0.15 + Math.sin(time * 2) * 0.08);
+      this.weapon(
+        d.type,
+        d.x,
+        d.y - 4,
+        1,
+        d.angle ?? -0.15 + Math.sin(time * 2) * 0.08,
+      );
       c.restore();
       c.textAlign = "center";
       c.fillStyle = "#cfdbb3";
@@ -496,8 +798,39 @@ export class Renderer {
       c.globalAlpha = 1;
     }
     for (const p of state.players) this.fighter(p, time);
+    for (const cover of state.cover || []) this.table(cover);
+    this.fragments(state.debris);
     for (const b of state.projectiles) {
-      if (b.kind === "rocket") {
+      if (b.kind === "rail") {
+        this.line(
+          [
+            [b.x - b.vx * 0.05, b.y - b.vy * 0.05],
+            [b.x, b.y],
+          ],
+          "#57d9ff44",
+          14,
+        );
+        this.line(
+          [
+            [b.x - b.vx * 0.05, b.y - b.vy * 0.05],
+            [b.x, b.y],
+          ],
+          "#c8fbff",
+          4,
+        );
+      } else if (b.kind === "plasma") {
+        this.circle(b.x, b.y, 19, "#c77eff22");
+        this.circle(b.x, b.y, 11, "#c08bf6");
+        this.circle(b.x, b.y, 5, "#f4dcff");
+        this.line(
+          [
+            [b.x - b.vx * 0.04, b.y - b.vy * 0.04],
+            [b.x, b.y],
+          ],
+          "#c987ff55",
+          7,
+        );
+      } else if (b.kind === "rocket") {
         c.save();
         c.translate(b.x, b.y);
         c.rotate(Math.atan2(b.vy, b.vx));

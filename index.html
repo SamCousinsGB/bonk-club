@@ -9,17 +9,16 @@
     <meta name="theme-color" content="#15191b" />
     <meta
       name="description"
-      content="Bonk Club. A tiny physics brawler for 2–4 friends. Play together on the couch or join an online room, right in your browser."
+      content="Bonk Club: a browser fighting game for 2–4 players with physics combat, local multiplayer and online rooms."
     />
-    <title>Bonk Club — tiny fighters, terrible decisions</title>
+    <title>Bonk Club</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   </head>
   <body>
     <div id="app">
       <header>
         <a class="brand" href="./" aria-label="Bonk Club home"
-          ><span class="brand-mark">b.</span> BONK CLUB
-          <span class="version">PHYSICS PROTOTYPE / 01</span></a
+          ><span class="brand-mark">b.</span> BONK CLUB</a
         >
         <div class="header-actions">
           <button id="help" class="icon-button" aria-label="How to play">
@@ -57,30 +56,15 @@
         </div>
         <div id="announcement" role="status" aria-live="polite"></div>
         <section id="menu" class="menu-panel">
-          <div class="eyebrow">
-            <span class="live-dot"></span> 2–4 FRIENDS. ZERO DIGNITY.
-          </div>
-          <h1>
-            BONK<br /><span>CLUB<span class="asterisk">✳</span></span>
-          </h1>
-          <p class="menu-copy">
-            Small sticks. Big grudges.<br />Last one standing gets to be
-            insufferable.
-          </p>
+          <h1>BONK<br /><span>CLUB</span></h1>
           <div class="menu-buttons">
             <button id="local" class="button primary">
-              PLAY ON THE COUCH <span>↗</span></button
+              LOCAL MULTIPLAYER <span>↗</span></button
             ><button id="online" class="button secondary">
-              PLAY ONLINE <span>↗</span>
+              ONLINE MULTIPLAYER <span>↗</span>
             </button>
           </div>
-          <div class="menu-foot">
-            <span>NO DOWNLOADS</span><i></i><span>NO SINGLE PLAYER</span>
-          </div>
         </section>
-        <div id="scene-label">
-          <span>TONIGHT’S BAD IDEA</span><b>Bring fists to a rocket fight.</b>
-        </div>
         <section
           id="panel"
           class="dialog hidden"
@@ -95,17 +79,11 @@
             <button data-input="block" aria-label="Block">◈</button
             ><button data-input="jump" aria-label="Jump">↑</button
             ><button data-input="attack" aria-label="Attack">✳</button
-            ><button data-input="pickup" aria-label="Pick up weapon">↓</button>
+            ><button data-input="throw" aria-label="Throw weapon">↓</button>
           </div>
         </div>
       </main>
-      <footer>
-        <span
-          ><span class="live-dot"></span> FRIENDSHIP IS A CONTACT SPORT.</span
-        ><span id="footer-hint"
-          >KEYBOARD + CONTROLLERS <i> / </i> HEADPHONES ENCOURAGED</span
-        >
-      </footer>
+      <footer><span id="footer-hint"></span></footer>
       <div id="toast" class="hidden" role="status"></div>
     </div>
     <script type="module" src="./src/main.js"></script>
