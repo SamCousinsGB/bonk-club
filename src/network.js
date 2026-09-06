@@ -5,7 +5,7 @@ const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v5-";
+const PREFIX = "bonkclub-v6-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -187,8 +187,9 @@ export class Room {
       this.joinReject = reject;
       let welcomed = false;
       const c = (this.connection = this.peer.connect(PREFIX + code, {
-        reliable: false,
-        serialization: "json",
+        reliable: true,
+        // Combat snapshots exceed PeerJS JSON's 16 KB limit. Binary mode chunks them.
+        serialization: "binary",
       }));
       const t = this.later(() => {
         reject(

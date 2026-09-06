@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { Room, validCode, validSnapshot } from "../src/network.js";
-import { World } from "../src/engine.js";
+import { World, STEP } from "../src/engine.js";
+import { pack, unpack } from "peerjs-js-binarypack";
 const tick = () => new Promise((r) => setImmediate(r));
 class Connection extends EventEmitter {
   constructor() {
@@ -37,7 +38,13 @@ class FakePeer extends EventEmitter {
     FakePeer.peers.set(this.id, this);
     queueMicrotask(() => this.emit("open", this.id));
   }
-  connect(id) {
+  connect(id, options) {
+    assert.equal(
+      options.serialization,
+      "binary",
+      "running combat requires chunked binary transport",
+    );
+    assert.equal(options.reliable, true);
     const a = new Connection(),
       b = new Connection();
     a.other = b;
@@ -183,4 +190,29 @@ test("public table claims are exclusive and other visitors can join the claimed 
     claim.close();
     guest.close();
   }
+});
+
+test("large combat snapshots survive the binary wire format and still pass validation", async () => {
+  const w = new World({
+    players: [0, 1, 2, 3],
+    bots: [0, 1, 2, 3],
+    arena: 8,
+    random: () => 0.45,
+  });
+  let large = false;
+  for (let n = 0; n < 120 * 12; n++) {
+    w.step(STEP);
+    if (n % 30 !== 0) continue;
+    const snapshot = w.snapshot();
+    const encoded = await pack({ t: "state", state: snapshot });
+    const decoded = unpack(encoded);
+    large ||= JSON.stringify(snapshot).length > 16300;
+    assert.ok(validSnapshot(decoded.state));
+    assert.deepEqual(decoded.state.scores, snapshot.scores);
+    assert.equal(decoded.state.players.length, 4);
+  }
+  assert.ok(
+    large,
+    "exercise a real combat state larger than the old channel limit",
+  );
 });
