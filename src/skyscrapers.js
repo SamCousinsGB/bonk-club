@@ -1,177 +1,134 @@
+import { H } from "./scale.js";
 const floor = (x, y, w) => ({ x, y, w, h: 22, material: "concrete" });
-const lift = (x, y, w, travel, speed = 0.65, phase = 0) => ({
+const lift = (x, y, w, travel, speed = 0.28) => ({
   x,
   y,
   w,
   h: 18,
   travel,
   speed,
-  phase,
   elevator: true,
 });
-const table = (x, floorY, w = 90) => ({
+const table = (x, y) => ({
   x,
-  y: floorY - 50,
-  w,
+  y: y - 50,
+  w: 90,
   h: 50,
   hp: 75,
   maxHp: 75,
   kind: "table",
 });
-const tower = (x, y, w) => ({ x, y, w, h: 900 - y });
+const tower = (x, y, w) => ({ x, y, w, h: H + 160 - y });
+const floors = [1300, 1120, 940, 760, 580, 400, 220];
+
+function building({
+  name,
+  color,
+  towers,
+  rooms,
+  elevators,
+  bridges = [],
+  spikes = [],
+}) {
+  const platforms = [],
+    cover = [];
+  for (const [i, y] of floors.entries()) {
+    for (const [x, w] of rooms(i)) {
+      platforms.push(floor(x, y, w));
+      // Leave both exits clear; furniture creates several breakable sightlines.
+      for (let tx = x + 170; tx + 130 < x + w; tx += 260)
+        cover.push(table(tx, y));
+    }
+  }
+  // Outside landings offer a second way up without waiting for a lift.
+  for (const y of floors.slice(0, -1))
+    platforms.push(floor(30, y - 90, 80), floor(2450, y - 90, 80));
+  platforms.push(...elevators, ...bridges);
+  return {
+    name,
+    color,
+    city: true,
+    towers,
+    platforms,
+    cover,
+    spikes,
+    spawns: [
+      [220, 900],
+      [2340, 900],
+      [220, 360],
+      [2340, 360],
+    ],
+    weapons: [
+      [560, 922, "minigun"],
+      [2070, 922, "barrage"],
+      [550, 382, "railgun"],
+      [2060, 382, "plasma"],
+      [560, 1282, "shotgun"],
+      [2060, 1282, "rocket"],
+      [550, 202, "plasma"],
+      [2060, 202, "railgun"],
+    ],
+  };
+}
 
 export const SKYSCRAPERS = [
-  {
+  building({
     name: "OFFICE TOWER",
-    color: "#182d42",
-    city: true,
-    towers: [tower(130, 100, 1020)],
-    platforms: [
-      floor(130, 620, 1020),
-      floor(130, 440, 420),
-      floor(690, 440, 460),
-      floor(130, 260, 420),
-      floor(690, 260, 460),
-      lift(558, 620, 124, -360, 0.65),
-      floor(55, 350, 75),
-      floor(1150, 520, 75),
+    color: "#213341",
+    towers: [tower(130, 100, 2300)],
+    rooms: () => [
+      [130, 570],
+      [860, 740],
+      [1760, 670],
     ],
-    cover: [
-      table(280, 620),
-      table(900, 620),
-      table(340, 440),
-      table(850, 440),
-      table(320, 260),
-      table(860, 260),
-    ],
-    spawns: [
-      [195, 400],
-      [1080, 400],
-      [195, 220],
-      [1080, 220],
-    ],
-    weapons: [
-      [465, 422, "minigun"],
-      [755, 422, "railgun"],
-      [460, 602, "plasma"],
-      [760, 242, "barrage"],
-    ],
-    spikes: [],
-  },
-  {
+    elevators: [lift(720, 1300, 120, -1080), lift(1620, 220, 120, 1080)],
+  }),
+  building({
     name: "TWIN TOWERS",
-    color: "#26304b",
-    city: true,
-    towers: [tower(110, 80, 400), tower(770, 80, 400)],
-    platforms: [
-      floor(110, 620, 400),
-      floor(770, 620, 400),
-      floor(110, 440, 400),
-      floor(770, 440, 400),
-      floor(110, 260, 400),
-      floor(770, 260, 400),
-      floor(545, 135, 190),
-      lift(520, 620, 115, -360, 0.7),
-      lift(645, 260, 115, 360, 0.7),
+    color: "#293347",
+    towers: [tower(130, 100, 870), tower(1560, 100, 870)],
+    rooms: () => [
+      [130, 870],
+      [1560, 870],
     ],
-    cover: [
-      table(280, 620),
-      table(930, 620),
-      table(270, 440),
-      table(925, 440),
-      table(250, 260),
-      table(935, 260),
+    elevators: [lift(1020, 1300, 140, -1080), lift(1400, 220, 140, 1080)],
+    bridges: [
+      floor(1180, 1120, 200),
+      floor(1180, 760, 200),
+      floor(1180, 400, 200),
     ],
-    spawns: [
-      [180, 400],
-      [1100, 400],
-      [180, 220],
-      [1100, 220],
-    ],
-    weapons: [
-      [440, 422, "barrage"],
-      [835, 422, "shotgun"],
-      [435, 242, "railgun"],
-      [835, 242, "plasma"],
-    ],
-    spikes: [{ x: 510, y: 710, w: 260 }],
-  },
-  {
+    spikes: [{ x: 1010, y: 1420, w: 540 }],
+  }),
+  building({
     name: "CONSTRUCTION SITE",
-    color: "#383143",
-    city: true,
-    towers: [tower(170, 90, 940)],
-    platforms: [
-      floor(170, 625, 390),
-      floor(720, 625, 390),
-      floor(100, 455, 370),
-      floor(810, 455, 370),
-      floor(275, 285, 280),
-      floor(725, 285, 280),
-      floor(580, 160, 120),
-      lift(575, 625, 130, -340, 0.85),
-      { ...floor(110, 335, 120), move: 80, speed: 0.65 },
+    color: "#383b3c",
+    towers: [tower(130, 120, 570), tower(900, 90, 700), tower(1860, 120, 570)],
+    rooms: (i) => [
+      [130, i % 2 ? 520 : 550],
+      [900 + (i % 2) * 60, 640],
+      [1860, 570],
     ],
-    cover: [
-      table(360, 625),
-      table(830, 625),
-      table(245, 455),
-      table(950, 455),
-      table(390, 285),
-      table(805, 285),
+    elevators: [
+      lift(720, 1300, 140, -1080, 0.32),
+      lift(1680, 220, 140, 1080, 0.32),
     ],
-    spawns: [
-      [195, 410],
-      [1090, 410],
-      [310, 240],
-      [960, 240],
+    spikes: [
+      { x: 700, y: 1420, w: 180 },
+      { x: 1640, y: 1420, w: 200 },
     ],
-    weapons: [
-      [510, 607, "rocket"],
-      [775, 607, "barrage"],
-      [420, 437, "minigun"],
-      [860, 437, "railgun"],
-    ],
-    spikes: [{ x: 565, y: 710, w: 150 }],
-  },
-  {
+  }),
+  building({
     name: "SKYBRIDGE",
-    color: "#183c43",
-    city: true,
-    towers: [tower(95, 100, 350), tower(835, 100, 350)],
-    platforms: [
-      floor(95, 620, 350),
-      floor(835, 620, 350),
-      floor(95, 440, 350),
-      floor(835, 440, 350),
-      floor(95, 260, 350),
-      floor(550, 260, 180),
-      floor(835, 260, 350),
-      floor(560, 485, 160),
-      lift(455, 620, 95, -360, 0.7),
-      lift(730, 620, 95, -360, 0.7),
+    color: "#2b354a",
+    towers: [tower(130, 100, 690), tower(1740, 100, 690)],
+    rooms: (i) => [[130, 690], ...(i % 2 ? [[1040, 480]] : []), [1740, 690]],
+    elevators: [lift(860, 1300, 140, -1080), lift(1560, 220, 140, 1080)],
+    bridges: [
+      floor(1160, 1300, 240),
+      floor(1160, 940, 240),
+      floor(1160, 580, 240),
+      floor(1160, 220, 240),
     ],
-    cover: [
-      table(250, 620),
-      table(940, 620),
-      table(235, 440),
-      table(965, 440),
-      table(285, 260),
-      table(905, 260),
-      table(590, 260, 100),
-    ],
-    spawns: [
-      [165, 400],
-      [1115, 400],
-      [165, 220],
-      [1115, 220],
-    ],
-    weapons: [
-      [380, 422, "plasma"],
-      [900, 422, "minigun"],
-      [430, 242, "railgun"],
-      [790, 242, "barrage"],
-    ],
-    spikes: [{ x: 450, y: 710, w: 380 }],
-  },
+    spikes: [{ x: 830, y: 1420, w: 900 }],
+  }),
 ];

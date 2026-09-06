@@ -1,3 +1,4 @@
+import { combatFloor } from "./helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, cleanInput } from "../src/engine.js";
@@ -6,6 +7,7 @@ import { validSnapshot } from "../src/network.js";
 function setup() {
   const w = new World({ shuffle: false });
   w.phase = "fight";
+  combatFloor(w);
   Object.assign(w.players[0], { x: 600, y: 535, ground: true });
   Object.assign(w.players[1], { x: 980, y: 535, ground: true });
   return w;

@@ -480,6 +480,22 @@ footer i {
 .round-meta span {
   color: #9eaea2;
 }
+#round-status {
+  position: absolute;
+  top: max(76px, calc(env(safe-area-inset-top) + 70px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #131b20e8;
+  color: #ffb17e;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  white-space: pre-line;
+  pointer-events: none;
+}
 #announcement {
   position: absolute;
   pointer-events: none;

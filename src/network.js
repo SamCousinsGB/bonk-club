@@ -3,7 +3,7 @@ const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v2-";
+const PREFIX = "bonkclub-v3-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -380,18 +380,18 @@ export function validSnapshot(s) {
     new Set(s.players.map((p) => p.id)).size === s.players.length &&
     list(
       s.platforms,
-      12,
+      72,
       (p) =>
         xy(p) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
         p.w > 0 &&
-        p.w < 2000 &&
+        p.w < 3000 &&
         p.h > 0 &&
         p.h < 1000,
     ) &&
     list(
       s.cover,
-      20,
+      64,
       (c) =>
         xy(c) &&
         [c.w, c.h, c.hp, c.maxHp].every(finite) &&

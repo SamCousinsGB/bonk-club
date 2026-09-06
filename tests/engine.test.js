@@ -1,3 +1,5 @@
+import { H, SUDDEN_DEATH } from "../src/scale.js";
+import { combatFloor } from "./helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, ARENAS, WEAPONS, cleanInput } from "../src/engine.js";
@@ -7,6 +9,7 @@ const advance = (w, seconds, inputs = {}) => {
 function fight() {
   const w = new World({ arena: 0, shuffle: false, random: () => 0.4 });
   w.phase = "fight";
+  combatFloor(w);
   const [a, b] = w.players;
   Object.assign(a, { x: 600, y: 535, ground: true, facing: 1 });
   Object.assign(b, { x: 650, y: 535, ground: true, facing: -1 });
@@ -38,7 +41,7 @@ for (let arena = 0; arena < ARENAS.length; arena++)
     advance(w, 2.5);
     assert.equal(w.phase, "fight");
     assert.equal(w.players.filter((p) => p.alive).length, 4);
-    for (const p of w.players) assert.ok(Number.isFinite(p.x) && p.y < 720);
+    for (const p of w.players) assert.ok(Number.isFinite(p.x) && p.y < H);
   });
 test("a punch removes health and produces knockback and hitstop", () => {
   const w = fight();
@@ -162,7 +165,7 @@ test("bullets reflect from a timed parry", () => {
 });
 test("a ring-out awards exactly one point then advances to a fresh round", () => {
   const w = fight();
-  w.players[1].y = 900;
+  w.players[1].y = H + 180;
   w.step(STEP);
   assert.equal(w.phase, "result");
   assert.equal(w.scores[0], 1);
@@ -174,7 +177,7 @@ test("a ring-out awards exactly one point then advances to a fresh round", () =>
 test("reaching the target ends the match", () => {
   const w = fight();
   w.target = 1;
-  w.players[1].y = 900;
+  w.players[1].y = H + 180;
   w.step(STEP);
   advance(w, 2.9);
   assert.equal(w.phase, "match");
@@ -182,7 +185,7 @@ test("reaching the target ends the match", () => {
 });
 test("simultaneous ring-outs produce a draw without awarding a point", () => {
   const w = fight();
-  for (const p of w.players) p.y = 900;
+  for (const p of w.players) p.y = H + 180;
   w.step(STEP);
   assert.equal(w.phase, "result");
   assert.equal(w.winner, null);
@@ -191,14 +194,15 @@ test("simultaneous ring-outs produce a draw without awarding a point", () => {
 test("spikes eliminate on contact", () => {
   const w = new World({ arena: 2 });
   w.phase = "fight";
-  Object.assign(w.players[0], { x: 620, y: 530 });
+  const spike = w.arena.spikes[0];
+  Object.assign(w.players[0], { x: spike.x + 30, y: spike.y - 40 });
   w.step(STEP);
   assert.equal(w.players[0].alive, false);
 });
 test("sudden death prevents indefinite rounds", () => {
   const w = fight();
   w.players[1].x = 950;
-  w.elapsed = 45;
+  w.elapsed = SUDDEN_DEATH;
   advance(w, 14);
   assert.equal(w.phase, "result");
 });

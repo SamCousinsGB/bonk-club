@@ -7,9 +7,17 @@ import {
   impulseRig,
   collideRigs,
 } from "./puppet.js";
-export const W = 1280,
-  H = 720,
-  STEP = 1 / 120;
+import {
+  W,
+  H,
+  RUN_SPEED,
+  CRAWL_SPEED,
+  GUARD_SPEED,
+  SUDDEN_DEATH,
+  expandArena,
+} from "./scale.js";
+export { W, H } from "./scale.js";
+export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
 const platform = (x, y, w, h = 22, extra = {}) => ({ x, y, w, h, ...extra });
@@ -156,8 +164,9 @@ export const ARENAS = [
       { x: 850, y: 675, w: 380 },
     ],
   },
-  ...SKYSCRAPERS,
-];
+]
+  .map(expandArena)
+  .concat(SKYSCRAPERS);
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const WEAPONS = {
   bat: {
@@ -361,7 +370,7 @@ export class World {
       ammo: WEAPONS[type].ammo,
       vx: 0,
       vy: 0,
-      life: 35,
+      life: SUDDEN_DEATH,
     }));
     this.cover = (this.arena.cover || []).map((c, i) => ({
       ...c,
@@ -471,7 +480,7 @@ export class World {
             p.y - (p.prone ? 10 : 25) < s.y + 15
           )
             this.kill(p);
-        if (this.elapsed > 45) {
+        if (this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
           if (p.hp <= 0) this.kill(p);
         }
@@ -541,10 +550,13 @@ export class World {
     const dir = Number(i.right) - Number(i.left);
     if (dir && p.stun <= 0) {
       p.facing = dir;
-      const max = p.prone ? 130 : p.block ? 100 : 330;
-      p.vx += dir * (p.prone ? 550 : p.ground ? 2800 : 1700) * dt;
-      if (Math.abs(p.vx) > max && Math.sign(p.vx) === dir)
-        p.vx += (dir * max - p.vx) * Math.min(1, dt * 6);
+      const max = p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED;
+      const acceleration = p.prone ? 400 : p.ground ? 1500 : 950;
+      // Input approaches the run speed. External hit/recoil velocity can exceed it,
+      // but holding a direction must never add more speed above that limit.
+      if (p.vx * dir < max)
+        p.vx += dir * Math.min(acceleration * dt, max - p.vx * dir);
+      else p.vx += (dir * max - p.vx) * Math.min(1, dt * 3);
     } else if (p.ground)
       p.vx *= Math.pow(p.ice ? 0.985 : p.prone ? 0.984 : 0.86, dt * 120);
     else p.vx *= Math.pow(0.996, dt * 120);
@@ -582,7 +594,7 @@ export class World {
         p.y = s.y - bottom;
         if (p.vy > 220) {
           p.landing = Math.min(1, p.vy / 900);
-          p.angularVelocity += (p.vx / 330) * 1.8;
+          p.angularVelocity += (p.vx / RUN_SPEED) * 1.8;
         }
         p.vy = 0;
         p.ground = true;
@@ -694,7 +706,7 @@ export class World {
           kind: w.kind,
           damage: w.damage,
           force: w.force,
-          life: w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.5 : 2.2,
+          life: w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.8 : 4.5,
           radius: w.radius || 145,
           bounces: w.kind === "plasma" ? 2 : 0,
           hitIds: [],
@@ -840,7 +852,7 @@ export class World {
     this.event("throw", { x: p.x, y: p.y });
   }
   spawnWeapon() {
-    if (this.drops.length >= 6) return;
+    if (this.drops.length >= 12) return;
     const platforms = this.platforms.filter((p) => p.w >= 90);
     const s = platforms[Math.floor(this.random() * platforms.length)];
     const types = Object.keys(WEAPONS);
@@ -854,7 +866,7 @@ export class World {
       vy: 0,
       type,
       ammo: WEAPONS[type].ammo,
-      life: 25,
+      life: 60,
     });
   }
   updateDrops(dt) {

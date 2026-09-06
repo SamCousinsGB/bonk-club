@@ -1,3 +1,4 @@
+import { combatFloor } from "./helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -152,6 +153,7 @@ test("another finger cannot steal a thumb area", () => {
 test("touch inputs drive the real movement, two jumps and weapon throw without consuming ammo", () => {
   const w = new World({ arena: 0, shuffle: false });
   w.phase = "fight";
+  combatFloor(w);
   w.weaponTimer = 999;
   const p = w.players[0];
   Object.assign(p, { x: 600, y: 535, ground: true, weapon: "rocket", ammo: 1 });

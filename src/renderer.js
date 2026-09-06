@@ -1,3 +1,4 @@
+import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
@@ -99,7 +100,7 @@ export class Renderer {
       c.stroke();
     }
     c.fillStyle = "#0d1d202e";
-    for (let n = 0; n < 15; n++) {
+    for (let n = 0; n < Math.ceil(W / 100); n++) {
       let x = n * 100 - 25,
         y = 310 + Math.sin(n * 23) * 80;
       c.fillRect(x, y, 70 + (n % 3) * 13, H - y);
@@ -129,7 +130,7 @@ export class Renderer {
     if (!arena.city) return;
     const c = this.ctx;
     // Distant windows establish the height beyond the open building edges.
-    for (let n = 0; n < 17; n++) {
+    for (let n = 0; n < Math.ceil(W / 83); n++) {
       const x = n * 83 - 20,
         roof = 270 + Math.sin(n * 7.1) * 125;
       c.fillStyle = "#0a192b99";
@@ -597,7 +598,7 @@ export class Renderer {
       c.stroke();
     }
     if (showLabel) {
-      c.font = "700 10px 'DM Sans',sans-serif";
+      c.font = "700 18px 'DM Sans',sans-serif";
       c.textAlign = "center";
       c.fillStyle = COLORS[p.id];
       c.fillText(NAMES[p.id], 0, p.prone ? -35 : -64);
@@ -624,7 +625,8 @@ export class Renderer {
         target: 5,
       }));
       w.phase = "fight";
-      w.weaponTimer = 99;
+      w.weaponTimer = 999;
+      w.drops = [];
       w.platforms = [
         { x: 635, y: 570, w: 390, h: 35 },
         { x: 1055, y: 430, w: 220, h: 30 },
@@ -718,7 +720,10 @@ export class Renderer {
     const c = this.ctx;
     c.clearRect(0, 0, W, H);
     if (!state) {
+      c.save();
+      c.scale(2, 2);
       this.demo(time, dt);
+      c.restore();
       return;
     }
     this.background(ARENAS[state.arenaIndex].color, time);
@@ -730,19 +735,9 @@ export class Renderer {
         (Math.random() - 0.5) * this.shake,
       );
     this.shake = Math.max(0, this.shake - dt * 40);
-    if (state.elapsed > 40) {
-      c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - 40) * 0.007)})`;
+    if (state.elapsed > SUDDEN_DEATH - 10) {
+      c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
-      c.fillStyle = "#ffb17e";
-      c.font = "600 14px 'DM Sans',sans-serif";
-      c.textAlign = "center";
-      c.fillText(
-        state.elapsed > 45
-          ? "SUDDEN DEATH · HEALTH DRAINING"
-          : "SUDDEN DEATH IN " + Math.ceil(45 - state.elapsed),
-        W / 2,
-        125,
-      );
     }
     for (const p of state.platforms) this.platform(p, time);
     for (const s of ARENAS[state.arenaIndex].spikes) {
@@ -770,8 +765,8 @@ export class Renderer {
       c.restore();
       c.textAlign = "center";
       c.fillStyle = "#cfdbb3";
-      c.font = "600 9px 'DM Sans',sans-serif";
-      c.fillText(WEAPONS[d.type].name, d.x, d.y - 27);
+      c.font = "600 18px 'DM Sans',sans-serif";
+      c.fillText(WEAPONS[d.type].name, d.x, d.y - 60);
       this.line(
         [
           [d.x - 4, d.y - 43],

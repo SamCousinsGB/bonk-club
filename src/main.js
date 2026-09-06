@@ -21,6 +21,7 @@ import { Sound } from "./audio.js";
 import { Room, validCode } from "./network.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { gameViewport, screenToWorld } from "./viewport.js";
+import { SUDDEN_DEATH } from "./scale.js";
 
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
@@ -501,7 +502,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block:</b> hold the Block button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Tables block shots and break under damage. Elevators carry players between floors. Explosions hurt everyone, including you.</p><p class="subtle">Rounds become sudden death after 45 seconds. Escape pauses a local match. Touch controls work in online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Tables block shots and break under damage. Elevators carry players between floors. Explosions hurt everyone, including you.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape pauses a local match. Touch controls work in online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -561,6 +562,15 @@ function updateHud(s) {
     .join("");
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
   $("#round-label").textContent = `ROUND ${s.round} · FIRST TO ${s.target}`;
+  const status = $("#round-status");
+  const warning =
+    s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
+      ? s.elapsed >= SUDDEN_DEATH
+        ? "Sudden death\nHealth draining"
+        : `Sudden death in ${Math.ceil(SUDDEN_DEATH - s.elapsed)}`
+      : "";
+  if (status.textContent !== warning) status.textContent = warning;
+  status.classList.toggle("hidden", !warning);
   const a = $("#announcement");
   if (s.paused) {
     a.innerHTML = "PAUSED<small>The host paused the match.</small>";
