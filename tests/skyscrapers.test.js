@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { World, STEP, CITY_ARENAS, WEAPONS } from "../src/engine.js";
+import { World, STEP, CITY_ARENAS, ARENAS, WEAPONS } from "../src/engine.js";
 import { validSnapshot } from "../src/network.js";
 
 function lab() {
@@ -239,7 +239,9 @@ test("tables absorb an explosion before breaking", () => {
   assert.ok(w.players[1].hp > 90);
 });
 
-for (const arena of CITY_ARENAS)
+for (const arena of ARENAS.flatMap((a, i) =>
+  a.platforms.some((p) => p.elevator) ? [i] : [],
+))
   test(`elevators carry standing and prone passengers for a full return trip in arena ${arena}`, () => {
     for (const duck of [false, true]) {
       const w = new World({ arena, shuffle: false });

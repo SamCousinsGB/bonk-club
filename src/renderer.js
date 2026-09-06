@@ -1,3 +1,9 @@
+import {
+  drawEnvironment,
+  drawSurface,
+  drawCover,
+  drawHazards,
+} from "./environment.js";
 import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
@@ -10,6 +16,7 @@ export class Renderer {
     this.words = [];
     this.shake = 0;
     this.lastEvent = 0;
+    this.scenery = new Map();
     this.reduced = globalThis.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -152,20 +159,25 @@ export class Renderer {
       c.beginPath();
       c.rect(tower.x, tower.y, tower.w, tower.h);
       c.clip();
-      for (let y = tower.y + 28; y < H; y += 180) {
+      const windowHeight = arena.name ? 200 : 118;
+      for (
+        let y = tower.y + (arena.name ? 15 : 28);
+        y < H;
+        y += arena.name ? 320 : 180
+      ) {
         for (let x = tower.x + 18; x < tower.x + tower.w - 30; x += 90) {
           const light = c.createLinearGradient(x, y, x + 66, y + 110);
           light.addColorStop(0, "#8ebed51c");
           light.addColorStop(1, "#57789508");
           c.fillStyle = light;
-          c.fillRect(x, y, 66, 118);
+          c.fillRect(x, y, 66, windowHeight);
           c.strokeStyle = "#9ccad525";
           c.lineWidth = 2;
-          c.strokeRect(x, y, 66, 118);
+          c.strokeRect(x, y, 66, windowHeight);
           this.line(
             [
               [x + 33, y],
-              [x + 33, y + 118],
+              [x + 33, y + windowHeight],
             ],
             "#9ccad51a",
             1,
@@ -224,6 +236,7 @@ export class Renderer {
   table(p) {
     if (p.hp <= 0) return;
     const c = this.ctx;
+    if (drawCover(c, p)) return;
     c.fillStyle = "#14202a99";
     c.fillRect(p.x + 7, p.y + p.h - 3, p.w, 7);
     c.fillStyle = "#362d2b";
@@ -279,6 +292,7 @@ export class Renderer {
   }
   platform(p, time) {
     const c = this.ctx;
+    if (drawSurface(c, p)) return;
     c.save();
     c.fillStyle = "#0714143d";
     c.fillRect(p.x + 18, p.y + 22, p.w, p.h + 150);
@@ -626,6 +640,7 @@ export class Renderer {
       }));
       w.phase = "fight";
       w.weaponTimer = 999;
+      w.hazardTimer = 999;
       w.drops = [];
       w.platforms = [
         { x: 635, y: 570, w: 390, h: 35 },
@@ -726,8 +741,23 @@ export class Renderer {
       c.restore();
       return;
     }
-    this.background(ARENAS[state.arenaIndex].color, time);
-    this.city(ARENAS[state.arenaIndex], state.platforms);
+    const arena = ARENAS[state.arenaIndex];
+    if (arena.theme) {
+      if (!this.scenery.has(state.arenaIndex)) {
+        const layer = document.createElement("canvas");
+        layer.width = W;
+        layer.height = H;
+        drawEnvironment(layer.getContext("2d"), arena);
+        // Keep only a few backdrops in memory on phones.
+        if (this.scenery.size >= 3)
+          this.scenery.delete(this.scenery.keys().next().value);
+        this.scenery.set(state.arenaIndex, layer);
+      }
+      c.drawImage(this.scenery.get(state.arenaIndex), 0, 0);
+    } else {
+      this.background(arena.color, time);
+      this.city(arena, state.platforms);
+    }
     c.save();
     if (!this.reduced && this.shake > 0)
       c.translate(
@@ -795,6 +825,7 @@ export class Renderer {
     for (const p of state.players) this.fighter(p, time);
     for (const cover of state.cover || []) this.table(cover);
     this.fragments(state.debris);
+    drawHazards(c, state.hazards, time);
     for (const b of state.projectiles) {
       if (b.kind === "rail") {
         this.line(

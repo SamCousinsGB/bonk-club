@@ -16,4 +16,5 @@ export function combatFloor(w) {
   w.cover = [];
   w.drops = [];
   w.weaponTimer = 999;
+  w.hazardTimer = 999;
 }

@@ -65,7 +65,7 @@ let playerCount = 2,
     ? ["touch", "gamepad0", "gamepad1", "gamepad2"]
     : ["keyboard1", "keyboard2", "gamepad0", "gamepad1"],
   target = 5,
-  selectedArena = "city",
+  selectedArena = "random",
   ping = 0;
 let searchId = 0;
 const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
@@ -210,7 +210,7 @@ function home() {
   history.replaceState(null, "", location.pathname);
 }
 function settingsHtml() {
-  return `<div class="settings"><label>ROUNDS TO WIN<select id="target">${[3, 5, 10].map((n) => `<option value="${n}" ${n === target ? "selected" : ""}>First to ${n}</option>`).join("")}</select></label><label>ARENAS<select id="arena"><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label></div>`;
+  return `<div class="settings"><label>ROUNDS TO WIN<select id="target">${[3, 5, 10].map((n) => `<option value="${n}" ${n === target ? "selected" : ""}>First to ${n}</option>`).join("")}</select></label><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label></div>`;
 }
 function wireSettings() {
   $("#target")?.addEventListener(
@@ -502,7 +502,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block:</b> hold the Block button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Tables block shots and break under damage. Elevators carry players between floors. Explosions hurt everyone, including you.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape pauses a local match. Touch controls work in online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape pauses a local match. Touch controls work in online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -597,6 +597,12 @@ function interpolated(now) {
       return old
         ? { ...p, x: old.x + (p.x - old.x) * f, y: old.y + (p.y - old.y) * f }
         : p;
+    }),
+    hazards: remote.hazards.map((h) => {
+      const old = previousRemote.hazards.find((p) => p.id === h.id);
+      return old && old.warning === 0 && h.warning === 0
+        ? { ...h, bodyY: old.bodyY + (h.bodyY - old.bodyY) * f }
+        : h;
     }),
     players: remote.players.map((p) => {
       const old = previousRemote.players.find((q) => q.id === p.id);
@@ -887,6 +893,15 @@ function updateTouchView(state, dt) {
   c.fillStyle = "#9eafb0";
   for (const p of state.platforms)
     c.fillRect(p.x * scale, p.y * scale, p.w * scale, 2);
+  for (const h of state.hazards || []) {
+    c.fillStyle = h.warning > 0 ? "#ffd078bb" : "#ff836bbb";
+    c.fillRect(
+      (h.x - h.w / 2) * scale,
+      (h.y - h.h) * scale,
+      Math.max(2, h.w * scale),
+      Math.max(2, h.h * scale),
+    );
+  }
   c.strokeStyle = "#ffffff77";
   c.lineWidth = 1;
   c.strokeRect(

@@ -64,10 +64,10 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
   for (let i = 0; i < ARENAS.length; i++) {
     const w = new World({ arena: i, players: [0, 1, 2, 3] });
     assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > 2400);
-    assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 220);
+    assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
     assert.ok(Math.max(...w.platforms.map((p) => p.y)) >= 1200);
-    assert.ok(w.platforms.length >= 25);
-    assert.ok(w.cover.length >= 12);
+    assert.ok(w.platforms.length >= 20);
+    assert.ok(w.cover.length >= 5);
     assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());
@@ -80,16 +80,18 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
 // A player can ascend either outside route even while the lifts are elsewhere.
 for (const arena of CITY_ARENAS)
   for (const right of [false, true])
-    test(`outside route climbs all seven storeys in ${ARENAS[arena].name} (${right ? "right" : "left"})`, () => {
+    test(`outside route climbs all tall storeys in ${ARENAS[arena].name} (${right ? "right" : "left"})`, () => {
       const w = new World({ arena }),
         p = w.players[0];
       const inside = right ? 2410 : 150,
         outside = right ? 2490 : 70;
       Object.assign(p, { x: inside, y: 1270, ground: true, vx: 0, vy: 0 });
-      for (let floorY = 1300; floorY > 220; floorY -= 180) {
+      for (let floorY = 1300; floorY > 340; floorY -= 320) {
         for (const [x, y] of [
-          [outside, floorY - 90],
-          [inside, floorY - 180],
+          [outside, floorY - 80],
+          [inside, floorY - 160],
+          [outside, floorY - 240],
+          [inside, floorY - 320],
         ]) {
           let arrived = false;
           for (let tick = 0; tick < 240; tick++) {
@@ -100,7 +102,7 @@ for (const arena of CITY_ARENAS)
               cleanInput({
                 left: p.x > x + 4,
                 right: p.x < x - 4,
-                jump: tick === 0,
+                jump: tick === 0 || (tick === 40 && p.y + 30 > y),
                 aim: null,
               }),
               STEP,
@@ -120,7 +122,7 @@ for (const arena of CITY_ARENAS)
           w.move(p, cleanInput({ aim: null }), STEP);
         }
       }
-      assert.equal(p.y + 30, 220);
+      assert.equal(p.y + 30, 340);
     });
 
 test("long-range shots can reach the far side of the enlarged arena", () => {

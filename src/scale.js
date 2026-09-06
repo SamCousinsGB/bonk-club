@@ -16,7 +16,7 @@ export function expandArena(arena) {
     w: p.w * 2,
     ...(p.move ? { move: p.move * 2 } : {}),
   }));
-  for (const [row, y] of [220, 400, 580, 760].entries()) {
+  for (const [row, y] of [220, 540, 860].entries()) {
     const shift = row % 2 ? 60 : 0;
     for (const x of [160, 980, 1800])
       platforms.push({
@@ -28,7 +28,7 @@ export function expandArena(arena) {
       });
     // Short landings split the wide gaps, so crossing needs no long run-up.
     for (const x of [780, 1600])
-      platforms.push({ x: x + shift, y: y + 90, w: 120, h: 18 });
+      platforms.push({ x: x + shift, y: y + 160, w: 120, h: 18 });
   }
   for (const y of [310, 490, 670, 850, 1030, 1210])
     for (const x of [40, 2440]) platforms.push({ x, y, w: 80, h: 18 });
@@ -48,10 +48,10 @@ export function expandArena(arena) {
     platforms,
     cover,
     spawns: [
-      [230, 540],
-      [2320, 540],
-      [230, 180],
-      [2320, 180],
+      [230, 818],
+      [2320, 818],
+      [230, 178],
+      [2320, 178],
     ],
     spikes: arena.spikes.map((s) => ({
       ...s,
@@ -60,9 +60,9 @@ export function expandArena(arena) {
       w: s.w * 2,
     })),
     weapons: [
-      [560, 562, "railgun"],
-      [2040, 562, "barrage"],
-      [1230, 742, "minigun"],
+      [560, 772, "railgun"],
+      [2040, 772, "barrage"],
+      [1230, 452, "minigun"],
       [1230, 202, "plasma"],
     ],
   };

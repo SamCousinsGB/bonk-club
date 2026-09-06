@@ -19,7 +19,8 @@ const table = (x, y) => ({
   kind: "table",
 });
 const tower = (x, y, w) => ({ x, y, w, h: H + 160 - y });
-const floors = [1300, 1120, 940, 760, 580, 400, 220];
+export const CITY_FLOORS = [1300, 980, 660, 340];
+const floors = CITY_FLOORS;
 
 function building({
   name,
@@ -42,7 +43,15 @@ function building({
   }
   // Outside landings offer a second way up without waiting for a lift.
   for (const y of floors.slice(0, -1))
-    platforms.push(floor(30, y - 90, 80), floor(2450, y - 90, 80));
+    for (const [offset, inset] of [
+      [80, false],
+      [160, true],
+      [240, false],
+    ])
+      platforms.push(
+        floor(inset ? 130 : 30, y - offset, 80),
+        floor(inset ? 2350 : 2450, y - offset, 80),
+      );
   platforms.push(...elevators, ...bridges);
   return {
     name,
@@ -52,21 +61,25 @@ function building({
     platforms,
     cover,
     spikes,
+    hazards:
+      name === "CONSTRUCTION SITE"
+        ? ["rockfall", "cargo"]
+        : ["electric", "steam"],
     spawns: [
-      [220, 900],
-      [2340, 900],
-      [220, 360],
-      [2340, 360],
+      [240, 940],
+      [2320, 940],
+      [240, 300],
+      [2320, 300],
     ],
     weapons: [
-      [560, 922, "minigun"],
-      [2070, 922, "barrage"],
-      [550, 382, "railgun"],
-      [2060, 382, "plasma"],
+      [560, 962, "minigun"],
+      [2070, 962, "barrage"],
+      [550, 322, "railgun"],
+      [2060, 322, "plasma"],
       [560, 1282, "shotgun"],
       [2060, 1282, "rocket"],
-      [550, 202, "plasma"],
-      [2060, 202, "railgun"],
+      [550, 642, "plasma"],
+      [2060, 642, "railgun"],
     ],
   };
 }
@@ -81,7 +94,7 @@ export const SKYSCRAPERS = [
       [860, 740],
       [1760, 670],
     ],
-    elevators: [lift(720, 1300, 120, -1080), lift(1620, 220, 120, 1080)],
+    elevators: [lift(720, 1300, 120, -960), lift(1620, 340, 120, 960)],
   }),
   building({
     name: "TWIN TOWERS",
@@ -91,11 +104,11 @@ export const SKYSCRAPERS = [
       [130, 870],
       [1560, 870],
     ],
-    elevators: [lift(1020, 1300, 140, -1080), lift(1400, 220, 140, 1080)],
+    elevators: [lift(1020, 1300, 140, -960), lift(1400, 340, 140, 960)],
     bridges: [
-      floor(1180, 1120, 200),
-      floor(1180, 760, 200),
-      floor(1180, 400, 200),
+      floor(1180, 1140, 200),
+      floor(1180, 820, 200),
+      floor(1180, 500, 200),
     ],
     spikes: [{ x: 1010, y: 1420, w: 540 }],
   }),
@@ -109,8 +122,8 @@ export const SKYSCRAPERS = [
       [1860, 570],
     ],
     elevators: [
-      lift(720, 1300, 140, -1080, 0.32),
-      lift(1680, 220, 140, 1080, 0.32),
+      lift(720, 1300, 140, -960, 0.32),
+      lift(1680, 340, 140, 960, 0.32),
     ],
     spikes: [
       { x: 700, y: 1420, w: 180 },
@@ -122,12 +135,12 @@ export const SKYSCRAPERS = [
     color: "#2b354a",
     towers: [tower(130, 100, 690), tower(1740, 100, 690)],
     rooms: (i) => [[130, 690], ...(i % 2 ? [[1040, 480]] : []), [1740, 690]],
-    elevators: [lift(860, 1300, 140, -1080), lift(1560, 220, 140, 1080)],
+    elevators: [lift(860, 1300, 140, -960), lift(1560, 340, 140, 960)],
     bridges: [
       floor(1160, 1300, 240),
-      floor(1160, 940, 240),
-      floor(1160, 580, 240),
-      floor(1160, 220, 240),
+      floor(1160, 980, 240),
+      floor(1160, 660, 240),
+      floor(1160, 340, 240),
     ],
     spikes: [{ x: 830, y: 1420, w: 900 }],
   }),

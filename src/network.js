@@ -1,9 +1,11 @@
+import { COVER_KINDS } from "./maps.js";
+import { HAZARD_TYPES } from "./hazards.js";
 import PeerModule from "peerjs";
 const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v3-";
+const PREFIX = "bonkclub-v4-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -399,7 +401,31 @@ export function validSnapshot(s) {
         c.h > 0 &&
         c.hp >= 0 &&
         c.hp <= c.maxHp &&
-        c.kind === "table",
+        COVER_KINDS.includes(c.kind),
+    ) &&
+    list(
+      s.hazards,
+      3,
+      (h) =>
+        integer(h.id, 1, 1000000) &&
+        HAZARD_TYPES.includes(h.type) &&
+        [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyY, h.vy].every(
+          finite,
+        ) &&
+        h.w > 0 &&
+        h.w <= 300 &&
+        h.h > 0 &&
+        h.h <= 300 &&
+        h.warning >= 0 &&
+        h.warning <= 2 &&
+        h.age >= 0 &&
+        h.duration > 0 &&
+        h.duration <= 6 &&
+        (h.dir === 1 || h.dir === -1) &&
+        typeof h.done === "boolean" &&
+        Array.isArray(h.hitIds) &&
+        h.hitIds.length <= 4 &&
+        h.hitIds.every((id) => integer(id, 0, 3)),
     ) &&
     list(
       s.debris,
@@ -440,6 +466,7 @@ export function validSnapshot(s) {
       (e) =>
         integer(e.id, 0, 10000000) &&
         [
+          "hazard",
           "fight",
           "match",
           "round",

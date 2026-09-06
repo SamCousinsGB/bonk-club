@@ -1,3 +1,5 @@
+import { THEMED_ARENAS, breakable } from "./maps.js";
+import { updateHazards } from "./hazards.js";
 import { SKYSCRAPERS } from "./skyscrapers.js";
 import { segmentBox, playerBox } from "./collision.js";
 import {
@@ -166,7 +168,7 @@ export const ARENAS = [
   },
 ]
   .map(expandArena)
-  .concat(SKYSCRAPERS);
+  .concat(SKYSCRAPERS, THEMED_ARENAS);
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const WEAPONS = {
   bat: {
@@ -308,6 +310,7 @@ export class World {
     this.arenaIndex = arena;
     this.shuffle = shuffle;
     this.arenaPool = arenaPool || ARENAS.map((_, i) => i);
+    this.remainingArenas = this.arenaPool.filter((i) => i !== arena);
     this.random = random;
     this.scores = [0, 0, 0, 0];
     this.round = 1;
@@ -379,6 +382,9 @@ export class World {
       dy: 0,
     }));
     this.debris = [];
+    this.hazards = [];
+    this.nextHazard = 0;
+    this.hazardTimer = 8 + this.random() * 4;
     this.ragdolls = [];
     this.phase = "countdown";
     this.phaseTime = 2.4;
@@ -417,10 +423,17 @@ export class World {
         } else {
           this.round++;
           if (this.shuffle) {
-            const choices = this.arenaPool.filter((i) => i !== this.arenaIndex);
+            if (!this.remainingArenas.length)
+              this.remainingArenas = [...this.arenaPool];
+            const choices = this.remainingArenas.filter(
+              (i) => i !== this.arenaIndex,
+            );
             this.arenaIndex =
               choices[Math.floor(this.random() * choices.length)] ??
               this.arenaIndex;
+            this.remainingArenas = this.remainingArenas.filter(
+              (i) => i !== this.arenaIndex,
+            );
           }
           this.startRound();
         }
@@ -468,6 +481,7 @@ export class World {
     this.updateDrops(dt);
     if (active) for (const p of this.players) if (p.alive) this.pickup(p);
     this.updateRagdolls(dt);
+    if (active) updateHazards(this, dt);
     if (active) {
       for (const p of this.players) {
         if (!p.alive) continue;
@@ -660,7 +674,7 @@ export class World {
         .filter((c) => c.hit)
         .sort((a, b) => a.hit.t - b.hit.t)[0];
       const reach = obstruction ? obstruction.hit.t * w.range : w.range;
-      if (obstruction?.s.kind === "table") {
+      if (breakable(obstruction?.s)) {
         this.damageCover(
           obstruction.s,
           w.damage * 1.4,
@@ -906,7 +920,7 @@ export class World {
         d.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (p)
           this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 560, Math.sign(d.vx) || 1);
-        if (s?.kind === "table" && d.armed) this.damageCover(s, 38, d.vx, d.vy);
+        if (breakable(s) && d.armed) this.damageCover(s, 38, d.vx, d.vy);
         if (s && hit.ny === -1) {
           d.y = s.y - 7;
           d.vy = 0;
@@ -1040,11 +1054,11 @@ export class World {
       for (const collision of collisions) {
         if (!collision.hit) continue;
         const { s, p, hit } = collision;
-        if (s?.kind === "table" && s.hp <= 0) continue;
+        if (breakable(s) && s.hp <= 0) continue;
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (s) {
-          if (s.kind === "table") {
+          if (breakable(s)) {
             this.damageCover(
               s,
               b.kind === "rail" ? 180 : b.damage,
@@ -1173,6 +1187,7 @@ export class World {
       platforms: this.platforms,
       cover: this.cover,
       debris: this.debris,
+      hazards: this.hazards,
       projectiles: this.projectiles,
       drops: this.drops,
       ragdolls: this.ragdolls,

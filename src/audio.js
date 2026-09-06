@@ -11,6 +11,7 @@ export class Sound {
   play(type) {
     if (this.muted || !this.context || this.context.state !== "running") return;
     const table = {
+      hazard: [780, 0.22, "sine"],
       hit: [100, 0.12, "triangle"],
       ko: [65, 0.28, "sawtooth"],
       parry: [920, 0.15, "sine"],
