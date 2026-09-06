@@ -19,6 +19,8 @@ import {
 import { Renderer } from "./renderer.js";
 import { Sound } from "./audio.js";
 import { Room, validCode } from "./network.js";
+import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
+import { gameViewport, screenToWorld } from "./viewport.js";
 
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
@@ -36,7 +38,11 @@ const $ = (s) => document.querySelector(s),
 const renderer = new Renderer($("#game")),
   sound = new Sound(),
   keys = new Set(),
-  touch = emptyInput();
+  touchControls = new TouchControls();
+let touchInput = emptyInput();
+let touchDevice = matchMedia("(pointer: coarse)").matches;
+const touchAvailable = touchDevice || navigator.maxTouchPoints > 0;
+document.body.classList.toggle("touch-device", touchDevice);
 let world = null,
   room = null,
   remote = null,
@@ -54,7 +60,9 @@ let world = null,
   toastTimer,
   returnFocus = null;
 let playerCount = 2,
-  devices = ["keyboard1", "keyboard2", "gamepad0", "gamepad1"],
+  devices = touchDevice
+    ? ["touch", "gamepad0", "gamepad1", "gamepad2"]
+    : ["keyboard1", "keyboard2", "gamepad0", "gamepad1"],
   target = 5,
   selectedArena = "city",
   ping = 0;
@@ -87,6 +95,8 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
+  if (view) return emptyInput();
+  if (device === "touch") return { ...touchInput };
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
     const pad = gamepads()[Number(device.slice(7))];
@@ -125,15 +135,17 @@ function readInput(device) {
 function ownInput() {
   const i = readInput("keyboard1"),
     pad = gamepads()[0] ? readInput("gamepad0") : emptyInput();
-  for (const k in i) if (k !== "aim") i[k] ||= pad[k] || touch[k];
+  for (const k in i) if (k !== "aim") i[k] ||= pad[k] || touchInput[k];
   if (pad.aim !== null) i.aim = pad.aim;
+  if (touchInput.aim !== null) i.aim = touchInput.aim;
   return i;
 }
 function clearInput() {
   keys.clear();
   mouse.attack = false;
   mouse.block = false;
-  for (const k in touch) touch[k] = false;
+  touchControls.reset();
+  touchInput = emptyInput();
   if (room && !room.host) room.sendInput(emptyInput());
 }
 function toast(message) {
@@ -161,6 +173,7 @@ function showPanel(name, html) {
     .querySelector("button,input,select")
     ?.focus({ preventScroll: true });
   clearInput();
+  syncTouchUi();
 }
 function hidePanel() {
   view = "";
@@ -169,6 +182,7 @@ function hidePanel() {
   $("#panel").removeAttribute("role");
   $("#panel").removeAttribute("aria-modal");
   returnFocus?.focus?.({ preventScroll: true });
+  syncTouchUi();
 }
 const heading = (title) =>
   `<div class="dialog-head"><div><h2 id="panel-title">${title}</h2></div><button id="back" class="icon-button" aria-label="Back">×</button></div>`;
@@ -177,10 +191,7 @@ function setPlaying(value) {
   document.body.classList.toggle("playing", value);
   $("#hud").classList.toggle("hidden", !value);
   $("#announcement").textContent = "";
-  $("#touch-controls").classList.toggle(
-    "hidden",
-    !(value && room && matchMedia("(pointer: coarse)").matches),
-  );
+  syncTouchUi();
   $("#footer-hint").textContent = value
     ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK BLOCK · S LIE DOWN · F THROW"
     : "";
@@ -215,9 +226,9 @@ function localLobby() {
   showPanel(
     "local",
     heading("Local multiplayer") +
-      `<div class="row spread"><p>Players</p><select id="player-count" aria-label="Number of players" style="background:#293233;color:white;border:1px solid #ffffff38;padding:8px;border-radius:4px">${[2, 3, 4].map((n) => `<option ${n === playerCount ? "selected" : ""}>${n}</option>`).join("")}</select></div>${Array.from({ length: playerCount }, (_, id) => `<div class="player-row"><span class="player-dot" style="background:${COLORS[id]}"></span><b>${NAMES[id]}</b><select data-device="${id}" aria-label="${NAMES[id]} controls">${[["keyboard1", "WASD + Mouse / E / G / F"], ["keyboard2", "Arrows + K / L / O"], ...Array.from({ length: 4 }, (_, n) => ["gamepad" + n, "Controller " + (n + 1)])].map(([value, label]) => `<option value="${value}" ${devices[id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>`).join("")}` +
+      `<div class="row spread"><p>Players</p><select id="player-count" aria-label="Number of players" style="background:#293233;color:white;border:1px solid #ffffff38;padding:8px;border-radius:4px">${[2, 3, 4].map((n) => `<option ${n === playerCount ? "selected" : ""}>${n}</option>`).join("")}</select></div>${Array.from({ length: playerCount }, (_, id) => `<div class="player-row"><span class="player-dot" style="background:${COLORS[id]}"></span><b>${NAMES[id]}</b><select data-device="${id}" aria-label="${NAMES[id]} controls">${[...(touchAvailable ? [["touch", "Touch controls"]] : []), ["keyboard1", "WASD + Mouse / E / G / F"], ["keyboard2", "Arrows + K / L / O"], ...Array.from({ length: 4 }, (_, n) => ["gamepad" + n, "Controller " + (n + 1)])].map(([value, label]) => `<option value="${value}" ${devices[id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>`).join("")}` +
       settingsHtml() +
-      `<p class="subtle" id="pad-status"></p><p class="subtle">Two people can share a keyboard. For more players, connect controllers and press a button. Use a different control set for each player.</p><button id="start-local" class="button primary">START MATCH <span>↗</span></button><button id="local-help" class="button secondary">CONTROLS</button>`,
+      `<p class="subtle" id="pad-status"></p><p class="subtle">${touchDevice ? "One player can use touch on this device; other local players need controllers. For separate phones, choose Online multiplayer." : "Two people can share a keyboard. For more players, connect controllers and press a button. Use a different control set for each player."}</p><button id="start-local" class="button primary">START MATCH <span>↗</span></button><button id="local-help" class="button secondary">CONTROLS</button>`,
   );
   $("#back").onclick = hidePanel;
   $("#player-count").onchange = (e) => {
@@ -279,7 +290,7 @@ function onlineMenu(message = "") {
   showPanel(
     "online",
     heading("Online multiplayer") +
-      `<p>Create an invite room for friends, or find another player at a public table.</p><button id="quick-match" class="button secondary">QUICK MATCH <span>↗</span></button>${message ? `<p class="error" role="alert">${esc(message)}</p>` : ""}<button id="create-room" class="button primary">CREATE A ROOM <span>↗</span></button><p style="text-align:center">Join a room</p><input id="join-code" class="room-input" aria-label="Six-character room code" placeholder="ABC234" maxlength="6" autocomplete="off" spellcheck="false" value="${validCode(new URLSearchParams(location.search).get("room")?.toUpperCase()) ? esc(new URLSearchParams(location.search).get("room").toUpperCase()) : ""}"><button id="join-room" class="button secondary">JOIN ROOM <span>↗</span></button><p class="subtle">Online connections depend on the room service and each player’s network.</p>`,
+      `<p>${touchDevice ? "Each player opens the game on their own phone or computer. Create a room and share the invite link." : "Create an invite room for friends, or find another player at a public table."}</p><button id="quick-match" class="button secondary">QUICK MATCH <span>↗</span></button>${message ? `<p class="error" role="alert">${esc(message)}</p>` : ""}<button id="create-room" class="button primary">CREATE A ROOM <span>↗</span></button><p style="text-align:center">Join a room</p><input id="join-code" class="room-input" aria-label="Six-character room code" placeholder="ABC234" maxlength="6" autocomplete="off" spellcheck="false" value="${validCode(new URLSearchParams(location.search).get("room")?.toUpperCase()) ? esc(new URLSearchParams(location.search).get("room").toUpperCase()) : ""}"><button id="join-room" class="button secondary">JOIN ROOM <span>↗</span></button><p class="subtle">Online connections depend on the room service and each player’s network.</p>`,
   );
   $("#back").onclick = home;
   $("#create-room").onclick = () => connectRoom();
@@ -375,6 +386,7 @@ function roomCallbacks() {
       setPlaying(true);
     },
     onState: (s) => {
+      if (s.paused && !remote?.paused) clearInput();
       previousRemote = remote;
       previousAt = remoteAt;
       remote = s;
@@ -453,7 +465,7 @@ function roomLobby() {
         },
       ).join(
         "",
-      )}${r.host ? settingsHtml() : ""}<p class="subtle">A / D move · W / Space jump · S lie down · Mouse aim · Left click attack · Right click block · F throw weapon.</p>${r.host ? `<button id="start-online" class="button primary" ${canStart ? "" : "disabled"}>${r.roster.length < 2 ? "WAITING FOR AT LEAST 2 PLAYERS" : !canStart ? "WAITING FOR EVERYONE TO READY UP" : "START MATCH"} <span>↗</span></button>` : `<button id="ready" class="button primary">${r.roster.find((p) => p.id === r.id)?.ready ? "NOT READY" : "READY"}</button>`}<p class="subtle">${r.host ? "Keep this tab visible while hosting. Leaving ends the room." : "The host starts the match when everyone is ready."}</p>`,
+      )}${r.host ? settingsHtml() : ""}<p class="subtle">${touchDevice ? "Left side: drag to move, swipe up to jump, down to lie down. Right side: drag to aim, hold to fire, double-tap to throw." : "A / D move · W / Space jump · S lie down · Mouse aim · Left click attack · Right click block · F throw weapon."}</p>${r.host ? `<button id="start-online" class="button primary" ${canStart ? "" : "disabled"}>${r.roster.length < 2 ? "WAITING FOR AT LEAST 2 PLAYERS" : !canStart ? "WAITING FOR EVERYONE TO READY UP" : "START MATCH"} <span>↗</span></button>` : `<button id="ready" class="button primary">${r.roster.find((p) => p.id === r.id)?.ready ? "NOT READY" : "READY"}</button>`}<p class="subtle">${r.host ? "Keep this tab visible while hosting. Leaving ends the room." : "The host starts the match when everyone is ready."}</p>`,
   );
   if (r.publicRoom) {
     $("#panel-title").textContent = "Public table";
@@ -488,7 +500,8 @@ function help(back = hidePanel) {
   showPanel(
     "help",
     heading("Controls") +
-      `<div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Tables block shots and break under damage. Elevators carry players between floors. Explosions hurt everyone, including you.</p><p class="subtle">Rounds become sudden death after 45 seconds. Escape pauses a local match. Touch buttons are available in online play; landscape works best.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block:</b> hold the Block button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Tables block shots and break under damage. Elevators carry players between floors. Explosions hurt everyone, including you.</p><p class="subtle">Rounds become sudden death after 45 seconds. Escape pauses a local match. Touch controls work in online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -598,6 +611,10 @@ function interpolated(now) {
   };
 }
 function frame(now) {
+  touchInput =
+    canUseTouch() && !view && !paused && !remote?.paused
+      ? touchControls.read(now)
+      : emptyInput();
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
   netClock += dt;
@@ -630,9 +647,14 @@ function frame(now) {
     if (state.phase === "match" && !shownMatch) matchOver(state);
   }
   renderer.draw(state, dt, renderer.reduced ? 0 : now / 1000);
+  updateTouchView(state, dt);
   requestAnimationFrame(frame);
 }
 $("#local").onclick = localLobby;
+$("#menu-controls").onclick = () => {
+  unlock();
+  help();
+};
 $("#online").onclick = () => onlineMenu();
 $("#help").onclick = () => {
   unlock();
@@ -712,25 +734,13 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("pagehide", () => room?.close());
-document.querySelectorAll("[data-input]").forEach((button) => {
-  button.onpointerdown = (e) => {
-    e.preventDefault();
-    unlock();
-    button.setPointerCapture(e.pointerId);
-    touch[button.dataset.input] = true;
-  };
-  const release = () => (touch[button.dataset.input] = false);
-  button.onpointerup = release;
-  button.onpointercancel = release;
-  button.onlostpointercapture = release;
-});
 const canvas = $("#game");
 canvas.addEventListener("pointermove", (e) => {
   if (e.pointerType === "touch") return;
-  const rect = canvas.getBoundingClientRect(),
-    scale = Math.min(rect.width / W, rect.height / H);
-  mouse.x = (e.clientX - rect.left - (rect.width - W * scale) / 2) / scale;
-  mouse.y = (e.clientY - rect.top - (rect.height - H * scale) / 2) / scale;
+  const rect = canvas.getBoundingClientRect();
+  const point = screenToWorld(e.clientX, e.clientY, rect, currentViewport);
+  mouse.x = point.x;
+  mouse.y = point.y;
   mouse.active = true;
 });
 canvas.addEventListener("pointerdown", (e) => {
@@ -752,6 +762,147 @@ canvas.addEventListener("pointercancel", () => {
 canvas.addEventListener("contextmenu", (e) => {
   if (playing) e.preventDefault();
 });
+let currentViewport = gameViewport(W, H),
+  cameraX = W / 2,
+  cameraRound = null;
+let gameRect = canvas.getBoundingClientRect();
+function canUseTouch() {
+  return (
+    playing &&
+    (room ? touchDevice : devices.slice(0, playerCount).includes("touch"))
+  );
+}
+function syncTouchUi() {
+  const active = canUseTouch();
+  document.body.classList.toggle("touch-playing", active);
+  $("#touch-controls").classList.toggle(
+    "hidden",
+    !active || !!view || paused || !!remote?.paused,
+  );
+  $("#overview").classList.toggle("hidden", !active || !!view);
+}
+function measureGame() {
+  clearInput();
+  gameRect = canvas.getBoundingClientRect();
+  const follow = canUseTouch() && matchMedia("(orientation: portrait)").matches;
+  currentViewport = gameViewport(
+    gameRect.width,
+    gameRect.height,
+    cameraX,
+    follow,
+  );
+}
+bindTouchButtons(document);
+const resizeGame = new ResizeObserver(measureGame);
+resizeGame.observe(canvas);
+window.addEventListener("orientationchange", clearInput);
+window.addEventListener(
+  "pointerdown",
+  (e) => {
+    if (e.pointerType === "touch" && !touchDevice) {
+      touchDevice = true;
+      document.body.classList.add("touch-device");
+      syncTouchUi();
+    }
+  },
+  { capture: true },
+);
+for (const [id, zone] of [
+  ["move-zone", "move"],
+  ["aim-zone", "aim"],
+  ["touch-block", "block"],
+]) {
+  bindTouchZone($("#" + id), zone, touchControls, {
+    enabled: () => canUseTouch() && !view && !paused && !remote?.paused,
+    wake: unlock,
+  });
+}
+function updateTouchView(state, dt) {
+  const active = canUseTouch(),
+    follow = active && matchMedia("(orientation: portrait)").matches;
+  if (state?.paused && (touchControls.move || touchControls.aim)) clearInput();
+  $("#touch-controls").classList.toggle(
+    "hidden",
+    !active || !!view || paused || !!state?.paused,
+  );
+  if (!active) {
+    currentViewport = gameViewport(gameRect.width, gameRect.height);
+    canvas.style.objectPosition = "50% 50%";
+    return;
+  }
+  const controlledId = room ? room.id : devices.indexOf("touch");
+  const player =
+    state?.players.find((p) => p.id === controlledId && p.alive) ||
+    state?.players.find((p) => p.alive);
+  if (player) {
+    if (cameraRound !== state.round) {
+      cameraX = player.x;
+      cameraRound = state.round;
+    }
+    cameraX += (player.x - cameraX) * Math.min(1, dt * 12);
+  }
+  currentViewport = gameViewport(
+    gameRect.width,
+    gameRect.height,
+    cameraX,
+    follow,
+  );
+  canvas.style.objectPosition = `${currentViewport.position}% 50%`;
+  for (const zone of ["move", "aim"]) {
+    const p = touchControls[zone],
+      el = $("#" + zone + "-stick");
+    el.classList.toggle("active", !!p);
+    if (p) {
+      const rect = el.parentElement.getBoundingClientRect();
+      el.style.left = `${p.ox - rect.left}px`;
+      el.style.top = `${p.oy - rect.top}px`;
+      const dx = p.x - p.ox,
+        dy = p.y - p.oy,
+        length = Math.hypot(dx, dy);
+      const scale = length > 38 ? 38 / length : 1;
+      el.firstElementChild.style.transform = `translate(${dx * scale}px, ${dy * scale}px)`;
+    } else {
+      el.style.left = "";
+      el.style.top = "";
+      el.firstElementChild.style.transform = "";
+    }
+  }
+  $("#touch-block").classList.toggle("pressed", touchInput.block);
+  if (!state || !follow) return;
+  const c = $("#overview").getContext("2d"),
+    scale = 240 / W;
+  c.clearRect(0, 0, 240, 135);
+  c.fillStyle = "#0b1724dd";
+  c.fillRect(0, 0, 240, 135);
+  c.fillStyle = "#9eafb0";
+  for (const p of state.platforms)
+    c.fillRect(p.x * scale, p.y * scale, p.w * scale, 2);
+  c.strokeStyle = "#ffffff77";
+  c.lineWidth = 1;
+  c.strokeRect(
+    currentViewport.left * scale,
+    1,
+    currentViewport.width * scale,
+    133,
+  );
+  for (const p of state.players)
+    if (p.alive) {
+      c.beginPath();
+      c.arc(
+        p.x * scale,
+        p.y * scale,
+        p.id === controlledId ? 4 : 3,
+        0,
+        Math.PI * 2,
+      );
+      c.fillStyle = COLORS[p.id];
+      c.fill();
+      if (p.id === controlledId) {
+        c.strokeStyle = "#fff";
+        c.stroke();
+      }
+    }
+}
 setInterval(() => {
   updatePadStatus();
   if (room && !room.host) room.ping();

@@ -63,6 +63,9 @@
             ><button id="online" class="button secondary">
               ONLINE MULTIPLAYER <span>↗</span>
             </button>
+            <button id="menu-controls" class="button secondary">
+              CONTROLS
+            </button>
           </div>
         </section>
         <section
@@ -70,17 +73,39 @@
           class="dialog hidden"
           aria-labelledby="panel-title"
         ></section>
+        <canvas
+          id="overview"
+          class="hidden"
+          width="240"
+          height="135"
+          aria-label="Arena overview"
+        ></canvas>
         <div id="touch-controls" class="hidden" aria-label="Touch controls">
-          <div>
-            <button data-input="left" aria-label="Move left">◀</button
-            ><button data-input="right" aria-label="Move right">▶</button>
+          <div
+            id="move-zone"
+            class="touch-zone"
+            aria-label="Drag to move; swipe up to jump; drag down to lie down"
+          >
+            <span id="move-stick" class="touch-stick" aria-hidden="true"
+              ><i></i
+            ></span>
+            <span class="touch-label"
+              ><b>MOVE</b><small>Swipe ↑ jump · ↓ lie down</small></span
+            >
           </div>
-          <div>
-            <button data-input="block" aria-label="Block">◈</button
-            ><button data-input="jump" aria-label="Jump">↑</button
-            ><button data-input="attack" aria-label="Attack">✳</button
-            ><button data-input="throw" aria-label="Throw weapon">↓</button>
+          <div
+            id="aim-zone"
+            class="touch-zone"
+            aria-label="Drag to aim and fire; hold to fire; double-tap to throw"
+          >
+            <span id="aim-stick" class="touch-stick" aria-hidden="true"
+              ><i></i
+            ></span>
+            <span class="touch-label"
+              ><b>AIM / FIRE</b><small>Double-tap to throw</small></span
+            >
           </div>
+          <button id="touch-block" aria-label="Hold to block">BLOCK</button>
         </div>
       </main>
       <footer><span id="footer-hint"></span></footer>

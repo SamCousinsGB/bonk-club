@@ -18,6 +18,19 @@ Choose **Local multiplayer**, assign a separate control set to each player, and 
 
 Weapons are picked up automatically when an unarmed player walks close enough. Throw the held weapon to free the slot; a thrown weapon can hit another player and retains its ammunition.
 
+On phones, use **Online multiplayer** with one player per device. A phone can also provide one touch player in a local match alongside connected controllers. The game still requires 2–4 players.
+
+| Touch area   | Gesture                                                        |
+| ------------ | -------------------------------------------------------------- |
+| Left         | Drag left/right to move; release to stop                       |
+| Left         | Swipe up to jump, then swipe up again for the second jump      |
+| Left         | Drag down and hold to lie down                                 |
+| Right        | Drag to aim and fire, or hold to fire in the current direction |
+| Right        | Double-tap to throw the held weapon without firing first       |
+| Block button | Hold to guard; tap just before a hit to parry                  |
+
+Portrait uses a camera that follows the local player, an arena overview, and a separate thumb-control area. Landscape shows the full arena with transparent thumb controls. Gestures reset on pause, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
+
 Escape pauses local play. A host pause pauses the online simulation. Guests can open their menu but the online match continues. Public rooms require at least two real players and have no bots.
 
 ## Combat
@@ -41,7 +54,7 @@ Online rooms use PeerJS and its public signaling service to connect browsers ove
 
 **Quick match** searches eight fixed public tables using unique peer-ID claims. The first visitor becomes host; later visitors join that table. When at least two players are ready, the host starts the match automatically after a short wait. Full or running tables are skipped. This is a small public queue, not region-aware or skill-based global matchmaking. If nobody else is online, the room waits. No fake players or population counts are shown.
 
-The host must keep the game open and visible. Host migration, rollback netcode, reconnecting to a running round, durable leaderboards, and mobile couch multiplayer are not implemented. Any participant disconnecting returns the remaining players to the lobby for a fresh match. The free room service may fail; local play does not depend on it.
+The host must keep the game open and visible. Host migration, rollback netcode, reconnecting to a running round, durable leaderboards, and multiple touch players sharing one screen are not implemented. Any participant disconnecting returns the remaining players to the lobby for a fresh match. The free room service may fail; local play does not depend on it.
 
 ## Development
 
@@ -56,4 +69,4 @@ npm run build
 
 `dist/` contains the deployable static game. Relative asset paths support a GitHub Pages repository subpath. Fonts are bundled locally. No keys or environment variables are required. The GitHub Actions workflow tests, builds, and publishes changes on `main`.
 
-Tests cover all arena spawns, full elevator return trips with standing/prone passengers and loose weapons, automatic pickup, thrown-weapon damage and ammo retention, cover destruction, projectile occlusion and penetration, plasma bounces, blast shielding, input/state validation, combat, parries, round transitions, active-ragdoll constraints, prone collision, mouse aiming, four-peer room lifecycle, and disconnect handling. Transport tests with fake peers do not establish cross-network WebRTC reliability.
+Tests cover all arena spawns, full elevator return trips with standing/prone passengers and loose weapons, automatic pickup, thrown-weapon damage and ammo retention, cover destruction, projectile occlusion and penetration, plasma bounces, blast shielding, input/state validation, combat, parries, round transitions, active-ragdoll constraints, prone collision, mouse aiming, four-peer room lifecycle, and disconnect handling. Touch tests cover simultaneous pointers, swipes, double-tap disambiguation, button activation, cancellation, physics integration, and portrait/landscape coordinate mapping. Transport tests with fake peers do not establish cross-network WebRTC reliability.
