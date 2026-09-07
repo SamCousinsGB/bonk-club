@@ -93,6 +93,9 @@ no-tcp-relay
 no-multicast-peers
 no-cli
 no-software-attribute
+no-rfc5780
+no-stun-backward-compatibility
+response-origin-only-with-rfc5780
 stale-nonce=600
 user-quota=8
 total-quota=32

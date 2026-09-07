@@ -34,8 +34,8 @@ or copy its contents into a diagnostic report.
    numbers. Router WAN IPv4 must match the public IPv4; upstream NAT needs its
    own forwarding. No global IPv6 is used by this setup.
 5. Caddy obtains and renews a Let's Encrypt certificate using the TLS challenge
-   on public port 443. TURN starts once that certificate exists; a timer copies
-   renewed certificates and restarts TURN only when they change.
+   on public port 443. TURN serves UDP/TCP while waiting for that certificate;
+   a timer copies new/renewed certificates and restarts TURN to enable TLS.
 6. Verify HTTPS health, authenticated relay candidates and a real data channel
    forced through TURN, then join a running match from a different network.
    Only then set repository Actions variables `ROOM_SERVICE_URL` to

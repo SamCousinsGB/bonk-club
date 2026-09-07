@@ -4,8 +4,7 @@ After=bonk-https.service
 StartLimitIntervalSec=0
 
 [Service]
-ExecStartPre=/usr/bin/python3 %h/bonk-club/server/pi/sync-certificate.py
-ExecStart=/usr/bin/turnserver -c %h/.config/bonk-club/turnserver.conf
+ExecStart=/usr/bin/python3 %h/bonk-club/server/pi/run-turn.py
 Restart=on-failure
 RestartSec=60
 NoNewPrivileges=true

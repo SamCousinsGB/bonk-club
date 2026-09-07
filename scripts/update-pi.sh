@@ -17,6 +17,7 @@ systemctl --user restart bonk-room.service
 if command -v caddy >/dev/null && command -v turnserver >/dev/null; then
   caddy validate --config "$HOME/.config/bonk-club/Caddyfile" --adapter caddyfile
   systemctl --user enable --now bonk-https.service bonk-turn.service bonk-certificate.timer
+  systemctl --user restart bonk-https.service bonk-turn.service
 fi
 for attempt in 1 2 3 4 5; do
   if curl --fail --silent http://127.0.0.1:8787/healthz; then printf '\n'; exit 0; fi
