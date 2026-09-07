@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import sqlite3
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--hostname', required=True)
@@ -84,6 +85,7 @@ server-name={args.hostname}
 fingerprint
 use-auth-secret
 static-auth-secret={config['turnSecret']}
+userdb={private}/turn.sqlite
 cert={private}/turn.crt
 pkey={private}/turn.key
 no-tlsv1
@@ -108,4 +110,8 @@ simple-log
 '''
 turn += ''.join(f'denied-peer-ip={address}\n' for address in denied)
 (private / 'turnserver.conf').write_text(turn)
+schema = Path('/usr/share/coturn/schema.sql')
+if schema.exists():
+    with sqlite3.connect(private / 'turn.sqlite') as database:
+        database.executescript(schema.read_text())
 print('Private room, HTTPS and TURN configuration prepared.')
