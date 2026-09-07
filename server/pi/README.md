@@ -59,8 +59,11 @@ never reaches browsers. Rooms refresh credentials every twenty minutes for
 new connections, so late arrivals do not inherit expired host credentials.
 Allowed origins restrict ordinary browser access, but
 are not authentication against arbitrary clients. Limits are 64 signaling
-clients, 32 TURN allocations total, 8 per temporary username, 512 KiB/s per
-allocation and 4 MiB/s aggregate. TURN cannot reach private, loopback, multicast
+clients, 64 TURN allocations total, 24 per temporary username, 512 KiB/s per
+allocation and 4 MiB/s aggregate. Browsers reserve several UDP/TCP/TLS paths per
+connection; the host can have three simultaneous connections. Allocations last
+at most two minutes unless the browser refreshes them, so abandoned routes do
+not occupy the pool for an hour. TURN cannot reach private, loopback, multicast
 or IPv6 peer addresses. Coturn exempts its own mapped address from its IP deny
 list; an output firewall rule confines traffic from its relay sockets back to
 the Pi to the relay port range, protecting other local UDP services. TCP peer
