@@ -1,0 +1,20 @@
+[Unit]
+Description=Bonk Club authenticated TURN relay
+After=bonk-https.service
+StartLimitIntervalSec=0
+
+[Service]
+ExecStartPre=/usr/bin/python3 %h/bonk-club/server/pi/sync-certificate.py
+ExecStart=/usr/bin/turnserver -c %h/.config/bonk-club/turnserver.conf
+Restart=on-failure
+RestartSec=60
+NoNewPrivileges=true
+UMask=0077
+MemoryMax=192M
+CPUQuota=75%
+TasksMax=64
+LimitNOFILE=1024
+RestrictAddressFamilies=AF_UNIX AF_INET
+
+[Install]
+WantedBy=default.target

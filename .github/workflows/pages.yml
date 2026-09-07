@@ -21,9 +21,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm ci --prefix server --ignore-scripts && npm test --prefix server
       - run: npm run build
         env:
           VITE_TURN_CREDENTIALS_URL: ${{ vars.TURN_CREDENTIALS_URL }}
+          VITE_ROOM_SERVICE_URL: ${{ vars.ROOM_SERVICE_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v5
         with:

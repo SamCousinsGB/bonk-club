@@ -3,6 +3,7 @@ import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
 import { loadIceConfig, connectionFailure, hasRelay } from "./ice.js";
 import { ConnectionDiagnostics } from "./connection-diagnostics.js";
+import { roomServiceOptions } from "./room-service.js";
 import {
   cleanProfile,
   defaultProfile,
@@ -59,6 +60,9 @@ export class Room {
     this.PeerClass = PeerClass;
     this.profile = cleanProfile(options.profile);
     this.config = options.config;
+    this.signaling = roomServiceOptions(
+      options.roomServiceUrl ?? import.meta.env?.VITE_ROOM_SERVICE_URL ?? "",
+    );
     this.iceServersUrl =
       options.iceServersUrl ?? import.meta.env?.VITE_TURN_CREDENTIALS_URL ?? "";
     this.compression =
@@ -115,9 +119,11 @@ export class Room {
     if (this.closed) throw new Error("Room closed.");
     return new Promise((resolve, reject) => {
       const p = (this.peer = new this.PeerClass(id, {
+        ...this.signaling,
         debug: 0,
         config: this.config,
       }));
+      if (this.iceServersUrl) this.scheduleIceRefresh();
       let settled = false;
       p.socket?.on("message", (m) => this.diagnostics.signal(m));
       const t = this.later(() => {
@@ -200,6 +206,25 @@ export class Room {
       },
       Math.min(8000, 1000 * 2 ** this.reconnectAttempts++),
     );
+  }
+  scheduleIceRefresh(delay = 20 * 60 * 1000) {
+    if (this.iceRefreshTimer) this.clear(this.iceRefreshTimer);
+    this.iceRefreshTimer = this.later(async () => {
+      try {
+        await this.refreshIceConfig();
+        if (!this.closed) this.scheduleIceRefresh();
+      } catch {
+        if (!this.closed) this.scheduleIceRefresh(60 * 1000);
+      }
+    }, delay);
+  }
+  async refreshIceConfig() {
+    const config = await loadIceConfig(this.iceServersUrl);
+    if (this.closed) return;
+    this.config = config;
+    // PeerJS creates incoming connections before emitting its connection event.
+    // Late joins must receive current TURN credentials from its configuration.
+    if (this.peer?.options) this.peer.options.config = config;
   }
   async create(code = makeCode()) {
     if (!validCode(code)) throw new Error("Invalid room code.");

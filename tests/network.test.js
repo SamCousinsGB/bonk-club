@@ -38,6 +38,7 @@ class FakePeer extends EventEmitter {
   constructor(id, options) {
     super();
     this.config = options.config;
+    this.options = options;
     this.id = id || "client-" + Math.random();
     if (FakePeer.peers.has(this.id)) {
       queueMicrotask(() => this.emit("error", { type: "unavailable-id" }));
@@ -99,6 +100,39 @@ test("host and guest load relay credentials before creating their peer connectio
   } finally {
     guest.close();
     host.close();
+  }
+});
+
+test("long-running hosts renew credentials for new arrivals without closing connected players", async (t) => {
+  let count = 0;
+  t.mock.method(globalThis, "fetch", async () => ({
+    ok: true,
+    json: async () => [
+      {
+        urls: "turn:rooms.example:3478",
+        username: `expiry-${++count}`,
+        credential: "temporary",
+      },
+    ],
+  }));
+  const host = new Room({}, FakePeer, {
+    iceServersUrl: "https://rooms.example/ice",
+  });
+  const guest = new Room({}, FakePeer);
+  try {
+    await host.create();
+    await guest.join(host.code);
+    const connection = [...host.connections.values()][0];
+    await host.refreshIceConfig();
+    assert.equal(
+      host.peer.options.config.iceServers.at(-1).username,
+      "expiry-2",
+    );
+    assert.equal(connection.open, true);
+    assert.equal(host.connections.size, 1);
+  } finally {
+    host.close();
+    guest.close();
   }
 });
 

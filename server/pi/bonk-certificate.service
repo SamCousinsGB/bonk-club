@@ -1,0 +1,8 @@
+[Unit]
+Description=Update Bonk Club TURN certificate after HTTPS renewal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/bonk-club/server/pi/sync-certificate.py --restart
+NoNewPrivileges=true
+UMask=0077

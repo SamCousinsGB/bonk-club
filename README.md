@@ -72,7 +72,16 @@ Open **Connection details** from the host lobby or game menu and from the guest 
 
 The last pre-hot-join revision (`8e8eb1b`) and the hot-join revision (`5d11d13`) both use unchanged PeerJS 1.5.5 defaults: Google STUN plus the bundled PeerJS TURN addresses. Revision `079ab4a` changes unordered JSON data to ordered binary data to support large snapshots; it does not modify ICE handlers. Revision `498a16a` uses explicit Google/Cloudflare STUN, removes the discontinued TURN endpoints, and retains the same PeerJS offer/answer/candidate implementation. Comparing two local browsers is not an external-network reproduction.
 
-## Optional internet relay setup
+## Raspberry Pi room service and relay
+
+The game supports a self-hosted PeerJS room service and authenticated coturn
+relay on the Raspberry Pi. The host browser remains authoritative for the match.
+See [the Pi deployment instructions](server/pi/README.md) for the isolated
+services, router forwards, certificate renewal, validation and rollback.
+`ROOM_SERVICE_URL` and `TURN_CREDENTIALS_URL` are public endpoint addresses in
+GitHub Actions variables; the TURN signing secret stays on the Pi.
+
+## Alternative internet relay setup
 
 GitHub Pages serves the game but cannot run a TURN relay. A relay is necessary when the host and guest networks prevent a direct WebRTC connection. Refreshing the page or changing the lobby cannot solve that network restriction.
 

@@ -1,0 +1,17 @@
+[Unit]
+Description=Bonk Club public HTTPS gateway
+After=bonk-room.service
+
+[Service]
+ExecStart=/usr/bin/caddy run --config %h/.config/bonk-club/Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+UMask=0077
+MemoryMax=192M
+CPUQuota=50%
+TasksMax=64
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=default.target
