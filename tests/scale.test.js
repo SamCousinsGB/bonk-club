@@ -16,7 +16,6 @@ import { combatFloor } from "./helpers.js";
 for (const [stance, input, speed] of [
   ["running", {}, RUN_SPEED],
   ["crawling", { duck: true }, CRAWL_SPEED],
-  ["guarding", { block: true }, GUARD_SPEED],
 ])
   test(`${stance} cannot accelerate above its movement limit`, () => {
     const w = new World(),
@@ -29,6 +28,23 @@ for (const [stance, input, speed] of [
     }
     assert.ok(p.vx > speed - 0.1);
   });
+
+test("parrying limits movement only during its window; holding does not guard", () => {
+  const w = new World(), p = w.players[0];
+  combatFloor(w);
+  Object.assign(p, { x: 200, y: 535, ground: true, vx: 0, vy: 0 });
+  let parryTicks = 0;
+  for (let i = 0; i < 240; i++) {
+    w.move(p, cleanInput({ block: true, right: true, aim: null }), STEP);
+    if (p.block) {
+      parryTicks++;
+      assert.ok(p.vx <= GUARD_SPEED + 0.001);
+    } else assert.ok(p.vx <= RUN_SPEED + 0.001);
+  }
+  assert.ok(parryTicks > 0 && parryTicks < 22);
+  assert.equal(p.block, false);
+  assert.ok(p.vx > RUN_SPEED - 0.1);
+});
 
 test("a held movement key preserves an initial hit impulse without adding speed", () => {
   const w = new World(),

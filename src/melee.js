@@ -1,3 +1,4 @@
+import { carryImpulse } from "./impact.js";
 import { COMBO } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
@@ -22,10 +23,11 @@ export function meleeAttack(world, p, weapon) {
   // One air lunge per jump sequence: directional attacks cannot become flight.
   if (!p.prone && (p.ground || !p.airLunge)) {
     const boost = unarmed ? w.boost : 150;
-    p.vx = Math.max(-490, Math.min(490, p.vx + ax * boost));
+    p.vx = Math.max(-620, Math.min(620, p.vx + ax * boost));
     if (Math.abs(ay) > 0.25) p.vy += ay * boost * 0.7;
-    if (!p.ground) p.airLunge = true;
-    p.rush = 0.17;
+    if (!p.ground || ay < -0.25) p.airLunge = true;
+    p.rush = 0.22;
+    carryImpulse(p, 0.23);
   }
   impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 100, ay * 100);
   const solids = world.solids();
@@ -60,7 +62,7 @@ export function meleeAttack(world, p, weapon) {
       unarmed && w.move !== "spin"
         ? Math.min(-0.13, ay * 0.35)
         : ay * 0.6 - 0.45,
-      { stun: w.stun, finisher: w.move === "spin" },
+      { stun: w.stun, finisher: w.move === "spin", melee: true, move: w.move, hitstop: w.move === "spin" ? 0.075 : 0.05 },
     );
     connected = true;
     rewarded ||= q.hp < hp;

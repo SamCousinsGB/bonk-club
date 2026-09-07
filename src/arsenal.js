@@ -1,3 +1,4 @@
+import { NUCLEAR } from "./impact.js";
 const original = {
   bat: {
     name: "BAT",
@@ -52,7 +53,7 @@ const original = {
     ammo: 3,
     kind: "rocket",
     speed: 680,
-    recoil: 360,
+    recoil: 560,
   },
   grenade: {
     name: "GRENADE",
@@ -75,7 +76,7 @@ const original = {
     ammo: 80,
     kind: "bullet",
     speed: 1650,
-    recoil: 65,
+    recoil: 180,
     spread: 0.045,
   },
   railgun: {
@@ -86,7 +87,7 @@ const original = {
     ammo: 4,
     kind: "rail",
     speed: 4600,
-    recoil: 520,
+    recoil: 720,
   },
   plasma: {
     name: "PLASMA CANNON",
@@ -120,7 +121,7 @@ const original = {
     ammo: 3,
     kind: "rocket",
     speed: 780,
-    recoil: 560,
+    recoil: 760,
     count: 3,
     radius: 180,
   },
@@ -134,7 +135,7 @@ export const COMBO = [
     force: 210,
     cooldown: 0.22,
     duration: 0.22,
-    boost: 190,
+    boost: 300,
     stun: 0.14,
   },
   {
@@ -144,7 +145,7 @@ export const COMBO = [
     force: 280,
     cooldown: 0.28,
     duration: 0.28,
-    boost: 230,
+    boost: 340,
     stun: 0.19,
   },
   {
@@ -154,7 +155,7 @@ export const COMBO = [
     force: 820,
     cooldown: 0.62,
     duration: 0.38,
-    boost: 290,
+    boost: 390,
     stun: 0.38,
   },
 ];
@@ -162,14 +163,14 @@ const additions = {
   nuke: {
     name: "NUCLEAR GRENADE",
     kind: "grenade",
-    damage: 160,
-    force: 1950,
+    damage: 260,
+    force: 3000,
     cooldown: 1.5,
     ammo: 1,
     speed: 450,
     lift: 580,
     life: 2.8,
-    radius: 620,
+    radius: NUCLEAR.coreRadius,
     recoil: 25,
     nuclear: true,
     rarity: "exotic",
@@ -381,15 +382,15 @@ export function secondaryAction(player) {
   return player.weapon
     ? WEAPONS[player.weapon]?.alt || null
     : {
-        label: "BLOCK",
-        description: "Hold to block with fists; tap before impact to parry",
+        label: "PARRY",
+        description: "Tap to parry one hit. Release and wait for the cooldown before trying again",
       };
 }
 export function firingRecoil(weapon, player) {
   if (weapon.proneOnly && player.prone && player.ground) return 0;
   return (
     weapon.recoil ??
-    (weapon.kind === "pellet" ? 150 : weapon.kind === "melee" ? 0 : 40)
+    (weapon.kind === "pellet" ? 380 : weapon.kind === "melee" ? 0 : 150)
   );
 }
 // Non-featured pickups use weighted tiers and avoid duplicate weapons when possible.

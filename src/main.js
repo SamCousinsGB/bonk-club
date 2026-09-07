@@ -211,7 +211,7 @@ function setPlaying(value) {
   setHtml($("#announcement"), "");
   syncTouchUi();
   $("#footer-hint").textContent = value
-    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK BLOCK / ALT FIRE · S LIE DOWN · F THROW"
+    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK PARRY / ALT FIRE · S LIE DOWN · F THROW"
     : "";
 }
 function home() {
@@ -269,6 +269,7 @@ function startWorld(ids) {
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
+  renderer.impacts = [];
   accumulator = 0;
   simulationLast = performance.now();
   hidePanel();
@@ -595,6 +596,7 @@ function enterGuest() {
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
+  renderer.impacts = [];
   hidePanel();
   setPlaying(true);
 }
@@ -696,8 +698,8 @@ function help(back = hidePanel) {
   showPanel(
     "help",
     heading("Controls") +
-      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block / alternate fire:</b> the button blocks only with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Parry / alternate fire:</b> the button parries one hit with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Parry / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT parries with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a large blast, a map-wide pressure wave and six marked secondary detonations. Breakable floors collapse as the wave arrives. Solid walls reduce nuclear damage but do not stop the pressure wave. The round waits for the 4.8-second sequence to finish. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -745,6 +747,7 @@ function updateHud(s) {
     : "";
   const status = $("#round-status");
   const warning =
+    s.fields.some(f => f.kind === "shockwave") ? "Nuclear blast" :
     s.players.length < 2 ? "Waiting for another player" :
     s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
       ? s.elapsed >= SUDDEN_DEATH
@@ -1038,7 +1041,10 @@ function updateTouchView(state, dt) {
   const actionButton = $("#touch-block");
   actionButton.classList.toggle("hidden", !action);
   actionButton.disabled = !action;
-  actionButton.textContent = action?.label || "";
+  const parryWait = !ownPlayer(state)?.weapon ? ownPlayer(state)?.parryCooldown || 0 : 0;
+  const actionLabel = parryWait > 0 ? `PARRY ${parryWait.toFixed(1)}` : action?.label || "";
+  if (actionButton.textContent !== actionLabel) actionButton.textContent = actionLabel;
+  actionButton.classList.toggle("recharging", parryWait > 0);
   actionButton.setAttribute(
     "aria-label",
     action?.description || "No secondary action",

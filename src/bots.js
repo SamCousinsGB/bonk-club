@@ -713,6 +713,7 @@ export class BotController {
       const error = perception.error * Math.min(1, range / 450) * (grenade ? 0.3 : 1);
       i.aim = Math.atan2(Math.sin(i.aim + error), Math.cos(i.aim + error));
     }
+    if (i.block && !p.weapon) i.block = !p.blockHeld && p.parryCooldown <= 0;
     return i;
   }
 }

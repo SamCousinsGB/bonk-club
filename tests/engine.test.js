@@ -65,21 +65,21 @@ test("a front-facing timed parry launches the attacker and preserves health", ()
   assert.ok(a.stun > 0);
   assert.ok(w.events.some((e) => e.type === "parry"));
 });
-test("holding guard reduces knockback and consumes stamina", () => {
+test("an expired parry cannot turn into a held guard", () => {
   const w = fight(),
     [a, b] = w.players;
   b.block = true;
   b.blockTime = 0.8;
   w.attack(a);
-  assert.equal(b.hp, 100);
-  assert.equal(b.stamina, 77);
-  assert.ok(b.vx > 0 && b.vx < 200);
-  assert.ok(a.vx < 0);
+  assert.equal(b.hp, 75);
+  assert.equal(b.stamina, 100);
+  assert.ok(b.vx > 210);
 });
 test("a block facing away does not prevent damage", () => {
   const w = fight(),
     [a, b] = w.players;
   b.facing = 1;
+  b.aimAngle = 0;
   b.block = true;
   b.blockTime = 0.01;
   w.attack(a);

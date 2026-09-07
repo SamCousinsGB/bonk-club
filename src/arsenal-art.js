@@ -1,3 +1,4 @@
+import { drawNuclear } from "./nuclear-art.js";
 import { WEAPONS } from "./arsenal.js";
 
 // Canvas silhouettes share the existing game's materials, with different barrels,
@@ -201,8 +202,8 @@ export function drawSpecialProjectile(r, b, time) {
     color = WEAPONS[b.weapon]?.color || "#c8edff";
   if (b.nuclear) {
     c.save();
-    c.globalAlpha = 0.3 + Math.sin(time * 22) * 0.15;
-    r.circle(b.x, b.y, 28, "#ffe486");
+    c.globalAlpha = r.reduced ? 0.3 : 0.35 + Math.sin(time * 9) * 0.12;
+    r.circle(b.x, b.y, 30 + Math.max(0, 1 - b.life) * 35, "#ffe486");
     c.restore();
     r.weapon("nuke", b.x, b.y, 1, time * 5);
     c.fillStyle = "#fff1b7";
@@ -260,29 +261,7 @@ export function drawFields(r, fields, time) {
   const c = r.ctx;
   for (const f of fields || []) {
     if (f.kind === "shockwave") {
-      c.save();
-      const radius = Math.max(1, Math.min(f.radius, f.age * 1600));
-      const glow = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, 620);
-      glow.addColorStop(0, "#fff2b8");
-      glow.addColorStop(0.2, "#ffdf7299");
-      glow.addColorStop(0.65, "#ff92502a");
-      glow.addColorStop(1, "#ff773300");
-      c.globalAlpha = Math.max(0, 1 - f.age / 0.65);
-      c.fillStyle = glow;
-      c.fillRect(f.x - 620, f.y - 620, 1240, 1240);
-      c.globalAlpha = Math.min(1, f.life * 2.5);
-      for (const [width, color] of [
-        [28, "#ffb65c35"],
-        [8, "#ffdf9cc0"],
-        [2, "#fff5d8"],
-      ]) {
-        c.lineWidth = width;
-        c.strokeStyle = color;
-        c.beginPath();
-        c.arc(f.x, f.y, radius, 0, Math.PI * 2);
-        c.stroke();
-      }
-      c.restore();
+      drawNuclear(r, f, time);
     } else if (f.kind === "arc") {
       const dx = f.ex - f.x,
         dy = f.ey - f.y;

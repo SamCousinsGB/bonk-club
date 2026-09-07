@@ -1,3 +1,4 @@
+import { updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
@@ -323,6 +324,9 @@ export class World {
       support: null,
       block: false,
       blockTime: 0,
+      blockHeld: false,
+      parryCooldown: 0,
+      impactTime: 0,
       stamina: 100,
       stun: 0,
       cooldown: 0,
@@ -453,6 +457,8 @@ export class World {
       jumpHeld: false,
       throwHeld: false,
       block: false,
+      blockHeld: false,
+      parryCooldown: 0,
     });
     if (this.phase === "result" && this.winner === id) this.winner = null;
   }
@@ -563,7 +569,9 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      if (alive.length <= 1 && (this.players.length >= 2 || alive.length === 0)) {
+      const nuclearPending = this.projectiles.some(b => b.nuclear && b.life > 0) ||
+        this.fields.some(f => f.kind === "shockwave" && f.life > 0);
+      if (alive.length <= 1 && !nuclearPending && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         if (this.winner !== null) this.scores[this.winner]++;
         this.phase = "result";
@@ -632,10 +640,10 @@ export class World {
     p.stun = Math.max(0, p.stun - dt);
     p.swing = Math.max(0, p.swing - dt);
     p.flash = Math.max(0, p.flash - dt);
-    const wasBlock = p.block;
-    p.block = !p.weapon && i.block && p.stamina > 2 && p.stun <= 0;
-    p.blockTime = p.block ? (wasBlock ? p.blockTime + dt : 0) : 0;
-    p.stamina = clamp(p.stamina + (p.block ? -12 : 25) * dt, 0, 100);
+    p.impactTime = Math.max(0, (p.impactTime || 0) - dt);
+    updateParry(p, i.block, dt);
+    p.stamina = clamp(p.stamina + 25 * dt, 0, 100);
+    const momentum = p.recoilTime > 0 || p.impactTime > 0 || p.rush > 0;
     p.coyote = p.ground ? 0.09 : Math.max(0, p.coyote - dt);
     const dir = Number(i.right) - Number(i.left);
     if (dir && p.stun <= 0) {
@@ -644,17 +652,17 @@ export class World {
         (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
         (p.chill > 0 ? 0.58 : 1);
       const acceleration =
-        (p.prone ? 400 : p.ground ? 1500 : 950) * (p.recoilTime > 0 ? 0.3 : 1);
+        (p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1);
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
       // but holding a direction must never add more speed above that limit.
       if (p.vx * dir < max)
         p.vx += dir * Math.min(acceleration * dt, max - p.vx * dir);
       else
         p.vx +=
-          (dir * max - p.vx) * Math.min(1, dt * (p.recoilTime > 0 ? 0.6 : 3));
+          (dir * max - p.vx) * Math.min(1, dt * (momentum ? 0.4 : 3));
     } else if (p.ground)
       p.vx *= Math.pow(
-        p.recoilTime > 0 ? 0.993 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
+        momentum ? 0.994 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
         dt * 120,
       );
     else p.vx *= Math.pow(0.996, dt * 120);
@@ -799,8 +807,10 @@ export class World {
           p.recoilTime,
           Math.min(0.32, 0.12 + recoil / 2000),
         );
-      p.vx -= ax * recoil;
-      p.vy -= ay * recoil;
+      const propel = (v, kick) => v + kick * (v * kick > 0 ? clamp(1 - Math.abs(v) / 1100, 0, 1) : 1);
+      p.vx = propel(p.vx, -ax * recoil);
+      p.vy = propel(p.vy, -ay * recoil);
+      if (recoil > 0) carryImpulse(p, Math.min(0.42, 0.16 + recoil / 2000));
       impulseRig(
         p,
         p.x + ax * 25,
@@ -812,6 +822,8 @@ export class World {
         x: p.x + ax * 40,
         y: p.y - 10 + ay * 40,
         kind: w.kind,
+        weapon: p.weapon,
+        heavy: recoil >= 250,
       });
     }
     if (p.weapon) {
@@ -824,35 +836,20 @@ export class World {
   }
   hit(q, p, damage, force, dir, vertical = -0.5, options = {}) {
     if (q.weapon) q.block = false;
-    const front = (p.x - q.x) * q.facing > -5;
-    if (q.block && front && options.finisher && q.blockTime >= 0.18) {
-      q.stamina = Math.max(0, q.stamina - 42);
-      if (q.stamina <= 0) q.block = false;
-    }
-    if (q.block && front) {
-      const parry = q.blockTime < 0.18;
-      q.stamina = Math.max(0, q.stamina - (parry ? 5 : 23));
-      if (parry) {
-        p.vx = -dir * 880;
-        p.vy = -440;
-        p.stun = 0.32;
-        p.comboTime = 0;
-        p.rush = 0;
-        if (p.id !== undefined) impulseRig(p, p.x, p.y - 15, -dir * 900, -440);
-        q.cooldown = 0;
-        this.hitstop = 0.075;
-        this.event("parry", {
-          x: (p.x + q.x) / 2,
-          y: q.y - 10,
-          color: q.color,
-        });
-      } else {
-        q.vx += dir * force * 0.28;
-        q.vy -= 70;
-        p.vx -= dir * 240;
-        p.stun = 0.12;
-        this.event("block", { x: q.x, y: q.y - 10 });
+    if (!options.blast && canParry(q, p)) {
+      consumeParry(q);
+      p.vx = -dir * 880;
+      p.vy = -440;
+      p.stun = 0.32;
+      p.comboTime = 0;
+      p.rush = 0;
+      if (p.id !== undefined) {
+        carryImpulse(p, 0.35);
+        impulseRig(p, p.x, p.y - 15, -dir * 900, -440);
       }
+      q.cooldown = 0;
+      this.hitstop = 0.055;
+      this.event("parry", { x: (p.x + q.x) / 2, y: q.y - 10, color: q.color });
       return;
     }
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
@@ -864,6 +861,7 @@ export class World {
         ? q.vx
         : knockback;
     q.vy = Math.min(q.vy, force * vertical);
+    carryImpulse(q, options.blast ? 0.55 : 0.26);
     q.stun = Math.max(q.stun, options.stun ?? (damage > 30 ? 0.4 : 0.26));
     if (q.rush > 0 && !q.weapon && options.projectile)
       q.stun = Math.min(q.stun, 0.035);
@@ -875,7 +873,11 @@ export class World {
       this.hitstop,
       options.hitstop ?? (damage > 30 ? 0.065 : 0.045),
     );
-    this.event("hit", { x: q.x, y: q.y - 10, color: q.color, force });
+    this.event("hit", {
+      x: q.x, y: q.y - 10, color: q.color, force, damage,
+      melee: !!options.melee, move: options.move || null,
+      projectile: !!options.projectile, blast: !!options.blast,
+    });
     if (q.hp <= 0) this.kill(q);
   }
   kill(p) {
@@ -1124,7 +1126,6 @@ export class World {
   }
   explode(b) {
     const radius = b.radius || 145;
-    this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear });
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
     const cover = this.solids().filter(breakable);
     const solidWalls = this.platforms.filter((p) => !p.destructible);
@@ -1132,9 +1133,9 @@ export class World {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
       const walls = solidWalls.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
-      if (dist >= radius || walls) continue;
+      if (dist >= radius || (walls && !b.nuclear)) continue;
       const shield = cover.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
-      const scale = (1 - dist / (radius * 1.32)) * (shield ? 0.12 : 1);
+      const scale = (1 - dist / (radius * 1.32)) * (b.nuclear ? (walls ? 0.35 : shield ? 0.72 : 1) : shield ? 0.12 : 1);
       this.hit(
         p,
         { x: b.x, y: b.y, vx: 0, vy: 0, stun: 0 },
@@ -1142,6 +1143,7 @@ export class World {
         b.force * scale,
         Math.sign(p.x - b.x) || 1,
         -0.7,
+        { blast: true, hitstop: 0.018 },
       );
     }
     for (const c of cover) {
@@ -1149,7 +1151,7 @@ export class World {
         y = clamp(b.y, c.y, c.y + c.h);
       if (
         Math.hypot(b.x - x, b.y - y) < radius &&
-        !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s))
+        (b.nuclear || !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s)))
       )
         this.damageCover(
           c,
@@ -1158,6 +1160,7 @@ export class World {
           -b.force * 0.5,
         );
     }
+    this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }
   updateProjectiles(dt) {
     for (const b of [...this.projectiles]) {
@@ -1233,12 +1236,8 @@ export class World {
           vy: 0,
           stun: 0,
         };
-        if (
-          !p.weapon &&
-          p.block &&
-          p.blockTime < 0.18 &&
-          (source.x - p.x) * p.facing > 0
-        ) {
+        if (canParry(p, source)) {
+          consumeParry(p);
           b.owner = p.id;
           b.vx *= -1;
           b.vy *= -1;

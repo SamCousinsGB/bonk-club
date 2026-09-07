@@ -1,5 +1,5 @@
 const simulationOnly = new Set([
-  "px", "py", "coyote", "jumpHeld", "throwHeld", "pickupCooldown", "support",
+  "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock",
 ]);
 const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields"];

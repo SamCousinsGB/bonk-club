@@ -1299,3 +1299,5 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   font: 12px/1.5 monospace;
   margin-bottom: 14px;
 }
+
+#touch-block.recharging { opacity: 0.6; }

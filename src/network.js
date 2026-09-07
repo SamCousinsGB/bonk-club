@@ -1,3 +1,4 @@
+import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
@@ -20,7 +21,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 11;
+export const PROTOCOL = 12;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -679,6 +680,7 @@ export function validSnapshot(s) {
           p.burn,
           p.chill,
           p.blockTime,
+          p.parryCooldown,
           p.stamina,
           p.flash,
         ].every(finite) &&
@@ -686,6 +688,7 @@ export function validSnapshot(s) {
         integer(p.comboStep, 0, 2) &&
         ["punch", "kick", "spin", "weapon"].includes(p.meleeMove) &&
         integer(p.ammo, 0, 100) &&
+        p.parryCooldown >= 0 && p.parryCooldown <= PARRY.cooldown + 0.01 &&
         p.hp >= 0 &&
         p.hp <= 100 &&
         (p.facing === 1 || p.facing === -1) &&
@@ -769,8 +772,11 @@ export function validSnapshot(s) {
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
         ["arc", "blackhole", "shockwave"].includes(f.kind) &&
         f.radius >= 0 &&
-        f.radius <= (f.kind === "shockwave" ? 1050 : 320) &&
+        f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : 320) &&
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 5)) &&
+        (f.kind !== "shockwave" ||
+          (list(f.strikes, 6, s => xy(s) && finite(s.at) && s.at >= 0 && s.at <= 4) &&
+            integer(f.nextStrike, 0, 6))) &&
         f.life >= 0 &&
         f.life <= 5,
     ) &&

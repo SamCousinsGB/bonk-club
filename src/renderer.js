@@ -1,3 +1,4 @@
+import { PARRY } from "./impact.js";
 import { drawHair } from "./identity.js";
 import {
   drawNewWeapon,
@@ -21,6 +22,7 @@ export class Renderer {
     this.ctx = canvas.getContext("2d");
     this.particles = [];
     this.words = [];
+    this.impacts = [];
     this.shake = 0;
     this.lastEvent = 0;
     this.scenery = new Map();
@@ -84,7 +86,13 @@ export class Renderer {
           ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
           ? e.kind
           : e.type,
+        e,
       );
+      if (e.type === "hit" || e.type === "parry") {
+        this.impacts.push({ x:e.x, y:e.y, age:0, life:e.melee ? 0.24 : 0.15,
+          size:e.move === "spin" ? 65 : e.melee ? 42 : 23, color:e.type === "parry" ? "#d5fa43" : "#fff1ce" });
+        if (this.impacts.length > 32) this.impacts.shift();
+      }
       if (
         [
           "hit",
@@ -124,13 +132,10 @@ export class Renderer {
           });
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
-          this.shake = e.nuclear
-            ? 28
-            : e.type === "explosion"
-              ? 16
-              : e.type === "ko"
-                ? 12
-                : 7;
+          this.shake = Math.max(this.shake,
+            e.nuclear ? 44 : e.type === "explosion" ? 18 :
+            e.type === "ko" ? 12 : e.melee ? (e.move === "spin" ? 13 : 8) :
+            e.type === "parry" ? 7 : Math.min(5, 2 + (e.damage || 0) / 20));
         }
       }
     }
@@ -728,8 +733,8 @@ export class Renderer {
       c.strokeRect(-21, -34, 42, 59);
     }
     if (p.block) {
-      c.strokeStyle = p.blockTime < 0.18 ? "#eaffbd" : "#eaffbd88";
-      c.lineWidth = p.blockTime < 0.18 ? 5 : 2;
+      c.strokeStyle = "#eaffbd";
+      c.lineWidth = 5;
       c.beginPath();
       c.arc(rig[1].x - p.x, rig[1].y - p.y, 39, angle - 1.15, angle + 1.15);
       c.stroke();
@@ -739,11 +744,11 @@ export class Renderer {
       c.textAlign = "center";
       c.fillStyle = p.color || COLORS[p.id];
       c.fillText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
-      if (p.stamina < 97) {
+      if (!p.weapon && p.parryCooldown > 0) {
         c.fillStyle = "#ffffff20";
         c.fillRect(-18, 43, 36, 3);
         c.fillStyle = "#d5fa43";
-        c.fillRect(-18, 43, (36 * p.stamina) / 100, 3);
+        c.fillRect(-18, 43, 36 * (1 - p.parryCooldown / PARRY.cooldown), 3);
       }
     }
     c.restore();
@@ -878,6 +883,8 @@ export class Renderer {
       this.city(arena, state.platforms);
     }
     c.save();
+    const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
+    this.shake = Math.max(this.shake, pressure);
     if (!this.reduced && this.shake > 0)
       c.translate(
         (Math.random() - 0.5) * this.shake,
@@ -1011,6 +1018,20 @@ export class Renderer {
         );
       }
     }
+    for (const hit of this.impacts) {
+      hit.age += dt;
+      const t = Math.min(1, hit.age / hit.life), radius = hit.size * (0.35 + t);
+      c.globalAlpha = 1 - t;
+      c.strokeStyle = hit.color; c.lineWidth = 3 * (1 - t) + 1;
+      c.beginPath(); c.arc(hit.x, hit.y, radius, 0, TAU); c.stroke();
+      for (let n = 0; n < 6; n++) {
+        const a = n * TAU / 6;
+        this.line([[hit.x + Math.cos(a) * radius * 0.6, hit.y + Math.sin(a) * radius * 0.6],
+          [hit.x + Math.cos(a) * radius * 1.2, hit.y + Math.sin(a) * radius * 1.2]], hit.color, 2);
+      }
+    }
+    this.impacts = this.impacts.filter(hit => hit.age < hit.life);
+    c.globalAlpha = 1;
     for (const p of this.particles) {
       p.life -= dt;
       p.x += p.vx * dt;
