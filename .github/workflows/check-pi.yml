@@ -1,0 +1,21 @@
+name: Check Pi relay from outside the home network
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.63.0
+      - run: npx playwright install --with-deps chromium
+      - run: node server/test/relay-browser.cjs
+        env:
+          ROOM_SERVICE_URL: ${{ vars.ROOM_SERVICE_URL }}

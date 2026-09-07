@@ -27,16 +27,17 @@ or copy its contents into a diagnostic report.
    Services run under `systemctl --user`.
 4. Forward only the following router ports to `192.168.0.96`:
 
-   | Internet port | Protocol | Pi port | Purpose |
-   | --- | --- | --- | --- |
-   | 443 | TCP | 8443 | HTTPS signaling, credentials and certificate renewal |
-   | 3478 | TCP and UDP | 3478 | STUN and TURN |
-   | 5349 | TCP | 5349 | TURN over TLS |
-   | 49160–49223 | UDP | 49160–49223 | TURN relay allocations |
+   | Internet port | Protocol    | Pi port     | Purpose                                              |
+   | ------------- | ----------- | ----------- | ---------------------------------------------------- |
+   | 443           | TCP         | 8443        | HTTPS signaling, credentials and certificate renewal |
+   | 3478          | TCP and UDP | 3478        | STUN and TURN                                        |
+   | 5349          | TCP         | 5349        | TURN over TLS                                        |
+   | 49160–49223   | UDP         | 49160–49223 | TURN relay allocations                               |
 
    Do not forward port 80 or enable DMZ. Relay range ports must retain their
    numbers. Router WAN IPv4 must match the public IPv4; upstream NAT needs its
    own forwarding. No global IPv6 is used by this setup.
+
 5. Caddy obtains and renews a Let's Encrypt certificate using the TLS challenge
    on public port 443. TURN serves UDP/TCP while waiting for that certificate;
    a timer copies new/renewed certificates and restarts TURN to enable TLS.
@@ -47,6 +48,9 @@ or copy its contents into a diagnostic report.
    and publish Pages after the relay test; repeat the match test on the published
    game. Both players must refresh after the switch. Two browsers on the home
    LAN using the public relay address do not constitute a cross-ISP test.
+   The manual `Check Pi relay from outside the home network` Actions workflow
+   runs two browsers on a GitHub runner and verifies acknowledged data over
+   UDP, TCP and TLS with relay-only ICE. It does not log relay credentials.
 
 ## Limits and operation
 
