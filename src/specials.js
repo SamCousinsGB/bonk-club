@@ -89,6 +89,21 @@ export function impactSpecial(world, b, target, hurt) {
 }
 
 export function expireSpecial(world, b) {
+  if (b.nuclear) {
+    world.fields.push({
+      kind: "shockwave",
+      x: b.x,
+      y: b.y,
+      ex: b.x,
+      ey: b.y,
+      radius: 1050,
+      life: 0.9,
+      owner: b.owner,
+      age: 0,
+      hitIds: [],
+    });
+    world.fields = world.fields.slice(-12);
+  }
   if (b.kind === "singularity") {
     world.fields.push({
       kind: "blackhole",
@@ -130,8 +145,38 @@ export function expireSpecial(world, b) {
 export function updateFields(world, dt) {
   for (const f of world.fields) {
     f.life -= dt;
+    if (f.kind === "shockwave") {
+      const previous = Math.min(f.radius, f.age * 1600);
+      f.age += dt;
+      const radius = Math.min(f.radius, f.age * 1600);
+      if (world.phase !== "fight") continue;
+      for (const p of world.players) {
+        const distance = Math.hypot(p.x - f.x, p.y - f.y);
+        if (
+          !p.alive ||
+          f.hitIds.includes(p.id) ||
+          distance < previous - 30 ||
+          distance > radius + 30 ||
+          !clear(world, f, p)
+        )
+          continue;
+        f.hitIds.push(p.id);
+        const power = 1 - distance / (f.radius * 1.4);
+        world.hit(
+          p,
+          { x: f.x, y: f.y, vx: 0, vy: 0 },
+          18 * power,
+          1500 * power,
+          Math.sign(p.x - f.x) || 1,
+          -0.32,
+          { stun: 0.2, hitstop: 0.012 },
+        );
+      }
+      continue;
+    }
     if (f.kind !== "blackhole") continue;
     f.age += dt;
+    if (world.phase !== "fight") continue;
     if (f.age < 0.4) continue;
     f.tick -= dt;
     const pulse = f.tick <= 0;

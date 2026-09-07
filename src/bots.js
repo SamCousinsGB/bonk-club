@@ -1,4 +1,4 @@
-import { WEAPONS, COMBO } from "./arsenal.js";
+import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
@@ -56,8 +56,8 @@ const weapons = {
     recoil: 170,
   },
   grenade: {
-    range: 650,
-    speed: 470,
+    range: 2600,
+    speed: 1900,
     value: 5,
     damage: 58,
     blast: 145,
@@ -76,6 +76,11 @@ for (const [type, w] of Object.entries(WEAPONS)) {
       : 0,
   };
 }
+for (const [type, w] of Object.entries(WEAPONS))
+  weapons[type].recoil = firingRecoil(w, {
+    prone: !!w.proneOnly,
+    ground: true,
+  });
 const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
 function firstObstacle(solids, p, point) {
@@ -260,8 +265,9 @@ export class BotController {
       ? intercept(p, enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
     if (WEAPONS[p.weapon]?.kind === "grenade") {
-      const t = clamp(range / 470, 0.2, 1.1);
-      aim.y -= 0.5 * 1100 * t * t - 330 * t;
+      const definition = WEAPONS[p.weapon];
+      const t = clamp(range / definition.speed, 0.1, 2.2);
+      aim.y -= 0.5 * 1100 * t * t - (definition.lift ?? 330) * t;
     }
     i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
     const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
@@ -281,7 +287,7 @@ export class BotController {
     )
       i.attack = false;
     if (weapon.recoil && here && p.ground) {
-      const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.22;
+      const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.38;
       if (recoilX < here.x + 18 || recoilX > here.x + here.w - 18)
         i.attack = false;
     }
@@ -419,7 +425,7 @@ export class BotController {
               here.w / 2 - 3,
               Math.max(
                 30,
-                (weapon.recoil || 0) * Math.abs(Math.cos(i.aim)) * 0.22 + 24,
+                (weapon.recoil || 0) * Math.abs(Math.cos(i.aim)) * 0.38 + 24,
               ),
             )
           : 20;
@@ -577,7 +583,7 @@ export class BotController {
         );
         i.jump = p.ground && !roof;
         i.attack = false;
-      } else if (!b.flight && p.stamina > 15 && soon < 0.2) {
+      } else if (!p.weapon && !b.flight && p.stamina > 15 && soon < 0.2) {
         i.aim = Math.atan2(threat.y - p.y, threat.x - p.x);
         i.block = true;
         i.attack = false;
@@ -593,6 +599,7 @@ export class BotController {
       }
     }
     if (
+      !p.weapon &&
       !b.flight &&
       range < 95 &&
       enemy.swing > 0 &&

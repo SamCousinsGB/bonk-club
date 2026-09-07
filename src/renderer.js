@@ -68,10 +68,19 @@ export class Renderer {
           "break",
         ].includes(e.type)
       ) {
-        const count = e.type === "explosion" ? 38 : e.type === "ko" ? 28 : 12;
+        const count = e.nuclear
+          ? 90
+          : e.type === "explosion"
+            ? 38
+            : e.type === "ko"
+              ? 28
+              : 12;
         for (let i = 0; i < count; i++) {
           const a = Math.random() * TAU,
-            v = 70 + Math.random() * (e.type === "explosion" ? 570 : 330);
+            v =
+              70 +
+              Math.random() *
+                (e.nuclear ? 1500 : e.type === "explosion" ? 570 : 330);
           this.particles.push({
             x: e.x,
             y: e.y,
@@ -84,7 +93,13 @@ export class Renderer {
           });
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
-          this.shake = e.type === "explosion" ? 16 : e.type === "ko" ? 12 : 7;
+          this.shake = e.nuclear
+            ? 28
+            : e.type === "explosion"
+              ? 16
+              : e.type === "ko"
+                ? 12
+                : 7;
         }
       }
     }

@@ -5,6 +5,30 @@ import { WEAPONS } from "./arsenal.js";
 export function drawNewWeapon(r, type) {
   const w = WEAPONS[type],
     c = r.ctx;
+  if (type === "nuke") {
+    r.circle(8, 0, 17, "#c6b54f");
+    r.circle(8, 0, 12, "#ffe486");
+    r.circle(8, 0, 3, "#293234");
+    c.fillStyle = "#293234";
+    for (let n = 0; n < 3; n++) {
+      const a = (n * Math.PI * 2) / 3;
+      c.beginPath();
+      c.moveTo(8, 0);
+      c.arc(8, 0, 10, a, a + 0.9);
+      c.closePath();
+      c.fill();
+    }
+    r.line(
+      [
+        [2, -16],
+        [8, -22],
+        [15, -16],
+      ],
+      "#dbe3d9",
+      4,
+    );
+    return;
+  }
   const newTypes = [
     "smg",
     "burst",
@@ -175,7 +199,17 @@ export function drawNewWeapon(r, type) {
 export function drawSpecialProjectile(r, b, time) {
   const c = r.ctx,
     color = WEAPONS[b.weapon]?.color || "#c8edff";
-  if (b.kind === "flame") {
+  if (b.nuclear) {
+    c.save();
+    c.globalAlpha = 0.3 + Math.sin(time * 22) * 0.15;
+    r.circle(b.x, b.y, 28, "#ffe486");
+    c.restore();
+    r.weapon("nuke", b.x, b.y, 1, time * 5);
+    c.fillStyle = "#fff1b7";
+    c.textAlign = "center";
+    c.font = "700 18px sans-serif";
+    c.fillText(Math.max(0, b.life).toFixed(1), b.x, b.y - 34);
+  } else if (b.kind === "flame") {
     const size = 6 + (1 - b.life / 0.42) * 13;
     r.circle(b.x, b.y, size * 1.4, "#ff653832");
     r.circle(b.x, b.y, size, "#ff993988");
@@ -225,7 +259,31 @@ export function drawSpecialProjectile(r, b, time) {
 export function drawFields(r, fields, time) {
   const c = r.ctx;
   for (const f of fields || []) {
-    if (f.kind === "arc") {
+    if (f.kind === "shockwave") {
+      c.save();
+      const radius = Math.max(1, Math.min(f.radius, f.age * 1600));
+      const glow = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, 620);
+      glow.addColorStop(0, "#fff2b8");
+      glow.addColorStop(0.2, "#ffdf7299");
+      glow.addColorStop(0.65, "#ff92502a");
+      glow.addColorStop(1, "#ff773300");
+      c.globalAlpha = Math.max(0, 1 - f.age / 0.65);
+      c.fillStyle = glow;
+      c.fillRect(f.x - 620, f.y - 620, 1240, 1240);
+      c.globalAlpha = Math.min(1, f.life * 2.5);
+      for (const [width, color] of [
+        [28, "#ffb65c35"],
+        [8, "#ffdf9cc0"],
+        [2, "#fff5d8"],
+      ]) {
+        c.lineWidth = width;
+        c.strokeStyle = color;
+        c.beginPath();
+        c.arc(f.x, f.y, radius, 0, Math.PI * 2);
+        c.stroke();
+      }
+      c.restore();
+    } else if (f.kind === "arc") {
       const dx = f.ex - f.x,
         dy = f.ey - f.y;
       const points = Array.from({ length: 8 }, (_, n) => [

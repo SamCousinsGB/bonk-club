@@ -5,7 +5,7 @@ import {
   expireSpecial,
   updateFields,
 } from "./specials.js";
-import { WEAPONS, chooseWeapon } from "./arsenal.js";
+import { WEAPONS, chooseWeapon, firingRecoil } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
 import { BotController } from "./bots.js";
@@ -309,6 +309,7 @@ export class World {
       stamina: 100,
       stun: 0,
       cooldown: 0,
+      recoilTime: 0,
       swing: 0,
       swingDuration: 0.22,
       meleeMove: "punch",
@@ -401,6 +402,7 @@ export class World {
     this.updateCover(dt);
     this.updateDebris(dt);
     if (this.phase === "result") {
+      updateFields(this, dt);
       for (const p of this.players)
         if (p.alive) {
           this.move(p, emptyInput(), dt);
@@ -455,8 +457,10 @@ export class World {
       const i = active ? cleanInput(inputs[p.id]) : emptyInput();
       if (i.throw && !p.throwHeld && p.stun <= 0) this.throwWeapon(p);
       p.throwHeld = i.throw;
-      if (!i.throw && i.attack && p.cooldown <= 0 && p.stun <= 0 && !p.block)
-        this.attack(p);
+      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
+        if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
+        else if (i.attack) this.attack(p);
+      }
     }
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
@@ -555,11 +559,12 @@ export class World {
       top = p.prone ? 10 : 28;
 
     p.cooldown = Math.max(0, p.cooldown - dt);
+    p.recoilTime = Math.max(0, p.recoilTime - dt);
     p.stun = Math.max(0, p.stun - dt);
     p.swing = Math.max(0, p.swing - dt);
     p.flash = Math.max(0, p.flash - dt);
     const wasBlock = p.block;
-    p.block = i.block && p.stamina > 2 && p.stun <= 0;
+    p.block = !p.weapon && i.block && p.stamina > 2 && p.stun <= 0;
     p.blockTime = p.block ? (wasBlock ? p.blockTime + dt : 0) : 0;
     p.stamina = clamp(p.stamina + (p.block ? -12 : 25) * dt, 0, 100);
     p.coyote = p.ground ? 0.09 : Math.max(0, p.coyote - dt);
@@ -569,14 +574,20 @@ export class World {
       const max =
         (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
         (p.chill > 0 ? 0.58 : 1);
-      const acceleration = p.prone ? 400 : p.ground ? 1500 : 950;
+      const acceleration =
+        (p.prone ? 400 : p.ground ? 1500 : 950) * (p.recoilTime > 0 ? 0.3 : 1);
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
       // but holding a direction must never add more speed above that limit.
       if (p.vx * dir < max)
         p.vx += dir * Math.min(acceleration * dt, max - p.vx * dir);
-      else p.vx += (dir * max - p.vx) * Math.min(1, dt * 3);
+      else
+        p.vx +=
+          (dir * max - p.vx) * Math.min(1, dt * (p.recoilTime > 0 ? 0.6 : 3));
     } else if (p.ground)
-      p.vx *= Math.pow(p.ice ? 0.985 : p.prone ? 0.984 : 0.86, dt * 120);
+      p.vx *= Math.pow(
+        p.recoilTime > 0 ? 0.993 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
+        dt * 120,
+      );
     else p.vx *= Math.pow(0.996, dt * 120);
     if (i.jump && !p.jumpHeld && p.stun <= 0 && (p.coyote > 0 || p.jumps < 2)) {
       p.vy = p.jumps === 0 ? -700 : -590;
@@ -651,8 +662,10 @@ export class World {
       b.vx += sign * closing * 0.52;
     }
   }
-  attack(p) {
-    const w = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
+  attack(p, alternate = false) {
+    const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
+    if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
+    const w = alternate ? { ...base, ...base.alt } : base;
     if (w.proneOnly && (!p.prone || !p.ground)) return;
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
       ax = Math.cos(angle),
@@ -678,11 +691,13 @@ export class World {
           vx: w.speed * Math.cos(angle + spread),
           vy:
             w.speed * Math.sin(angle + spread) -
-            (w.kind === "grenade" ? 330 : 0),
+            (w.kind === "grenade" ? (w.lift ?? 330) : 0),
           owner: p.id,
           weapon: p.weapon,
           homing: !!w.homing,
           cluster: !!w.cluster,
+          nuclear: !!w.nuclear,
+          alternate,
           burn: w.burn || 0,
           chill: w.chill || 0,
           kind: w.kind,
@@ -694,22 +709,27 @@ export class World {
           radius: w.radius || 145,
           bounces: w.bounces || (w.kind === "plasma" ? 2 : 0),
           hitIds: [],
-          r: ["force", "saw"].includes(w.kind)
-            ? 18
-            : ["flame", "singularity"].includes(w.kind)
-              ? 10
-              : w.kind === "plasma"
-                ? 11
-                : w.kind === "rocket"
-                  ? 8
-                  : w.kind === "grenade"
-                    ? 7
-                    : 4,
+          r:
+            w.r ||
+            (["force", "saw"].includes(w.kind)
+              ? 18
+              : ["flame", "singularity"].includes(w.kind)
+                ? 10
+                : w.kind === "plasma"
+                  ? 11
+                  : w.kind === "rocket"
+                    ? 8
+                    : w.kind === "grenade"
+                      ? 7
+                      : 4),
         });
       }
-      const recoil =
-        w.recoil ??
-        (w.kind === "rocket" ? 240 : w.kind === "pellet" ? 150 : 40);
+      const recoil = firingRecoil(w, p);
+      if (recoil >= 60)
+        p.recoilTime = Math.max(
+          p.recoilTime,
+          Math.min(0.32, 0.12 + recoil / 2000),
+        );
       p.vx -= ax * recoil;
       p.vy -= ay * recoil;
       impulseRig(
@@ -726,7 +746,7 @@ export class World {
       });
     }
     if (p.weapon) {
-      p.ammo--;
+      p.ammo -= w.ammoCost || 1;
       if (p.ammo <= 0) {
         p.weapon = null;
         p.ammo = 0;
@@ -734,6 +754,7 @@ export class World {
     }
   }
   hit(q, p, damage, force, dir, vertical = -0.5, options = {}) {
+    if (q.weapon) q.block = false;
     const front = (p.x - q.x) * q.facing > -5;
     if (q.block && front && options.finisher && q.blockTime >= 0.18) {
       q.stamina = Math.max(0, q.stamina - 42);
@@ -824,6 +845,8 @@ export class World {
     }
     if (best) {
       p.weapon = best.type;
+      p.block = false;
+      p.blockTime = 0;
       p.ammo = best.ammo;
       this.drops = this.drops.filter((d) => d !== best);
       this.event("pickup", { x: p.x, y: p.y, color: COLORS[p.id] });
@@ -831,6 +854,12 @@ export class World {
   }
   throwWeapon(p) {
     if (!p.weapon) return;
+    if (p.weapon === "nuke") {
+      this.attack(p);
+      p.pickupCooldown = 0.35;
+      this.event("throw", { x: p.x, y: p.y });
+      return;
+    }
     const ax = Math.cos(p.aimAngle),
       ay = Math.sin(p.aimAngle);
     this.drops.push({
@@ -1017,7 +1046,7 @@ export class World {
   }
   explode(b) {
     const radius = b.radius || 145;
-    this.event("explosion", { x: b.x, y: b.y });
+    this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear });
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
     const cover = this.solids().filter(breakable);
     const solidWalls = this.platforms.filter((p) => !p.destructible);
@@ -1126,7 +1155,12 @@ export class World {
           vy: 0,
           stun: 0,
         };
-        if (p.block && p.blockTime < 0.18 && (source.x - p.x) * p.facing > 0) {
+        if (
+          !p.weapon &&
+          p.block &&
+          p.blockTime < 0.18 &&
+          (source.x - p.x) * p.facing > 0
+        ) {
           b.owner = p.id;
           b.vx *= -1;
           b.vy *= -1;
@@ -1167,6 +1201,8 @@ export class World {
         b.x = endX;
         b.y = endY;
       }
+      if (b.kind === "grenade" && (b.x < -80 || b.x > W + 80 || b.y > H + 80))
+        b.life = 0;
       if (
         (impact || b.life <= 0) &&
         ["rocket", "grenade", "plasma"].includes(b.kind)
@@ -1181,7 +1217,7 @@ export class World {
           b.life > 0 &&
           b.x > -200 &&
           b.x < W + 200 &&
-          b.y > -300 &&
+          b.y > (b.kind === "grenade" ? -3600 : -300) &&
           b.y < H + 200,
       )
       .slice(-160);

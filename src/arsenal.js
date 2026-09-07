@@ -34,6 +34,15 @@ const original = {
     ammo: 5,
     kind: "pellet",
     speed: 1050,
+    alt: {
+      label: "DOUBLE SHOT",
+      description: "Fire both shotgun barrels; uses two shells",
+      count: 10,
+      spread: 0.075,
+      recoil: 420,
+      cooldown: 1.25,
+      ammoCost: 2,
+    },
   },
   rocket: {
     name: "ROCKET LAUNCHER",
@@ -43,6 +52,7 @@ const original = {
     ammo: 3,
     kind: "rocket",
     speed: 680,
+    recoil: 360,
   },
   grenade: {
     name: "GRENADE",
@@ -51,7 +61,10 @@ const original = {
     cooldown: 0.9,
     ammo: 4,
     kind: "grenade",
-    speed: 470,
+    speed: 1900,
+    lift: 580,
+    life: 2.8,
+    recoil: 20,
   },
   minigun: {
     name: "MINIGUN",
@@ -61,7 +74,7 @@ const original = {
     ammo: 80,
     kind: "bullet",
     speed: 1650,
-    recoil: 24,
+    recoil: 65,
     spread: 0.045,
   },
   railgun: {
@@ -72,7 +85,7 @@ const original = {
     ammo: 4,
     kind: "rail",
     speed: 4600,
-    recoil: 350,
+    recoil: 520,
   },
   plasma: {
     name: "PLASMA CANNON",
@@ -82,8 +95,21 @@ const original = {
     ammo: 7,
     kind: "plasma",
     speed: 850,
-    recoil: 150,
+    recoil: 280,
     radius: 105,
+    alt: {
+      label: "CHARGED SHOT",
+      description: "Fire a charged plasma orb; uses two rounds",
+      damage: 70,
+      force: 1100,
+      radius: 150,
+      bounces: 4,
+      recoil: 440,
+      speed: 720,
+      cooldown: 1.2,
+      ammoCost: 2,
+      r: 15,
+    },
   },
   barrage: {
     name: "TRIPLE ROCKET LAUNCHER",
@@ -93,7 +119,7 @@ const original = {
     ammo: 3,
     kind: "rocket",
     speed: 780,
-    recoil: 340,
+    recoil: 560,
     count: 3,
     radius: 180,
   },
@@ -132,6 +158,24 @@ export const COMBO = [
   },
 ];
 const additions = {
+  nuke: {
+    name: "NUCLEAR GRENADE",
+    kind: "grenade",
+    damage: 160,
+    force: 1950,
+    cooldown: 1.5,
+    ammo: 1,
+    speed: 1800,
+    lift: 580,
+    life: 2.8,
+    radius: 620,
+    recoil: 25,
+    nuclear: true,
+    rarity: "exotic",
+    range: 2500,
+    color: "#ffe77b",
+    r: 12,
+  },
   smg: {
     name: "SMG",
     kind: "bullet",
@@ -240,7 +284,7 @@ const additions = {
     cooldown: 1.1,
     ammo: 4,
     speed: 530,
-    recoil: 180,
+    recoil: 320,
     homing: true,
     radius: 150,
     rarity: "rare",
@@ -255,7 +299,7 @@ const additions = {
     cooldown: 1.3,
     ammo: 3,
     speed: 490,
-    recoil: 90,
+    recoil: 260,
     cluster: true,
     radius: 120,
     rarity: "rare",
@@ -270,7 +314,7 @@ const additions = {
     cooldown: 0.055,
     ammo: 100,
     speed: 2100,
-    recoil: 5,
+    recoil: 0,
     spread: 0.018,
     proneOnly: true,
     rarity: "rare",
@@ -285,7 +329,7 @@ const additions = {
     cooldown: 0.6,
     ammo: 6,
     speed: 1050,
-    recoil: 220,
+    recoil: 380,
     life: 0.28,
     rarity: "rare",
     range: 280,
@@ -299,7 +343,7 @@ const additions = {
     cooldown: 1.7,
     ammo: 2,
     speed: 580,
-    recoil: 100,
+    recoil: 300,
     life: 0.65,
     radius: 290,
     rarity: "exotic",
@@ -331,6 +375,22 @@ export const RARITY_COLORS = {
   rare: "#90bbff",
   exotic: "#daa1ff",
 };
+export function secondaryAction(player) {
+  if (!player?.alive) return null;
+  return player.weapon
+    ? WEAPONS[player.weapon]?.alt || null
+    : {
+        label: "BLOCK",
+        description: "Hold to block with fists; tap before impact to parry",
+      };
+}
+export function firingRecoil(weapon, player) {
+  if (weapon.proneOnly && player.prone && player.ground) return 0;
+  return (
+    weapon.recoil ??
+    (weapon.kind === "pellet" ? 150 : weapon.kind === "melee" ? 0 : 40)
+  );
+}
 // Applied to both initial map pickups and later drops; powerful fixed map spawns
 // must not bypass rarity. Each tier's probability is independent of its size.
 export function chooseWeapon(random = Math.random) {

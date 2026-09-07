@@ -1,3 +1,4 @@
+import { secondaryAction } from "./arsenal.js";
 import "./style.css";
 import "@fontsource/barlow-condensed/latin-900.css";
 import "@fontsource/barlow-condensed/latin-700.css";
@@ -42,7 +43,6 @@ const renderer = new Renderer($("#game")),
   touchControls = new TouchControls();
 let touchInput = emptyInput();
 let touchDevice = matchMedia("(pointer: coarse)").matches;
-const touchAvailable = touchDevice || navigator.maxTouchPoints > 0;
 document.body.classList.toggle("touch-device", touchDevice);
 let world = null,
   room = null,
@@ -59,11 +59,7 @@ let world = null,
   toastTimer,
   returnFocus = null;
 let solo = false;
-let playerCount = 2,
-  devices = touchDevice
-    ? ["touch", "gamepad0", "gamepad1", "gamepad2"]
-    : ["keyboard1", "keyboard2", "gamepad0", "gamepad1"],
-  selectedArena = "random",
+let selectedArena = "random",
   ping = 0;
 let searchId = 0;
 const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
@@ -76,15 +72,6 @@ const keyboardMaps = {
     block: "KeyG",
     throw: "KeyF",
     duck: "KeyS",
-  },
-  keyboard2: {
-    left: "ArrowLeft",
-    right: "ArrowRight",
-    jump: "ArrowUp",
-    attack: "KeyK",
-    block: "KeyL",
-    throw: "KeyO",
-    duck: "ArrowDown",
   },
 };
 const usedKeys = new Set([
@@ -122,11 +109,7 @@ function readInput(device) {
     i.jump ||= keys.has("Space");
     i.attack ||= mouse.attack;
     i.block ||= mouse.block;
-    const controlledId = room
-      ? room.id
-      : solo
-        ? 0
-        : devices.indexOf("keyboard1");
+    const controlledId = room ? room.id : 0;
     const p = (world?.players || remote?.players || []).find(
       (p) => p.id === controlledId,
     );
@@ -197,7 +180,7 @@ function setPlaying(value) {
   $("#announcement").textContent = "";
   syncTouchUi();
   $("#footer-hint").textContent = value
-    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK BLOCK · S LIE DOWN · F THROW"
+    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK BLOCK / ALT FIRE · S LIE DOWN · F THROW"
     : "";
 }
 function home() {
@@ -220,47 +203,16 @@ function wireSettings() {
     (e) => (selectedArena = e.target.value),
   );
 }
-function localLobby() {
-  solo = false;
-  unlock();
+function arenaMenu() {
   showPanel(
-    "local",
-    heading("Local multiplayer") +
-      `<div class="row spread"><p>Players</p><select id="player-count" aria-label="Number of players" style="background:#293233;color:white;border:1px solid #ffffff38;padding:8px;border-radius:4px">${[2, 3, 4].map((n) => `<option ${n === playerCount ? "selected" : ""}>${n}</option>`).join("")}</select></div>${Array.from({ length: playerCount }, (_, id) => `<div class="player-row"><span class="player-dot" style="background:${COLORS[id]}"></span><b>${NAMES[id]}</b><select data-device="${id}" aria-label="${NAMES[id]} controls">${[...(touchAvailable ? [["touch", "Touch controls"]] : []), ["keyboard1", "WASD + Mouse / E / G / F"], ["keyboard2", "Arrows + K / L / O"], ...Array.from({ length: 4 }, (_, n) => ["gamepad" + n, "Controller " + (n + 1)])].map(([value, label]) => `<option value="${value}" ${devices[id] === value ? "selected" : ""}>${label}</option>`).join("")}</select></div>`).join("")}` +
+    "arenas",
+    heading("Arenas") +
       settingsHtml() +
-      `<p class="subtle" id="pad-status"></p><p class="subtle">${touchDevice ? "One player can use touch on this device; other local players need controllers. For separate phones, choose Online multiplayer." : "Two people can share a keyboard. For more players, connect controllers and press a button. Use a different control set for each player."}</p><button id="start-local" class="button primary">START MATCH <span>↗</span></button><button id="local-help" class="button secondary">CONTROLS</button>`,
+      '<button id="arena-close" class="button primary">CLOSE</button>',
   );
-  $("#back").onclick = hidePanel;
-  $("#player-count").onchange = (e) => {
-    playerCount = Number(e.target.value);
-    localLobby();
-  };
-  document
-    .querySelectorAll("[data-device]")
-    .forEach(
-      (el) =>
-        (el.onchange = (e) =>
-          (devices[Number(el.dataset.device)] = e.target.value)),
-    );
   wireSettings();
-  $("#start-local").onclick = () => {
-    const active = devices.slice(0, playerCount);
-    if (new Set(active).size !== active.length)
-      return toast("Give each player their own control set.");
-    for (const d of active)
-      if (d.startsWith("gamepad") && !gamepads()[Number(d.slice(7))])
-        return toast(
-          "Connect the selected controllers and press a button first.",
-        );
-    startWorld(Array.from({ length: playerCount }, (_, i) => i));
-  };
-  $("#local-help").onclick = () => help(localLobby);
-  updatePadStatus();
-}
-function updatePadStatus() {
-  if ($("#pad-status"))
-    $("#pad-status").textContent =
-      `${gamepads().length} controller${gamepads().length === 1 ? "" : "s"} connected`;
+  $("#back").onclick = hidePanel;
+  $("#arena-close").onclick = hidePanel;
 }
 function startWorld(ids) {
   const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
@@ -464,8 +416,8 @@ function help(back = hidePanel) {
   showPanel(
     "help",
     heading("Controls") +
-      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block:</b> hold the Block button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">PLAYER 1 / ONLINE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / parry</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div><div><h3 style="color:${COLORS[1]}">PLAYER 2</h3><p><span class="key">←</span><span class="key">→</span> Move</p><p><span class="key">↑</span> Jump twice</p><p><span class="key">K</span> Punch / fire</p><p><span class="key">L</span> Block / parry</p><p><span class="key">O</span> Throw weapon</p><p><span class="key">↓</span> Hold to lie down</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>Block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy machine gun:</b> lie down on a floor to fire. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. Empty slots are controlled by AI. Scores continue between rounds and reset when a slot changes player. Touch controls work in solo play, online rooms and as one local player alongside controllers.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block / alternate fire:</b> the button blocks only with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a throw across the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. Empty slots are controlled by AI. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -579,14 +531,7 @@ function simulate(now) {
     while (accumulator >= STEP) {
       const inputs = room
         ? { ...room.getInputs(now), 0: ownInput() }
-        : solo
-          ? { 0: ownInput() }
-          : Object.fromEntries(
-              Array.from({ length: playerCount }, (_, id) => [
-                id,
-                readInput(devices[id]),
-              ]),
-            );
+        : { 0: ownInput() };
       world.step(STEP, inputs);
       accumulator -= STEP;
     }
@@ -624,7 +569,7 @@ $("#solo").onclick = () => {
   solo = true;
   startWorld([0]);
 };
-$("#local").onclick = localLobby;
+$("#arenas").onclick = arenaMenu;
 $("#menu-controls").onclick = () => {
   unlock();
   help();
@@ -727,13 +672,12 @@ let currentViewport = gameViewport(W, H),
   cameraRound = null;
 let gameRect = canvas.getBoundingClientRect();
 function canUseTouch() {
-  return (
-    playing &&
-    (room || solo
-      ? touchDevice
-      : devices.slice(0, playerCount).includes("touch"))
-  );
+  return playing && touchDevice;
 }
+function ownPlayer(state = world || remote) {
+  return state?.players.find((p) => p.id === (room ? room.id : 0));
+}
+let touchSecondaryKey = "";
 function syncTouchUi() {
   const active = canUseTouch();
   document.body.classList.toggle("touch-playing", active);
@@ -772,7 +716,10 @@ for (const [id, zone] of [
   ["touch-block", "block"],
 ]) {
   bindTouchZone($("#" + id), zone, touchControls, {
-    enabled: () => canUseTouch() && !view,
+    enabled: () =>
+      canUseTouch() &&
+      !view &&
+      (zone !== "block" || !!secondaryAction(ownPlayer())),
     wake: unlock,
   });
 }
@@ -785,7 +732,7 @@ function updateTouchView(state, dt) {
     canvas.style.objectPosition = "50% 50%";
     return;
   }
-  const controlledId = room ? room.id : solo ? 0 : devices.indexOf("touch");
+  const controlledId = room ? room.id : 0;
   const player =
     state?.players.find((p) => p.id === controlledId && p.alive) ||
     state?.players.find((p) => p.alive);
@@ -822,7 +769,22 @@ function updateTouchView(state, dt) {
       el.firstElementChild.style.transform = "";
     }
   }
-  $("#touch-block").classList.toggle("pressed", touchInput.block);
+  const action = secondaryAction(ownPlayer(state));
+  const actionKey =
+    (ownPlayer(state)?.weapon || "fists") + ":" + (action?.label || "");
+  if (actionKey !== touchSecondaryKey) {
+    touchControls.blocks.clear();
+    touchSecondaryKey = actionKey;
+  }
+  const actionButton = $("#touch-block");
+  actionButton.classList.toggle("hidden", !action);
+  actionButton.disabled = !action;
+  actionButton.textContent = action?.label || "";
+  actionButton.setAttribute(
+    "aria-label",
+    action?.description || "No secondary action",
+  );
+  actionButton.classList.toggle("pressed", !!action && touchInput.block);
   if (!state || !follow) return;
   const c = $("#overview").getContext("2d"),
     scale = 240 / W;
@@ -868,7 +830,6 @@ function updateTouchView(state, dt) {
     }
 }
 setInterval(() => {
-  updatePadStatus();
   if (room && !room.host) room.ping();
 }, 2000);
 requestAnimationFrame(frame);
@@ -903,35 +864,10 @@ if (context?.registerTool) {
     execute: () => ({
       view,
       playing,
-      mode: room ? "online" : solo ? "solo" : "local",
+      mode: playing ? (room ? "online" : "solo") : "menu",
       players: world?.ids || room?.roster.map((p) => p.id) || [],
       round: world?.round || remote?.round || null,
     }),
-  });
-  register({
-    name: "configure_couch_lobby",
-    description:
-      "Open and configure the local multiplayer lobby. Does not start a match.",
-    inputSchema: {
-      type: "object",
-      properties: { players: { type: "integer", minimum: 2, maximum: 4 } },
-      required: ["players"],
-      additionalProperties: false,
-    },
-    execute: (input) => {
-      if (
-        !input ||
-        !Number.isInteger(input.players) ||
-        input.players < 2 ||
-        input.players > 4 ||
-        playing ||
-        room
-      )
-        throw new Error("Choose 2–4 players from the main menu.");
-      playerCount = input.players;
-      localLobby();
-      return { view: "local", players: playerCount };
-    },
   });
   window.addEventListener("pagehide", () => lifecycle.abort(), { once: true });
 }
