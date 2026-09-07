@@ -29,7 +29,7 @@ const choose = (w, items) =>
 export function spawnHazard(w) {
   if (w.hazards.length >= 3) return null;
   const candidates = w.platforms.filter(
-    (p) => p.w >= 240 && !p.elevator && !p.move,
+    (p) => p.hp !== 0 && p.w >= 240 && !p.elevator && !p.move,
   );
   if (!candidates.length) return null;
   const surface = choose(w, candidates),
@@ -52,6 +52,7 @@ export function spawnHazard(w) {
     ...w.platforms
       .filter(
         (p) =>
+          p.hp !== 0 &&
           p !== surface &&
           p.y < surface.y - 40 &&
           p.x < x + span / 2 &&
@@ -64,6 +65,7 @@ export function spawnHazard(w) {
   const h = Math.min(type === "electric" ? 70 : 280, available);
   const hazard = {
     id: ++w.nextHazard,
+    support: surface.id,
     type,
     x,
     y: surface.y,
@@ -114,6 +116,10 @@ export function updateHazards(w, dt) {
     spawnHazard(w);
     w.hazardTimer = 7 + w.random() * 7;
   }
+  w.hazards = w.hazards.filter(
+    (h) =>
+      !h.support || w.platforms.some((p) => p.id === h.support && p.hp !== 0),
+  );
   for (const h of w.hazards) {
     if (h.warning > 0) {
       h.warning = Math.max(0, h.warning - dt);

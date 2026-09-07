@@ -1,3 +1,4 @@
+import { preparePlatforms } from "./terrain.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
 import { updateHazards } from "./hazards.js";
@@ -328,14 +329,17 @@ export class World {
   }
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
-    this.platforms = this.arena.platforms.map((p, i) => ({
-      id: "floor" + i,
-      ...p,
-      baseX: p.x,
-      baseY: p.y,
-      dx: 0,
-      dy: 0,
-    }));
+    this.terrainVersion = 0;
+    this.platforms = preparePlatforms(this.arena, this.arenaIndex).map(
+      (p, i) => ({
+        id: "floor" + i,
+        ...p,
+        baseX: p.x,
+        baseY: p.y,
+        dx: 0,
+        dy: 0,
+      }),
+    );
     this.players = this.ids.map((id) => this.makePlayer(id));
     this.ai.reset();
     this.projectiles = [];
@@ -420,7 +424,7 @@ export class World {
         : previous;
     if (p !== previous) {
       const surfaces = this.platforms.filter(
-        (s) => !s.move && !s.travel && s.w >= 100,
+        (s) => s.hp !== 0 && !s.move && !s.travel && s.w >= 100,
       );
       const choices = surfaces
         .flatMap((s) =>
@@ -473,6 +477,7 @@ export class World {
       return;
     }
     this.movePlatforms();
+    this.updateCover(dt);
     this.updateDebris(dt);
     if (this.phase === "result") {
       for (const p of this.players)
@@ -573,7 +578,10 @@ export class World {
     }
   }
   solids() {
-    return [...this.platforms, ...this.cover.filter((c) => c.hp > 0)];
+    return [
+      ...this.platforms.filter((p) => p.hp !== 0),
+      ...this.cover.filter((c) => c.hp > 0),
+    ];
   }
   movePlatforms() {
     for (const p of this.platforms) {
@@ -930,7 +938,7 @@ export class World {
   }
   spawnWeapon() {
     if (this.drops.length >= 12) return;
-    const platforms = this.platforms.filter((p) => p.w >= 90);
+    const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     const s = platforms[Math.floor(this.random() * platforms.length)];
     const types = Object.keys(WEAPONS);
     const type = types[Math.floor(this.random() * types.length)];
@@ -1008,7 +1016,7 @@ export class World {
     );
   }
   damageCover(c, damage, vx = 0, vy = 0) {
-    if (c.hp <= 0) return;
+    if (!breakable(c) || c.hp <= 0) return;
     c.hp = Math.max(0, c.hp - damage);
     this.event(c.hp ? "coverhit" : "break", {
       x: c.x + c.w / 2,
@@ -1016,6 +1024,7 @@ export class World {
       color: "#c89566",
     });
     if (c.hp > 0) return;
+    this.terrainVersion++;
     for (let n = 0; n < 9; n++)
       this.debris.push({
         x: c.x + ((n % 3) * c.w) / 3,
@@ -1030,6 +1039,44 @@ export class World {
       });
     this.debris = this.debris.slice(-90);
   }
+  updateCover(dt) {
+    for (const c of this.cover) {
+      c.dx = 0;
+      c.dy = 0;
+      if (c.hp <= 0) continue;
+      const floors = this.platforms.filter(
+        (p) => p.hp !== 0 && c.x + c.w > p.x + 3 && c.x < p.x + p.w - 3,
+      );
+      const support =
+        floors.find(
+          (p) =>
+            p.id === c.support && Math.abs(c.y + c.h - (p.y - (p.dy || 0))) < 4,
+        ) || floors.find((p) => Math.abs(c.y + c.h - p.y) < 3);
+      if (support) {
+        const oldY = c.y;
+        c.x += support.dx || 0;
+        c.y = support.y - c.h;
+        c.dx = support.dx || 0;
+        c.dy = c.y - oldY;
+        c.support = support.id;
+        c.vy = 0;
+        continue;
+      }
+      c.support = null;
+      const oldY = c.y;
+      c.vy = Math.min(900, (c.vy || 0) + 1400 * dt);
+      c.y += c.vy * dt;
+      for (const p of floors)
+        if (oldY + c.h <= p.y + 3 && c.y + c.h >= p.y) {
+          c.y = p.y - c.h;
+          c.vy = 0;
+          c.support = p.id;
+          break;
+        }
+      c.dy = c.y - oldY;
+      if (c.y > H + 100) this.damageCover(c, c.hp);
+    }
+  }
   updateDebris(dt) {
     for (const d of this.debris) {
       d.life -= dt;
@@ -1038,7 +1085,7 @@ export class World {
       d.x += d.vx * dt;
       d.y += d.vy * dt;
       d.angle += d.spin * dt;
-      for (const s of this.platforms)
+      for (const s of this.platforms.filter((p) => p.hp !== 0))
         if (d.x > s.x && d.x < s.x + s.w && oldY <= s.y && d.y >= s.y) {
           d.y = s.y - 1;
           d.vy *= -0.3;
@@ -1052,13 +1099,12 @@ export class World {
     const radius = b.radius || 145;
     this.event("explosion", { x: b.x, y: b.y });
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
-    const cover = this.cover.filter((c) => c.hp > 0);
+    const cover = this.solids().filter(breakable);
+    const solidWalls = this.platforms.filter((p) => !p.destructible);
     for (const p of this.players) {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
-      const walls = this.platforms.some((s) =>
-        segmentBox(b.x, b.y, p.x, p.y, s),
-      );
+      const walls = solidWalls.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
       if (dist >= radius || walls) continue;
       const shield = cover.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
       const scale = (1 - dist / (radius * 1.32)) * (shield ? 0.12 : 1);
@@ -1076,7 +1122,7 @@ export class World {
         y = clamp(b.y, c.y, c.y + c.h);
       if (
         Math.hypot(b.x - x, b.y - y) < radius &&
-        !this.platforms.some((s) => segmentBox(b.x, b.y, x, y, s))
+        !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s))
       )
         this.damageCover(
           c,
@@ -1229,7 +1275,7 @@ export class World {
           q.y -= dy * f;
         }
       for (const p of rag.points)
-        for (const s of this.platforms)
+        for (const s of this.platforms.filter((p) => p.hp !== 0))
           if (
             p.x > s.x &&
             p.x < s.x + s.w &&

@@ -1,8 +1,18 @@
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
+import { breakable } from "./maps.js";
+import {
+  navigation,
+  traceFlight,
+  predictedSurface,
+  routesFrom,
+  surfaceAt,
+  steer,
+  clamp,
+  distance,
+} from "./navigation.js";
+export { navigation } from "./navigation.js";
 
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const idle = () => ({
   left: false,
   right: false,
@@ -13,338 +23,558 @@ const idle = () => ({
   duck: false,
   aim: null,
 });
-
-// Build routes by tracing the same gravity, jump speeds and solid ceilings as players.
-// Each edge records a launch point and a landing, including deliberate walk-offs.
-export function navigation(platforms) {
-  const graph = new Map(platforms.map((p) => [p.id, []]));
-  for (const from of platforms) {
-    const launches = new Set([
-      from.x + 25,
-      from.x + from.w - 25,
-      from.x + from.w / 2,
-    ]);
-    for (let x = from.x + 45; x < from.x + from.w - 25; x += 70)
-      launches.add(x);
-    for (const to of platforms) {
-      if (to === from || Math.abs(to.y - from.y) > 240) continue;
-      for (const x of [
-        to.x - 28,
-        to.x - 85,
-        to.x - 140,
-        to.x + to.w + 28,
-        to.x + to.w + 85,
-        to.x + to.w + 140,
-      ])
-        if (x > from.x + 20 && x < from.x + from.w - 20) launches.add(x);
-    }
-    const best = new Map();
-    for (const startX of launches)
-      for (const dir of [-1, 1])
-        for (const jumps of [1, 2]) {
-          trace(startX, dir, jumps);
-        }
-    trace(from.x - 18, -1, 0);
-    trace(from.x + from.w + 18, 1, 0);
-    graph.set(from.id, [...best.values()]);
-    function trace(startX, dir, jumps) {
-      let x = startX,
-        y = from.y - 30,
-        vy = jumps ? -700 : 0,
-        second = false;
-      const dt = 1 / 40;
-      for (let time = dt; time < 1.8; time += dt) {
-        if (jumps === 2 && !second && time >= 0.32) {
-          vy = -590;
-          second = true;
-        }
-        const oldY = y;
-        vy = Math.min(1150, vy + 1800 * dt);
-        x += dir * RUN_SPEED * dt;
-        y += vy * dt;
-        if (x < 20 || x > W - 20 || y > H) return;
-        for (const p of platforms) {
-          if (
-            x + 15 <= p.x ||
-            x - 15 >= p.x + p.w ||
-            y + 30 <= p.y ||
-            y - 28 >= p.y + p.h
-          )
-            continue;
-          if (vy >= 0 && oldY + 30 <= p.y + 3) {
-            if (p === from || x < p.x + 12 || x > p.x + p.w - 12) return;
-            const edge = {
-              to: p.id,
-              startX,
-              endX: x,
-              dir,
-              jumps,
-              duration: time,
-              cost: time + Math.abs(startX - (from.x + from.w / 2)) / RUN_SPEED,
-            };
-            if (!best.has(p.id) || edge.cost < best.get(p.id).cost)
-              best.set(p.id, edge);
-          }
-          return;
-        }
-      }
-    }
+const weapons = {
+  bat: { range: 100, value: 2, damage: 35 },
+  sword: { range: 110, value: 4, damage: 28 },
+  blaster: { range: 1100, speed: 1300, value: 6, damage: 17, recoil: 40 },
+  shotgun: { range: 480, speed: 1050, value: 7, damage: 50, recoil: 150 },
+  minigun: { range: 1000, speed: 1650, value: 9, damage: 10, recoil: 30 },
+  railgun: { range: 2400, speed: 4600, value: 10, damage: 85, recoil: 380 },
+  rocket: {
+    range: 1250,
+    speed: 680,
+    value: 8,
+    damage: 64,
+    blast: 145,
+    recoil: 240,
+  },
+  barrage: {
+    range: 1250,
+    speed: 780,
+    value: 9,
+    damage: 52,
+    blast: 180,
+    recoil: 410,
+  },
+  plasma: {
+    range: 1050,
+    speed: 850,
+    value: 8,
+    damage: 48,
+    blast: 105,
+    recoil: 170,
+  },
+  grenade: {
+    range: 650,
+    speed: 470,
+    value: 5,
+    damage: 58,
+    blast: 145,
+    recoil: 40,
+  },
+};
+const fists = { range: 73, value: 1, damage: 25 };
+const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
+function firstObstacle(solids, p, point) {
+  return solids
+    .map((s) => ({ s, hit: segmentBox(p.x, p.y - 10, point.x, point.y, s) }))
+    .filter((o) => o.hit)
+    .sort((a, b) => a.hit.t - b.hit.t)[0]?.s;
+}
+function intercept(p, q, speed) {
+  const dx = q.x - p.x,
+    dy = q.y - p.y,
+    vx = q.vx,
+    vy = q.ground ? 0 : q.vy * 0.55;
+  const a = vx * vx + vy * vy - speed * speed,
+    b = 2 * (dx * vx + dy * vy),
+    c = dx * dx + dy * dy;
+  const disc = b * b - 4 * a * c;
+  let t = distance(p, q) / speed;
+  if (disc >= 0 && Math.abs(a) > 1) {
+    const roots = [
+      (-b - Math.sqrt(disc)) / (2 * a),
+      (-b + Math.sqrt(disc)) / (2 * a),
+    ].filter((n) => n > 0);
+    if (roots.length) t = Math.min(...roots);
   }
-  return graph;
+  t = clamp(t, 0, 0.75);
+  return { x: clamp(q.x + vx * t, 20, W - 20), y: q.y - 10 + vy * t };
 }
-
-function surface(world, point) {
-  return (
-    world.platforms.find((p) => p.id === point.support) ||
-    world.platforms
-      .filter(
-        (p) =>
-          point.x >= p.x - 12 &&
-          point.x <= p.x + p.w + 12 &&
-          p.y >= point.y + 8,
-      )
-      .sort((a, b) => a.y - b.y)[0]
-  );
-}
-function route(graph, from, to) {
-  if (!from || !to || from === to) return null;
-  const costs = new Map([[from, 0]]),
-    first = new Map(),
-    todo = new Set([from]);
-  while (todo.size) {
-    const current = [...todo].sort((a, b) => costs.get(a) - costs.get(b))[0];
-    todo.delete(current);
-    if (current === to) return first.get(current);
-    for (const edge of graph.get(current) || []) {
-      const cost = costs.get(current) + edge.cost;
-      if (cost >= (costs.get(edge.to) ?? Infinity)) continue;
-      costs.set(edge.to, cost);
-      first.set(edge.to, first.get(current) || edge);
-      todo.add(edge.to);
-    }
-  }
-  return null;
-}
-
 export class BotController {
   constructor() {
     this.reset();
   }
   reset() {
     this.bots = new Map();
+    this.navigationCache = new Map();
     this.graph = null;
     this.rebuildAt = 0;
+    this.revision = -1;
   }
   forget(id) {
     this.bots.delete(id);
   }
   inputs(world, dt) {
-    if (!this.graph || world.time >= this.rebuildAt) {
-      this.graph = navigation(world.platforms);
-      this.rebuildAt = world.time + 3;
+    const solids = world.solids();
+    if (
+      !this.graph ||
+      world.time >= this.rebuildAt ||
+      (this.revision !== world.terrainVersion &&
+        world.time > this.builtAt + 0.15)
+    ) {
+      this.graph = navigation(solids, {
+        time: world.time,
+        spikes: world.arena.spikes || [],
+        cache: this.navigationCache,
+      });
+      this.builtAt = world.time;
+      this.rebuildAt = world.time + 1.5;
+      this.revision = world.terrainVersion;
     }
     const inputs = {};
     for (const p of world.players)
       if (p.bot && p.alive) {
-        let brain = this.bots.get(p.id);
-        if (!brain || brain.occupant !== p.occupant) {
-          brain = {
+        let b = this.bots.get(p.id);
+        if (!b || b.occupant !== p.occupant) {
+          b = {
             occupant: p.occupant,
             think: 0,
-            x: p.x,
-            stuck: 0,
             input: idle(),
             flight: null,
+            failures: new Map(),
+            target: null,
+            targetUntil: 0,
+            last: { x: p.x, y: p.y },
+            stuck: 0,
+            maneuverAt: 0,
+            crouchUntil: 0,
+            visits: new Map(),
+            support: null,
           };
-          this.bots.set(p.id, brain);
+          this.bots.set(p.id, b);
         }
-        brain.think -= dt;
-        if (brain.think <= 0) {
-          brain.think = 0.1 + p.id * 0.009;
-          brain.stuck =
-            Math.abs(p.x - brain.x) < 3 ? brain.stuck + brain.think : 0;
-          brain.x = p.x;
-          brain.input = this.decide(world, p, brain);
+        const here = surfaceAt(solids, p);
+        if (p.ground && here?.id !== b.support) {
+          b.support = here?.id;
+          b.visits.set(b.support, (b.visits.get(b.support) || 0) + 1);
         }
-        const input = { ...brain.input, jump: false };
-        if (brain.flight) {
-          const flight = brain.flight,
-            age = world.time - flight.started;
-          const desired = clamp((flight.endX - p.x) * 6, -RUN_SPEED, RUN_SPEED);
-          input.left = desired < p.vx - 18;
-          input.right = desired > p.vx + 18;
-          input.jump =
-            flight.jumps > 0 &&
-            (age < 0.04 || (flight.jumps === 2 && age >= 0.32 && age < 0.37));
-          if ((age > 0.18 && p.ground) || age > flight.duration + 0.5)
-            brain.flight = null;
-        } else if (brain.input.jump) {
-          input.jump = !p.jumpHeld;
-          brain.input.jump = false;
+        if (b.flight) {
+          const age = world.time - b.flight.started;
+          if (
+            (age > 0.15 && p.ground) ||
+            age > b.flight.duration + 0.3 ||
+            p.stun > 0.15
+          ) {
+            if (p.stun <= 0.15 && here?.id !== b.flight.to)
+              b.failures.set(b.flight.key, world.time + 9);
+            b.flight = null;
+            b.think = 0;
+          }
         }
-        inputs[p.id] = input;
+        b.think -= dt;
+        if (b.think <= 0) {
+          b.think = 0.08 + p.id * 0.006;
+          b.stuck = distance(p, b.last) < 3 ? b.stuck + b.think : 0;
+          b.last = { x: p.x, y: p.y };
+          for (const [key, expiry] of b.failures)
+            if (expiry < world.time) b.failures.delete(key);
+          b.input = this.decide(world, p, b, solids, here);
+        }
+        const i = { ...b.input, jump: false };
+        if (b.flight) {
+          const f = b.flight,
+            age = world.time - f.started;
+          i.left = f.dir < 0;
+          i.right = f.dir > 0;
+          if (age > f.duration - 0.1) Object.assign(i, steer(p, f.endX));
+          i.jump =
+            f.jumps > 0 &&
+            (age < 0.04 ||
+              (f.jumps === 2 && age >= f.secondAt && age < f.secondAt + 0.045));
+          // Recoil and crouching change the planned trajectory; shoot after landing.
+          i.attack = false;
+          i.block = false;
+          i.duck = false;
+        } else if (b.input.jump) {
+          i.jump = !p.jumpHeld;
+          b.input.jump = false;
+        }
+        inputs[p.id] = i;
       }
     return inputs;
   }
-  decide(world, p, brain) {
-    const i = idle();
-    const enemies = world.players
-      .filter((q) => q.id !== p.id && q.alive)
-      .sort((a, b) => distance(a, p) - distance(b, p));
-    const enemy = enemies[0];
-    if (!enemy) return i;
-    const range = distance(p, enemy),
-      ranged = p.weapon && !["bat", "sword"].includes(p.weapon);
-    const speed =
-      {
-        blaster: 1300,
-        shotgun: 1050,
-        rocket: 680,
-        grenade: 470,
-        minigun: 1650,
-        railgun: 4600,
-        plasma: 850,
-        barrage: 780,
-      }[p.weapon] || 2000;
-    const lead = ranged ? Math.min(0.45, range / speed) : 0;
-    const aimX = enemy.x + enemy.vx * lead,
-      aimY = enemy.y - 10 + enemy.vy * lead * 0.3;
-    i.aim =
-      Math.atan2(aimY - (p.y - 10), aimX - p.x) +
-      Math.sin(world.time * 2 + p.id * 2) * (ranged ? 0.035 : 0);
-    const clear = !world.platforms.some((s) =>
-      segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, s),
+  decide(world, p, b, solids, here) {
+    const i = idle(),
+      weapon = weapons[p.weapon] || fists;
+    const paths = routesFrom(
+      this.graph,
+      solids,
+      here,
+      p.x,
+      b.failures,
+      world.time,
+      world.hazards,
     );
-    const explosive = ["rocket", "grenade", "barrage", "plasma"].includes(
-      p.weapon,
-    );
+    const choices = world.players
+      .filter((q) => q.alive && q.id !== p.id)
+      .map((q) => {
+        const floor = surfaceAt(solids, q),
+          path = floor && paths.get(floor.id);
+        const visible = !firstObstacle(solids, p, { x: q.x, y: q.y - 10 });
+        return {
+          q,
+          floor,
+          path,
+          score:
+            (path ? path.cost : visible ? distance(p, q) / RUN_SPEED : 30) +
+            distance(p, q) / 1400 +
+            q.hp / 120 -
+            Math.min(1.5, (world.scores[q.id] || 0) * 0.04),
+        };
+      })
+      .sort((a, b) => a.score - b.score);
+    if (!choices.length) return i;
+    const previous = choices.find((c) => c.q.id === b.target);
+    const choice =
+      previous &&
+      world.time < b.targetUntil &&
+      previous.score < choices[0].score + 2
+        ? previous
+        : choices[0];
+    if (choice.q.id !== b.target) {
+      b.target = choice.q.id;
+      b.targetUntil = world.time + 0.7;
+    }
+    const enemy = choice.q,
+      range = distance(p, enemy);
+    const aim = weapon.speed
+      ? intercept(p, enemy, weapon.speed)
+      : { x: enemy.x, y: enemy.y - 10 };
+    if (p.weapon === "grenade") {
+      const t = clamp(range / 470, 0.2, 1.1);
+      aim.y -= 0.5 * 1100 * t * t - 330 * t;
+    }
+    i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
+    const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
     i.attack =
-      clear &&
-      (ranged
-        ? range < 1250 && (!explosive || range > 200)
-        : range < (p.weapon ? 110 : 75));
-    const threat = world.projectiles.find(
-      (q) =>
-        q.owner !== p.id &&
-        distance(q, p) < 220 &&
-        (p.x - q.x) * q.vx + (p.y - q.y) * q.vy > 0,
-    );
-    i.block =
-      p.stamina > 25 &&
-      (threat || (range < 90 && enemy.swing > 0)) &&
-      Math.sin(world.time * 8 + p.id) > -0.3;
-    if (i.block) {
-      i.attack = false;
-      i.aim = Math.atan2((threat || enemy).y - p.y, (threat || enemy).x - p.x);
-    }
-    if (explosive && range < 150) i.throw = true;
-    const here = surface(world, p);
-    let goal = enemy;
-    if (!p.weapon && range > 150) {
-      const drops = world.drops
-        .filter((d) => !d.armed && d.ammo > 0)
-        .sort((a, b) => distance(a, p) - distance(b, p));
-      goal =
-        drops.find((d) => {
-          const dest = surface(world, d);
-          return (
-            distance(d, p) < Math.min(1200, range * 1.2) &&
-            dest &&
-            (dest.id === here?.id || route(this.graph, here?.id, dest.id))
-          );
-        }) || enemy;
-    }
-    const dest = surface(world, goal);
-    let aim = goal.x;
-    if (here && dest && here.id !== dest.id) {
-      const edge = route(this.graph, here.id, dest.id);
-      if (edge) {
-        aim = edge.startX;
-        if (p.ground && Math.abs(p.x - aim) < 12 && !brain.flight)
-          brain.flight = { ...edge, started: world.time };
-      } else {
-        // Follow a lift or head to the nearest usable stair when its current position breaks a route.
-        const options = this.graph.get(here.id) || [];
-        const next = options.sort((a, b) => {
-          const pa = world.platforms.find((p) => p.id === a.to),
-            pb = world.platforms.find((p) => p.id === b.to);
-          return (
-            Math.abs(pa.y - dest.y) +
-            Math.abs(a.endX - goal.x) * 0.4 -
-            Math.abs(pb.y - dest.y) -
-            Math.abs(b.endX - goal.x) * 0.4
-          );
-        })[0];
-        if (next) {
-          aim = next.startX;
-          if (p.ground && Math.abs(p.x - aim) < 12 && !brain.flight)
-            brain.flight = { ...next, started: world.time };
-        } else aim = clamp(goal.x, here.x + 25, here.x + here.w - 25);
-      }
-    } else if (
-      goal === enemy &&
-      ranged &&
-      clear &&
-      range < 650 &&
-      Math.abs(enemy.y - p.y) < 150
-    ) {
-      aim =
-        range < (explosive ? 350 : 220)
-          ? p.x - Math.sign(enemy.x - p.x) * 100
-          : p.x;
-      if (here) aim = clamp(aim, here.x + 30, here.x + here.w - 30);
-    }
-    i.left = aim < p.x - 12;
-    i.right = aim > p.x + 12;
-    const dir = Number(i.right) - Number(i.left);
-    const obstacle = world.cover.find(
-      (c) =>
-        c.hp > 0 &&
-        Math.abs(c.x + c.w / 2 - p.x) < c.w / 2 + 65 &&
-        (c.x + c.w / 2 - p.x) * dir > 0 &&
-        p.y + 30 > c.y &&
-        p.y - 28 < c.y + c.h,
-    );
-    if (obstacle) {
-      i.attack = true;
+      range < weapon.range &&
+      (!obstacle || breakable(obstacle)) &&
+      (!weapon.blast || range > weapon.blast + 90);
+    if (obstacle && breakable(obstacle))
       i.aim = Math.atan2(
-        obstacle.y + obstacle.h / 2 - p.y,
-        obstacle.x + obstacle.w / 2 - p.x,
+        center(obstacle).y - (p.y - 10),
+        clamp(enemy.x, obstacle.x + 8, obstacle.x + obstacle.w - 8) - p.x,
       );
-      i.jump = p.ground && obstacle.h < 100;
+    if (
+      weapon.blast &&
+      obstacle &&
+      distance(p, center(obstacle)) < weapon.blast + 100
+    )
+      i.attack = false;
+    if (weapon.recoil && here && p.ground) {
+      const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.22;
+      if (recoilX < here.x + 18 || recoilX > here.x + here.w - 18)
+        i.attack = false;
     }
-    if (brain.stuck > 0.7 && dir && p.ground) {
-      i.jump = true;
-      brain.stuck = 0;
+    if (weapon.blast && range < 150 && !obstacle) i.throw = true;
+
+    let goal = enemy,
+      destination = choice.floor,
+      path = choice.path;
+    // Commit to a useful, reachable pickup; avoid repeatedly swapping similar weapons.
+    if (range > 160 && !b.flight) {
+      const upgrades = world.drops
+        .filter(
+          (d) =>
+            !d.armed &&
+            !(d.lock > 0) &&
+            !(d.owner === p.id && d.ownerLock > 0) &&
+            d.ammo > 0,
+        )
+        .map((d) => {
+          const floor = surfaceAt(solids, d),
+            path = floor && paths.get(floor.id),
+            value = weapons[d.type]?.value || 1;
+          return {
+            d,
+            floor,
+            path,
+            value,
+            score:
+              (path?.cost ?? 100) + distance(p, d) / RUN_SPEED - value * 0.4,
+          };
+        })
+        .filter(
+          (d) =>
+            d.path &&
+            d.path.cost < 7 &&
+            d.value > weapon.value + (p.weapon ? 2 : 0) &&
+            distance(p, d.d) < 1100,
+        )
+        .sort((a, b) => a.score - b.score);
+      if (upgrades[0] && (!p.weapon || upgrades[0].score < 1.5)) {
+        ({ d: goal, floor: destination, path } = upgrades[0]);
+        if (
+          p.weapon &&
+          distance(p, goal) < 70 &&
+          !firstObstacle(solids, p, goal)
+        ) {
+          i.throw = true;
+          i.aim = -Math.PI / 2;
+        }
+      }
+    }
+    let moveTo = goal.x,
+      edge = path?.edge;
+    const ride =
+      here?.travel &&
+      destination &&
+      Math.abs(destination.y - here.y) > 180 &&
+      (destination.y - here.y) *
+        (predictedSurface(here, world.time + 0.75).y - here.y) >
+        0;
+    if (ride) {
+      moveTo = here.x + here.w / 2;
+      b.edge = null;
+    } else if (here && destination && here.id !== destination.id) {
+      if (!edge) {
+        // Search reachable firing/approach positions instead of jumping into a ceiling.
+        const options = [...paths]
+          .map(([id, path]) => ({ s: solids.find((s) => s.id === id), path }))
+          .filter((o) => o.s && o.path.edge);
+        options.sort((a, c) => {
+          const cost = (o) =>
+            distance({ x: o.path.x, y: o.s.y - 30 }, goal) / 250 +
+            o.path.cost * 0.6 +
+            (b.visits.get(o.s.id) || 0) * 0.8;
+          return cost(a) - cost(c);
+        });
+        edge = options[0]?.path.edge;
+      }
+      if (edge) {
+        b.edge = edge;
+        moveTo = edge.kind === "walk" ? edge.endX : edge.startX;
+        if (
+          edge.kind !== "walk" &&
+          p.ground &&
+          Math.abs(p.x - moveTo) < 10 &&
+          Math.abs(p.vx) < 45 &&
+          !b.flight
+        ) {
+          const actual = traceFlight(
+            solids,
+            here,
+            p.x,
+            edge.dir,
+            edge.jumps,
+            edge.secondAt,
+            world.time,
+            world.arena.spikes || [],
+            p.vx,
+          );
+          if (actual?.to === edge.to)
+            b.flight = { ...actual, key: edge.key, started: world.time };
+          else {
+            b.failures.set(edge.key, world.time + 5);
+            b.think = 0;
+          }
+        }
+      } else moveTo = clamp(goal.x, here.x + 22, here.x + here.w - 22);
+    } else {
+      b.edge = null;
+      if (
+        goal === enemy &&
+        weapon.speed &&
+        !obstacle &&
+        range < weapon.range * 0.85
+      ) {
+        const desired = weapon.blast ? 420 : p.weapon === "shotgun" ? 260 : 480;
+        moveTo =
+          p.x +
+          (range < desired - 70
+            ? -Math.sign(enemy.x - p.x) * 100
+            : range > desired + 100
+              ? Math.sign(enemy.x - p.x) * 100
+              : 0);
+      } else if (goal === enemy && !weapon.speed && range < weapon.range * 0.8)
+        moveTo = p.x;
+      if (here) {
+        const margin = weapon.speed
+          ? Math.min(
+              here.w / 2 - 3,
+              Math.max(
+                30,
+                (weapon.recoil || 0) * Math.abs(Math.cos(i.aim)) * 0.22 + 24,
+              ),
+            )
+          : 20;
+        moveTo = clamp(moveTo, here.x + margin, here.x + here.w - margin);
+      }
+    }
+    Object.assign(i, steer(p, moveTo));
+
+    // Remove a marked floor under a target or a breakable ceiling blocking a short route.
+    const support = choice.floor;
+    const breach =
+      support?.destructible &&
+      support.hp > 0 &&
+      support.id !== here?.id &&
+      enemy.y < p.y - 55
+        ? support
+        : null;
+    const ceiling = solids.find(
+      (s) =>
+        s.destructible &&
+        s.hp > 0 &&
+        s.y + s.h < p.y - 25 &&
+        s.y + s.h > p.y - 200 &&
+        p.x > s.x - 90 &&
+        p.x < s.x + s.w + 90 &&
+        goal.y < p.y - 50,
+    );
+    const panel = breach || (!path || path.cost > 3 ? ceiling : null);
+    if (panel && !b.flight) {
+      const point = {
+        x: clamp(enemy.x, panel.x + 10, panel.x + panel.w - 10),
+        y: panel.y + panel.h / 2,
+      };
+      const blocking = firstObstacle(solids, p, point);
+      if (
+        blocking === panel &&
+        distance(p, point) < weapon.range &&
+        (!weapon.blast || distance(p, point) > weapon.blast + 100)
+      ) {
+        i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
+        i.attack = true;
+        i.block = false;
+        if (p.ground) Object.assign(i, steer(p, p.x));
+      }
+    }
+    const dir = Number(i.right) - Number(i.left);
+    const cover = solids.find(
+      (s) =>
+        s.kind &&
+        s.hp > 0 &&
+        (s.x + s.w / 2 - p.x) * dir > 0 &&
+        Math.abs(s.x + s.w / 2 - p.x) < s.w / 2 + 72 &&
+        p.y + 30 > s.y &&
+        p.y - 28 < s.y + s.h,
+    );
+    if (cover && !b.flight) {
+      const point = {
+        x: clamp(p.x, cover.x + 2, cover.x + cover.w - 2),
+        y: clamp(p.y - 10, cover.y + 2, cover.y + cover.h - 2),
+      };
+      i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
+      i.attack = distance(p, point) < weapon.range && !weapon.blast;
+      // Use the planned jump onto/over furniture; never jump blindly under a ceiling.
+      if (weapon.blast) i.throw = true;
+    }
+    if (b.stuck > 1.2 && b.edge && !b.flight) {
+      b.failures.set(b.edge.key, world.time + 9);
+      b.think = 0;
+      b.stuck = 0;
     }
     if (
-      !p.ground &&
-      !brain.flight &&
-      p.jumps === 1 &&
-      p.vy > -120 &&
-      (goal.y < p.y - 50 || p.y > H - 100)
-    )
-      i.jump = true;
+      !b.flight &&
+      p.ground &&
+      enemy.block &&
+      range < 90 &&
+      world.time > b.maneuverAt
+    ) {
+      const overhead = solids.some(
+        (s) =>
+          s.y + s.h < p.y - 25 &&
+          s.y + s.h > p.y - 190 &&
+          p.x + 20 > s.x &&
+          p.x - 20 < s.x + s.w,
+      );
+      if (!overhead) {
+        i.jump = true;
+        b.maneuverAt = world.time + 1.6;
+        i.attack = false;
+      }
+    }
+
+    // Predict impacts rather than reacting to every projectile anywhere nearby.
+    let threat = null,
+      soon = 0.4;
+    for (const shot of world.projectiles) {
+      if (
+        shot.owner === p.id &&
+        !["rocket", "grenade", "plasma"].includes(shot.kind)
+      )
+        continue;
+      const vx = shot.vx - p.vx,
+        vy = shot.vy - p.vy,
+        speed2 = vx * vx + vy * vy;
+      if (speed2 < 100) continue;
+      const t = ((p.x - shot.x) * vx + (p.y - shot.y) * vy) / speed2;
+      const radius = ["rocket", "grenade", "plasma"].includes(shot.kind)
+        ? 90
+        : 38;
+      if (
+        t >= 0 &&
+        t < soon &&
+        Math.hypot(shot.x + vx * t - p.x, shot.y + vy * t - p.y) < radius &&
+        !firstObstacle(solids, p, { x: shot.x, y: shot.y })
+      ) {
+        threat = shot;
+        soon = t;
+      }
+    }
+    if (threat) {
+      if (["rocket", "grenade", "plasma"].includes(threat.kind)) {
+        b.flight = null;
+        const away = Math.sign(p.x - threat.x) || 1;
+        if (here)
+          Object.assign(
+            i,
+            steer(
+              p,
+              clamp(p.x + away * 170, here.x + 20, here.x + here.w - 20),
+            ),
+          );
+        const roof = solids.some(
+          (s) =>
+            s.y + s.h < p.y - 25 &&
+            s.y + s.h > p.y - 170 &&
+            p.x > s.x - 15 &&
+            p.x < s.x + s.w + 15,
+        );
+        i.jump = p.ground && !roof;
+        i.attack = false;
+      } else if (!b.flight && p.stamina > 15 && soon < 0.2) {
+        i.aim = Math.atan2(threat.y - p.y, threat.x - p.x);
+        i.block = true;
+        i.attack = false;
+      } else if (
+        !b.flight &&
+        p.ground &&
+        Math.abs(threat.y - (p.y - 10)) < 18
+      ) {
+        b.crouchUntil = world.time + 0.3;
+      }
+    }
+    if (!b.flight && range < 90 && enemy.swing > 0 && p.stamina > 20) {
+      i.block = true;
+      i.attack = false;
+      i.aim = Math.atan2(enemy.y - p.y, enemy.x - p.x);
+    }
+    i.duck = world.time < b.crouchUntil && !b.flight;
     const hazard = world.hazards.find(
       (h) =>
-        p.x > h.x - h.w / 2 - 40 &&
-        p.x < h.x + h.w / 2 + 40 &&
+        Math.abs(p.x - h.x) < h.w / 2 + 40 &&
         p.y + 30 > h.y - h.h &&
         p.y - 28 < h.y,
     );
     if (hazard) {
-      brain.flight = null;
-      let escape = p.x < hazard.x ? -1 : 1;
-      if (here && p.x + escape * 80 < here.x + 15) escape = 1;
-      if (here && p.x + escape * 80 > here.x + here.w - 15) escape = -1;
-      i.left = escape < 0;
-      i.right = escape > 0;
+      b.flight = null;
+      let away = p.x < hazard.x ? -1 : 1;
+      if (here && p.x + away * 80 < here.x + 15) away = 1;
+      if (here && p.x + away * 80 > here.x + here.w - 15) away = -1;
+      i.left = away < 0;
+      i.right = away > 0;
       i.block = false;
+      i.duck = false;
       i.jump =
         p.ground &&
         hazard.warning === 0 &&
         ["electric", "lava"].includes(hazard.type);
     }
+    if (!p.ground && !b.flight && p.jumps === 1 && p.vy > 0 && p.y > H - 180)
+      i.jump = true;
     return i;
   }
 }

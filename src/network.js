@@ -5,7 +5,7 @@ const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v6-";
+const PREFIX = "bonkclub-v7-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -353,6 +353,13 @@ export function validSnapshot(s) {
       (p) =>
         xy(p) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
+        (!p.destructible ||
+          (["wood", "glass"].includes(p.panel) &&
+            finite(p.hp) &&
+            finite(p.maxHp) &&
+            p.hp >= 0 &&
+            p.hp <= p.maxHp &&
+            p.maxHp <= 200)) &&
         p.w > 0 &&
         p.w < 3000 &&
         p.h > 0 &&

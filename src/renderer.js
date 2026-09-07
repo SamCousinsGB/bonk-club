@@ -291,6 +291,38 @@ export class Renderer {
     }
   }
   platform(p, time) {
+    if (p.hp === 0) return;
+    if (p.destructible) {
+      const c = this.ctx,
+        glass = p.panel === "glass",
+        wear = 1 - p.hp / p.maxHp;
+      c.fillStyle = glass ? "#5397aa88" : "#9b6942";
+      c.fillRect(p.x, p.y, p.w, p.h);
+      c.strokeStyle = glass ? "#b9f1f8" : "#e3b77b";
+      c.lineWidth = 2;
+      c.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
+      for (let x = p.x + 18; x < p.x + p.w - 8; x += 22) {
+        c.beginPath();
+        c.moveTo(x, p.y + 3);
+        c.lineTo(x + (glass ? 12 : 0), p.y + p.h - 3);
+        c.stroke();
+      }
+      c.fillStyle = "#ffe0a4";
+      for (const x of [p.x + 4, p.x + p.w - 10])
+        c.fillRect(x, p.y + 4, 6, Math.max(4, p.h - 8));
+      if (wear > 0) {
+        c.strokeStyle = "#17252b";
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(p.x + p.w * 0.46, p.y);
+        c.lineTo(p.x + p.w * 0.52, p.y + p.h * 0.55);
+        c.lineTo(p.x + p.w * (0.45 + wear * 0.2), p.y + p.h);
+        c.stroke();
+        c.fillStyle = "#ffe0a4";
+        c.fillRect(p.x, p.y - 5, p.w * (1 - wear), 2);
+      }
+      return;
+    }
     const c = this.ctx;
     if (drawSurface(c, p)) return;
     c.save();
