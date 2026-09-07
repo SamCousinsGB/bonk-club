@@ -547,16 +547,21 @@ export class Room {
       peerjs: "1.5.5",
       role: this.host ? "host" : "guest",
       relayConfigured: hasRelay(this.config),
-      roomService: this.peer?.disconnected
-        ? "disconnected"
-        : this.peer?.open
-          ? "connected"
-          : "closed",
+      roomClosed: this.closed,
+      roomService: this.roomServiceAtClose || this.roomServiceState(),
       ...this.diagnostics.report(),
     };
   }
+  roomServiceState() {
+    return this.peer?.disconnected
+      ? "disconnected"
+      : this.peer?.open
+        ? "connected"
+        : "not-open";
+  }
   close() {
     if (this.closed) return;
+    this.roomServiceAtClose = this.roomServiceState();
     this.closed = true;
     this.diagnostics.close();
     this.joinReject?.(new Error("Connection cancelled."));

@@ -136,6 +136,17 @@ test("room codes and network snapshots are validated", () => {
   assert.ok(validSnapshot(new World().snapshot()));
   assert.ok(!validSnapshot({ players: [] }));
 });
+
+test("intentional room cleanup does not falsely report a signaling failure in the saved diagnostics", async () => {
+  const room = new Room({}, FakePeer);
+  await room.create();
+  room.peer.open = true;
+  room.close();
+  room.peer.disconnected = true;
+  const report = room.connectionReport();
+  assert.equal(report.roomClosed, true);
+  assert.equal(report.roomService, "connected");
+});
 test("rooms start with one human, hot joins replace AI and departures preserve the running match", async () => {
   let world;
   const states = [];
