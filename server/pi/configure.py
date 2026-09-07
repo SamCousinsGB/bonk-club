@@ -22,6 +22,8 @@ ipaddress.IPv4Address(args.lan_ip)
 os.umask(0o077)
 private = Path.home() / '.config/bonk-club'
 private.mkdir(parents=True, exist_ok=True, mode=0o700)
+turn_state = private / 'turn-state'
+turn_state.mkdir(exist_ok=True, mode=0o700)
 config_path = private / 'server.json'
 previous = json.loads(config_path.read_text()) if config_path.exists() else {}
 config = {
@@ -85,7 +87,7 @@ server-name={args.hostname}
 fingerprint
 use-auth-secret
 static-auth-secret={config['turnSecret']}
-userdb={private}/turn.sqlite
+userdb={turn_state}/turn.sqlite
 cert={private}/turn.crt
 pkey={private}/turn.key
 no-tlsv1
@@ -104,7 +106,7 @@ total-quota=32
 max-bps=524288
 bps-capacity=4194304
 relay-threads=2
-pidfile={private}/turn.pid
+pidfile={turn_state}/turn.pid
 log-file=stdout
 simple-log
 '''
@@ -112,6 +114,11 @@ turn += ''.join(f'denied-peer-ip={address}\n' for address in denied)
 (private / 'turnserver.conf').write_text(turn)
 schema = Path('/usr/share/coturn/schema.sql')
 if schema.exists():
-    with sqlite3.connect(private / 'turn.sqlite') as database:
+    previous_db = private / 'turn.sqlite'
+    current_db = turn_state / 'turn.sqlite'
+    if previous_db.exists() and not current_db.exists():
+        with sqlite3.connect(previous_db) as source, sqlite3.connect(current_db) as destination:
+            source.backup(destination)
+    with sqlite3.connect(current_db) as database:
         database.executescript(schema.read_text())
 print('Private room, HTTPS and TURN configuration prepared.')

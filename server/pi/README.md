@@ -15,12 +15,16 @@ or copy its contents into a diagnostic report.
 1. Run `configure.py --hostname HOSTNAME --public-ip WAN_ADDRESS` as cnet.
    The default Pi address is `192.168.0.96`; reserve that address on the router.
 2. Review and locally authorize `scripts/install-pi-network.sh`. It installs
-   Debian Caddy/coturn, masks their unused system services, and adds two input rules
+   Debian Caddy, coturn schema, build dependencies and Bubblewrap, masks the unused
+   system services, and adds two input rules
    and a relay egress restriction to the existing `inet lan_only` firewall. It does not expose SSH,
    port 80, or the household application ports. A root-only firewall backup
    is saved under `/var/backups/bonk-nftables-*.conf`.
 3. Run `bash ~/bonk-club/scripts/update-pi.sh` as cnet. Routine deployments use
-   this script without sudo. Services run under `systemctl --user`.
+   this script without sudo. It builds pinned upstream Coturn 4.17.2, verifies
+   its source checksum and runs its upstream tests. Debian 13's Coturn 4.6.1 has
+   unresolved 2026 security advisories and is not used as the relay executable.
+   Services run under `systemctl --user`.
 4. Forward only the following router ports to `192.168.0.96`:
 
    | Internet port | Protocol | Pi port | Purpose |
@@ -38,9 +42,11 @@ or copy its contents into a diagnostic report.
    a timer copies new/renewed certificates and restarts TURN to enable TLS.
 6. Verify HTTPS health, authenticated relay candidates and a real data channel
    forced through TURN, then join a running match from a different network.
-   Only then set repository Actions variables `ROOM_SERVICE_URL` to
+   Set repository Actions variables `ROOM_SERVICE_URL` to
    `https://HOSTNAME/peerjs` and `TURN_CREDENTIALS_URL` to `https://HOSTNAME/ice`,
-   and publish Pages. Both players must refresh after the switch.
+   and publish Pages after the relay test; repeat the match test on the published
+   game. Both players must refresh after the switch. Two browsers on the home
+   LAN using the public relay address do not constitute a cross-ISP test.
 
 ## Limits and operation
 
@@ -55,6 +61,20 @@ or IPv6 peer addresses. Coturn exempts its own mapped address from its IP deny
 list; an output firewall rule confines traffic from its relay sockets back to
 the Pi to the relay port range, protecting other local UDP services. TCP peer
 relaying is disabled. Coturn and Caddy are resource-limited user services.
+
+All three public processes run in Bubblewrap filesystem and process namespaces.
+Only game code, the specific service's configuration, system libraries and its
+own storage are mounted. Household application directories, SSH keys, the user
+service manager socket and other host processes are unavailable. Game code and
+configuration are read-only; Caddy can write its certificate storage and Coturn
+can write its own SQLite/pid directory. The deployment exercises these boundaries
+before restarting services. Certificate copying rejects symlinks in Caddy storage.
+
+This is not a separate machine or network: the processes still use the Pi's
+network stack. Public services require continued security updates, and anonymous
+credential requests can consume the capped relay capacity. Traffic flooding can
+still affect the home connection. Remove the router forwards to stop public
+access. A separate host/network provides a stronger boundary from household apps.
 
 Use `systemctl --user status bonk-room bonk-https bonk-turn` and
 `curl http://127.0.0.1:8787/healthz`. Do not publish raw TURN logs: they can contain

@@ -2,12 +2,11 @@
 """Serve UDP/TCP immediately, enabling TLS once the public certificate exists."""
 import os
 from pathlib import Path
-import subprocess
 
 private = Path.home() / '.config/bonk-club'
-sync = Path(__file__).with_name('sync-certificate.py')
-ready = subprocess.run(['/usr/bin/python3', str(sync)], check=False).returncode == 0
-arguments = ['/usr/bin/turnserver', '-c', str(private / 'turnserver.conf')]
+ready = (private / 'turn.crt').is_file() and (private / 'turn.key').is_file()
+binary = Path.home() / '.local/lib/bonk-club/coturn-4.17.2/bin/turnserver'
+arguments = [str(binary), '-c', str(private / 'turnserver.conf')]
 if not ready:
     arguments.append('--no-tls')
     print('TURN UDP/TCP starting; TLS will start after certificate issuance.', flush=True)

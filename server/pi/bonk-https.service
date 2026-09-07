@@ -3,7 +3,7 @@ Description=Bonk Club public HTTPS gateway
 After=bonk-room.service
 
 [Service]
-ExecStart=/usr/bin/caddy run --config %h/.config/bonk-club/Caddyfile --adapter caddyfile
+ExecStart=/usr/bin/python3 %h/bonk-club/server/pi/sandbox.py https
 Restart=on-failure
 RestartSec=10
 NoNewPrivileges=true

@@ -13,7 +13,8 @@ for unit in caddy.service coturn.service; do
 done
 systemctl mask caddy.service coturn.service
 apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends caddy coturn
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  caddy coturn bubblewrap cmake gcc g++ make pkg-config libssl-dev libevent-dev libsqlite3-dev libmicrohttpd-dev
 python3 "$repo/server/pi/firewall.py"
 echo 'Networking dependencies and game firewall rules installed.'
 echo 'Run bash ~/bonk-club/scripts/update-pi.sh as cnet to start the user services.'

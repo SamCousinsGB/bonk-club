@@ -3,7 +3,7 @@ Description=Bonk Club room signaling and relay credentials
 
 [Service]
 WorkingDirectory=%h/bonk-club
-ExecStart=%h/.local/node/bin/node %h/bonk-club/server/index.js %h/.config/bonk-club/server.json
+ExecStart=/usr/bin/python3 %h/bonk-club/server/pi/sandbox.py room
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

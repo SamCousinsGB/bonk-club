@@ -7,6 +7,22 @@ git fetch origin main
 git merge --ff-only origin/main
 npm ci --prefix server --omit=dev --ignore-scripts
 npm test --prefix server
+bash scripts/build-pi-turn.sh
+python3 server/pi/check-certificate.py
+umask 077
+mkdir -p "$HOME/.local/state/bonk-club/backups"
+backup=$(mktemp -d "$HOME/.local/state/bonk-club/backups/deploy-XXXXXXXX")
+tar -czf "$backup/private-config.tar.gz" -C "$HOME/.config" bonk-club
+# Preserve the local secret and addresses while updating generated configuration.
+python3 - <<'PY'
+import json
+from pathlib import Path
+import subprocess
+c = json.loads((Path.home() / '.config/bonk-club/server.json').read_text())
+subprocess.run(['python3', 'server/pi/configure.py', '--hostname', c['hostname'],
+                '--public-ip', c['publicIp'], '--lan-ip', c['lanIp']], check=True)
+PY
+python3 server/pi/check-sandbox.py
 mkdir -p "$HOME/.config/systemd/user"
 for unit in server/pi/*.service server/pi/*.timer; do
   install -m 0644 "$unit" "$HOME/.config/systemd/user/$(basename "$unit")"
