@@ -299,14 +299,15 @@ test("rarity is weighted across tiers, including initial map pickups", () => {
     ]++;
   }
   assert.deepEqual(counts, {
-    common: 6800,
-    uncommon: 2500,
-    rare: 600,
-    exotic: 100,
+    common: 4000,
+    uncommon: 3200,
+    rare: 2000,
+    exotic: 800,
   });
   const w = new World({ arena: 16, random: () => 0.2 });
   assert.ok(w.drops.length > 0);
-  assert.ok(w.drops.every((d) => WEAPONS[d.type].rarity === "common"));
+  assert.equal(w.drops[0].type, "nuke");
+  assert.ok(["rare", "exotic"].includes(WEAPONS[w.drops[1].type].rarity));
 });
 test("running stance stays upright and recovers after crouching in either direction", () => {
   for (const direction of [-1, 1]) {

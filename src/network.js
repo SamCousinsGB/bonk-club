@@ -1,23 +1,70 @@
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
+import {
+  cleanProfile,
+  defaultProfile,
+  availableProfile,
+  validProfile,
+} from "./identity.js";
 import PeerModule from "peerjs";
 const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
+// Keep discovery IDs stable; negotiate compatibility explicitly instead of making
+// a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
+export const PROTOCOL = 10;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-function makeCode() {
-  return Array.from(
+const makeCode = () =>
+  Array.from(
     crypto.getRandomValues(new Uint8Array(6)),
     (v) => alphabet[v % alphabet.length],
   ).join("");
+export const DEFAULT_ICE = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
+export async function encodeState(state) {
+  const stream = new Blob([JSON.stringify(state)])
+    .stream()
+    .pipeThrough(new CompressionStream("deflate"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+export async function decodeState(bytes) {
+  if (bytes instanceof ArrayBuffer) bytes = new Uint8Array(bytes);
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength > 250000)
+    throw new Error("Invalid frame");
+  const reader = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate"))
+    .getReader();
+  const chunks = [];
+  let length = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    length += value.byteLength;
+    if (length > 1000000) {
+      await reader.cancel();
+      throw new Error("Frame too large");
+    }
+    chunks.push(value);
+  }
+  return JSON.parse(await new Blob(chunks).text());
 }
 export class Room {
-  constructor(callbacks = {}, PeerClass = Peer) {
+  constructor(callbacks = {}, PeerClass = Peer, options = {}) {
     this.callbacks = callbacks;
     this.PeerClass = PeerClass;
+    this.profile = cleanProfile(options.profile);
+    this.config = options.config || { iceServers: DEFAULT_ICE };
+    this.compression =
+      options.compression ??
+      (PeerClass === Peer &&
+        typeof CompressionStream !== "undefined" &&
+        typeof DecompressionStream !== "undefined");
     this.peer = null;
     this.connections = new Map();
     this.pending = new Set();
@@ -30,6 +77,9 @@ export class Room {
     this.closed = false;
     this.inputTimes = {};
     this.lastInputs = {};
+    this.sequence = 0;
+    this.reconnectAttempts = 0;
+    this.decoding = Promise.resolve();
   }
   emit(name, ...args) {
     this.callbacks[name]?.(...args);
@@ -47,82 +97,122 @@ export class Room {
     this.timers.delete(t);
   }
   send(c, data) {
-    if (c?.open)
+    if (c?.open) {
       try {
-        c.send(data);
+        const sent = c.send(data);
+        sent?.catch?.(() => this.emit("onNotice", "Connection interrupted."));
       } catch {
         this.emit("onNotice", "Connection interrupted.");
       }
+    }
   }
   broadcast(data) {
     for (const c of this.connections.values()) this.send(c, data);
   }
   async openPeer(id) {
     return new Promise((resolve, reject) => {
-      const p = (this.peer = new this.PeerClass(id, { debug: 0 }));
+      const p = (this.peer = new this.PeerClass(id, {
+        debug: 0,
+        config: this.config,
+      }));
       let settled = false;
       const t = this.later(() => {
         settled = true;
-        reject(
-          new Error("The room service did not respond. Try again in a moment."),
-        );
-      }, 12000);
+        reject(new Error("The room service did not respond. Try again."));
+      }, 20000);
+      p.on("connection", (c) => (this.host ? this.accept(c) : c.close()));
       p.on("open", () => {
-        if (settled || this.closed) return;
-        settled = true;
-        this.clear(t);
-        resolve(p);
-      });
-      p.on("error", (e) => {
-        const map = {
-          "peer-unavailable":
-            "That room could not be found. Check the code and ask the host to keep the room open.",
-          "unavailable-id":
-            "That room code is taken. Please create another room.",
-          network:
-            "Could not reach the room service. Check your connection and try again.",
-          webrtc:
-            "These browsers could not connect directly. Try another network.",
-          "browser-incompatible":
-            "This browser cannot use online rooms. Try a current Chrome, Edge, Firefox or Safari.",
-        };
-        const message =
-          map[e.type] || "The online connection failed. Please try again.";
+        if (this.closed) return;
+        this.reconnectAttempts = 0;
+        if (this.reconnectTimer) {
+          this.clear(this.reconnectTimer);
+          this.reconnectTimer = null;
+        }
+        this.emit("onStatus", "Connected");
         if (!settled) {
           settled = true;
           this.clear(t);
-          reject(Object.assign(new Error(message), { type: e.type }));
-        } else if (this.joinReject) {
-          this.joinReject(Object.assign(new Error(message), { type: e.type }));
-          this.joinReject = null;
-        } else if (this.host && e.type === "peer-unavailable") {
-          this.emit(
-            "onNotice",
-            "A joining player could not connect. Your room is still open.",
-          );
-        } else this.emit("onError", message);
+          resolve(p);
+        }
+      });
+      p.on("error", (e) => {
+        const messages = {
+          "peer-unavailable":
+            "Room not found. Check the code and ask the host to refresh the game and share a new invite.",
+          "unavailable-id": "That room code is taken. Create another room.",
+          network:
+            "Could not reach the room service. Check your connection and retry.",
+          webrtc:
+            "The browsers could not establish a connection. Retry joining the room.",
+          "browser-incompatible":
+            "This browser cannot use online rooms. Try a current Chrome, Edge, Firefox or Safari.",
+        };
+        const error = Object.assign(
+          new Error(
+            messages[e.type] || "The online connection failed. Try again.",
+          ),
+          { type: e.type },
+        );
+        if (!settled) {
+          settled = true;
+          this.clear(t);
+          reject(error);
+        } else if (this.joinReject) this.joinReject(error);
+        else if (
+          this.host ||
+          (this.connection?.open &&
+            ["network", "socket-error", "server-error"].includes(e.type))
+        ) {
+          this.emit("onNotice", error.message);
+          if (p.disconnected) this.reconnect();
+        } else if (!this.closed) this.emit("onError", error.message);
       });
       p.on("disconnected", () => {
-        if (!this.closed)
-          this.emit(
-            "onNotice",
-            "Room service disconnected. Existing players can keep playing; reopen the room to add friends.",
-          );
+        if (!this.closed) {
+          this.emit("onStatus", "Reconnecting…");
+          this.reconnect();
+        }
       });
     });
+  }
+  reconnect() {
+    if (
+      this.closed ||
+      this.reconnectTimer ||
+      !this.peer?.disconnected ||
+      this.peer.destroyed
+    )
+      return;
+    this.reconnectTimer = this.later(
+      () => {
+        this.reconnectTimer = null;
+        try {
+          this.peer.reconnect();
+        } catch {
+          /* Retry while existing data channels remain open. */
+        }
+        if (this.peer.disconnected) this.reconnect();
+      },
+      Math.min(8000, 1000 * 2 ** this.reconnectAttempts++),
+    );
   }
   async create(code = makeCode()) {
     if (!validCode(code)) throw new Error("Invalid room code.");
     this.host = true;
     this.id = 0;
     this.code = code;
-    this.roster = [{ id: 0 }];
-    await this.openPeer(PREFIX + this.code);
-    this.peer.on("connection", (c) => this.accept(c));
-    this.running = true;
+    this.roster = [{ id: 0, ...this.profile }];
+    await this.openPeer(PREFIX + code);
     this.emit("onRoster", this.roster);
+    this.emit("onLobby");
+    return code;
+  }
+  start() {
+    if (!this.host || this.closed || this.running) return false;
+    this.running = true;
+    this.broadcast({ t: "start" });
     this.emit("onStart");
-    return this.code;
+    return true;
   }
   accept(c) {
     if (this.closed) return c.close();
@@ -130,28 +220,45 @@ export class Room {
     const t = this.later(() => {
       this.pending.delete(c);
       c.close();
-    }, 12000);
+    }, 35000);
     let id = null;
     c.on("open", () => {
+      if (id !== null) return;
       this.clear(t);
       this.pending.delete(c);
       if (this.closed) return c.close();
-      if (this.connections.size >= 3) {
-        this.send(c, {
-          t: "reject",
-          code: "room-full",
-          reason: "This room is full (4 players).",
-        });
-        this.later(() => c.close(), 300);
-        return;
-      }
+      const reject = (code, reason) => {
+        this.send(c, { t: "reject", code, reason });
+        this.later(() => c.close(), 400);
+      };
+      if (c.metadata?.protocol !== PROTOCOL)
+        return reject(
+          "version-mismatch",
+          "Game versions differ. Refresh both game tabs, then use a new invite.",
+        );
+      if (this.connections.size >= 3)
+        return reject("room-full", "This room is full (4 players).");
       id = [1, 2, 3].find((n) => !this.connections.has(n));
       this.connections.set(id, c);
-      this.roster.push({ id });
-      this.send(c, { t: "welcome", id, code: this.code });
+      const profile = availableProfile(
+        c.metadata?.profile,
+        this.roster,
+        defaultProfile(id),
+      );
+      this.roster.push({ id, ...profile });
+      c.frameSequence = 0;
+      c.frameAck = 0;
+      c.frameSentAt = 0;
+      this.send(c, {
+        t: "welcome",
+        id,
+        code: this.code,
+        protocol: PROTOCOL,
+        running: this.running,
+        players: this.roster,
+      });
       this.publishRoster();
-      if (this.latestState)
-        this.send(c, { t: "state", state: this.latestState });
+      if (this.latestState) this.sendState(this.latestState);
     });
     c.on("data", (m) => {
       if (
@@ -161,10 +268,13 @@ export class Room {
         typeof m !== "object"
       )
         return;
-      if (m.t === "input") {
+      if (m.t === "input" && this.running) {
         this.lastInputs[id] = cleanInput(m.input);
         this.inputTimes[id] = performance.now();
       }
+      if (m.t === "profile") this.assignProfile(id, m.profile);
+      if (m.t === "ack" && Number.isInteger(m.seq) && m.seq === c.frameSequence)
+        c.frameAck = m.seq;
       if (m.t === "ping" && typeof m.time === "number")
         this.send(c, { t: "pong", time: m.time });
     });
@@ -179,88 +289,191 @@ export class Room {
       this.publishRoster();
     });
     c.on("error", () => c.close());
+    if (c.open) queueMicrotask(() => c.emit("open"));
   }
   async join(code) {
     if (!validCode(code)) throw new Error("Enter the six-character room code.");
     this.code = code;
     await this.openPeer(PREFIX + "guest-" + crypto.randomUUID());
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await this.joinAttempt(code);
+        return;
+      } catch (e) {
+        if (this.closed || attempt || e.type !== "connection-timeout") throw e;
+        this.emit("onStatus", "Retrying connection…");
+      }
+    }
+  }
+  joinAttempt(code) {
     return new Promise((resolve, reject) => {
-      this.joinReject = reject;
-      let welcomed = false;
+      let welcomed = false,
+        settled = false;
       const c = (this.connection = this.peer.connect(PREFIX + code, {
         reliable: true,
-        // Combat snapshots exceed PeerJS JSON's 16 KB limit. Binary mode chunks them.
         serialization: "binary",
+        metadata: {
+          protocol: PROTOCOL,
+          profile: this.profile,
+          compression: this.compression,
+        },
       }));
+      const fail = (error) => {
+        if (settled) return;
+        settled = true;
+        this.clear(t);
+        this.joinReject = null;
+        reject(error);
+        c.close();
+      };
+      this.joinReject = fail;
       const t = this.later(() => {
-        reject(
-          new Error(
-            "Could not reach this room. Ask the host to check the code. Some networks need a relay server.",
+        const answered = !!c.peerConnection?.remoteDescription;
+        fail(
+          Object.assign(
+            new Error(
+              answered
+                ? "The host responded, but the browsers could not connect. Refresh both tabs and retry. This network may need a working relay."
+                : "The room did not answer. Ask the host to refresh the game and send a new invite.",
+            ),
+            { type: "connection-timeout" },
           ),
         );
-        c.close();
-      }, 15000);
+      }, 25000);
+      c.on("open", () => this.emit("onStatus", "Joining room…"));
       c.on("data", (m) => {
-        if (!m || typeof m !== "object") return;
-        if (
-          !welcomed &&
-          m.t === "welcome" &&
-          Number.isInteger(m.id) &&
-          m.id > 0 &&
-          m.id < 4
-        ) {
-          welcomed = true;
-          this.joinReject = null;
-          this.clear(t);
-          this.id = m.id;
-          this.running = true;
-          this.emit("onStart");
-          resolve();
-        }
-        if (m.t === "reject") {
-          this.clear(t);
-          this.joinReject = null;
-          reject(
+        if (this.connection !== c || this.closed || !m || typeof m !== "object")
+          return;
+        if (m.t === "reject" && !welcomed)
+          return fail(
             Object.assign(new Error(String(m.reason).slice(0, 180)), {
               type: m.code,
             }),
           );
+        if (!welcomed && m.t === "welcome") {
+          if (m.protocol !== PROTOCOL)
+            return fail(
+              Object.assign(
+                new Error(
+                  "The host has an older game open. Refresh both game tabs, then use a new invite.",
+                ),
+                { type: "version-mismatch" },
+              ),
+            );
+          if (
+            !Number.isInteger(m.id) ||
+            m.id < 1 ||
+            m.id > 3 ||
+            !this.receiveRoster(m.players)
+          )
+            return fail(new Error("Invalid room response."));
+          welcomed = settled = true;
+          this.clear(t);
+          this.joinReject = null;
+          this.id = m.id;
+          this.running = m.running === true;
+          this.profile = cleanProfile(
+            this.roster.find((p) => p.id === this.id),
+          );
+          this.emit("onRoster", this.roster);
+          this.emit(this.running ? "onStart" : "onLobby");
+          resolve();
         }
         if (!welcomed) return;
-        if (
-          m.t === "roster" &&
-          Array.isArray(m.players) &&
-          m.players.length <= 4
-        ) {
-          this.roster = m.players
-            .filter((p) => Number.isInteger(p.id) && p.id >= 0 && p.id < 4)
-            .map((p) => ({ id: p.id }));
+        if (m.t === "roster" && this.receiveRoster(m.players)) {
+          this.profile = cleanProfile(
+            this.roster.find((p) => p.id === this.id),
+          );
           this.emit("onRoster", this.roster);
         }
-        if (m.t === "state" && this.running && validSnapshot(m.state))
-          this.emit("onState", m.state);
+        if (m.t === "start" && !this.running) {
+          this.running = true;
+          this.emit("onStart");
+        }
+        if ((m.t === "state" || m.t === "frame") && this.running) {
+          const consume = async () => {
+            try {
+              const state =
+                m.t === "frame" ? await decodeState(m.bytes) : m.state;
+              if (this.closed || this.connection !== c) return;
+              if (validSnapshot(state)) this.emit("onState", state);
+              this.send(c, { t: "ack", seq: m.seq });
+            } catch {
+              this.emit(
+                "onNotice",
+                "A game update could not be read. Waiting for the next update.",
+              );
+              this.send(c, { t: "ack", seq: m.seq });
+            }
+          };
+          this.decoding = this.decoding.then(consume);
+        }
         if (m.t === "pong")
           this.emit("onPing", Math.round(performance.now() - m.time));
       });
       c.on("close", () => {
-        this.clear(t);
+        if (this.connection !== c || this.closed) return;
         if (!welcomed)
-          reject(new Error("The room connection closed. Try joining again."));
-        else if (!this.closed)
+          fail(
+            Object.assign(
+              new Error("The room connection closed. Retry joining."),
+              { type: "connection-timeout" },
+            ),
+          );
+        else
           this.emit(
             "onError",
-            "The host left the room. Create or join a new room to keep playing.",
+            "The connection to the host closed. Rejoin using the room code.",
           );
       });
       c.on("error", () => {
-        this.clear(t);
-        reject(
-          new Error("Could not connect to this room. Try a different network."),
-        );
-        if (welcomed && !this.closed)
-          this.emit("onError", "The connection to the host failed.");
+        if (!welcomed)
+          fail(
+            Object.assign(new Error("Could not connect to this room."), {
+              type: "connection-timeout",
+            }),
+          );
+        else if (!this.closed)
+          this.emit(
+            "onError",
+            "The connection to the host failed. Rejoin using the room code.",
+          );
       });
     });
+  }
+  receiveRoster(players) {
+    if (
+      !Array.isArray(players) ||
+      players.length < 1 ||
+      players.length > 4 ||
+      players.some(
+        (p) =>
+          !Number.isInteger(p.id) || p.id < 0 || p.id > 3 || !validProfile(p),
+      ) ||
+      new Set(players.map((p) => p.id)).size !== players.length
+    )
+      return false;
+    this.roster = players.map((p) => ({ id: p.id, ...cleanProfile(p) }));
+    return true;
+  }
+  assignProfile(id, value) {
+    const player = this.roster.find((p) => p.id === id);
+    if (!player) return;
+    Object.assign(
+      player,
+      availableProfile(
+        value,
+        this.roster.filter((p) => p.id !== id),
+        player,
+      ),
+    );
+    if (id === this.id) this.profile = cleanProfile(player);
+    this.publishRoster();
+  }
+  setProfile(value) {
+    this.profile = cleanProfile(value, this.profile);
+    if (this.host) this.assignProfile(this.id, this.profile);
+    else this.send(this.connection, { t: "profile", profile: this.profile });
   }
   publishRoster() {
     this.roster.sort((a, b) => a.id - b.id);
@@ -268,7 +481,8 @@ export class Room {
     this.emit("onRoster", this.roster);
   }
   sendInput(input) {
-    this.send(this.connection, { t: "input", input: cleanInput(input) });
+    if (this.running)
+      this.send(this.connection, { t: "input", input: cleanInput(input) });
   }
   getInputs(now = performance.now()) {
     const out = {};
@@ -279,16 +493,49 @@ export class Room {
           : cleanInput(null);
     return out;
   }
-  sendState(state) {
-    if (this.host && this.running) {
-      this.latestState = state;
-      this.broadcast({ t: "state", state });
+  async sendState(state) {
+    if (!this.host || !this.running || this.closed) return;
+    this.latestState = state;
+    if (this.encoding) return;
+    const now = performance.now();
+    const ready = [...this.connections.values()].filter(
+      (c) =>
+        c.open &&
+        !c.bufferSize &&
+        (c.dataChannel?.bufferedAmount || 0) < 65536 &&
+        (c.frameAck === c.frameSequence || now - c.frameSentAt > 1200),
+    );
+    if (!ready.length) return;
+    this.encoding = true;
+    try {
+      const compressed =
+        this.compression && ready.some((c) => c.metadata?.compression)
+          ? await encodeState(state)
+          : null;
+      if (this.closed) return;
+      const seq = ++this.sequence;
+      for (const c of ready) {
+        if (!c.open || ![...this.connections.values()].includes(c)) continue;
+        c.frameSequence = seq;
+        c.frameSentAt = performance.now();
+        this.send(
+          c,
+          compressed && c.metadata?.compression
+            ? { t: "frame", seq, bytes: compressed }
+            : { t: "state", seq, state },
+        );
+      }
+    } catch {
+      this.emit("onNotice", "A game update could not be sent. Retrying.");
+    } finally {
+      this.encoding = false;
     }
   }
   ping() {
     this.send(this.connection, { t: "ping", time: performance.now() });
   }
   close() {
+    if (this.closed) return;
     this.closed = true;
     this.joinReject?.(new Error("Connection cancelled."));
     this.joinReject = null;
@@ -325,6 +572,7 @@ export function validSnapshot(s) {
       4,
       (p) =>
         integer(p.id, 0, 3) &&
+        validProfile(p) &&
         typeof p.bot === "boolean" &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&

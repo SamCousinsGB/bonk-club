@@ -1,3 +1,4 @@
+import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
 import { meleeAttack } from "./melee.js";
 import {
   steerSpecial,
@@ -5,7 +6,12 @@ import {
   expireSpecial,
   updateFields,
 } from "./specials.js";
-import { WEAPONS, chooseWeapon, firingRecoil } from "./arsenal.js";
+import {
+  WEAPONS,
+  chooseWeapon,
+  WeaponRotation,
+  firingRecoil,
+} from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
 import { BotController } from "./bots.js";
@@ -223,6 +229,8 @@ export class World {
         : bots,
     );
     this.occupants = [0, 0, 0, 0];
+    this.profiles = {};
+    this.weaponRotation = new WeaponRotation(random);
     this.ai = new BotController();
     this.arenaIndex = arena;
     this.shuffle = shuffle;
@@ -253,8 +261,11 @@ export class World {
     this.ai.reset();
     this.projectiles = [];
     this.fields = [];
-    this.drops = (this.arena.weapons || []).map(([x, y]) => {
-      const type = chooseWeapon(this.random);
+    const featured = this.weaponRotation.opening(this.round);
+    const seenWeapons = new Set();
+    this.drops = (this.arena.weapons || []).map(([x, y], index) => {
+      const type = featured[index] || chooseWeapon(this.random, seenWeapons);
+      seenWeapons.add(type);
       return {
         x,
         y,
@@ -288,6 +299,7 @@ export class World {
     const [x, y] = this.arena.spawns[this.ids.indexOf(id)];
     return {
       id,
+      ...(this.profiles[id] || defaultProfile(id)),
       bot: this.botIds.has(id),
       occupant: this.occupants[id],
       x,
@@ -331,10 +343,31 @@ export class World {
       landing: 0,
     };
   }
+  setProfiles(roster) {
+    const used = [];
+    for (const entry of roster) {
+      const profile = availableProfile(entry, used, defaultProfile(entry.id));
+      this.profiles[entry.id] = profile;
+      used.push(profile);
+    }
+    for (const p of this.players) {
+      if (p.bot) {
+        const profile = availableProfile(defaultProfile(p.id), used);
+        profile.name = PALETTE.find(
+          (c) => c.value === profile.color,
+        ).name.toUpperCase();
+        this.profiles[p.id] = profile;
+        used.push(profile);
+      }
+      Object.assign(p, this.profiles[p.id] || defaultProfile(p.id));
+    }
+  }
   replacePlayer(id, bot) {
     if (!this.ids.includes(id) || this.botIds.has(id) === bot) return;
-    if (bot) this.botIds.add(id);
-    else this.botIds.delete(id);
+    if (bot) {
+      this.botIds.add(id);
+      delete this.profiles[id];
+    } else this.botIds.delete(id);
     this.scores[id] = 0;
     this.occupants[id]++;
     this.ai.forget(id);
@@ -380,6 +413,7 @@ export class World {
     }
     Object.assign(p, {
       bot,
+      ...(this.profiles[id] || defaultProfile(id)),
       occupant: this.occupants[id],
       jumpHeld: false,
       throwHeld: false,
@@ -443,7 +477,7 @@ export class World {
       this.weaponTimer -= dt;
       if (this.weaponTimer <= 0) {
         this.spawnWeapon();
-        this.weaponTimer = 5 + this.random() * 3;
+        this.weaponTimer = 3 + this.random() * 2;
       }
     }
     for (const p of this.players) {
@@ -594,7 +628,7 @@ export class World {
       p.jumps++;
       p.ground = false;
       p.coyote = 0;
-      this.event("jump", { x: p.x, y: p.y + 28, color: COLORS[p.id] });
+      this.event("jump", { x: p.x, y: p.y + 28, color: p.color });
     }
     p.jumpHeld = i.jump;
     p.aimAngle = i.aim === null ? (p.facing === 1 ? 0 : Math.PI) : i.aim;
@@ -775,7 +809,7 @@ export class World {
         this.event("parry", {
           x: (p.x + q.x) / 2,
           y: q.y - 10,
-          color: COLORS[q.id],
+          color: q.color,
         });
       } else {
         q.vx += dir * force * 0.28;
@@ -806,7 +840,7 @@ export class World {
       this.hitstop,
       options.hitstop ?? (damage > 30 ? 0.065 : 0.045),
     );
-    this.event("hit", { x: q.x, y: q.y - 10, color: COLORS[q.id], force });
+    this.event("hit", { x: q.x, y: q.y - 10, color: q.color, force });
     if (q.hp <= 0) this.kill(q);
   }
   kill(p) {
@@ -824,8 +858,14 @@ export class World {
         life: 10,
       });
     const points = (p.rig || makeRig(p)).map((q) => ({ ...q }));
-    this.ragdolls.push({ points, color: COLORS[p.id], life: 5 });
-    this.event("ko", { x: p.x, y: p.y, color: COLORS[p.id] });
+    this.ragdolls.push({
+      points,
+      color: p.color,
+      hair: p.hair,
+      facing: p.facing,
+      life: 5,
+    });
+    this.event("ko", { x: p.x, y: p.y, color: p.color });
   }
   pickup(p) {
     if (p.weapon || p.pickupCooldown > 0 || !p.alive) return;
@@ -849,7 +889,7 @@ export class World {
       p.blockTime = 0;
       p.ammo = best.ammo;
       this.drops = this.drops.filter((d) => d !== best);
-      this.event("pickup", { x: p.x, y: p.y, color: COLORS[p.id] });
+      this.event("pickup", { x: p.x, y: p.y, color: p.color });
     }
   }
   throwWeapon(p) {
@@ -890,7 +930,10 @@ export class World {
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     const s = platforms[Math.floor(this.random() * platforms.length)];
     if (!s) return;
-    const type = chooseWeapon(this.random);
+    const type = chooseWeapon(
+      this.random,
+      new Set(this.drops.map((d) => d.type)),
+    );
     const x = s.x + s.w * (0.2 + this.random() * 0.6);
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
@@ -1166,7 +1209,7 @@ export class World {
           b.vy *= -1;
           b.hitIds = [];
           b.x = p.x + p.facing * ((p.prone ? 34 : 18) + b.r + 2);
-          this.event("parry", { x: p.x, y: p.y, color: COLORS[p.id] });
+          this.event("parry", { x: p.x, y: p.y, color: p.color });
           redirected = true;
           break;
         }

@@ -1,3 +1,4 @@
+import { drawHair } from "./identity.js";
 import {
   drawNewWeapon,
   drawSpecialProjectile,
@@ -623,7 +624,7 @@ export class Renderer {
   fighter(p, time, scale = 1, showLabel = true) {
     if (!p.alive || !p.rig) return;
     const c = this.ctx,
-      col = p.flash > 0 ? "#fff" : COLORS[p.id],
+      col = p.flash > 0 ? "#fff" : p.color || COLORS[p.id],
       rig = p.rig;
     c.save();
     c.translate(p.x, p.y);
@@ -639,6 +640,15 @@ export class Renderer {
       );
     const head = rig[0];
     this.circle(head.x - p.x, head.y - p.y, 10.5, col);
+    const neck = rig[1];
+    drawHair(
+      c,
+      p.hair,
+      head.x - p.x,
+      head.y - p.y,
+      Math.atan2(head.y - neck.y, head.x - neck.x) + Math.PI / 2,
+      p.facing,
+    );
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI);
     this.line(
       [
@@ -661,7 +671,7 @@ export class Renderer {
     if (p.swing > 0 && ["punch", "kick", "spin"].includes(p.meleeMove)) {
       const progress = 1 - p.swing / p.swingDuration;
       c.globalAlpha = Math.sin(progress * Math.PI) * 0.6;
-      c.strokeStyle = COLORS[p.id];
+      c.strokeStyle = p.color || COLORS[p.id];
       c.lineWidth = p.meleeMove === "spin" ? 6 : 4;
       c.beginPath();
       c.arc(
@@ -697,8 +707,8 @@ export class Renderer {
     if (showLabel) {
       c.font = "700 18px 'DM Sans',sans-serif";
       c.textAlign = "center";
-      c.fillStyle = COLORS[p.id];
-      c.fillText(NAMES[p.id], 0, p.prone ? -35 : -64);
+      c.fillStyle = p.color || COLORS[p.id];
+      c.fillText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
       if (p.stamina < 97) {
         c.fillStyle = "#ffffff20";
         c.fillRect(-18, 43, 36, 3);
@@ -898,6 +908,14 @@ export class Renderer {
           7,
         );
       this.circle(pts[0].x, pts[0].y, 11, r.color);
+      drawHair(
+        c,
+        r.hair,
+        pts[0].x,
+        pts[0].y,
+        Math.atan2(pts[0].y - pts[1].y, pts[0].x - pts[1].x) + Math.PI / 2,
+        r.facing || 1,
+      );
       c.globalAlpha = 1;
     }
     for (const p of state.players) this.fighter(p, time);

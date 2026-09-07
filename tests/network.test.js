@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { Room, validCode, validSnapshot } from "../src/network.js";
+import {
+  Room,
+  validCode,
+  validSnapshot,
+  PROTOCOL,
+  encodeState,
+  decodeState,
+} from "../src/network.js";
 import { World, STEP } from "../src/engine.js";
 import { pack, unpack } from "peerjs-js-binarypack";
 const tick = () => new Promise((r) => setImmediate(r));
@@ -47,6 +54,7 @@ class FakePeer extends EventEmitter {
     assert.equal(options.reliable, true);
     const a = new Connection(),
       b = new Connection();
+    b.metadata = options.metadata;
     a.other = b;
     b.other = a;
     queueMicrotask(() => {
@@ -93,6 +101,8 @@ test("rooms start with one human, hot joins replace AI and departures preserve t
   );
   try {
     const code = await host.create();
+    assert.equal(host.running, false);
+    host.start();
     assert.ok(host.running);
     assert.equal(world.players.filter((p) => p.bot).length, 3);
     world.phase = "fight";
@@ -150,6 +160,7 @@ test("a late join gets the current snapshot immediately without a start or ready
     guest = new Room({ onState: (s) => (received = s) }, FakePeer);
   try {
     const code = await host.create();
+    host.start();
     const world = new World({ players: [0] });
     world.round = 14;
     world.phase = "fight";
@@ -176,6 +187,7 @@ test("public table claims are exclusive and other visitors can join the claimed 
     guest = new Room({}, FakePeer);
   try {
     await host.create("PUBAAA");
+    host.start();
     await assert.rejects(
       () => claim.create("PUBAAA"),
       (error) => error.type === "unavailable-id",
@@ -215,4 +227,168 @@ test("large combat snapshots survive the binary wire format and still pass valid
     large,
     "exercise a real combat state larger than the old channel limit",
   );
+});
+
+test("pregame lobby shares profiles, reserves colours and starts all guests without ready checks", async () => {
+  let started = 0;
+  const host = new Room({ onStart: () => started++ }, FakePeer, {
+    profile: { name: "Sam", color: "#bc9bff", hair: "Mohawk" },
+  });
+  const guest = new Room({ onStart: () => started++ }, FakePeer, {
+    profile: { name: "Friend", color: "#bc9bff", hair: "Bob" },
+  });
+  try {
+    const code = await host.create();
+    await guest.join(code);
+    await tick();
+    assert.equal(started, 0);
+    assert.equal(host.running, false);
+    assert.equal(guest.running, false);
+    assert.equal(host.roster.length, 2);
+    assert.equal(guest.roster[0].name, "Sam");
+    assert.equal(guest.roster[1].name, "Friend");
+    assert.notEqual(guest.roster[0].color, guest.roster[1].color);
+    guest.setProfile({
+      name: "New name",
+      hair: "Afro",
+      color: "#ff9b58",
+      id: 0,
+      hp: 999,
+    });
+    await tick();
+    assert.equal(host.roster[1].name, "New name");
+    assert.equal(host.roster[0].name, "Sam");
+    assert.equal(host.roster[1].hp, undefined);
+    assert.equal(guest.start(), false);
+    host.start();
+    await tick();
+    assert.equal(started, 2);
+    assert.ok(guest.running);
+    assert.equal(host.start(), false);
+  } finally {
+    guest.close();
+    host.close();
+  }
+});
+
+test("compressed combat frames survive the real binary wire format and are much smaller", async () => {
+  const w = new World({ players: [0], arena: 21 });
+  for (let n = 0; n < 60; n++) w.step(STEP);
+  const state = w.snapshot(),
+    bytes = await encodeState(state),
+    wire = unpack(await pack({ t: "frame", seq: 1, bytes }));
+  const decoded = await decodeState(wire.bytes);
+  assert.ok(validSnapshot(decoded));
+  assert.deepEqual(decoded, state);
+  assert.ok(bytes.length < JSON.stringify(state).length * 0.4);
+  await assert.rejects(() => decodeState(new Uint8Array([1, 2, 3])));
+});
+
+test("slow guest acknowledgements prevent an unbounded snapshot queue and the next frame is current", async () => {
+  const got = [];
+  const host = new Room({}, FakePeer),
+    guest = new Room({ onState: (s) => got.push(s.round) }, FakePeer);
+  try {
+    const code = await host.create();
+    host.start();
+    await guest.join(code);
+    await tick();
+    const send = guest.connection.send.bind(guest.connection);
+    guest.connection.send = (m) => {
+      if (m.t !== "ack") send(m);
+    };
+    const w = new World();
+    for (let round = 1; round <= 30; round++) {
+      w.round = round;
+      await host.sendState(w.snapshot());
+      await tick();
+    }
+    assert.deepEqual(got, [1]);
+    const c = host.connections.get(1);
+    send({ t: "ack", seq: c.frameSequence });
+    await tick();
+    await host.sendState(w.snapshot());
+    await tick();
+    assert.deepEqual(got, [1, 30]);
+    c.dataChannel = { bufferedAmount: 200000 };
+    send({ t: "ack", seq: c.frameSequence });
+    await tick();
+    w.round = 31;
+    await host.sendState(w.snapshot());
+    await tick();
+    assert.deepEqual(got, [1, 30]);
+  } finally {
+    guest.close();
+    host.close();
+  }
+});
+
+test("outdated clients are rejected explicitly without occupying a player slot", async () => {
+  const host = new Room({}, FakePeer),
+    guest = new Room({}, FakePeer);
+  try {
+    const code = await host.create();
+    const original = FakePeer.prototype.connect;
+    FakePeer.prototype.connect = function (id, options) {
+      return original.call(this, id, {
+        ...options,
+        metadata: { ...options.metadata, protocol: PROTOCOL - 1 },
+      });
+    };
+    try {
+      await assert.rejects(
+        () => guest.join(code),
+        (e) => e.type === "version-mismatch",
+      );
+      assert.equal(host.roster.length, 1);
+      assert.equal(host.connections.size, 0);
+    } finally {
+      FakePeer.prototype.connect = original;
+    }
+  } finally {
+    guest.close();
+    host.close();
+  }
+});
+
+test("signaling reconnect keeps an established room and its guest alive", async () => {
+  const host = new Room({}, FakePeer),
+    guest = new Room({}, FakePeer);
+  try {
+    const code = await host.create();
+    await guest.join(code);
+    host.peer.disconnected = true;
+    host.peer.reconnect = () => {
+      host.peer.disconnected = false;
+      host.peer.emit("open", host.peer.id);
+    };
+    const later = host.later.bind(host);
+    host.later = (fn, ms) => later(fn, ms === 1000 ? 1 : ms);
+    host.peer.emit("disconnected");
+    await new Promise((r) => setTimeout(r, 15));
+    assert.equal(host.peer.disconnected, false);
+    assert.equal(host.code, code);
+    assert.equal(host.connections.size, 1);
+    assert.equal(guest.connection.open, true);
+  } finally {
+    guest.close();
+    host.close();
+  }
+});
+
+test("a guest keeps its data channel when only the signaling service has a transient error", async () => {
+  let ended = false;
+  const host = new Room({}, FakePeer),
+    guest = new Room({ onError: () => (ended = true) }, FakePeer);
+  try {
+    const code = await host.create();
+    await guest.join(code);
+    guest.peer.emit("error", { type: "network" });
+    await tick();
+    assert.equal(ended, false);
+    assert.equal(guest.connection.open, true);
+  } finally {
+    guest.close();
+    host.close();
+  }
 });

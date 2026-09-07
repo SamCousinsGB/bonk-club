@@ -391,19 +391,23 @@ export function firingRecoil(weapon, player) {
     (weapon.kind === "pellet" ? 150 : weapon.kind === "melee" ? 0 : 40)
   );
 }
-// Applied to both initial map pickups and later drops; powerful fixed map spawns
-// must not bypass rarity. Each tier's probability is independent of its size.
-export function chooseWeapon(random = Math.random) {
+// Non-featured pickups use weighted tiers and avoid duplicate weapons when possible.
+export function chooseWeapon(random = Math.random, exclude = new Set()) {
   const roll = random();
   const tier =
-    roll < 0.68
+    roll < 0.4
       ? "common"
-      : roll < 0.93
+      : roll < 0.72
         ? "uncommon"
-        : roll < 0.99
+        : roll < 0.92
           ? "rare"
           : "exotic";
-  const pool = Object.keys(WEAPONS).filter((k) => WEAPONS[k].rarity === tier);
+  let pool = Object.keys(WEAPONS).filter(
+    (k) => WEAPONS[k].rarity === tier && !exclude.has(k),
+  );
+  if (!pool.length) pool = Object.keys(WEAPONS).filter((k) => !exclude.has(k));
+  if (!pool.length) pool = Object.keys(WEAPONS);
+  if (pool.includes("nuke")) pool.push("nuke");
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
 export const PROJECTILE_KINDS = [
@@ -413,3 +417,26 @@ export const PROJECTILE_KINDS = [
       .map((w) => w.kind),
   ),
 ];
+
+// Keep the featured rotation between rounds so brief fights still expose the arsenal.
+export class WeaponRotation {
+  constructor(random = Math.random) {
+    this.random = random;
+    this.bag = [];
+  }
+  next() {
+    if (!this.bag.length) {
+      this.bag = Object.keys(WEAPONS).filter(
+        (k) => k !== "nuke" && ["rare", "exotic"].includes(WEAPONS[k].rarity),
+      );
+      for (let n = this.bag.length - 1; n > 0; n--) {
+        const i = Math.floor(this.random() * (n + 1));
+        [this.bag[n], this.bag[i]] = [this.bag[i], this.bag[n]];
+      }
+    }
+    return this.bag.pop();
+  }
+  opening(round) {
+    return [round % 3 === 1 ? "nuke" : this.next(), this.next()];
+  }
+}

@@ -1,3 +1,10 @@
+import {
+  PALETTE,
+  HAIRSTYLES,
+  defaultProfile,
+  cleanProfile,
+  drawHair,
+} from "./identity.js";
 import { secondaryAction } from "./arsenal.js";
 import "./style.css";
 import "@fontsource/barlow-condensed/latin-900.css";
@@ -59,6 +66,26 @@ let world = null,
   toastTimer,
   returnFocus = null;
 let solo = false;
+let profile;
+try {
+  profile = cleanProfile(JSON.parse(localStorage.getItem("bonk-profile")), {
+    name: "Player",
+    color: COLORS[0],
+    hair: "None",
+  });
+} catch {
+  profile = { name: "Player", color: COLORS[0], hair: "None" };
+}
+function saveProfile(value) {
+  profile = cleanProfile(value, profile);
+  try {
+    localStorage.setItem("bonk-profile", JSON.stringify(profile));
+  } catch {
+    /* Storage can be unavailable in private browsing. */
+  }
+}
+const roomOptions = () => ({ profile });
+
 let selectedArena = "random",
   ping = 0;
 let searchId = 0;
@@ -225,6 +252,7 @@ function startWorld(ids) {
     shuffle: ["city", "random"].includes(selectedArena),
     arenaPool: pool,
   });
+  world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
   remote = null;
   previousRemote = null;
   renderer.lastEvent = 0;
@@ -236,23 +264,183 @@ function startWorld(ids) {
   setPlaying(true);
   unlock();
 }
+function characterHtml() {
+  return `<div class="character-editor"><canvas id="character-preview" width="160" height="170" aria-label="Character preview"></canvas><div class="character-fields"><label>NAME<input id="player-name" maxlength="20" autocomplete="nickname" value="${esc(profile.name)}"></label><label>COLOUR<div id="colours" class="colour-options">${PALETTE.map((c) => `<button type="button" class="colour-option" data-colour="${c.value}" aria-label="${c.name}" aria-pressed="${profile.color === c.value}" style="--colour:${c.value}"></button>`).join("")}</div></label><label>HAIRSTYLE<select id="player-hair">${HAIRSTYLES.map((h) => `<option ${profile.hair === h ? "selected" : ""}>${h}</option>`).join("")}</select></label></div></div>`;
+}
+function drawPreview() {
+  const canvas = $("#character-preview");
+  if (!canvas) return;
+  const c = canvas.getContext("2d");
+  c.clearRect(0, 0, 160, 170);
+  c.save();
+  c.translate(80, 70);
+  c.scale(1.7, 1.7);
+  c.strokeStyle = profile.color;
+  c.fillStyle = profile.color;
+  c.lineWidth = 4;
+  c.lineCap = "round";
+  c.beginPath();
+  c.arc(0, -15, 10, 0, Math.PI * 2);
+  c.fill();
+  for (const points of [
+    [
+      [0, -4],
+      [0, 20],
+    ],
+    [
+      [-15, 12],
+      [0, 0],
+      [14, 9],
+    ],
+    [
+      [0, 20],
+      [-11, 45],
+    ],
+    [
+      [0, 20],
+      [13, 44],
+    ],
+  ]) {
+    c.beginPath();
+    points.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+    c.stroke();
+  }
+  drawHair(c, profile.hair, 0, -15);
+  c.restore();
+}
+function submitProfile() {
+  if (!$("#player-name")) return;
+  saveProfile({
+    ...profile,
+    name: $("#player-name").value,
+    hair: $("#player-hair").value,
+  });
+  room?.setProfile(profile);
+  if (!room && world) world.setProfiles([{ id: 0, ...profile }]);
+  drawPreview();
+}
+function syncColourOptions() {
+  const own = room?.roster.find((p) => p.id === room.id);
+  if (own) saveProfile(own);
+  for (const button of document.querySelectorAll("[data-colour]")) {
+    button.disabled = !!room?.roster.some(
+      (p) => p.id !== room.id && p.color === button.dataset.colour,
+    );
+    button.setAttribute(
+      "aria-pressed",
+      String(profile.color === button.dataset.colour),
+    );
+  }
+  drawPreview();
+}
+function wireCharacter() {
+  $("#player-name").onchange = submitProfile;
+  $("#player-hair").onchange = submitProfile;
+  for (const button of document.querySelectorAll("[data-colour]"))
+    button.onclick = () => {
+      saveProfile({ ...profile, color: button.dataset.colour });
+      submitProfile();
+      syncColourOptions();
+    };
+  syncColourOptions();
+}
+function characterMenu() {
+  showPanel(
+    "character",
+    heading("Character") +
+      characterHtml() +
+      '<button id="character-close" class="button primary">SAVE</button>',
+  );
+  wireCharacter();
+  const close = () => {
+    submitProfile();
+    hidePanel();
+  };
+  $("#back").onclick = close;
+  $("#character-close").onclick = close;
+}
+function joinHtml() {
+  return '<div class="join-row"><input id="join-code" class="room-input" aria-label="Six-character room code" maxlength="6" placeholder="ABC234" autocomplete="off" spellcheck="false"><button id="join-room" class="button secondary">JOIN ROOM</button></div>';
+}
+function wireJoin() {
+  $("#join-room").onclick = () => {
+    submitProfile();
+    connectRoom($("#join-code").value.trim().toUpperCase());
+  };
+  $("#join-code").onkeydown = (e) => {
+    if (e.key === "Enter") $("#join-room").click();
+  };
+}
+function updateLobby() {
+  if (view !== "lobby" || !room) return;
+  const roster = room.roster;
+  $("#lobby-players").innerHTML = [0, 1, 2, 3]
+    .map((id) => {
+      const p = roster.find((q) => q.id === id);
+      return `<div class="lobby-player ${p ? "" : "empty"}"><span class="player-dot" style="background:${p?.color || "#73817b"}"></span><span>${p ? esc(p.name) : "AI"}<small>${p ? (id === room.id ? "You" : id === 0 ? "Host" : "Connected") : "Open slot"}</small></span></div>`;
+    })
+    .join("");
+  $("#lobby-count").textContent = `${roster.length}/4 players`;
+  syncColourOptions();
+}
+function lobby() {
+  if (!room || room.closed || room.running) return;
+  setPlaying(false);
+  showPanel(
+    "lobby",
+    heading("Online lobby") +
+      `<div class="lobby-invite"><div><label for="room-code">INVITE CODE</label><input id="room-code" class="room-input" value="${esc(room.code)}" readonly><span id="lobby-count"></span></div><div class="invite-actions"><button id="copy-code" class="button secondary">COPY CODE</button><button id="copy-link" class="button secondary">COPY LINK</button></div></div><div id="lobby-players" class="lobby-players"></div>` +
+      characterHtml() +
+      (room.host
+        ? settingsHtml() +
+          '<button id="start-match" class="button primary">START MATCH</button>'
+        : '<p class="waiting-host" role="status">Waiting for the host to start.</p>') +
+      '<p class="subtle">Empty slots use AI. Friends can also join after the match starts.</p><details class="join-other"><summary>Join another room</summary>' +
+      joinHtml() +
+      '<button id="quick-match" class="button secondary">QUICK MATCH</button></details>',
+  );
+  $("#back").onclick = home;
+  wireCharacter();
+  wireJoin();
+  wireSettings();
+  if ($("#quick-match")) $("#quick-match").onclick = quickMatch;
+  $("#room-code").onclick = (e) => e.target.select();
+  $("#copy-code").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(room.code);
+      toast("Invite code copied.");
+    } catch {
+      $("#room-code").select();
+      toast("Select and copy the invite code.");
+    }
+  };
+  $("#copy-link").onclick = copyInvite;
+  if ($("#start-match"))
+    $("#start-match").onclick = () => {
+      submitProfile();
+      room.start();
+    };
+  updateLobby();
+}
 function onlineMenu(message = "") {
   unlock();
   showPanel(
     "online",
     heading("Online multiplayer") +
-      `<p>${touchDevice ? "Each player opens the game on their own phone or computer. Create a room and share the invite link." : "Create an invite room for friends, or find another player at a public table."}</p><button id="quick-match" class="button secondary">QUICK MATCH <span>↗</span></button>${message ? `<p class="error" role="alert">${esc(message)}</p>` : ""}<button id="create-room" class="button primary">CREATE A ROOM <span>↗</span></button><p style="text-align:center">Join a room</p><input id="join-code" class="room-input" aria-label="Six-character room code" placeholder="ABC234" maxlength="6" autocomplete="off" spellcheck="false" value="${validCode(new URLSearchParams(location.search).get("room")?.toUpperCase()) ? esc(new URLSearchParams(location.search).get("room").toUpperCase()) : ""}"><button id="join-room" class="button secondary">JOIN ROOM <span>↗</span></button><p class="subtle">Online connections depend on the room service and each player’s network.</p>`,
+      (message ? `<p class="error" role="alert">${esc(message)}</p>` : "") +
+      '<button id="create-room" class="button primary">CREATE A ROOM</button>' +
+      joinHtml() +
+      '<button id="quick-match" class="button secondary">QUICK MATCH</button>',
   );
   $("#back").onclick = home;
   $("#create-room").onclick = () => connectRoom();
   $("#quick-match").onclick = quickMatch;
-  $("#join-room").onclick = () =>
-    connectRoom($("#join-code").value.trim().toUpperCase());
-  $("#join-code").onkeydown = (e) => {
-    if (e.key === "Enter") $("#join-room").click();
-  };
+  wireJoin();
+  const code = new URLSearchParams(location.search).get("room");
+  if (validCode(code)) $("#join-code").value = code;
 }
 async function quickMatch() {
+  solo = false;
   room?.close();
   room = null;
   const search = ++searchId;
@@ -269,7 +457,7 @@ async function quickMatch() {
   const codes = "ABCDEFGH".split("").map((letter) => "PUB" + letter + "AA");
   for (const code of codes) {
     if (search !== searchId) return;
-    let candidate = new Room(roomCallbacks());
+    let candidate = new Room(roomCallbacks(), undefined, roomOptions());
     room = candidate;
     try {
       await candidate.create(code);
@@ -281,7 +469,7 @@ async function quickMatch() {
         onlineMenu(error.message);
         return;
       }
-      candidate = new Room(roomCallbacks());
+      candidate = new Room(roomCallbacks(), undefined, roomOptions());
       room = candidate;
       try {
         await candidate.join(code);
@@ -311,7 +499,8 @@ async function quickMatch() {
       "",
       location.pathname + "?room=" + candidate.code,
     );
-    if (!candidate.host && !playing) enterGuest();
+    if (candidate.running && !playing) enterGuest();
+    else if (!candidate.running) lobby();
     return;
   }
   room = null;
@@ -332,10 +521,19 @@ function enterGuest() {
 function roomCallbacks() {
   return {
     onRoster: (roster) => {
-      if (!room?.host || !world) return;
-      for (const p of world.players)
-        world.replacePlayer(p.id, !roster.some((q) => q.id === p.id));
-      room.sendState(world.snapshot());
+      if (room?.host && world) {
+        for (const p of world.players)
+          world.replacePlayer(p.id, !roster.some((q) => q.id === p.id));
+        world.setProfiles(roster);
+        room.sendState(world.snapshot());
+      }
+      const own = roster.find((p) => p.id === room?.id);
+      if (own) saveProfile(own);
+      updateLobby();
+    },
+    onLobby: lobby,
+    onStatus: (status) => {
+      if ($("#connection-status")) $("#connection-status").textContent = status;
     },
     onStart: () => {
       if (room.host) startWorld(room.roster.map((p) => p.id));
@@ -361,15 +559,16 @@ function roomCallbacks() {
   };
 }
 async function connectRoom(code) {
+  solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
   room?.close();
-  const next = new Room(roomCallbacks());
+  const next = new Room(roomCallbacks(), undefined, roomOptions());
   room = next;
   showPanel(
     "connecting",
     heading(code ? "Joining room…" : "Opening room…") +
-      `<p>Connecting your browser to the room service.</p><p class="subtle">This can take a few seconds.</p>`,
+      `<p id="connection-status" role="status">Connecting to the room service…</p>`,
   );
   $("#back").onclick = () => {
     next.close();
@@ -381,7 +580,7 @@ async function connectRoom(code) {
     else await next.create();
     if (room !== next || next.closed) return;
     history.replaceState(null, "", location.pathname + "?room=" + next.code);
-    // The welcome message starts guests; hosts start as soon as the room opens.
+    if (!next.running) lobby();
   } catch (e) {
     if (room !== next) return;
     next.close();
@@ -397,7 +596,10 @@ async function copyInvite() {
     await navigator.clipboard.writeText(link.href);
     toast("Invite link copied.");
   } catch {
-    showInvite(link.href);
+    if (view === "lobby") {
+      $("#room-code").select();
+      toast("Copy the invite code and send it to your friend.");
+    } else showInvite(link.href);
   }
 }
 function showInvite(link = location.href) {
@@ -431,12 +633,13 @@ function gameMenu() {
   showPanel(
     "game-menu",
     heading("Game menu") +
-      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button>' : ""}<button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
+      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button>' : ""}<button id="edit-character" class="button secondary">CHARACTER</button><button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = hidePanel;
   $("#leave").onclick = home;
   $("#pause-help").onclick = () => help(hidePanel);
+  $("#edit-character").onclick = characterMenu;
   if ($("#menu-invite")) $("#menu-invite").onclick = () => showInvite();
 }
 function updateHud(s) {
@@ -446,13 +649,13 @@ function updateHud(s) {
   $("#scoreboard").innerHTML = s.players
     .map(
       (p) =>
-        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${COLORS[p.id]}"><span>${NAMES[p.id]}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${COLORS[p.id]};width:${Math.max(0, p.hp)}%"></i></div><small>${p.alive ? (p.weapon ? WEAPONS[p.weapon].name + " · " + p.ammo + (WEAPONS[p.weapon].proneOnly && (!p.prone || !p.ground) ? " · LIE DOWN TO FIRE" : "") : "FISTS · " + Math.ceil(p.hp) + " HP") : "ELIMINATED"}</small></div>`,
+        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, p.hp)}%"></i></div><small>${p.alive ? (p.weapon ? WEAPONS[p.weapon].name + " · " + p.ammo + (WEAPONS[p.weapon].proneOnly && (!p.prone || !p.ground) ? " · LIE DOWN TO FIRE" : "") : "FISTS · " + Math.ceil(p.hp) + " HP") : "ELIMINATED"}</small></div>`,
     )
     .join("");
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
   $("#round-label").textContent = `ROUND ${s.round}`;
   $("#leader-label").textContent = leaders.length
-    ? `${leaders.length > 1 ? "TIED" : "LEADER"}: ${leaders.map((p) => NAMES[p.id] + (p.bot ? " AI" : "")).join(" / ")}`
+    ? `${leaders.length > 1 ? "TIED" : "LEADER"}: ${leaders.map((p) => (p.name || NAMES[p.id]) + (p.bot ? " AI" : "")).join(" / ")}`
     : "";
   const status = $("#round-status");
   const warning =
@@ -467,11 +670,11 @@ function updateHud(s) {
   if (s.phase === "countdown") {
     a.innerHTML = `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`;
   } else if (s.phase === "result") {
-    a.innerHTML = `${s.winner === null ? "DRAW" : NAMES[s.winner] + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`;
+    a.innerHTML = `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`;
   } else a.textContent = "";
   if (room && !room.host)
     $("#footer-hint").textContent =
-      `ONLINE · ${ping} MS · YOU ARE ${NAMES[room.id]}`;
+      `ONLINE · ${ping} MS · YOU ARE ${s.players.find((p) => p.id === room.id)?.name || NAMES[room.id]}`;
 }
 function interpolated(now) {
   if (!remote) return null;
@@ -574,7 +777,8 @@ $("#menu-controls").onclick = () => {
   unlock();
   help();
 };
-$("#online").onclick = () => onlineMenu();
+$("#online").onclick = () => connectRoom();
+$("#character").onclick = characterMenu;
 $("#help").onclick = () => {
   unlock();
   if (playing) {
@@ -609,7 +813,8 @@ window.addEventListener("keydown", (e) => {
     if (playing) {
       e.preventDefault();
       gameMenu();
-    } else if (view && !["room", "connecting"].includes(view)) hidePanel();
+    } else if (view && !["room", "connecting", "lobby"].includes(view))
+      hidePanel();
     return;
   }
   if (e.code === "Tab" && view) {
@@ -821,7 +1026,7 @@ function updateTouchView(state, dt) {
         0,
         Math.PI * 2,
       );
-      c.fillStyle = COLORS[p.id];
+      c.fillStyle = p.color || COLORS[p.id];
       c.fill();
       if (p.id === controlledId) {
         c.strokeStyle = "#fff";
