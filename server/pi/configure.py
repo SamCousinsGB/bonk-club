@@ -100,11 +100,11 @@ no-rfc5780
 no-stun-backward-compatibility
 response-origin-only-with-rfc5780
 stale-nonce=600
-user-quota=24
-total-quota=64
+user-quota=16
+total-quota=32
 max-allocate-lifetime=120
 max-allocate-timeout=20
-max-bps=524288
+max-bps=131072
 bps-capacity=4194304
 relay-threads=2
 pidfile={turn_state}/turn.pid
