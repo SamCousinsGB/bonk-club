@@ -15,8 +15,8 @@ or copy its contents into a diagnostic report.
 1. Run `configure.py --hostname HOSTNAME --public-ip WAN_ADDRESS` as cnet.
    The default Pi address is `192.168.0.96`; reserve that address on the router.
 2. Review and locally authorize `scripts/install-pi-network.sh`. It installs
-   Debian Caddy/coturn, masks their unused system services, and adds two rules
-   to the existing `inet lan_only input` firewall. It does not expose SSH,
+   Debian Caddy/coturn, masks their unused system services, and adds two input rules
+   and a relay egress restriction to the existing `inet lan_only` firewall. It does not expose SSH,
    port 80, or the household application ports. A root-only firewall backup
    is saved under `/var/backups/bonk-nftables-*.conf`.
 3. Run `bash ~/bonk-club/scripts/update-pi.sh` as cnet. Routine deployments use
@@ -51,7 +51,10 @@ Allowed origins restrict ordinary browser access, but
 are not authentication against arbitrary clients. Limits are 64 signaling
 clients, 32 TURN allocations total, 8 per temporary username, 512 KiB/s per
 allocation and 4 MiB/s aggregate. TURN cannot reach private, loopback, multicast
-or IPv6 peer addresses. Coturn and Caddy are resource-limited user services.
+or IPv6 peer addresses. Coturn exempts its own mapped address from its IP deny
+list; an output firewall rule confines traffic from its relay sockets back to
+the Pi to the relay port range, protecting other local UDP services. TCP peer
+relaying is disabled. Coturn and Caddy are resource-limited user services.
 
 Use `systemctl --user status bonk-room bonk-https bonk-turn` and
 `curl http://127.0.0.1:8787/healthz`. Do not publish raw TURN logs: they can contain
@@ -67,6 +70,6 @@ A stable dynamic-DNS hostname can later replace it without changing the game.
 
 Unset the two repository variables and republish to restore PeerJS cloud/direct
 connections. Stop/disable only the `bonk-*` user services and timer. Remove only
-the `bonk-club-tcp` and `bonk-club-udp` firewall rules and corresponding persistent
+the `bonk-club-tcp`, `bonk-club-udp` and `bonk-club-relay-local` firewall rules and corresponding persistent
 lines with local administrator authorization. Remove the router forwards.
 Do not replace a newer household firewall wholesale with an old backup.

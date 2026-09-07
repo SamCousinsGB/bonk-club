@@ -31,6 +31,17 @@ if 'bonk-club-tcp' not in original and 'bonk-club-udp' not in original:
     new_text = original[:header.end()] + '\n        ' + '\n        '.join(rules) + original[header.end():]
 elif any(marker not in original for marker in ['bonk-club-tcp', 'bonk-club-udp']):
     sys.exit('Partial game firewall configuration; no changes made.')
+# Coturn automatically permits its own private address when an external/private
+# mapping is configured. Allow relay-to-relay packets, but prevent those relay
+# sockets reaching other UDP services on this Pi.
+guard = 'ip saddr 192.168.0.96 ip daddr 192.168.0.96 udp sport 49160-49223 udp dport != 49160-49223 reject comment "bonk-club-relay-local"'
+output = json.loads(subprocess.check_output(['nft', '-j', 'list', 'chain', 'inet', 'lan_only', 'output']))
+output_comments = {item['rule'].get('comment') for item in output['nftables'] if 'rule' in item}
+output_header = re.search(r'(chain\s+output\s*\{\s*type\s+filter\s+hook\s+output\s+priority\s+[^;]+;\s*policy\s+accept;)', new_text)
+if not output_header:
+    sys.exit('Unexpected output firewall structure; no changes made.')
+if 'bonk-club-relay-local' not in new_text:
+    new_text = new_text[:output_header.end()] + '\n        ' + guard + new_text[output_header.end():]
 os.umask(0o077)
 with tempfile.NamedTemporaryFile(mode='w', dir='/etc', prefix='.bonk-nft-', delete=False) as staged:
     staged.write(new_text)
@@ -39,8 +50,11 @@ try:
     backup = Path('/var/backups') / ('bonk-nftables-' + time.strftime('%Y%m%d-%H%M%S') + '.conf')
     backup.write_text(original)
     backup.chmod(0o600)
-    if missing:
-        batch = '\n'.join('insert rule inet lan_only input ' + rule for rule in missing) + '\n'
+    commands = ['insert rule inet lan_only input ' + rule for rule in missing]
+    if 'bonk-club-relay-local' not in output_comments:
+        commands.append('insert rule inet lan_only output ' + guard)
+    if commands:
+        batch = '\n'.join(commands) + '\n'
         subprocess.run(['nft', '--check', '--file', '-'], input=batch, text=True, check=True)
         subprocess.run(['nft', '--file', '-'], input=batch, text=True, check=True)
     Path(staged.name).replace(config)
