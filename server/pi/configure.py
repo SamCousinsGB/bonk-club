@@ -120,5 +120,7 @@ if schema.exists():
         with sqlite3.connect(previous_db) as source, sqlite3.connect(current_db) as destination:
             source.backup(destination)
     with sqlite3.connect(current_db) as database:
-        database.executescript(schema.read_text())
+        initialized = database.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='turnusers_lt'").fetchone()
+        if not initialized:
+            database.executescript(schema.read_text())
 print('Private room, HTTPS and TURN configuration prepared.')
