@@ -44,7 +44,7 @@ for (const offset of [0, 12, 30])
     let combat = false;
     for (let n = 0; n < 45 / STEP && w.phase === "fight"; n++) {
       w.step(STEP);
-      combat ||= w.players[0].hp < 51 || w.players[1].hp < 100;
+      combat ||= w.events.some((e) => e.type === "hit");
     }
     assert.ok(
       combat,
@@ -56,6 +56,10 @@ test("unarmed quarry survivors can cross the lower platforms and enter melee", (
   const w = quarry(0, false);
   advance(w, 35);
   assert.ok(w.players[0].hp < 51 || w.players[1].hp < 100);
+  assert.ok(
+    w.events.some((e) => e.type === "hit"),
+    "a fall into lava cannot count as melee combat",
+  );
 });
 
 test("a planned drop stays active until the fighter actually leaves the starting platform", () => {
