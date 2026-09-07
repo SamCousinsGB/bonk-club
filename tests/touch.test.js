@@ -308,6 +308,61 @@ test("menu touch releases activate once and ignore a delayed native click", () =
   assert.equal(Object.keys(listeners).length, 0);
 });
 
+test("a delayed touch click cannot activate a replacement menu button", () => {
+  const listeners = {};
+  let now = 0,
+    current;
+  const replacement = {
+    id: "close",
+    disabled: false,
+    clicks: 0,
+    closest: () => replacement,
+    click() {
+      this.clicks++;
+    },
+  };
+  const original = {
+    id: "back",
+    disabled: false,
+    closest: () => original,
+    click() {
+      current = replacement;
+    },
+  };
+  current = original;
+  const root = {
+    addEventListener: (type, listener) => (listeners[type] = listener),
+    elementFromPoint: () => current,
+  };
+  bindTouchButtons(root, () => now);
+  const pointer = {
+    pointerType: "touch",
+    pointerId: 1,
+    target: original,
+    clientX: 30,
+    clientY: 20,
+  };
+  listeners.pointerdown(pointer);
+  now = 50;
+  listeners.pointerup(pointer);
+  let prevented = false;
+  listeners.click({
+    target: replacement,
+    pointerType: "touch",
+    isTrusted: true,
+    detail: 1,
+    preventDefault: () => (prevented = true),
+    stopImmediatePropagation() {},
+  });
+  assert.equal(prevented, true);
+  assert.equal(replacement.clicks, 0);
+  now = 150;
+  listeners.pointerdown({ ...pointer, target: replacement, pointerId: 2 });
+  now = 200;
+  listeners.pointerup({ ...pointer, target: replacement, pointerId: 2 });
+  assert.equal(replacement.clicks, 1);
+});
+
 test("scrolling off a menu button, cancellation, and the block button do not click", () => {
   const listeners = {},
     button = {

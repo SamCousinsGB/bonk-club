@@ -447,12 +447,9 @@ function onlineMenu(message = "") {
   const code = new URLSearchParams(location.search).get("room");
   if (validCode(code)) $("#join-code").value = code;
 }
-async function connectionDetails(back) {
+function connectionDetails(back) {
   const source = room || lastDiagnosticRoom;
   if (!source) return;
-  const previousView = view;
-  await source.diagnostics.refresh();
-  if (view !== previousView || (room && room !== source)) return;
   const report = JSON.stringify(source.connectionReport(), null, 2);
   showPanel(
     "connection-details",
@@ -463,9 +460,21 @@ async function connectionDetails(back) {
   );
   $("#back").onclick = back;
   $("#connection-back").onclick = back;
+  const reportField = $("#connection-report");
+  // Open from retained evidence immediately; a stalled/closed browser connection
+  // must not block the panel. Only update this particular instance of the view.
+  void source.diagnostics
+    .refresh()
+    .then(() => {
+      if (reportField.isConnected && document.activeElement !== reportField)
+        reportField.value = JSON.stringify(source.connectionReport(), null, 2);
+    })
+    .catch(() => {
+      /* Keep the retained report if browser statistics fail. */
+    });
   $("#copy-connection-report").onclick = async () => {
     try {
-      await navigator.clipboard.writeText(report);
+      await navigator.clipboard.writeText(reportField.value);
       toast("Connection report copied.");
     } catch {
       $("#connection-report").select();
@@ -660,9 +669,9 @@ function help(back = hidePanel) {
   $("#back").onclick = back;
   $("#got-it").onclick = back;
 }
-function gameMenu() {
+function gameMenu(forceOpen = false) {
   if (!playing) return;
-  if (view) {
+  if (view && forceOpen !== true) {
     hidePanel();
     return;
   }
@@ -678,7 +687,8 @@ function gameMenu() {
   $("#edit-character").onclick = characterMenu;
   if ($("#menu-invite")) $("#menu-invite").onclick = () => showInvite();
   if ($("#connection-details"))
-    $("#connection-details").onclick = () => connectionDetails(hidePanel);
+    $("#connection-details").onclick = () =>
+      connectionDetails(() => gameMenu(true));
 }
 function updateHud(s) {
   const high = Math.max(...s.scores);
@@ -848,6 +858,11 @@ $("#fullscreen").onclick = async () => {
 };
 window.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
+    if (view === "connection-details") {
+      e.preventDefault();
+      $("#back").click();
+      return;
+    }
     if (playing) {
       e.preventDefault();
       gameMenu();

@@ -195,6 +195,10 @@ export function bindTouchButtons(root, clock = () => performance.now()) {
       return;
     activated.set(p.button, clock());
     p.button.click();
+    // Navigation may replace the tapped button before the browser's native
+    // click arrives. Suppress that duplicate on the newly exposed button too.
+    const replacement = buttonAt(root.elementFromPoint(e.clientX, e.clientY));
+    if (replacement) activated.set(replacement, clock());
   };
   const cancel = (e) => pointers.delete(e.pointerId);
   const click = (e) => {
