@@ -1,3 +1,4 @@
+import { BOT_DIFFICULTIES, cleanDifficulty, combatPerception } from "./bot-difficulty.js";
 import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
@@ -266,8 +267,10 @@ export class BotController {
     const enemy = choice.q,
       range = distance(p, enemy);
     const grenade = WEAPONS[p.weapon]?.kind === "grenade";
+    const skill = BOT_DIFFICULTIES[cleanDifficulty(world.difficulty)];
+    const perception = combatPerception(b, enemy, p.weapon, world.time, world.random, world.difficulty);
     const aim = weapon.speed
-      ? intercept(p, enemy, weapon.speed)
+      ? intercept(p, perception.enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
     i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
     const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
@@ -275,6 +278,7 @@ export class BotController {
       range < weapon.range &&
       (!obstacle || breakable(obstacle)) &&
       (!weapon.blast || range > weapon.blast + 90);
+    let clearing = !!obstacle && breakable(obstacle);
     if (obstacle && breakable(obstacle))
       i.aim = Math.atan2(
         center(obstacle).y - (p.y - 10),
@@ -508,6 +512,7 @@ export class BotController {
         distance(p, point) < weapon.range &&
         (!weapon.blast || distance(p, point) > weapon.blast + 100)
       ) {
+        clearing = true;
         i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
         i.attack = true;
         i.block = false;
@@ -525,6 +530,7 @@ export class BotController {
         p.y - 28 < s.y + s.h,
     );
     if (cover && !b.flight) {
+      clearing = true;
       const point = {
         x: clamp(p.x, cover.x + 2, cover.x + cover.w - 2),
         y: clamp(p.y - 10, cover.y + 2, cover.y + cover.h - 2),
@@ -587,7 +593,11 @@ export class BotController {
         soon = t;
       }
     }
-    if (threat) {
+    if (threat && threat !== b.defenceThreat) {
+      b.defenceThreat = threat;
+      b.reactToThreat = world.random() < skill.defence;
+    }
+    if (threat && b.reactToThreat) {
       if (["rocket", "grenade", "plasma"].includes(threat.kind)) {
         b.flight = null;
         const away = Math.sign(p.x - threat.x) || 1;
@@ -632,10 +642,12 @@ export class BotController {
       p.cooldown > 0.1 &&
       world.time > b.parryAt
     ) {
-      i.block = true;
-      i.attack = false;
-      i.aim = Math.atan2(enemy.y - p.y, enemy.x - p.x);
-      b.parryAt = world.time + 0.9;
+      b.parryAt = world.time + 1.2;
+      if (world.random() < skill.defence) {
+        i.block = true;
+        i.attack = false;
+        i.aim = Math.atan2(enemy.y - p.y, enemy.x - p.x);
+      }
     }
     i.duck = world.time < b.crouchUntil && !b.flight;
     if (WEAPONS[p.weapon]?.proneOnly && !b.flight) {
@@ -695,6 +707,12 @@ export class BotController {
     }
     if (!p.ground && !b.flight && p.jumps === 1 && p.vy > 0 && p.y > H - 180)
       i.jump = true;
+    if (weapon.speed && !clearing && !i.throw && !i.block) {
+      i.attack &&= perception.fire;
+      // Close-range weapons still connect reliably enough to pressure players.
+      const error = perception.error * Math.min(1, range / 450) * (grenade ? 0.3 : 1);
+      i.aim = Math.atan2(Math.sin(i.aim + error), Math.cos(i.aim + error));
+    }
     return i;
   }
 }

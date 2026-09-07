@@ -24,9 +24,39 @@ export class Renderer {
     this.shake = 0;
     this.lastEvent = 0;
     this.scenery = new Map();
+    this.pickupArt = new Map();
+    document.fonts?.ready.then(() => this.pickupArt.clear());
     this.reduced = globalThis.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+  }
+  resize(width, height, follow = false) {
+    const fit = follow ? Math.max(width / W, height / H) : Math.min(width / W, height / H);
+    const pixels = Math.round(Math.max(960, Math.min(W, W * fit * Math.min(1.5, devicePixelRatio || 1))));
+    if (this.canvas.width === pixels) return;
+    this.canvas.width = pixels;
+    this.canvas.height = Math.round(pixels * H / W);
+  }
+  pickup(type) {
+    if (this.pickupArt.has(type)) return this.pickupArt.get(type);
+    const sprite = document.createElement("canvas"), label = document.createElement("canvas");
+    sprite.width = 180; sprite.height = 140;
+    label.width = 320; label.height = 32;
+    const main = this.ctx, c = sprite.getContext("2d");
+    this.ctx = c;
+    try {
+      c.shadowBlur = 20;
+      c.shadowColor = RARITY_COLORS[WEAPONS[type].rarity];
+      this.weapon(type, 90, 70, 1, 0);
+    } finally { this.ctx = main; }
+    const text = label.getContext("2d");
+    text.textAlign = "center";
+    text.fillStyle = RARITY_COLORS[WEAPONS[type].rarity];
+    text.font = "600 18px 'DM Sans',sans-serif";
+    text.fillText(WEAPONS[type].name, 160, 24);
+    const art = { sprite, label };
+    this.pickupArt.set(type, art);
+    return art;
   }
   line(points, color, width = 6) {
     const c = this.ctx;
@@ -76,7 +106,7 @@ export class Renderer {
             : e.type === "ko"
               ? 28
               : 12;
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < count && this.particles.length < 240; i++) {
           const a = Math.random() * TAU,
             v =
               70 +
@@ -821,6 +851,7 @@ export class Renderer {
   }
   draw(state, dt, time) {
     const c = this.ctx;
+    c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
     if (!state) {
       c.save();
@@ -870,21 +901,13 @@ export class Renderer {
     }
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
+      const art = this.pickup(d.type);
       c.save();
-      c.shadowBlur = 20;
-      c.shadowColor = RARITY_COLORS[WEAPONS[d.type].rarity];
-      this.weapon(
-        d.type,
-        d.x,
-        d.y - 4,
-        1,
-        d.angle ?? -0.15 + Math.sin(time * 2) * 0.08,
-      );
+      c.translate(d.x, d.y - 4);
+      c.rotate(d.angle ?? -0.15 + Math.sin(time * 2) * 0.08);
+      c.drawImage(art.sprite, -90, -70);
       c.restore();
-      c.textAlign = "center";
-      c.fillStyle = RARITY_COLORS[WEAPONS[d.type].rarity];
-      c.font = "600 18px 'DM Sans',sans-serif";
-      c.fillText(WEAPONS[d.type].name, d.x, d.y - 60);
+      c.drawImage(art.label, d.x - 160, d.y - 84);
       this.line(
         [
           [d.x - 4, d.y - 43],

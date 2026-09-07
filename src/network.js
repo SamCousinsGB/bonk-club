@@ -1,3 +1,5 @@
+import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
+import { RenderSnapshots } from "./render-state.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
@@ -18,7 +20,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 10;
+export const PROTOCOL = 11;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -78,6 +80,8 @@ export class Room {
     this.id = null;
     this.code = "";
     this.roster = [];
+    this.slots = defaultSlots();
+    this.renderSnapshots = new RenderSnapshots();
     this.running = false;
     this.closed = false;
     this.inputTimes = {};
@@ -238,10 +242,28 @@ export class Room {
     return code;
   }
   start() {
-    if (!this.host || this.closed || this.running) return false;
+    if (!this.host || this.closed || this.running || activeSlots(this.slots, this.roster).length < 2) return false;
     this.running = true;
     this.broadcast({ t: "start" });
     this.emit("onStart");
+    return true;
+  }
+  setSlot(id, mode) {
+    if (!this.host || this.running || this.closed || !Number.isInteger(id) || id < 1 || id > 3) return false;
+    const slots = [...this.slots];
+    slots[id] = mode;
+    if (!validSlots(slots)) return false;
+    this.slots = slots;
+    const c = this.connections.get(id);
+    if (c && !allowsPlayer(mode)) {
+      this.connections.delete(id);
+      this.roster = this.roster.filter(p => p.id !== id);
+      delete this.lastInputs[id];
+      delete this.inputTimes[id];
+      this.send(c, { t: "removed", reason: `The host changed your slot to ${SLOT_LABELS[mode]}.` });
+      this.later(() => c.close(), 200);
+    }
+    this.publishRoster();
     return true;
   }
   accept(c) {
@@ -269,7 +291,9 @@ export class Room {
         );
       if (this.connections.size >= 3)
         return reject("room-full", "This room is full (4 players).");
-      id = [1, 2, 3].find((n) => !this.connections.has(n));
+      const available = [1, 2, 3].find((n) => allowsPlayer(this.slots[n]) && !this.connections.has(n));
+      if (available === undefined) return reject("room-full", "No player slots are open in this room.");
+      id = available;
       this.connections.set(id, c);
       const profile = availableProfile(
         c.metadata?.profile,
@@ -280,6 +304,7 @@ export class Room {
       c.frameSequence = 0;
       c.frameAck = 0;
       c.frameSentAt = 0;
+      c.inFlight = [];
       this.send(c, {
         t: "welcome",
         id,
@@ -287,6 +312,7 @@ export class Room {
         protocol: PROTOCOL,
         running: this.running,
         players: this.roster,
+        slots: this.slots,
       });
       this.publishRoster();
       if (this.latestState) this.sendState(this.latestState);
@@ -304,8 +330,10 @@ export class Room {
         this.inputTimes[id] = performance.now();
       }
       if (m.t === "profile") this.assignProfile(id, m.profile);
-      if (m.t === "ack" && Number.isInteger(m.seq) && m.seq === c.frameSequence)
+      if (m.t === "ack" && Number.isInteger(m.seq) && m.seq > c.frameAck && m.seq <= c.frameSequence) {
         c.frameAck = m.seq;
+        c.inFlight = c.inFlight.filter(seq => seq > m.seq);
+      }
       if (m.t === "ping" && typeof m.time === "number")
         this.send(c, { t: "pong", time: m.time });
     });
@@ -396,9 +424,11 @@ export class Room {
             !Number.isInteger(m.id) ||
             m.id < 1 ||
             m.id > 3 ||
+            !validSlots(m.slots) ||
             !this.receiveRoster(m.players)
           )
             return fail(new Error("Invalid room response."));
+          this.slots = [...m.slots];
           welcomed = settled = true;
           this.clear(t);
           this.joinReject = null;
@@ -412,7 +442,12 @@ export class Room {
           resolve();
         }
         if (!welcomed) return;
-        if (m.t === "roster" && this.receiveRoster(m.players)) {
+        if (m.t === "removed") {
+          this.emit("onError", typeof m.reason === "string" ? m.reason.slice(0, 120) : "The host removed your slot.");
+          return;
+        }
+        if (m.t === "roster" && validSlots(m.slots) && this.receiveRoster(m.players)) {
+          this.slots = [...m.slots];
           this.profile = cleanProfile(
             this.roster.find((p) => p.id === this.id),
           );
@@ -509,7 +544,7 @@ export class Room {
   }
   publishRoster() {
     this.roster.sort((a, b) => a.id - b.id);
-    this.broadcast({ t: "roster", players: this.roster });
+    this.broadcast({ t: "roster", players: this.roster, slots: this.slots });
     this.emit("onRoster", this.roster);
   }
   sendInput(input) {
@@ -535,11 +570,12 @@ export class Room {
         c.open &&
         !c.bufferSize &&
         (c.dataChannel?.bufferedAmount || 0) < 65536 &&
-        (c.frameAck === c.frameSequence || now - c.frameSentAt > 1200),
+        (c.inFlight.length < 4 || now - c.frameSentAt > 1200),
     );
     if (!ready.length) return;
     this.encoding = true;
     try {
+      state = this.renderSnapshots.make(state);
       const compressed =
         this.compression && ready.some((c) => c.metadata?.compression)
           ? await encodeState(state)
@@ -548,6 +584,8 @@ export class Room {
       const seq = ++this.sequence;
       for (const c of ready) {
         if (!c.open || ![...this.connections.values()].includes(c)) continue;
+        if (now - c.frameSentAt > 1200) c.inFlight = [];
+        c.inFlight.push(seq);
         c.frameSequence = seq;
         c.frameSentAt = performance.now();
         this.send(
@@ -654,7 +692,7 @@ export function validSnapshot(s) {
         typeof p.alive === "boolean" &&
         (p.weapon === null || weaponTypes.includes(p.weapon)),
     ) &&
-    s.players.length >= 2 &&
+    s.players.length >= 1 &&
     new Set(s.players.map((p) => p.id)).size === s.players.length &&
     list(
       s.platforms,

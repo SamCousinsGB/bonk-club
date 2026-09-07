@@ -1,3 +1,6 @@
+import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
+import { cleanDifficulty } from "./bot-difficulty.js";
+import { GuestFrames } from "./render-state.js";
 import {
   PALETTE,
   HAIRSTYLES,
@@ -54,9 +57,6 @@ document.body.classList.toggle("touch-device", touchDevice);
 let world = null,
   room = null,
   remote = null,
-  previousRemote = null,
-  remoteAt = 0,
-  previousAt = 0,
   playing = false,
   view = "",
   accumulator = 0,
@@ -65,6 +65,9 @@ let world = null,
   last = performance.now(),
   toastTimer,
   returnFocus = null;
+const guestFrames = new GuestFrames();
+let difficulty = "easy";
+try { difficulty = cleanDifficulty(localStorage.getItem("bonk-difficulty")); } catch { /* Private browsing. */ }
 let solo = false;
 let lastDiagnosticRoom = null;
 let profile;
@@ -205,7 +208,7 @@ function setPlaying(value) {
   document.body.classList.toggle("playing", value);
   $("#hud").classList.toggle("hidden", !value);
   $("#invite").classList.toggle("hidden", !value || !room);
-  $("#announcement").textContent = "";
+  setHtml($("#announcement"), "");
   syncTouchUi();
   $("#footer-hint").textContent = value
     ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK BLOCK / ALT FIRE · S LIE DOWN · F THROW"
@@ -217,15 +220,20 @@ function home() {
   room = null;
   world = null;
   remote = null;
-  previousRemote = null;
+  guestFrames.reset();
   setPlaying(false);
   hidePanel();
   history.replaceState(null, "", location.pathname);
 }
 function settingsHtml() {
-  return `<div class="settings"><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label></div>`;
+  return `<div class="settings"><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label><label>AI DIFFICULTY<select id="difficulty">${["easy", "normal", "hard"].map(value => `<option value="${value}" ${difficulty === value ? "selected" : ""}>${value[0].toUpperCase() + value.slice(1)}</option>`).join("")}</select></label></div>`;
 }
 function wireSettings() {
+  $("#difficulty")?.addEventListener("change", e => {
+    difficulty = cleanDifficulty(e.target.value);
+    try { localStorage.setItem("bonk-difficulty", difficulty); } catch { /* Private browsing. */ }
+    if (world) world.difficulty = difficulty;
+  });
   $("#arena")?.addEventListener(
     "change",
     (e) => (selectedArena = e.target.value),
@@ -234,7 +242,7 @@ function wireSettings() {
 function arenaMenu() {
   showPanel(
     "arenas",
-    heading("Arenas") +
+    heading("Settings") +
       settingsHtml() +
       '<button id="arena-close" class="button primary">CLOSE</button>',
   );
@@ -245,8 +253,10 @@ function arenaMenu() {
 function startWorld(ids) {
   const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
   world = new World({
-    players: [0, 1, 2, 3],
-    bots: [0, 1, 2, 3].filter((id) => !ids.includes(id)),
+    players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
+    bots: room ? activeSlots(room.slots, room.roster).filter(p => p.bot).map(p => p.id) : [0, 1, 2, 3].filter((id) => !ids.includes(id)),
+    fillSolo: false,
+    difficulty,
     arena: ["city", "random"].includes(selectedArena)
       ? pool[Math.floor(Math.random() * pool.length)]
       : Number(selectedArena),
@@ -255,7 +265,7 @@ function startWorld(ids) {
   });
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
   remote = null;
-  previousRemote = null;
+  guestFrames.reset();
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -372,21 +382,48 @@ function wireJoin() {
     if (e.key === "Enter") $("#join-room").click();
   };
 }
+let openSlot = null;
+function slotOptionsHtml() {
+  if (!room.host || openSlot === null) return "";
+  const id = openSlot, p = room.roster.find(q => q.id === id), mode = room.slots[id];
+  return `<div class="slot-options" aria-label="Slot ${id + 1} mode">${SLOT_MODES.map(value => `<button type="button" data-slot-mode="${value}" data-slot-id="${id}" aria-pressed="${value === mode}">${SLOT_LABELS[value]}${p && ["ai", "closed"].includes(value) ? `<small>Remove ${esc(p.name)}</small>` : ""}</button>`).join("")}</div>`;
+}
 function updateLobby() {
   if (view !== "lobby" || !room) return;
   const roster = room.roster;
-  $("#lobby-players").innerHTML = [0, 1, 2, 3]
-    .map((id) => {
-      const p = roster.find((q) => q.id === id);
-      return `<div class="lobby-player ${p ? "" : "empty"}"><span class="player-dot" style="background:${p?.color || "#73817b"}"></span><span>${p ? esc(p.name) : "AI"}<small>${p ? (id === room.id ? "You" : id === 0 ? "Host" : "Connected") : "Open slot"}</small></span></div>`;
-    })
-    .join("");
-  $("#lobby-count").textContent = `${roster.length}/4 players`;
+  $("#lobby-players").innerHTML = [0, 1, 2, 3].map(id => {
+    const p = roster.find(q => q.id === id), mode = room.slots[id];
+    const title = p ? esc(p.name) : mode === "closed" ? "Closed" : mode === "player" ? "Waiting for player" : "AI";
+    const label = id === 0 ? "Host" : SLOT_LABELS[mode];
+    const content = `<span class="player-dot" style="background:${p?.color || "#73817b"}"></span><span>${title}<small>${label}</small></span>`;
+    const editable = room.host && id !== 0;
+    return `<div class="lobby-slot">${editable ? `<button type="button" class="lobby-player ${p ? "" : "empty"}" data-slot="${id}" aria-label="Slot ${id + 1}: ${label}" aria-expanded="${openSlot === id}">${content}</button>` : `<div class="lobby-player ${p ? "" : "empty"}">${content}</div>`}</div>`;
+  }).join("") + slotOptionsHtml();
+  $("#lobby-players").querySelectorAll("[data-slot]").forEach(button => button.onclick = () => {
+    const id = Number(button.dataset.slot);
+    openSlot = openSlot === id ? null : id;
+    updateLobby();
+    $("#lobby-players").querySelector(`[data-slot="${id}"]`)?.focus();
+  });
+  $("#lobby-players").querySelectorAll("[data-slot-mode]").forEach(button => button.onclick = () => {
+    const id = Number(button.dataset.slotId);
+    openSlot = null;
+    room.setSlot(id, button.dataset.slotMode);
+    $("#lobby-players").querySelector(`[data-slot="${id}"]`)?.focus();
+  });
+  const capacity = room.slots.filter(mode => ["mixed", "player"].includes(mode)).length;
+  $("#lobby-count").textContent = `${roster.length}/${capacity} players`;
+  const start = $("#start-match");
+  if (start) {
+    start.disabled = activeSlots(room.slots, roster).length < 2;
+    $("#start-status").textContent = start.disabled ? "Add AI or wait for another player to start." : "";
+  }
   syncColourOptions();
 }
 function lobby() {
   if (!room || room.closed || room.running) return;
   setPlaying(false);
+  openSlot = null;
   showPanel(
     "lobby",
     heading("Online lobby") +
@@ -394,9 +431,9 @@ function lobby() {
       characterHtml() +
       (room.host
         ? settingsHtml() +
-          '<button id="start-match" class="button primary">START MATCH</button>'
+          '<button id="start-match" class="button primary">START MATCH</button><p id="start-status" class="subtle" role="status"></p>'
         : '<p class="waiting-host" role="status">Waiting for the host to start.</p>') +
-      '<p class="subtle">Empty slots use AI. Friends can also join after the match starts.</p><details class="join-other"><summary>Join another room</summary>' +
+      '<p class="subtle">Friends can join open player slots after the match starts.</p><details class="join-other"><summary>Join another room</summary>' +
       joinHtml() +
       '<button id="quick-match" class="button secondary">QUICK MATCH</button></details><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>',
   );
@@ -554,7 +591,7 @@ async function quickMatch() {
 function enterGuest() {
   world = null;
   remote = null;
-  previousRemote = null;
+  guestFrames.reset();
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -565,9 +602,7 @@ function roomCallbacks() {
   return {
     onRoster: (roster) => {
       if (room?.host && world) {
-        for (const p of world.players)
-          world.replacePlayer(p.id, !roster.some((q) => q.id === p.id));
-        world.setProfiles(roster);
+        world.syncSlots(room.slots, roster);
         room.sendState(world.snapshot());
       }
       const own = roster.find((p) => p.id === room?.id);
@@ -583,10 +618,8 @@ function roomCallbacks() {
       else enterGuest();
     },
     onState: (s) => {
-      previousRemote = remote;
-      previousAt = remoteAt;
       remote = s;
-      remoteAt = performance.now();
+      guestFrames.push(s, performance.now());
     },
     onError: (message) => {
       lastDiagnosticRoom = room;
@@ -594,7 +627,7 @@ function roomCallbacks() {
       room = null;
       world = null;
       remote = null;
-      previousRemote = null;
+      guestFrames.reset();
       setPlaying(false);
       onlineMenu(message);
     },
@@ -652,7 +685,7 @@ function showInvite(link = location.href) {
   showPanel(
     "invite",
     heading("Invite players") +
-      `<p>Room ${esc(room.code)} · ${room.roster.length}/4 players</p><input id="invite-link" class="room-input" aria-label="Invite link" readonly value="${esc(link)}"><button id="copy-link" class="button primary">COPY LINK</button><p>The game continues. Joining players replace AI automatically.</p><button id="invite-close" class="button secondary">BACK TO GAME</button>`,
+      `<p>Room ${esc(room.code)} · ${room.roster.length}/${room.slots.filter(mode => ["mixed", "player"].includes(mode)).length} players</p><input id="invite-link" class="room-input" aria-label="Invite link" readonly value="${esc(link)}"><button id="copy-link" class="button primary">COPY LINK</button><p>The game continues. Friends can join open player slots.</p><button id="invite-close" class="button secondary">BACK TO GAME</button>`,
   );
   $("#back").onclick = hidePanel;
   $("#invite-close").onclick = hidePanel;
@@ -664,7 +697,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block / alternate fire:</b> the button blocks only with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. Empty slots are controlled by AI. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -690,16 +723,21 @@ function gameMenu(forceOpen = false) {
     $("#connection-details").onclick = () =>
       connectionDetails(() => gameMenu(true));
 }
+function setHtml(element, value) {
+  if (element._lastHtml === value) return;
+  element._lastHtml = value;
+  element.innerHTML = value;
+}
 function updateHud(s) {
   const high = Math.max(...s.scores);
   const leaders =
     high > 0 ? s.players.filter((p) => s.scores[p.id] === high) : [];
-  $("#scoreboard").innerHTML = s.players
+  setHtml($("#scoreboard"), s.players
     .map(
       (p) =>
-        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, p.hp)}%"></i></div><small>${p.alive ? (p.weapon ? WEAPONS[p.weapon].name + " · " + p.ammo + (WEAPONS[p.weapon].proneOnly && (!p.prone || !p.ground) ? " · LIE DOWN TO FIRE" : "") : "FISTS · " + Math.ceil(p.hp) + " HP") : "ELIMINATED"}</small></div>`,
+        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div><small>${p.alive ? (p.weapon ? WEAPONS[p.weapon].name + " · " + p.ammo + (WEAPONS[p.weapon].proneOnly && (!p.prone || !p.ground) ? " · LIE DOWN TO FIRE" : "") : "FISTS · " + Math.ceil(p.hp) + " HP") : "ELIMINATED"}</small></div>`,
     )
-    .join("");
+    .join(""));
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
   $("#round-label").textContent = `ROUND ${s.round}`;
   $("#leader-label").textContent = leaders.length
@@ -707,6 +745,7 @@ function updateHud(s) {
     : "";
   const status = $("#round-status");
   const warning =
+    s.players.length < 2 ? "Waiting for another player" :
     s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
       ? s.elapsed >= SUDDEN_DEATH
         ? "Sudden death\nHealth draining"
@@ -716,57 +755,16 @@ function updateHud(s) {
   status.classList.toggle("hidden", !warning);
   const a = $("#announcement");
   if (s.phase === "countdown") {
-    a.innerHTML = `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`;
+    setHtml(a, `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`);
   } else if (s.phase === "result") {
-    a.innerHTML = `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`;
-  } else a.textContent = "";
+    setHtml(a, `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
+  } else setHtml(a, "");
   if (room && !room.host)
     $("#footer-hint").textContent =
       `ONLINE · ${ping} MS · YOU ARE ${s.players.find((p) => p.id === room.id)?.name || NAMES[room.id]}`;
 }
 function interpolated(now) {
-  if (!remote) return null;
-  if (!previousRemote || previousRemote.round !== remote.round) return remote;
-  const f = Math.max(
-    0,
-    Math.min(1, (now - 50 - previousAt) / Math.max(1, remoteAt - previousAt)),
-  );
-  return {
-    ...remote,
-    platforms: remote.platforms.map((p, i) => {
-      const old = previousRemote.platforms[i];
-      return old
-        ? { ...p, x: old.x + (p.x - old.x) * f, y: old.y + (p.y - old.y) * f }
-        : p;
-    }),
-    hazards: remote.hazards.map((h) => {
-      const old = previousRemote.hazards.find((p) => p.id === h.id);
-      return old && old.warning === 0 && h.warning === 0
-        ? { ...h, bodyY: old.bodyY + (h.bodyY - old.bodyY) * f }
-        : h;
-    }),
-    players: remote.players.map((p) => {
-      const old = previousRemote.players.find((q) => q.id === p.id);
-      if (!old || old.alive !== p.alive || old.occupant !== p.occupant)
-        return p;
-      return {
-        ...p,
-        x: old.x + (p.x - old.x) * f,
-        y: old.y + (p.y - old.y) * f,
-        walk: old.walk + (p.walk - old.walk) * f,
-        rig:
-          p.rig?.map((q, i) =>
-            old.rig?.[i]
-              ? {
-                  ...q,
-                  x: old.rig[i].x + (q.x - old.rig[i].x) * f,
-                  y: old.rig[i].y + (q.y - old.rig[i].y) * f,
-                }
-              : q,
-          ) ?? null,
-      };
-    }),
-  };
+  return guestFrames.sample(now);
 }
 let simulationLast = performance.now();
 function simulate(now) {
@@ -788,7 +786,7 @@ function simulate(now) {
     }
   }
   if (room && playing && netClock >= 1 / 30) {
-    netClock = 0;
+    netClock %= 1 / 30;
     if (room.host && world) room.sendState(world.snapshot());
     else if (!room.host)
       room.sendInput(view || document.hidden ? emptyInput() : ownInput());
@@ -821,6 +819,7 @@ $("#solo").onclick = () => {
   startWorld([0]);
 };
 $("#arenas").onclick = arenaMenu;
+$("#arenas").textContent = "SETTINGS";
 $("#menu-controls").onclick = () => {
   unlock();
   help();
@@ -946,6 +945,7 @@ function measureGame() {
   clearInput();
   gameRect = canvas.getBoundingClientRect();
   const follow = canUseTouch() && matchMedia("(orientation: portrait)").matches;
+  renderer.resize(gameRect.width, gameRect.height, follow);
   currentViewport = gameViewport(
     gameRect.width,
     gameRect.height,
@@ -1001,6 +1001,7 @@ function updateTouchView(state, dt) {
     }
     cameraX += (player.x - cameraX) * Math.min(1, dt * 12);
   }
+  renderer.resize(gameRect.width, gameRect.height, follow);
   currentViewport = gameViewport(
     gameRect.width,
     gameRect.height,

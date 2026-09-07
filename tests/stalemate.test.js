@@ -107,7 +107,7 @@ test("grenade AI can bank a throw past an obstruction and damage the opponent", 
     segmentBox(300, 1160, 1000, 1160, w.platforms[1]),
     "direct fire is obstructed",
   );
-  advance(w, 3.2);
+  advance(w, 3.8); // Include the default reaction delay before the grenade fuse starts.
   assert.ok(
     w.players[0].hp < 100,
     "evaluate the actual fuse and bounces, not direct line of sight",

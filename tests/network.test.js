@@ -406,24 +406,64 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
       await host.sendState(w.snapshot());
       await tick();
     }
-    assert.deepEqual(got, [1]);
+    assert.deepEqual(got, [1, 2, 3, 4]);
     const c = host.connections.get(1);
     send({ t: "ack", seq: c.frameSequence });
     await tick();
     await host.sendState(w.snapshot());
     await tick();
-    assert.deepEqual(got, [1, 30]);
+    assert.deepEqual(got, [1, 2, 3, 4, 30]);
     c.dataChannel = { bufferedAmount: 200000 };
     send({ t: "ack", seq: c.frameSequence });
     await tick();
     w.round = 31;
     await host.sendState(w.snapshot());
     await tick();
-    assert.deepEqual(got, [1, 30]);
+    assert.deepEqual(got, [1, 2, 3, 4, 30]);
   } finally {
     guest.close();
     host.close();
   }
+});
+
+test("host slot modes reserve bots, skip closed slots and admit hot joins only to player slots", async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), extra = new Room({}, FakePeer);
+  try {
+    const code = await host.create();
+    assert.equal(host.setSlot(0, "closed"), false);
+    assert.equal(host.setSlot(1, "invalid"), false);
+    host.setSlot(1,"ai");host.setSlot(2,"closed");host.setSlot(3,"player");
+    host.start();
+    await guest.join(code);await tick();
+    assert.equal(guest.id,3);
+    assert.deepEqual(guest.slots,["player","ai","closed","player"]);
+    assert.equal(guest.setSlot(1,"mixed"),false);
+    guest.send(guest.connection,{t:"slots",slots:["player","mixed","mixed","mixed"]});
+    await tick();
+    assert.deepEqual(host.slots,["player","ai","closed","player"]);
+    assert.equal(host.setSlot(1,"closed"),false,"slot setup is locked during combat");
+    await assert.rejects(()=>extra.join(code),/No player slots/);
+    guest.close();await tick();
+    assert.deepEqual(host.roster.map(p=>p.id),[0]);
+    assert.equal(host.slots[3],"player");
+  } finally {extra.close();guest.close();host.close();}
+});
+
+test("host can close an occupied lobby slot and cannot start without an opponent", async () => {
+  const notices=[];
+  const host=new Room({},FakePeer),guest=new Room({onError:s=>notices.push(s)},FakePeer);
+  try {
+    const code=await host.create();await guest.join(code);await tick();
+    host.setSlot(1,"player");await tick();
+    assert.deepEqual(guest.slots,["player","player","mixed","mixed"]);
+    assert.equal(host.roster.length,2);
+    host.setSlot(1,"closed");host.setSlot(2,"closed");host.setSlot(3,"closed");
+    await tick();
+    assert.deepEqual(host.roster.map(p=>p.id),[0]);
+    assert.ok(notices.some(s=>s.includes("host changed your slot to Closed")));
+    assert.equal(host.start(),false);
+    host.setSlot(2,"ai");assert.equal(host.start(),true);
+  } finally {guest.close();host.close();}
 });
 
 test("outdated clients are rejected explicitly without occupying a player slot", async () => {

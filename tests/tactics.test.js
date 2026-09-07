@@ -142,8 +142,10 @@ test("AI upgrades a melee weapon to a nearby ranged weapon for a distant opponen
   advance(w, 1.2);
   assert.equal(w.players[1].weapon, "railgun");
 });
-test("AI predicts an incoming bullet and guards or ducks before impact", () => {
+for (const difficulty of ["easy", "hard"])
+test(`${difficulty} AI defence is fallible on Easy and predictive on Hard`, () => {
   const w = fixture();
+  w.difficulty = difficulty;
   Object.assign(w.players[0], { x: 600, y: 535, ground: true });
   Object.assign(w.players[1], { x: 900, y: 535, ground: true });
   w.projectiles = [
@@ -166,8 +168,13 @@ test("AI predicts an incoming bullet and guards or ducks before impact", () => {
     w.step(STEP);
     defended ||= w.players[1].block || w.players[1].prone;
   }
-  assert.equal(w.players[1].hp, 100);
-  assert.ok(defended);
+  if (difficulty === "hard") {
+    assert.equal(w.players[1].hp, 100);
+    assert.ok(defended);
+  } else {
+    assert.ok(w.players[1].hp < 100);
+    assert.equal(defended, false);
+  }
 });
 test("wide furniture is attacked at its surface instead of trapping an unarmed AI", () => {
   const w = fixture();

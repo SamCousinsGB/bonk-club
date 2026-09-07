@@ -1,3 +1,5 @@
+import { activeSlots } from "./slots.js";
+import { cleanDifficulty } from "./bot-difficulty.js";
 import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
 import { meleeAttack } from "./melee.js";
 import {
@@ -214,6 +216,8 @@ export class World {
     shuffle = true,
     random = Math.random,
     arenaPool = null,
+    difficulty = "easy",
+    fillSolo = true,
   } = {}) {
     if (
       players.length < 1 ||
@@ -222,15 +226,16 @@ export class World {
       players.some((i) => !Number.isInteger(i) || i < 0 || i > 3)
     )
       throw new Error("Choose 1–4 distinct player slots.");
-    this.ids = players.length === 1 ? [0, 1, 2, 3] : [...players];
+    this.ids = players.length === 1 && fillSolo ? [0, 1, 2, 3] : [...players];
     this.botIds = new Set(
-      players.length === 1
+      players.length === 1 && fillSolo
         ? this.ids.filter((id) => !players.includes(id))
         : bots,
     );
     this.occupants = [0, 0, 0, 0];
     this.profiles = {};
     this.weaponRotation = new WeaponRotation(random);
+    this.difficulty = cleanDifficulty(difficulty);
     this.ai = new BotController();
     this.arenaIndex = arena;
     this.shuffle = shuffle;
@@ -296,7 +301,7 @@ export class World {
     this.events = [];
   }
   makePlayer(id) {
-    const [x, y] = this.arena.spawns[this.ids.indexOf(id)];
+    const [x, y] = this.arena.spawns[id];
     return {
       id,
       ...(this.profiles[id] || defaultProfile(id)),
@@ -361,6 +366,36 @@ export class World {
       }
       Object.assign(p, this.profiles[p.id] || defaultProfile(p.id));
     }
+  }
+  syncSlots(slots, roster) {
+    const active = activeSlots(slots, roster);
+    const countBefore = this.players.length;
+    for (const id of [...this.ids]) {
+      if (active.some(p => p.id === id)) continue;
+      this.ids = this.ids.filter(n => n !== id);
+      this.players = this.players.filter(p => p.id !== id);
+      this.botIds.delete(id);
+      this.ai.forget(id);
+      this.scores[id] = 0;
+      this.occupants[id]++;
+      delete this.profiles[id];
+      if (this.winner === id) this.winner = null;
+    }
+    for (const {id, bot} of active) {
+      if (!this.ids.includes(id)) {
+        this.ids.push(id);
+        this.ids.sort((a, b) => a - b);
+        // Use the same safe respawn path as replacing an eliminated bot.
+        if (bot) this.botIds.delete(id); else this.botIds.add(id);
+        const p = this.makePlayer(id);
+        p.alive = this.phase !== "fight";
+        this.players.push(p);
+      }
+      this.replacePlayer(id, bot);
+    }
+    this.players.sort((a, b) => a.id - b.id);
+    if (countBefore < 2 && this.players.length >= 2) this.elapsed = 0;
+    this.setProfiles(roster);
   }
   replacePlayer(id, bot) {
     if (!this.ids.includes(id) || this.botIds.has(id) === bot) return;
@@ -528,7 +563,7 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      if (alive.length <= 1) {
+      if (alive.length <= 1 && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         if (this.winner !== null) this.scores[this.winner]++;
         this.phase = "result";
