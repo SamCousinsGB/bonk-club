@@ -73,8 +73,11 @@ denied = [
     '192.0.0.0-192.0.0.255', '192.0.2.0-192.0.2.255',
     '192.168.0.0-192.168.255.255', '198.18.0.0-198.19.255.255',
     '198.51.100.0-198.51.100.255', '203.0.113.0-203.0.113.255',
-    '224.0.0.0-255.255.255.255', '::-ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
+    '224.0.0.0-255.255.255.255',
 ]
+# The TURN unit permits only AF_INET sockets. Do not deny the entire IPv6
+# numeric range: Coturn also matches IPv4-mapped addresses against it, which
+# would reject legitimate public IPv4 peers as well as private destinations.
 turn = f'''listening-ip={args.lan_ip}
 relay-ip={args.lan_ip}
 external-ip={args.public_ip}/{args.lan_ip}
