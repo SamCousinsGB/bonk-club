@@ -57,8 +57,8 @@ const weapons = {
     recoil: 170,
   },
   grenade: {
-    range: 2600,
-    speed: 1900,
+    range: WEAPONS.grenade.range,
+    speed: WEAPONS.grenade.speed,
     value: 5,
     damage: 58,
     blast: 145,

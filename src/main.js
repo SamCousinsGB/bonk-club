@@ -66,6 +66,7 @@ let world = null,
   toastTimer,
   returnFocus = null;
 let solo = false;
+let lastDiagnosticRoom = null;
 let profile;
 try {
   profile = cleanProfile(JSON.parse(localStorage.getItem("bonk-profile")), {
@@ -397,12 +398,13 @@ function lobby() {
         : '<p class="waiting-host" role="status">Waiting for the host to start.</p>') +
       '<p class="subtle">Empty slots use AI. Friends can also join after the match starts.</p><details class="join-other"><summary>Join another room</summary>' +
       joinHtml() +
-      '<button id="quick-match" class="button secondary">QUICK MATCH</button></details>',
+      '<button id="quick-match" class="button secondary">QUICK MATCH</button></details><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>',
   );
   $("#back").onclick = home;
   wireCharacter();
   wireJoin();
   wireSettings();
+  $("#connection-details").onclick = () => connectionDetails(lobby);
   if ($("#quick-match")) $("#quick-match").onclick = quickMatch;
   $("#room-code").onclick = (e) => e.target.select();
   $("#copy-code").onclick = async () => {
@@ -430,14 +432,46 @@ function onlineMenu(message = "") {
       (message ? `<p class="error" role="alert">${esc(message)}</p>` : "") +
       '<button id="create-room" class="button primary">CREATE A ROOM</button>' +
       joinHtml() +
-      '<button id="quick-match" class="button secondary">QUICK MATCH</button>',
+      '<button id="quick-match" class="button secondary">QUICK MATCH</button>' +
+      (lastDiagnosticRoom
+        ? '<button id="connection-details" class="button secondary">CONNECTION DETAILS</button>'
+        : ""),
   );
   $("#back").onclick = home;
   $("#create-room").onclick = () => connectRoom();
   $("#quick-match").onclick = quickMatch;
+  if ($("#connection-details"))
+    $("#connection-details").onclick = () =>
+      connectionDetails(() => onlineMenu(message));
   wireJoin();
   const code = new URLSearchParams(location.search).get("room");
   if (validCode(code)) $("#join-code").value = code;
+}
+async function connectionDetails(back) {
+  const source = room || lastDiagnosticRoom;
+  if (!source) return;
+  const previousView = view;
+  await source.diagnostics.refresh();
+  if (view !== previousView || (room && room !== source)) return;
+  const report = JSON.stringify(source.connectionReport(), null, 2);
+  showPanel(
+    "connection-details",
+    heading("Connection details") +
+      "<p>Copy this report from both devices after a failed join. It excludes IP addresses, room codes and credentials.</p>" +
+      `<textarea id="connection-report" class="connection-report" aria-label="Connection report" readonly rows="14">${esc(report)}</textarea>` +
+      '<button id="copy-connection-report" class="button primary">COPY REPORT</button><button id="connection-back" class="button secondary">BACK</button>',
+  );
+  $("#back").onclick = back;
+  $("#connection-back").onclick = back;
+  $("#copy-connection-report").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(report);
+      toast("Connection report copied.");
+    } catch {
+      $("#connection-report").select();
+      toast("Select and copy the report.");
+    }
+  };
 }
 async function quickMatch() {
   solo = false;
@@ -546,6 +580,7 @@ function roomCallbacks() {
       remoteAt = performance.now();
     },
     onError: (message) => {
+      lastDiagnosticRoom = room;
       room?.close();
       room = null;
       world = null;
@@ -565,6 +600,7 @@ async function connectRoom(code) {
   room?.close();
   const next = new Room(roomCallbacks(), undefined, roomOptions());
   room = next;
+  lastDiagnosticRoom = next;
   showPanel(
     "connecting",
     heading(code ? "Joining room…" : "Opening room…") +
@@ -619,7 +655,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Block / alternate fire:</b> the button blocks only with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a throw across the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. Empty slots are controlled by AI. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Block / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT blocks with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, block just before a hit to parry and push the attacker back. Keep holding to guard, but watch your stamina. A parry can reflect bullets. Holding any weapon, including a bat or sword, prevents blocking.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Early hits keep the opponent within reach; the finisher launches them and wears down a held guard.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Holding movement can counter it over time. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse ends in a blast and expanding shockwave. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Environmental hazards appear at random during a round. Hazards are marked for two seconds before activating. Wind pushes players; vents launch them; rocks, lightning, gas and electrical faults cause damage.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. Empty slots are controlled by AI. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -633,7 +669,7 @@ function gameMenu() {
   showPanel(
     "game-menu",
     heading("Game menu") +
-      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button>' : ""}<button id="edit-character" class="button secondary">CHARACTER</button><button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
+      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CHARACTER</button><button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = hidePanel;
@@ -641,6 +677,8 @@ function gameMenu() {
   $("#pause-help").onclick = () => help(hidePanel);
   $("#edit-character").onclick = characterMenu;
   if ($("#menu-invite")) $("#menu-invite").onclick = () => showInvite();
+  if ($("#connection-details"))
+    $("#connection-details").onclick = () => connectionDetails(hidePanel);
 }
 function updateHud(s) {
   const high = Math.max(...s.scores);

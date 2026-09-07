@@ -95,7 +95,7 @@ test("grenade AI can bank a throw past an obstruction and damage the opponent", 
   w.cover = [];
   w.drops = [];
   w.weaponTimer = w.hazardTimer = 999;
-  Object.assign(w.players[0], { x: 1800, y: 1170, ground: true });
+  Object.assign(w.players[0], { x: 1000, y: 1170, ground: true });
   Object.assign(w.players[1], {
     x: 300,
     y: 1170,
@@ -104,7 +104,7 @@ test("grenade AI can bank a throw past an obstruction and damage the opponent", 
     ammo: 4,
   });
   assert.ok(
-    segmentBox(300, 1160, 1800, 1160, w.platforms[1]),
+    segmentBox(300, 1160, 1000, 1160, w.platforms[1]),
     "direct fire is obstructed",
   );
   advance(w, 3.2);

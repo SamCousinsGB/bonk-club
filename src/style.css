@@ -1272,3 +1272,17 @@ body.touch-playing #stage {
     padding: 10px 8px;
   }
 }
+
+.connection-report {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 12px;
+  background: #111b1c;
+  color: #f1f1e8;
+  border: 1px solid #52605d;
+  border-radius: 6px;
+  font: 12px/1.5 monospace;
+  margin-bottom: 14px;
+}

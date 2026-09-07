@@ -1,6 +1,8 @@
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
+import { loadIceConfig, connectionFailure, hasRelay } from "./ice.js";
+import { ConnectionDiagnostics } from "./connection-diagnostics.js";
 import {
   cleanProfile,
   defaultProfile,
@@ -22,10 +24,6 @@ const makeCode = () =>
     crypto.getRandomValues(new Uint8Array(6)),
     (v) => alphabet[v % alphabet.length],
   ).join("");
-export const DEFAULT_ICE = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun.cloudflare.com:3478" },
-];
 export async function encodeState(state) {
   const stream = new Blob([JSON.stringify(state)])
     .stream()
@@ -57,9 +55,12 @@ export async function decodeState(bytes) {
 export class Room {
   constructor(callbacks = {}, PeerClass = Peer, options = {}) {
     this.callbacks = callbacks;
+    this.diagnostics = new ConnectionDiagnostics();
     this.PeerClass = PeerClass;
     this.profile = cleanProfile(options.profile);
-    this.config = options.config || { iceServers: DEFAULT_ICE };
+    this.config = options.config;
+    this.iceServersUrl =
+      options.iceServersUrl ?? import.meta.env?.VITE_TURN_CREDENTIALS_URL ?? "";
     this.compression =
       options.compression ??
       (PeerClass === Peer &&
@@ -110,12 +111,15 @@ export class Room {
     for (const c of this.connections.values()) this.send(c, data);
   }
   async openPeer(id) {
+    if (!this.config) this.config = await loadIceConfig(this.iceServersUrl);
+    if (this.closed) throw new Error("Room closed.");
     return new Promise((resolve, reject) => {
       const p = (this.peer = new this.PeerClass(id, {
         debug: 0,
         config: this.config,
       }));
       let settled = false;
+      p.socket?.on("message", (m) => this.diagnostics.signal(m));
       const t = this.later(() => {
         settled = true;
         reject(new Error("The room service did not respond. Try again."));
@@ -136,6 +140,7 @@ export class Room {
         }
       });
       p.on("error", (e) => {
+        this.diagnostics.error(e);
         const messages = {
           "peer-unavailable":
             "Room not found. Check the code and ask the host to refresh the game and share a new invite.",
@@ -216,6 +221,7 @@ export class Room {
   }
   accept(c) {
     if (this.closed) return c.close();
+    this.diagnostics.watch(c, "incoming");
     this.pending.add(c);
     const t = this.later(() => {
       this.pending.delete(c);
@@ -318,6 +324,7 @@ export class Room {
           compression: this.compression,
         },
       }));
+      this.diagnostics.watch(c, "outgoing");
       const fail = (error) => {
         if (settled) return;
         settled = true;
@@ -333,7 +340,7 @@ export class Room {
           Object.assign(
             new Error(
               answered
-                ? "The host responded, but the browsers could not connect. Refresh both tabs and retry. This network may need a working relay."
+                ? connectionFailure(this.config, c)
                 : "The room did not answer. Ask the host to refresh the game and send a new invite.",
             ),
             { type: "connection-timeout" },
@@ -534,9 +541,24 @@ export class Room {
   ping() {
     this.send(this.connection, { t: "ping", time: performance.now() });
   }
+  connectionReport() {
+    return {
+      protocol: PROTOCOL,
+      peerjs: "1.5.5",
+      role: this.host ? "host" : "guest",
+      relayConfigured: hasRelay(this.config),
+      roomService: this.peer?.disconnected
+        ? "disconnected"
+        : this.peer?.open
+          ? "connected"
+          : "closed",
+      ...this.diagnostics.report(),
+    };
+  }
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.diagnostics.close();
     this.joinReject?.(new Error("Connection cancelled."));
     this.joinReject = null;
     for (const t of this.timers) clearTimeout(t);

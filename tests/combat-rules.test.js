@@ -215,26 +215,50 @@ test("downward heavy fire launches the shooter, while deployed heavy machine gun
   w.attack(p);
   assert.ok(p.vx < -300, "lying down alone does not brace a rocket launcher");
 });
-test("normal and nuclear grenade throws can cross an arena from low or high platforms", () => {
+test("normal and nuclear grenades travel at a readable speed and stay within half the arena", () => {
   for (const type of ["grenade", "nuke"])
-    for (const y of [230, 535]) {
-      const w = fixture(),
-        p = w.players[0];
-      p.x = 100;
-      p.y = y;
-      p.aimAngle = -0.12;
-      equip(p, type);
-      w.attack(p);
-      const b = w.projectiles[0];
-      let farthest = b.x;
-      for (let n = 0; n < 350 && w.projectiles.includes(b); n++) {
-        w.updateProjectiles(STEP);
-        farthest = Math.max(farthest, b.x);
+    for (const y of [100, 700, 1370]) {
+      let longest = 0;
+      for (let n = 0; n <= 24; n++) {
+        const w = fixture(),
+          p = w.players[0];
+        w.platforms = [{ id: "floor", x: 0, y: 1400, w: W, h: 30 }];
+        // Exercise both directions and downward, flat and upward throws.
+        const right = n % 2 === 0;
+        p.x = right ? 100 : W - 100;
+        p.y = y;
+        const elevation = -Math.PI / 2 + (n * Math.PI) / 24;
+        p.aimAngle = Math.atan2(
+          Math.sin(elevation),
+          (right ? 1 : -1) * Math.cos(elevation),
+        );
+        equip(p, type);
+        w.attack(p);
+        const b = w.projectiles[0];
+        let farthest = 0;
+        for (let tick = 0; tick < 350 && w.projectiles.includes(b); tick++) {
+          w.updateProjectiles(STEP);
+          farthest = Math.max(farthest, Math.abs(b.x - p.x));
+          if (tick === 59)
+            assert.ok(
+              farthest <= 250,
+              "half a second leaves time to see the throw",
+            );
+        }
+        longest = Math.max(longest, farthest);
+        assert.ok(
+          farthest <= W / 2,
+          `${type} from ${y} at ${elevation}: ${farthest}`,
+        );
+        assert.equal(w.projectiles.includes(b), false, "the fuse expires");
+        assert.ok(
+          w.events.some((e) => e.type === "explosion"),
+          "the throw still detonates",
+        );
       }
-      assert.ok(farthest >= W - 150, `${type} from ${y}: ${farthest}`);
       assert.ok(
-        w.events.some((e) => e.type === "explosion"),
-        "a grenade that leaves the arena must detonate rather than disappear",
+        longest >= W * 0.38,
+        `${type} from ${y} retains a useful long throw: ${longest}`,
       );
     }
 });

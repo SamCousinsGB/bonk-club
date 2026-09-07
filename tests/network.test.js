@@ -35,8 +35,9 @@ class Connection extends EventEmitter {
 }
 class FakePeer extends EventEmitter {
   static peers = new Map();
-  constructor(id) {
+  constructor(id, options) {
     super();
+    this.config = options.config;
     this.id = id || "client-" + Math.random();
     if (FakePeer.peers.has(this.id)) {
       queueMicrotask(() => this.emit("error", { type: "unavailable-id" }));
@@ -71,6 +72,63 @@ class FakePeer extends EventEmitter {
     if (FakePeer.peers.get(this.id) === this) FakePeer.peers.delete(this.id);
   }
 }
+test("host and guest load relay credentials before creating their peer connection", async (t) => {
+  const relay = {
+    urls: "turns:relay.example:443?transport=tcp",
+    username: "test",
+    credential: "test",
+  };
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    requests++;
+    return { ok: true, json: async () => [relay] };
+  });
+  const options = { iceServersUrl: "https://relay.example/ice" };
+  const host = new Room({}, FakePeer, options),
+    guest = new Room({}, FakePeer, options);
+  try {
+    await host.create();
+    await guest.join(host.code);
+    assert.equal(requests, 2);
+    for (const room of [host, guest]) {
+      assert.deepEqual(room.peer.config.iceServers.at(-1), {
+        ...relay,
+        urls: [relay.urls],
+      });
+    }
+  } finally {
+    guest.close();
+    host.close();
+  }
+});
+
+test("closing while relay credentials load does not create an abandoned public room", async (t) => {
+  let finish;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const room = new Room({}, FakePeer, {
+    iceServersUrl: "https://relay.example/ice",
+  });
+  const before = FakePeer.peers.size;
+  const creating = room.create();
+  room.close();
+  finish({
+    ok: true,
+    json: async () => [
+      { urls: "turn:relay.example:3478", username: "test", credential: "test" },
+    ],
+  });
+  await assert.rejects(creating, /Room closed/);
+  assert.equal(FakePeer.peers.size, before);
+  assert.equal(room.peer, null);
+});
+
 test("room codes and network snapshots are validated", () => {
   assert.ok(validCode("ABC234"));
   assert.ok(!validCode("ABC1234"));
