@@ -40,13 +40,15 @@ export function traceFlight(
   time = 0,
   spikes = [],
   initialVx = 0,
+  landingX = null,
 ) {
   let x = startX,
     y = from.y - 30,
     vx = initialVx,
     vy = jumps ? -700 : 0,
     second = false,
-    ground = !jumps;
+    ground = !jumps,
+    clearAt = jumps ? 0 : null;
   const dt = 1 / 60;
   const nearby = solids.filter(
     (p) =>
@@ -64,9 +66,19 @@ export function traceFlight(
       second = true;
       ground = false;
     }
-    vx +=
-      dir *
-      Math.min((ground ? 1500 : 950) * dt, Math.max(0, RUN_SPEED - vx * dir));
+    if (clearAt === null && (x + 15 < from.x || x - 15 > from.x + from.w))
+      clearAt = age;
+    const input =
+      landingX !== null && clearAt !== null ? steer({ x, vx }, landingX) : null;
+    const move = input ? Number(input.right) - Number(input.left) : dir;
+    if (move)
+      vx +=
+        move *
+        Math.min(
+          (ground ? 1500 : 950) * dt,
+          Math.max(0, RUN_SPEED - vx * move),
+        );
+    else vx *= Math.pow(ground ? 0.86 : 0.996, dt * 120);
     const oldY = y;
     vy = Math.min(1150, vy + 1800 * dt);
     x += vx * dt;
@@ -112,8 +124,10 @@ export function traceFlight(
           jumps,
           secondAt,
           duration: age,
+          landingX,
+          clearAt,
           kind: "jump",
-          key: `${from.id}:${p.id}:${Math.round(startX / 8)}:${dir}:${jumps}:${secondAt}`,
+          key: `${from.id}:${p.id}:${Math.round(startX / 8)}:${dir}:${jumps}:${secondAt}:${landingX}`,
         };
       }
       return null;
@@ -188,6 +202,8 @@ export function navigation(
           [1, 0.38],
           [2, 0.27],
           [2, 0.38],
+          [2, 0.6],
+          [2, 0.7],
         ]) {
           const edge = traceFlight(
             solids,
@@ -214,6 +230,48 @@ export function navigation(
       );
       if (edge) candidates.push(edge);
     }
+    // A constant horizontal direction misses narrow stairs and drops beside cover.
+    // Also trace controlled landings, including braking after stepping off a ledge.
+    const starts = [from.x + 20, from.x + from.w - 20, from.x + from.w / 2];
+    for (const to of solids) {
+      if (
+        to === from ||
+        to.y < from.y - 240 ||
+        to.y > from.y + 600 ||
+        to.x > from.x + from.w + 300 ||
+        to.x + to.w < from.x - 300
+      )
+        continue;
+      const landingX = clamp(
+        from.x + from.w / 2,
+        to.x + Math.min(30, to.w / 2),
+        to.x + to.w - Math.min(30, to.w / 2),
+      );
+      for (const startX of starts) {
+        const dir = Math.sign(landingX - startX) || 1;
+        for (const [jumps, secondAt] of [
+          [0, 0.38],
+          [1, 0.38],
+          [2, 0.27],
+          [2, 0.6],
+        ]) {
+          if (!jumps && to.y <= from.y) continue;
+          const edge = traceFlight(
+            solids,
+            from,
+            startX,
+            dir,
+            jumps,
+            secondAt,
+            time,
+            spikes,
+            0,
+            landingX,
+          );
+          if (edge?.to === to.id) candidates.push(edge);
+        }
+      }
+    }
     const edges = [];
     // Preserve alternative takeoffs so a failed route is never retried indefinitely.
     candidates.sort((a, b) => a.duration - b.duration);
@@ -225,7 +283,8 @@ export function navigation(
           (e) =>
             e.dir === edge.dir &&
             Math.abs(e.startX - edge.startX) < 32 &&
-            e.jumps === edge.jumps,
+            e.jumps === edge.jumps &&
+            e.landingX === edge.landingX,
         )
       )
         edges.push(edge);

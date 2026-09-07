@@ -2,6 +2,7 @@ import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
+import { grenadePlan } from "./ballistics.js";
 import {
   navigation,
   traceFlight,
@@ -171,8 +172,9 @@ export class BotController {
         }
         if (b.flight) {
           const age = world.time - b.flight.started;
+          b.flight.airborne ||= !p.ground;
           if (
-            (age > 0.15 && p.ground) ||
+            (b.flight.airborne && age > 0.15 && p.ground) ||
             age > b.flight.duration + 0.3 ||
             p.stun > 0.15
           ) {
@@ -197,7 +199,9 @@ export class BotController {
             age = world.time - f.started;
           i.left = f.dir < 0;
           i.right = f.dir > 0;
-          if (age > f.duration - 0.1) Object.assign(i, steer(p, f.endX));
+          if (f.landingX != null && age >= f.clearAt)
+            Object.assign(i, steer(p, f.landingX));
+          else if (age > f.duration - 0.1) Object.assign(i, steer(p, f.endX));
           i.jump =
             f.jumps > 0 &&
             (age < 0.04 ||
@@ -261,14 +265,10 @@ export class BotController {
     }
     const enemy = choice.q,
       range = distance(p, enemy);
+    const grenade = WEAPONS[p.weapon]?.kind === "grenade";
     const aim = weapon.speed
       ? intercept(p, enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
-    if (WEAPONS[p.weapon]?.kind === "grenade") {
-      const definition = WEAPONS[p.weapon];
-      const t = clamp(range / definition.speed, 0.1, 2.2);
-      aim.y -= 0.5 * 1100 * t * t - (definition.lift ?? 330) * t;
-    }
     i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
     const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
     i.attack =
@@ -292,6 +292,29 @@ export class BotController {
         i.attack = false;
     }
     if (weapon.blast && range < 150 && !obstacle) i.throw = true;
+    if (grenade) {
+      const saved = b.grenade;
+      if (
+        !saved ||
+        saved.type !== p.weapon ||
+        saved.target !== enemy.id ||
+        world.time > saved.until ||
+        distance(p, saved) > 35 ||
+        saved.revision !== world.terrainVersion
+      ) {
+        b.grenade = {
+          x: p.x,
+          y: p.y,
+          type: p.weapon,
+          target: enemy.id,
+          until: world.time + 0.4,
+          revision: world.terrainVersion,
+          plan: grenadePlan(p, enemy, WEAPONS[p.weapon], solids),
+        };
+      }
+      i.attack = !!b.grenade.plan;
+      if (i.attack) i.aim = b.grenade.plan.angle;
+    }
 
     let goal = enemy,
       destination = choice.floor,
@@ -342,6 +365,7 @@ export class BotController {
     }
     let moveTo = goal.x,
       edge = path?.edge;
+    b.edge = null;
     const ride =
       here?.travel &&
       destination &&
@@ -387,6 +411,7 @@ export class BotController {
             world.time,
             world.arena.spikes || [],
             p.vx,
+            edge.landingX,
           );
           if (actual?.to === edge.to)
             b.flight = { ...actual, key: edge.key, started: world.time };
@@ -472,7 +497,7 @@ export class BotController {
         goal.y < p.y - 50,
     );
     const panel = breach || (!path || path.cost > 3 ? ceiling : null);
-    if (panel && !b.flight) {
+    if (panel && !b.flight && !grenade) {
       const point = {
         x: clamp(enemy.x, panel.x + 10, panel.x + panel.w - 10),
         y: panel.y + panel.h / 2,
