@@ -1,3 +1,4 @@
+import { PROJECTILE_KINDS } from "./arsenal.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
 import PeerModule from "peerjs";
@@ -5,7 +6,7 @@ const Peer = PeerModule.Peer ?? PeerModule;
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 export const validCode = (value) =>
   typeof value === "string" && /^[A-HJ-NP-Z2-9]{6}$/.test(value);
-const PREFIX = "bonkclub-v7-";
+const PREFIX = "bonkclub-v8-";
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function makeCode() {
   return Array.from(
@@ -333,11 +334,18 @@ export function validSnapshot(s) {
           p.hp,
           p.walk,
           p.swing,
+          p.swingDuration,
+          p.comboTime,
+          p.rush,
+          p.burn,
+          p.chill,
           p.blockTime,
           p.stamina,
           p.flash,
         ].every(finite) &&
         (p.rig === null || (list(p.rig, 11, xy) && p.rig.length === 11)) &&
+        integer(p.comboStep, 0, 2) &&
+        ["punch", "kick", "spin", "weapon"].includes(p.meleeMove) &&
         integer(p.ammo, 0, 100) &&
         p.hp >= 0 &&
         p.hp <= 100 &&
@@ -408,13 +416,23 @@ export function validSnapshot(s) {
     ) &&
     list(
       s.projectiles,
-      100,
+      160,
       (p) =>
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
-        ["bullet", "pellet", "rocket", "grenade", "rail", "plasma"].includes(
-          p.kind,
-        ),
+        PROJECTILE_KINDS.includes(p.kind),
+    ) &&
+    list(
+      s.fields,
+      12,
+      (f) =>
+        xy(f) &&
+        [f.ex, f.ey, f.radius, f.life].every(finite) &&
+        ["arc", "blackhole"].includes(f.kind) &&
+        f.radius >= 0 &&
+        f.radius <= 320 &&
+        f.life >= 0 &&
+        f.life <= 5,
     ) &&
     list(
       s.drops,

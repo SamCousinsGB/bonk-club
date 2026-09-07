@@ -50,7 +50,7 @@ test("a punch removes health and produces knockback and hitstop", () => {
   const w = fight();
   w.attack(w.players[0]);
   assert.equal(w.players[1].hp, 75);
-  assert.ok(w.players[1].vx > 480);
+  assert.ok(w.players[1].vx > 210 && w.players[1].vx < 300);
   assert.ok(w.players[1].vy < 0);
   assert.ok(w.hitstop > 0);
 });
@@ -130,6 +130,7 @@ test("all weapons have a working attack and consume ammunition", () => {
       p = w.players[0];
     p.weapon = type;
     p.ammo = 4;
+    if (WEAPONS[type].proneOnly) p.prone = true;
     w.attack(p);
     assert.equal(p.ammo, 3);
     assert.ok(w.players[1].hp < 100 || w.projectiles.length > 0);

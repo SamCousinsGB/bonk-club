@@ -1,4 +1,10 @@
 import {
+  drawNewWeapon,
+  drawSpecialProjectile,
+  drawFields,
+} from "./arsenal-art.js";
+import { RARITY_COLORS } from "./arsenal.js";
+import {
   drawEnvironment,
   drawSurface,
   drawCover,
@@ -401,6 +407,7 @@ export class Renderer {
     c.scale(facing * scale, scale);
     c.rotate(angle);
     c.lineCap = "round";
+    drawNewWeapon(this, type);
     if (type === "bat") {
       this.line(
         [
@@ -636,6 +643,35 @@ export class Renderer {
       const hand = rig[6];
       this.weapon(p.weapon, hand.x - p.x, hand.y - p.y, 1, angle);
     }
+    if (p.swing > 0 && ["punch", "kick", "spin"].includes(p.meleeMove)) {
+      const progress = 1 - p.swing / p.swingDuration;
+      c.globalAlpha = Math.sin(progress * Math.PI) * 0.6;
+      c.strokeStyle = COLORS[p.id];
+      c.lineWidth = p.meleeMove === "spin" ? 6 : 4;
+      c.beginPath();
+      c.arc(
+        0,
+        -10,
+        p.meleeMove === "spin" ? 59 : p.meleeMove === "kick" ? 48 : 38,
+        angle + (p.meleeMove === "spin" ? progress * Math.PI * 2 - 2 : -0.6),
+        angle + (p.meleeMove === "spin" ? progress * Math.PI * 2 : 0.6),
+      );
+      c.stroke();
+      c.globalAlpha = 1;
+    }
+    if (p.burn > 0)
+      for (let n = 0; n < 3; n++)
+        this.circle(
+          Math.sin(time * 12 + n * 3) * 12,
+          5 - n * 12,
+          5,
+          "#ffac58aa",
+        );
+    if (p.chill > 0) {
+      c.strokeStyle = "#b7f4ff";
+      c.lineWidth = 2;
+      c.strokeRect(-21, -34, 42, 59);
+    }
     if (p.block) {
       c.strokeStyle = p.blockTime < 0.18 ? "#eaffbd" : "#eaffbd88";
       c.lineWidth = p.blockTime < 0.18 ? 5 : 2;
@@ -811,7 +847,7 @@ export class Renderer {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       c.save();
       c.shadowBlur = 20;
-      c.shadowColor = "#d5fa43";
+      c.shadowColor = RARITY_COLORS[WEAPONS[d.type].rarity];
       this.weapon(
         d.type,
         d.x,
@@ -821,7 +857,7 @@ export class Renderer {
       );
       c.restore();
       c.textAlign = "center";
-      c.fillStyle = "#cfdbb3";
+      c.fillStyle = RARITY_COLORS[WEAPONS[d.type].rarity];
       c.font = "600 18px 'DM Sans',sans-serif";
       c.fillText(WEAPONS[d.type].name, d.x, d.y - 60);
       this.line(
@@ -853,7 +889,9 @@ export class Renderer {
     for (const cover of state.cover || []) this.table(cover);
     this.fragments(state.debris);
     drawHazards(c, state.hazards, time);
+    drawFields(this, state.fields, time);
     for (const b of state.projectiles) {
+      if (drawSpecialProjectile(this, b, time)) continue;
       if (b.kind === "rail") {
         this.line(
           [

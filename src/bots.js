@@ -1,3 +1,4 @@
+import { WEAPONS, COMBO } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
@@ -63,7 +64,19 @@ const weapons = {
     recoil: 40,
   },
 };
-const fists = { range: 73, value: 1, damage: 25 };
+for (const [type, w] of Object.entries(WEAPONS)) {
+  weapons[type] ||= {
+    range: w.range || 1000,
+    speed: w.speed,
+    value: { common: 5, uncommon: 7, rare: 9, exotic: 11 }[w.rarity],
+    damage: w.damage,
+    recoil: w.recoil || 0,
+    blast: ["rocket", "grenade", "plasma", "singularity"].includes(w.kind)
+      ? w.radius || 145
+      : 0,
+  };
+}
+const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
 function firstObstacle(solids, p, point) {
   return solids
@@ -139,6 +152,8 @@ export class BotController {
             stuck: 0,
             maneuverAt: 0,
             crouchUntil: 0,
+            duckAgainAt: 0,
+            parryAt: 0,
             visits: new Map(),
             support: null,
           };
@@ -196,7 +211,10 @@ export class BotController {
   }
   decide(world, p, b, solids, here) {
     const i = idle(),
-      weapon = weapons[p.weapon] || fists;
+      weapon = weapons[p.weapon] || {
+        ...fists,
+        range: COMBO[p.comboTime > 0 ? p.comboStep : 0].range,
+      };
     const paths = routesFrom(
       this.graph,
       solids,
@@ -241,7 +259,7 @@ export class BotController {
     const aim = weapon.speed
       ? intercept(p, enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
-    if (p.weapon === "grenade") {
+    if (WEAPONS[p.weapon]?.kind === "grenade") {
       const t = clamp(range / 470, 0.2, 1.1);
       aim.y -= 0.5 * 1100 * t * t - 330 * t;
     }
@@ -273,7 +291,7 @@ export class BotController {
       destination = choice.floor,
       path = choice.path;
     // Commit to a useful, reachable pickup; avoid repeatedly swapping similar weapons.
-    if (range > 160 && !b.flight) {
+    if (range > (weapon.speed ? 220 : 500) && !b.flight) {
       const upgrades = world.drops
         .filter(
           (d) =>
@@ -300,7 +318,8 @@ export class BotController {
             d.path &&
             d.path.cost < 7 &&
             d.value > weapon.value + (p.weapon ? 2 : 0) &&
-            distance(p, d.d) < 1100,
+            distance(p, d.d) <
+              (weapon.speed ? 1100 : Math.min(500, range * 0.6)),
         )
         .sort((a, b) => a.score - b.score);
       if (upgrades[0] && (!p.weapon || upgrades[0].score < 1.5)) {
@@ -379,7 +398,13 @@ export class BotController {
         !obstacle &&
         range < weapon.range * 0.85
       ) {
-        const desired = weapon.blast ? 420 : p.weapon === "shotgun" ? 260 : 480;
+        const desired = weapon.blast
+          ? Math.max(420, weapon.blast + 140)
+          : ["flame", "repulsor"].includes(p.weapon)
+            ? 185
+            : p.weapon === "shotgun"
+              ? 260
+              : 480;
         moveTo =
           p.x +
           (range < desired - 70
@@ -387,8 +412,7 @@ export class BotController {
             : range > desired + 100
               ? Math.sign(enemy.x - p.x) * 100
               : 0);
-      } else if (goal === enemy && !weapon.speed && range < weapon.range * 0.8)
-        moveTo = p.x;
+      } else if (goal === enemy && !weapon.speed && range < 38) moveTo = p.x;
       if (here) {
         const margin = weapon.speed
           ? Math.min(
@@ -403,6 +427,24 @@ export class BotController {
       }
     }
     Object.assign(i, steer(p, moveTo));
+    if (
+      !weapon.speed &&
+      goal === enemy &&
+      !obstacle &&
+      !b.flight &&
+      Math.abs(enemy.y - p.y) < 50 &&
+      (range < 155 ||
+        (range < 360 &&
+          here &&
+          p.ground &&
+          enemy.x > here.x + 25 &&
+          enemy.x < here.x + here.w - 25))
+    ) {
+      // Close the final gap with the same directional lunge available to humans.
+      i.attack = true;
+      i.left = enemy.x < p.x - 34;
+      i.right = enemy.x > p.x + 34;
+    }
 
     // Remove a marked floor under a target or a breakable ceiling blocking a short route.
     const support = choice.floor;
@@ -544,15 +586,61 @@ export class BotController {
         p.ground &&
         Math.abs(threat.y - (p.y - 10)) < 18
       ) {
-        b.crouchUntil = world.time + 0.3;
+        if (world.time > b.duckAgainAt && range > 140) {
+          b.crouchUntil = world.time + 0.18;
+          b.duckAgainAt = world.time + 1;
+        }
       }
     }
-    if (!b.flight && range < 90 && enemy.swing > 0 && p.stamina > 20) {
+    if (
+      !b.flight &&
+      range < 95 &&
+      enemy.swing > 0 &&
+      p.stamina > 20 &&
+      p.cooldown > 0.1 &&
+      world.time > b.parryAt
+    ) {
       i.block = true;
       i.attack = false;
       i.aim = Math.atan2(enemy.y - p.y, enemy.x - p.x);
+      b.parryAt = world.time + 0.9;
     }
     i.duck = world.time < b.crouchUntil && !b.flight;
+    if (WEAPONS[p.weapon]?.proneOnly && !b.flight) {
+      const deploy =
+        !!here &&
+        range > 190 &&
+        !obstacle &&
+        range < weapon.range &&
+        Math.abs(enemy.y - p.y) < 230;
+      i.duck = deploy;
+      if (deploy) {
+        i.left = false;
+        i.right = false;
+        i.jump = false;
+      } else if (range < 165 && !obstacle) i.throw = true;
+    }
+    const hole = world.fields.find(
+      (f) =>
+        f.kind === "blackhole" &&
+        Math.hypot(p.x - f.x, p.y - f.y) < f.radius + 45,
+    );
+    if (hole && here) {
+      b.flight = null;
+      Object.assign(
+        i,
+        steer(
+          p,
+          clamp(
+            p.x + (Math.sign(p.x - hole.x) || 1) * 200,
+            here.x + 20,
+            here.x + here.w - 20,
+          ),
+        ),
+      );
+      i.duck = false;
+      i.block = false;
+    }
     const hazard = world.hazards.find(
       (h) =>
         Math.abs(p.x - h.x) < h.w / 2 + 40 &&

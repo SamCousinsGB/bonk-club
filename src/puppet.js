@@ -61,7 +61,7 @@ export function updateRig(p, dt, platforms, time) {
   if (!p.rig) p.rig = makeRig(p);
   const rig = p.rig,
     prone = !!p.prone;
-  const desired = prone ? p.facing * 1.5 : clamp(p.vx * 0.0012, -0.45, 0.45);
+  const desired = prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
   let a = p.bodyAngle || 0,
     av = p.angularVelocity || 0;
   const strength = p.stun > 0 ? 8 : prone ? 36 : p.ground ? 100 : 35;
@@ -75,10 +75,10 @@ export function updateRig(p, dt, platforms, time) {
   ];
   const compression = clamp(p.landing || 0, 0, 1) * 9;
   p.landing = Math.max(0, (p.landing || 0) - dt * 5);
-  const hip = rotate([0, 5 + compression]),
-    neck = rotate([0, -18 + compression]),
-    head = rotate([p.facing * 1.5, -36 + compression]);
-  const speed = clamp(Math.abs(p.vx) / 330, 0, 1),
+  const hip = rotate([0, -3 + compression]),
+    neck = rotate([0, -26 + compression]),
+    head = rotate([p.facing * 1.5, -44 + compression]);
+  const speed = clamp(Math.abs(p.vx) / 240, 0, 1),
     stride = Math.sin(p.walk),
     lift = Math.cos(p.walk);
   let footA, footB;
@@ -87,12 +87,12 @@ export function updateRig(p, dt, platforms, time) {
     footB = rotate([10, 32]);
   } else if (p.ground) {
     footA = [
-      p.x - 6 + stride * 23 * speed,
-      p.y + 30 - Math.max(0, lift) * 19 * speed,
+      p.x - 12 + stride * 18 * speed,
+      p.y + 30 - Math.max(0, lift) * 12 * speed,
     ];
     footB = [
-      p.x + 6 - stride * 23 * speed,
-      p.y + 30 - Math.max(0, -lift) * 19 * speed,
+      p.x + 12 - stride * 18 * speed,
+      p.y + 30 - Math.max(0, -lift) * 12 * speed,
     ];
   } else {
     footA = rotate([-13 - p.vx * 0.025, 23 + Math.sin(time * 9) * 7]);
@@ -101,7 +101,20 @@ export function updateRig(p, dt, platforms, time) {
   const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
     dx = Math.cos(angle),
     dy = Math.sin(angle);
-  const swing = p.swing > 0 ? Math.sin((1 - p.swing / 0.22) * Math.PI) : 0;
+  const progress = p.swing > 0 ? 1 - p.swing / (p.swingDuration || 0.22) : 0;
+  const swing = p.swing > 0 ? Math.sin(progress * Math.PI) : 0;
+  const kick = p.swing > 0 && p.meleeMove === "kick";
+  const spin = p.swing > 0 && p.meleeMove === "spin";
+  if (kick)
+    footB = [
+      hip[0] + dx * 36 * swing,
+      hip[1] + dy * 36 * swing + 26 * (1 - swing),
+    ];
+  if (spin) {
+    const turn = angle + progress * Math.PI * 2;
+    footB = [hip[0] + Math.cos(turn) * 37, hip[1] + Math.sin(turn) * 26];
+    footA = [hip[0] - Math.cos(turn) * 26, hip[1] + 25];
+  }
   let handA, handB;
   if (p.block) {
     handA = [neck[0] + dx * 29 - dy * 10, neck[1] + dy * 29 + dx * 10];
@@ -115,8 +128,8 @@ export function updateRig(p, dt, platforms, time) {
       9 + Math.cos(time * 3 + p.id) * 2,
     ]);
     handB = [
-      neck[0] + dx * (18 + swing * 18),
-      neck[1] + dy * (18 + swing * 18) + 10 * (1 - swing),
+      neck[0] + dx * (18 + (kick || spin ? 0 : swing * 20)),
+      neck[1] + dy * (18 + (kick || spin ? 0 : swing * 20)) + 10 * (1 - swing),
     ];
   }
   const targets = [
@@ -127,9 +140,9 @@ export function updateRig(p, dt, platforms, time) {
     handA,
     elbow(neck, handB, 17, 19, -p.facing),
     handB,
-    elbow(hip, footA, 18, 19, -1),
+    elbow(hip, footA, 18, 19, speed > 0.1 ? -p.facing : 1),
     footA,
-    elbow(hip, footB, 18, 19, -1),
+    elbow(hip, footB, 18, 19, speed > 0.1 ? -p.facing : -1),
     footB,
   ];
   for (let i = 0; i < rig.length; i++) {
@@ -146,7 +159,7 @@ export function updateRig(p, dt, platforms, time) {
         : prone
           ? 0.045
           : i < 3
-            ? 0.16
+            ? 0.23
             : i === 4 || i === 6
               ? 0.1
               : 0.065;

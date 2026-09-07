@@ -1,3 +1,12 @@
+import { meleeAttack } from "./melee.js";
+import {
+  steerSpecial,
+  impactSpecial,
+  expireSpecial,
+  updateFields,
+} from "./specials.js";
+import { WEAPONS, chooseWeapon } from "./arsenal.js";
+export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
@@ -172,106 +181,6 @@ export const ARENAS = [
   .map(expandArena)
   .concat(SKYSCRAPERS, THEMED_ARENAS);
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
-export const WEAPONS = {
-  bat: {
-    name: "BAT",
-    range: 94,
-    damage: 35,
-    force: 760,
-    cooldown: 0.65,
-    ammo: 8,
-    kind: "melee",
-  },
-  sword: {
-    name: "SWORD",
-    range: 112,
-    damage: 28,
-    force: 520,
-    cooldown: 0.38,
-    ammo: 12,
-    kind: "melee",
-  },
-  blaster: {
-    name: "PISTOL",
-    damage: 17,
-    force: 350,
-    cooldown: 0.25,
-    ammo: 14,
-    kind: "bullet",
-    speed: 1300,
-  },
-  shotgun: {
-    name: "SHOTGUN",
-    damage: 10,
-    force: 230,
-    cooldown: 0.85,
-    ammo: 5,
-    kind: "pellet",
-    speed: 1050,
-  },
-  rocket: {
-    name: "ROCKET LAUNCHER",
-    damage: 64,
-    force: 1100,
-    cooldown: 1.1,
-    ammo: 3,
-    kind: "rocket",
-    speed: 680,
-  },
-  grenade: {
-    name: "GRENADE",
-    damage: 58,
-    force: 1050,
-    cooldown: 0.9,
-    ammo: 4,
-    kind: "grenade",
-    speed: 470,
-  },
-  minigun: {
-    name: "MINIGUN",
-    damage: 10,
-    force: 190,
-    cooldown: 0.075,
-    ammo: 80,
-    kind: "bullet",
-    speed: 1650,
-    recoil: 24,
-    spread: 0.045,
-  },
-  railgun: {
-    name: "RAILGUN",
-    damage: 85,
-    force: 1250,
-    cooldown: 1.25,
-    ammo: 4,
-    kind: "rail",
-    speed: 4600,
-    recoil: 350,
-  },
-  plasma: {
-    name: "PLASMA CANNON",
-    damage: 48,
-    force: 850,
-    cooldown: 0.65,
-    ammo: 7,
-    kind: "plasma",
-    speed: 850,
-    recoil: 150,
-    radius: 105,
-  },
-  barrage: {
-    name: "TRIPLE ROCKET LAUNCHER",
-    damage: 52,
-    force: 1150,
-    cooldown: 1.6,
-    ammo: 3,
-    kind: "rocket",
-    speed: 780,
-    recoil: 340,
-    count: 3,
-    radius: 180,
-  },
-};
 export const emptyInput = () => ({
   left: false,
   right: false,
@@ -343,15 +252,19 @@ export class World {
     this.players = this.ids.map((id) => this.makePlayer(id));
     this.ai.reset();
     this.projectiles = [];
-    this.drops = (this.arena.weapons || []).map(([x, y, type]) => ({
-      x,
-      y,
-      type,
-      ammo: WEAPONS[type].ammo,
-      vx: 0,
-      vy: 0,
-      life: SUDDEN_DEATH,
-    }));
+    this.fields = [];
+    this.drops = (this.arena.weapons || []).map(([x, y]) => {
+      const type = chooseWeapon(this.random);
+      return {
+        x,
+        y,
+        type,
+        ammo: WEAPONS[type].ammo,
+        vx: 0,
+        vy: 0,
+        life: SUDDEN_DEATH,
+      };
+    });
     this.cover = (this.arena.cover || []).map((c, i) => ({
       ...c,
       id: "cover" + i,
@@ -397,6 +310,14 @@ export class World {
       stun: 0,
       cooldown: 0,
       swing: 0,
+      swingDuration: 0.22,
+      meleeMove: "punch",
+      comboStep: 0,
+      comboTime: 0,
+      airLunge: false,
+      rush: 0,
+      burn: 0,
+      chill: 0,
       weapon: null,
       ammo: 0,
       walk: 0,
@@ -545,6 +466,7 @@ export class World {
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         collideRigs(this.players[a], this.players[b]);
+    updateFields(this, dt);
     this.updateProjectiles(dt);
     this.updateDrops(dt);
     if (active) for (const p of this.players) if (p.alive) this.pickup(p);
@@ -604,6 +526,15 @@ export class World {
       p.y += support.dy || 0;
     }
     p.pickupCooldown = Math.max(0, p.pickupCooldown - dt);
+    p.comboTime = Math.max(0, p.comboTime - dt);
+    p.rush = Math.max(0, p.rush - dt);
+    p.chill = Math.max(0, p.chill - dt);
+    if (p.burn > 0) {
+      p.burn = Math.max(0, p.burn - dt);
+      p.hp = Math.max(0, p.hp - 5 * dt);
+      if (!p.hp) this.kill(p);
+    }
+    if (p.ground) p.airLunge = false;
     const wasProne = p.prone;
     p.prone = !!i.duck;
     if (
@@ -635,7 +566,9 @@ export class World {
     const dir = Number(i.right) - Number(i.left);
     if (dir && p.stun <= 0) {
       p.facing = dir;
-      const max = p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED;
+      const max =
+        (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
+        (p.chill > 0 ? 0.58 : 1);
       const acceleration = p.prone ? 400 : p.ground ? 1500 : 950;
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
       // but holding a direction must never add more speed above that limit.
@@ -719,66 +652,25 @@ export class World {
     }
   }
   attack(p) {
-    const w = p.weapon
-      ? WEAPONS[p.weapon]
-      : { range: 73, damage: 25, force: 480, cooldown: 0.32, kind: "melee" };
-    p.cooldown = w.cooldown;
-    p.swing = 0.22;
+    const w = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
+    if (w.proneOnly && (!p.prone || !p.ground)) return;
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
       ax = Math.cos(angle),
       ay = Math.sin(angle);
-    impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 90, ay * 90);
     if (w.kind === "melee") {
-      let hit = false;
-      const obstruction = this.solids()
-        .map((s) => ({
-          s,
-          hit: segmentBox(
-            p.x,
-            p.y - 10,
-            p.x + ax * w.range,
-            p.y - 10 + ay * w.range,
-            s,
-            4,
-          ),
-        }))
-        .filter((c) => c.hit)
-        .sort((a, b) => a.hit.t - b.hit.t)[0];
-      const reach = obstruction ? obstruction.hit.t * w.range : w.range;
-      if (breakable(obstruction?.s)) {
-        this.damageCover(
-          obstruction.s,
-          w.damage * 1.4,
-          ax * w.force,
-          ay * w.force,
-        );
-        hit = true;
-      }
-      for (const q of this.players) {
-        if (q.id === p.id || !q.alive) continue;
-        const dx = q.x - p.x,
-          dy = q.y - (p.y - 10),
-          along = dx * ax + dy * ay,
-          across = Math.abs(-dx * ay + dy * ax);
-        if (along > -9 && along < reach && across < (q.prone ? 17 : 40)) {
-          this.hit(
-            q,
-            p,
-            w.damage,
-            w.force,
-            Math.abs(ax) > 0.05 ? ax : p.facing * 0.1,
-            ay * 0.8 - 0.5,
-          );
-          hit = true;
-        }
-      }
-      if (!hit) this.event("swing", { x: p.x, y: p.y });
+      meleeAttack(this, p, w);
     } else {
+      p.cooldown = w.cooldown;
+      p.swing = 0.16;
+      p.swingDuration = 0.16;
+      p.meleeMove = "weapon";
+      p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
       for (let n = 0; n < count; n++) {
         const spread =
           count > 1
-            ? (n - (count - 1) / 2) * (w.kind === "rocket" ? 0.18 : 0.12)
+            ? (n - (count - 1) / 2) *
+              (w.spread || (w.kind === "rocket" ? 0.18 : 0.12))
             : (this.random() - 0.5) * (w.spread || 0);
         this.projectiles.push({
           x: p.x + ax * 12,
@@ -788,25 +680,35 @@ export class World {
             w.speed * Math.sin(angle + spread) -
             (w.kind === "grenade" ? 330 : 0),
           owner: p.id,
+          weapon: p.weapon,
+          homing: !!w.homing,
+          cluster: !!w.cluster,
+          burn: w.burn || 0,
+          chill: w.chill || 0,
           kind: w.kind,
           damage: w.damage,
           force: w.force,
-          life: w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.8 : 4.5,
+          life:
+            w.life ||
+            (w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.8 : 4.5),
           radius: w.radius || 145,
-          bounces: w.kind === "plasma" ? 2 : 0,
+          bounces: w.bounces || (w.kind === "plasma" ? 2 : 0),
           hitIds: [],
-          r:
-            w.kind === "plasma"
-              ? 11
-              : w.kind === "rocket"
-                ? 8
-                : w.kind === "grenade"
-                  ? 7
-                  : 4,
+          r: ["force", "saw"].includes(w.kind)
+            ? 18
+            : ["flame", "singularity"].includes(w.kind)
+              ? 10
+              : w.kind === "plasma"
+                ? 11
+                : w.kind === "rocket"
+                  ? 8
+                  : w.kind === "grenade"
+                    ? 7
+                    : 4,
         });
       }
       const recoil =
-        w.recoil ||
+        w.recoil ??
         (w.kind === "rocket" ? 240 : w.kind === "pellet" ? 150 : 40);
       p.vx -= ax * recoil;
       p.vy -= ay * recoil;
@@ -831,8 +733,12 @@ export class World {
       }
     }
   }
-  hit(q, p, damage, force, dir, vertical = -0.5) {
+  hit(q, p, damage, force, dir, vertical = -0.5, options = {}) {
     const front = (p.x - q.x) * q.facing > -5;
+    if (q.block && front && options.finisher && q.blockTime >= 0.18) {
+      q.stamina = Math.max(0, q.stamina - 42);
+      if (q.stamina <= 0) q.block = false;
+    }
     if (q.block && front) {
       const parry = q.blockTime < 0.18;
       q.stamina = Math.max(0, q.stamina - (parry ? 5 : 23));
@@ -840,6 +746,8 @@ export class World {
         p.vx = -dir * 880;
         p.vy = -440;
         p.stun = 0.32;
+        p.comboTime = 0;
+        p.rush = 0;
         if (p.id !== undefined) impulseRig(p, p.x, p.y - 15, -dir * 900, -440);
         q.cooldown = 0;
         this.hitstop = 0.075;
@@ -857,14 +765,26 @@ export class World {
       }
       return;
     }
+    if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
-    q.vx = dir * force * (1 + (100 - q.hp) / 220);
+    const knockback = dir * force * (1 + (100 - q.hp) / 220);
+    // A following low-force pellet must not cancel a launch in the same direction.
+    q.vx =
+      q.vx * knockback > 0 && Math.abs(q.vx) > Math.abs(knockback)
+        ? q.vx
+        : knockback;
     q.vy = Math.min(q.vy, force * vertical);
-    q.stun = damage > 30 ? 0.4 : 0.26;
+    q.stun = Math.max(q.stun, options.stun ?? (damage > 30 ? 0.4 : 0.26));
+    if (q.rush > 0 && !q.weapon && options.projectile)
+      q.stun = Math.min(q.stun, 0.035);
+    if (q.stun > 0.2) q.comboTime = 0;
     impulseRig(q, q.x - dir * 10, q.y - 12, dir * force, force * vertical);
     q.flash = 0.15;
     q.block = false;
-    this.hitstop = Math.max(this.hitstop, damage > 30 ? 0.065 : 0.045);
+    this.hitstop = Math.max(
+      this.hitstop,
+      options.hitstop ?? (damage > 30 ? 0.065 : 0.045),
+    );
     this.event("hit", { x: q.x, y: q.y - 10, color: COLORS[q.id], force });
     if (q.hp <= 0) this.kill(q);
   }
@@ -940,8 +860,8 @@ export class World {
     if (this.drops.length >= 12) return;
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     const s = platforms[Math.floor(this.random() * platforms.length)];
-    const types = Object.keys(WEAPONS);
-    const type = types[Math.floor(this.random() * types.length)];
+    if (!s) return;
+    const type = chooseWeapon(this.random);
     const x = s.x + s.w * (0.2 + this.random() * 0.6);
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
@@ -1133,8 +1053,10 @@ export class World {
     }
   }
   updateProjectiles(dt) {
-    for (const b of this.projectiles) {
+    for (const b of [...this.projectiles]) {
+      if (b.life <= 0) continue;
       b.life -= dt;
+      steerSpecial(this, b, dt);
       const x = b.x,
         y = b.y;
       b.px = x;
@@ -1174,9 +1096,12 @@ export class World {
               b.vx * 0.3,
               b.vy * 0.3,
             );
-            if (b.kind === "rail" && s.hp <= 0) continue;
+            if (["rail", "saw"].includes(b.kind) && s.hp <= 0) continue;
           }
-          if (b.kind === "grenade" || (b.kind === "plasma" && b.bounces > 0)) {
+          if (
+            b.kind === "grenade" ||
+            (["plasma", "ricochet", "saw"].includes(b.kind) && b.bounces > 0)
+          ) {
             const damp = b.kind === "grenade" ? 0.6 : 1;
             if (hit.nx) b.vx *= -damp;
             if (hit.ny) {
@@ -1190,7 +1115,7 @@ export class World {
           impact = true;
           break;
         }
-        if (["rocket", "plasma"].includes(b.kind)) {
+        if (["rocket", "plasma", "singularity"].includes(b.kind)) {
           impact = true;
           break;
         }
@@ -1211,6 +1136,7 @@ export class World {
           redirected = true;
           break;
         }
+        const hp = p.hp;
         this.hit(
           p,
           source,
@@ -1218,8 +1144,18 @@ export class World {
           b.force,
           Math.sign(b.vx) || 0.1,
           Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
+          {
+            projectile: true,
+            stun: ["flame", "frost"].includes(b.kind)
+              ? 0.015
+              : b.damage <= 18
+                ? 0.055
+                : undefined,
+            hitstop: b.damage <= 18 ? 0.008 : undefined,
+          },
         );
-        if (b.kind === "rail") {
+        impactSpecial(this, b, p, p.hp < hp);
+        if (["rail", "saw", "force"].includes(b.kind)) {
           (b.hitIds ||= []).push(p.id);
           continue;
         }
@@ -1227,7 +1163,7 @@ export class World {
         break;
       }
       // A piercing beam carries on to the end of its swept segment after passing cover or a player.
-      if (!impact && !redirected && b.kind === "rail") {
+      if (!impact && !redirected && ["rail", "saw", "force"].includes(b.kind)) {
         b.x = endX;
         b.y = endY;
       }
@@ -1236,6 +1172,7 @@ export class World {
         ["rocket", "grenade", "plasma"].includes(b.kind)
       )
         this.explode(b);
+      if (impact || b.life <= 0) expireSpecial(this, b);
       if (impact) b.life = 0;
     }
     this.projectiles = this.projectiles
@@ -1247,7 +1184,7 @@ export class World {
           b.y > -300 &&
           b.y < H + 200,
       )
-      .slice(-100);
+      .slice(-160);
   }
   updateRagdolls(dt) {
     const joints = JOINTS;
@@ -1298,6 +1235,7 @@ export class World {
       debris: this.debris,
       hazards: this.hazards,
       projectiles: this.projectiles,
+      fields: this.fields,
       drops: this.drops,
       ragdolls: this.ragdolls,
       scores: this.scores,

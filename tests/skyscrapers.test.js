@@ -171,7 +171,7 @@ test("melee attacks damage the table before anyone behind it", () => {
   w.cover = [{ ...table(), x: 565, w: 20 }];
   w.players[1].x = 600;
   w.attack(p);
-  assert.equal(w.cover[0].hp, 40);
+  assert.equal(w.cover[0].hp, 30);
   assert.equal(w.players[1].hp, 100);
 });
 
