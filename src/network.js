@@ -16,6 +16,7 @@ import {
   defaultProfile,
   availableProfile,
   validProfile,
+  validAppearance,
 } from "./identity.js";
 import PeerModule from "peerjs";
 const Peer = PeerModule.Peer ?? PeerModule;
@@ -25,7 +26,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 20;
+export const PROTOCOL = 21;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -832,8 +833,7 @@ export function validSnapshot(s) {
       (r) =>
         finite(r.life) &&
         (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
-        typeof r.color === "string" &&
-        /^#[a-fA-F0-9]{6}$/.test(r.color) &&
+        validAppearance(r) &&
         (r.effect===undefined || (DEATH_EFFECTS.includes(r.effect) && finite(r.deathAge) && r.deathAge>=0 && r.deathAge<=6)) &&
         (r.effect!=="singularity" || ([r.targetX,r.targetY].every(finite)&&list(r.strands,10,s=>list(s.points,6,xy)&&s.points.length===6)&&r.strands.length===10)) &&
         (r.effect!=="gib" || (Array.isArray(r.severed)&&r.severed.length===2&&r.severed.every(i=>integer(i,0,9)))) &&

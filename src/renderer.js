@@ -4,7 +4,7 @@ import { drawWreckage, drawRifts } from "./blackhole-art.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
-import { drawHair } from "./identity.js";
+import { drawAppearance } from "./identity.js";
 import {
   drawNewWeapon,
   drawSpecialProjectile,
@@ -708,9 +708,9 @@ export class Renderer {
     this.circle(head.x - p.x, head.y - p.y, 13, "#081626dd");
     this.circle(head.x - p.x, head.y - p.y, 10.5, col);
     const neck = rig[1];
-    drawHair(
+    drawAppearance(
       c,
-      p.hair,
+      p,
       head.x - p.x,
       head.y - p.y,
       Math.atan2(head.y - neck.y, head.x - neck.x) + Math.PI / 2,
@@ -1006,9 +1006,9 @@ export class Renderer {
           7,
         );
       this.circle(pts[0].x, pts[0].y, 11, r.color);
-      drawHair(
+      drawAppearance(
         c,
-        r.hair,
+        r,
         pts[0].x,
         pts[0].y,
         Math.atan2(pts[0].y - pts[1].y, pts[0].x - pts[1].x) + Math.PI / 2,

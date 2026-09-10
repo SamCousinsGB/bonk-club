@@ -1,7 +1,7 @@
 import { JOINTS } from "./puppet.js";
 import { deathJoints } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
-import { drawHair } from "./identity.js";
+import { drawAppearance } from "./identity.js";
 function energy(r, points, color, time) {
   const c = r.ctx;
   c.save();
@@ -212,9 +212,9 @@ export function drawDeath(r, rag, time) {
     }
     {
       r.circle(pts[0].x, pts[0].y, 10, rag.color);
-      drawHair(
+      drawAppearance(
         c,
-        rag.hair,
+        rag,
         pts[0].x,
         pts[0].y,
         Math.atan2(pts[0].y - pts[1].y, pts[0].x - pts[1].x) + Math.PI / 2,
