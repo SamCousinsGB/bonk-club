@@ -96,8 +96,12 @@ export class Renderer {
       );
       if (e.type === "hit" || e.type === "parry") {
         this.impacts.push({ x:e.x, y:e.y, age:0, life:e.melee ? 0.24 : 0.15,
-          size:e.move === "spin" ? 65 : e.melee ? 42 : 23, color:e.type === "parry" ? "#d5fa43" : "#fff1ce" });
+          size:e.move === "spin" ? 65 : e.melee ? 48 : Math.min(46,23+(e.damage||0)*.2), color:e.type === "parry" ? "#d5fa43" : "#fff1ce" });
         if (this.impacts.length > 32) this.impacts.shift();
+      }
+      if(e.type === "explosion" && !e.nuclear) {
+        this.impacts.push({x:e.x,y:e.y,age:0,life:.45,size:e.radius||180,color:"#ffd08c",blast:true});
+        if(this.impacts.length>32)this.impacts.shift();
       }
       if (
         [
@@ -141,7 +145,7 @@ export class Renderer {
           this.shake = Math.max(this.shake,
             e.nuclear ? 44 : e.type === "explosion" ? 18 :
             e.type === "ko" ? 12 : e.melee ? (e.move === "spin" ? 13 : 8) :
-            e.type === "parry" ? 7 : Math.min(5, 2 + (e.damage || 0) / 20));
+            e.type === "parry" ? 7 : Math.min(7, 2 + (e.damage || 0) / 16));
         }
       }
     }
@@ -1044,10 +1048,11 @@ export class Renderer {
     }
     for (const hit of this.impacts) {
       hit.age += dt;
-      const t = Math.min(1, hit.age / hit.life), radius = hit.size * (0.35 + t);
+      const t = Math.min(1, hit.age / hit.life), radius = hit.size * (hit.blast ? Math.sqrt(t) : 0.35 + t);
       c.globalAlpha = 1 - t;
       c.strokeStyle = hit.color; c.lineWidth = 3 * (1 - t) + 1;
       c.beginPath(); c.arc(hit.x, hit.y, radius, 0, TAU); c.stroke();
+      if(hit.blast){c.globalAlpha=(1-t)*.16;this.circle(hit.x,hit.y,radius,hit.color);continue;}
       for (let n = 0; n < 6; n++) {
         const a = n * TAU / 6;
         this.line([[hit.x + Math.cos(a) * radius * 0.6, hit.y + Math.sin(a) * radius * 0.6],

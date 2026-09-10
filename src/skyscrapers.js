@@ -43,14 +43,10 @@ function building({
   }
   // Outside landings offer a second way up without waiting for a lift.
   for (const y of floors.slice(0, -1))
-    for (const [offset, inset] of [
-      [80, false],
-      [160, true],
-      [240, false],
-    ])
+    for (const [offset, inset] of [[160, false]])
       platforms.push(
-        floor(inset ? 130 : 30, y - offset, 80),
-        floor(inset ? 2350 : 2450, y - offset, 80),
+        floor(inset ? 130 : 20, y - offset, 100),
+        floor(inset ? 2350 : 2440, y - offset, 100),
       );
   platforms.push(...elevators, ...bridges);
   return {

@@ -257,7 +257,7 @@ test("repulsor redirects incoming shots and has much more force than damage", ()
   assert.ok(shot.vx > 0);
   for (let n = 0; n < 22; n++) w.updateProjectiles(STEP);
   assert.ok(w.players[1].vx > 1400);
-  assert.ok(w.players[1].hp >= 75);
+  assert.ok(w.players[1].hp >= 60);
   assert.ok(force.hitIds.includes(1));
 });
 test("all 23 weapons and their effects produce valid online snapshots", () => {

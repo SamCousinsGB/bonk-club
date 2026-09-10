@@ -23,7 +23,7 @@ export function meleeAttack(world, p, weapon) {
     ay = Math.sin(angle);
   // One air lunge per jump sequence: directional attacks cannot become flight.
   if (!p.prone && (p.ground || !p.airLunge)) {
-    const boost = unarmed ? w.boost : 150;
+    const boost = w.boost || 260;
     p.vx = Math.max(-620, Math.min(620, p.vx + ax * boost));
     if (Math.abs(ay) > 0.25) p.vy += ay * boost * 0.7;
     if (!p.ground || ay < -0.25) p.airLunge = true;

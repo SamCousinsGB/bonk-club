@@ -65,12 +65,15 @@ test("AI moves out of a warning zone before a hazard activates", () => {
   w.hazards = [
     {
       id: 1,
-      type: "lightning",
+      type: "geyser",
       x: 1030,
       y: 565,
       w: 140,
       h: 200,
-      warning: 2,
+      warning: 1.2,
+      active: false,
+      cooldown: 0,
+      bodyX: 1030,
       age: 0,
       duration: 0.55,
       bodyY: 0,

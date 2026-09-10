@@ -95,10 +95,11 @@ export class Sound {
       return;
     }
     if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
-      const heavy = detail.heavy || ["rocket", "rail", "plasma", "pellet"].includes(type);
-      this.tone(type === "rail" ? 820 : type === "plasma" ? 360 : 165,
-        type === "rail" ? 60 : 38, heavy ? 0.3 : 0.11, heavy ? 0.4 : 0.19, "triangle");
-      this.rumble(heavy ? 0.18 : 0.06, heavy ? 0.5 : 0.22, 1900);
+      const kind = detail.kind || type;
+      const heavy = detail.heavy || ["rocket", "rail", "plasma", "pellet"].includes(kind);
+      this.tone(kind === "rail" ? 820 : kind === "plasma" ? 360 : 185,
+        kind === "rail" ? 60 : 38, heavy ? 0.34 : 0.14, heavy ? 0.5 : 0.25, "triangle");
+      this.rumble(heavy ? 0.24 : 0.09, heavy ? 0.6 : 0.3, 2300);
       return;
     }
     const table = {

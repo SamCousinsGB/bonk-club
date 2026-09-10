@@ -21,7 +21,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 13;
+export const PROTOCOL = 14;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -729,24 +729,25 @@ export function validSnapshot(s) {
     ) &&
     list(
       s.hazards,
-      3,
+      8,
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
-        [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyY, h.vy].every(
+        [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= 300 &&
+        h.w <= 400 &&
         h.h > 0 &&
         h.h <= 300 &&
         h.warning >= 0 &&
         h.warning <= 2 &&
         h.age >= 0 &&
-        h.duration > 0 &&
+        h.duration >= -0.02 &&
         h.duration <= 6 &&
         (h.dir === 1 || h.dir === -1) &&
         typeof h.done === "boolean" &&
+        typeof h.active === "boolean" &&
         Array.isArray(h.hitIds) &&
         h.hitIds.length <= 4 &&
         h.hitIds.every((id) => integer(id, 0, 3)),
@@ -772,7 +773,7 @@ export function validSnapshot(s) {
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
         ["arc", "blackhole", "shockwave"].includes(f.kind) &&
         f.radius >= 0 &&
-        f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : 320) &&
+        f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : 400) &&
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 5)) &&
         (f.kind !== "shockwave" ||
           (list(f.strikes, 6, s => xy(s) && finite(s.at) && s.at >= 0 && s.at <= 4) &&

@@ -3,6 +3,7 @@ import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
+import { dangerous, hazardZone } from "./hazards.js";
 import { grenadePlan } from "./ballistics.js";
 import {
   navigationSteps,
@@ -26,65 +27,25 @@ const idle = () => ({
   duck: false,
   aim: null,
 });
-const weapons = {
-  bat: { range: 100, value: 2, damage: 35 },
-  sword: { range: 110, value: 4, damage: 28 },
-  blaster: { range: 1100, speed: 1300, value: 6, damage: 17, recoil: 40 },
-  shotgun: { range: 480, speed: 1050, value: 7, damage: 50, recoil: 150 },
-  minigun: { range: 1000, speed: 1650, value: 9, damage: 10, recoil: 30 },
-  railgun: { range: 2400, speed: 4600, value: 10, damage: 85, recoil: 380 },
-  rocket: {
-    range: 1250,
-    speed: 680,
-    value: 8,
-    damage: 64,
-    blast: 145,
-    recoil: 240,
-  },
-  barrage: {
-    range: 1250,
-    speed: 780,
-    value: 9,
-    damage: 52,
-    blast: 180,
-    recoil: 410,
-  },
-  plasma: {
-    range: 1050,
-    speed: 850,
-    value: 8,
-    damage: 48,
-    blast: 105,
-    recoil: 170,
-  },
-  grenade: {
-    range: WEAPONS.grenade.range,
-    speed: WEAPONS.grenade.speed,
-    value: 5,
-    damage: 58,
-    blast: 145,
-    recoil: 40,
-  },
-};
-for (const [type, w] of Object.entries(WEAPONS)) {
-  weapons[type] ||= {
-    range: w.range || 1000,
-    speed: w.speed,
-    value: { common: 5, uncommon: 7, rare: 9, exotic: 11 }[w.rarity],
-    damage: w.damage,
-    recoil: w.recoil || 0,
-    blast: ["rocket", "grenade", "plasma", "singularity"].includes(w.kind)
-      ? w.radius || 145
-      : 0,
-  };
-}
-for (const [type, w] of Object.entries(WEAPONS))
-  weapons[type].recoil = firingRecoil(w, {
-    prone: !!w.proneOnly,
-    ground: true,
-  });
+// Combat range and damage use the same definitions as actual attacks.
+const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type,{
+  range:w.range || (w.kind === "melee" ? 100 : 1100), speed:w.kind === "melee" ? undefined : w.speed,
+  value:{common:5,uncommon:7,rare:9,exotic:11}[w.rarity], damage:w.damage,
+  recoil:firingRecoil(w,{prone:!!w.proneOnly,ground:true}),
+  blast:["rocket","grenade","plasma","singularity"].includes(w.kind)?w.radius||145:0,
+}]));
 const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
+function walkingSpan(here,solids) {
+  if(!here)return null;
+  let left=here.x,right=here.x+here.w,changed=true;
+  while(changed){changed=false;for(const s of solids){
+    if(Math.abs(s.y-here.y)>3||s.x>right+4||s.x+s.w<left-4)continue;
+    const a=Math.min(left,s.x),b=Math.max(right,s.x+s.w);
+    if(a!==left||b!==right){left=a;right=b;changed=true;}
+  }}
+  return {x:left,w:right-left};
+}
 function firstObstacle(solids, p, point) {
   return solids
     .map((s) => ({ s, hit: segmentBox(p.x, p.y - 10, point.x, point.y, s) }))
@@ -248,6 +209,8 @@ export class BotController {
         ...fists,
         range: COMBO[p.comboTime > 0 ? p.comboStep : 0].range,
       };
+    const melee = !p.weapon || WEAPONS[p.weapon]?.kind === "melee";
+    const footing = walkingSpan(here,solids);
     const paths = routesFrom(
       this.graph,
       solids,
@@ -289,6 +252,11 @@ export class BotController {
     }
     const enemy = choice.q,
       range = distance(p, enemy);
+    if (b.watchedTarget !== enemy.id || enemy.hp < b.watchedHp) b.progressAt = world.time;
+    b.watchedTarget = enemy.id;
+    b.watchedHp = enemy.hp;
+    b.progressAt ??= world.time;
+    const staleAttack = world.time - b.progressAt > 2.5;
     const grenade = WEAPONS[p.weapon]?.kind === "grenade";
     const skill = BOT_DIFFICULTIES[cleanDifficulty(world.difficulty)];
     const perception = combatPerception(b, enemy, p.weapon, world.time, world.random, world.difficulty);
@@ -313,9 +281,9 @@ export class BotController {
       distance(p, center(obstacle)) < weapon.blast + 100
     )
       i.attack = false;
-    if (weapon.recoil && here && p.ground) {
+    if (weapon.recoil && footing && p.ground && range > 175) {
       const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.38;
-      if (recoilX < here.x + 18 || recoilX > here.x + here.w - 18)
+      if (recoilX < footing.x + 18 || recoilX > footing.x + footing.w - 18)
         i.attack = false;
     }
     if (weapon.blast && range < 150 && !obstacle) i.throw = true;
@@ -347,7 +315,7 @@ export class BotController {
       destination = choice.floor,
       path = choice.path;
     // Commit to a useful, reachable pickup; avoid repeatedly swapping similar weapons.
-    if (range > (weapon.speed ? 220 : 500) && !b.flight) {
+    if ((range > (melee ? 240 : 220) || Math.abs(enemy.y-p.y)>100) && !b.flight) {
       const upgrades = world.drops
         .filter(
           (d) =>
@@ -372,14 +340,16 @@ export class BotController {
         .filter(
           (d) =>
             d.path &&
-            d.path.cost < 7 &&
-            d.value > weapon.value + (p.weapon ? 2 : 0) &&
+            d.path.cost < (melee ? 10 : 7) &&
+            (melee ? WEAPONS[d.d.type].kind !== "melee" : d.value > weapon.value + 2) &&
             distance(p, d.d) <
-              (weapon.speed ? 1100 : Math.min(500, range * 0.6)),
+              (melee ? Math.min(900, Math.max(400,range * 0.8)) : 1100),
         )
         .sort((a, b) => a.score - b.score);
-      if (upgrades[0] && (!p.weapon || upgrades[0].score < 1.5)) {
-        ({ d: goal, floor: destination, path } = upgrades[0]);
+      const upgrade = upgrades.find(u=>u.d===b.pickup && world.time<b.pickupUntil) || upgrades[0];
+      if (upgrade && (melee || upgrade.score < 1.5)) {
+        ({ d: goal, floor: destination, path } = upgrade);
+        if(b.pickup!==goal) { b.pickup=goal; b.pickupUntil=world.time+3; }
         if (
           p.weapon &&
           distance(p, goal) < 70 &&
@@ -454,7 +424,8 @@ export class BotController {
         goal === enemy &&
         weapon.speed &&
         !obstacle &&
-        range < weapon.range * 0.85
+        range < weapon.range * 0.85 &&
+        !staleAttack
       ) {
         const desired = weapon.blast
           ? Math.max(420, weapon.blast + 140)
@@ -474,14 +445,14 @@ export class BotController {
       if (here) {
         const margin = weapon.speed
           ? Math.min(
-              here.w / 2 - 3,
+              footing.w / 2 - 3,
               Math.max(
                 30,
                 (weapon.recoil || 0) * Math.abs(Math.cos(i.aim)) * 0.38 + 24,
               ),
             )
           : 20;
-        moveTo = clamp(moveTo, here.x + margin, here.x + here.w - margin);
+        moveTo = clamp(moveTo, footing.x + margin, footing.x + footing.w - margin);
       }
     }
     Object.assign(i, steer(p, moveTo));
@@ -524,7 +495,7 @@ export class BotController {
         goal.y < p.y - 50,
     );
     const panel = breach || (!path || path.cost > 3 ? ceiling : null);
-    if (panel && !b.flight && !grenade) {
+    if (panel && !b.flight && !grenade && !staleAttack && (!melee || distance(p,center(panel)) < weapon.range)) {
       const point = {
         x: clamp(enemy.x, panel.x + 10, panel.x + panel.w - 10),
         y: panel.y + panel.h / 2,
@@ -708,25 +679,20 @@ export class BotController {
       i.duck = false;
       i.block = false;
     }
-    const hazard = world.hazards.find(
-      (h) =>
-        Math.abs(p.x - h.x) < h.w / 2 + 40 &&
-        p.y + 30 > h.y - h.h &&
-        p.y - 28 < h.y,
-    );
-    if (hazard) {
-      b.flight = null;
-      let away = p.x < hazard.x ? -1 : 1;
-      if (here && p.x + away * 80 < here.x + 15) away = 1;
-      if (here && p.x + away * 80 > here.x + here.w - 15) away = -1;
-      i.left = away < 0;
-      i.right = away > 0;
-      i.block = false;
-      i.duck = false;
-      i.jump =
-        p.ground &&
-        hazard.warning === 0 &&
-        ["electric", "lava"].includes(hazard.type);
+    const hazard = world.hazards.find(h=>{
+      if(!dangerous(h))return false;
+      const z=hazardZone(h);
+      return p.x>z.x-45&&p.x<z.x+z.w+45&&p.y+30>z.y-20&&p.y-28<z.y+z.h;
+    });
+    if (hazard && !b.flight) {
+      const z=hazardZone(hazard);
+      let away=p.x<z.x+z.w/2?-1:1;
+      if(hazard.type==="conveyor")away=-hazard.dir;
+      if(here&&p.x+away*80<here.x+15)away=1;
+      if(here&&p.x+away*80>here.x+here.w-15)away=-1;
+      i.left=away<0;i.right=away>0;i.block=false;i.duck=false;
+      const roof=solids.some(s=>s.y+s.h<p.y-25&&s.y+s.h>p.y-165&&p.x+20>s.x&&p.x-20<s.x+s.w);
+      i.jump=p.ground&&!roof;
     }
     if (!p.ground && !b.flight && p.jumps === 1 && p.vy > 0 && p.y > H - 180)
       i.jump = true;

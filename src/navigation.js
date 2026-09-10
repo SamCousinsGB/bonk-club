@@ -1,4 +1,5 @@
-import { W, H, RUN_SPEED } from "./scale.js";
+import { dangerous, hazardZone } from "./hazards.js";
+import { W, H, RUN_SPEED, JUMP_SPEED, AIR_JUMP_SPEED } from "./scale.js";
 
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -45,7 +46,7 @@ export function traceFlight(
   let x = startX,
     y = from.y - 30,
     vx = initialVx,
-    vy = jumps ? -700 : 0,
+    vy = jumps ? -JUMP_SPEED : 0,
     second = false,
     ground = !jumps,
     clearAt = jumps ? 0 : null;
@@ -62,7 +63,7 @@ export function traceFlight(
   );
   for (let age = dt; age < 1.75; age += dt) {
     if (jumps === 2 && !second && age >= secondAt) {
-      vy = -590;
+      vy = -AIR_JUMP_SPEED;
       second = true;
       ground = false;
     }
@@ -184,7 +185,7 @@ export function* navigationSteps(
     for (const to of solids) {
       if (
         to === from ||
-        to.y < from.y - 240 ||
+        to.y < from.y - 265 ||
         to.y > from.y + 220 ||
         to.x > from.x + from.w + 300 ||
         to.x + to.w < from.x - 300
@@ -241,7 +242,7 @@ export function* navigationSteps(
     for (const to of solids) {
       if (
         to === from ||
-        to.y < from.y - 240 ||
+        to.y < from.y - 265 ||
         to.y > from.y + 600 ||
         to.x > from.x + from.w + 300 ||
         to.x + to.w < from.x - 300
@@ -344,7 +345,7 @@ export function routesFrom(
       if (!to) continue;
       const danger = hazards.some(
         (h) =>
-          Math.abs(edge.endX - h.x) < h.w / 2 + 50 &&
+          dangerous(h) && Math.abs(edge.endX - (hazardZone(h).x+hazardZone(h).w/2)) < hazardZone(h).w/2 + 40 &&
           to.y > h.y - h.h &&
           to.y < h.y + 50,
       )

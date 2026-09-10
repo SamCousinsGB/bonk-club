@@ -22,8 +22,8 @@ export function remakeClassic(arena, index) {
     ...layouts[index].map(r=>slab(r)),
   ];
   // These narrow outside landings are separated horizontally, leaving headroom.
-  for(let i=0;i<8;i++) for(const right of [false,true])
-    platforms.push(slab([right ? (i%2?2340:2450) : (i%2?130:20), 1300-i*120, 90]));
+  for(let i=0;i<5;i++) for(const right of [false,true])
+    platforms.push(slab([right ? (i%2?2330:2420) : (i%2?80:10), 1260-i*210, 130]));
   if ([2,5,7].includes(index)) {
     platforms.push(slab([50,1380,600]), slab([1910,1380,600]));
   } else platforms.push(slab([60,1380,2440]));

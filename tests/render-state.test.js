@@ -27,7 +27,7 @@ test("moving objects interpolate by stable identity even when a projectile is re
   const b=encoder.make(w.snapshot()), middle=interpolateStates(a,b,.5);
   assert.equal(middle.projectiles.length,1);
   assert.equal(middle.projectiles[0].x,60);
-  assert.equal(middle.drops[0].x,a.drops[0].x+20);
+  assert.ok(Math.abs(middle.drops[0].x-(a.drops[0].x+20))<1e-8);
   b.players[0].occupant++;
   b.players[0].x+=100;
   assert.equal(interpolateStates(a,b,.5).players[0].x,b.players[0].x);

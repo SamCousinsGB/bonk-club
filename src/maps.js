@@ -20,13 +20,13 @@ const slab = (x, y, w, material, h = 28, extra = {}) => ({
   ...extra,
 });
 const steps = (x, y, count, dx, dy, material) =>
-  Array.from({ length: count }, (_, i) =>
+  Array.from({ length: count }, (_, i) => i).filter(i => i % 2 === 0).map(i =>
     slab(
       x +
         i * dx +
-        (!dx ? (i % 2) * (x < 200 ? 100 : x > 2300 ? -100 : x < 1280 ? 140 : -140) : 0),
+        (!dx ? ((i / 2) % 2) * (x < 200 ? 150 : x > 2300 ? -150 : x < 1280 ? 160 : -160) : 0),
       y + i * dy,
-      120,
+      150,
       material,
       20,
     ),

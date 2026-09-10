@@ -105,8 +105,8 @@ test("right-click activates alternate shots with shared cooldown and exact ammo 
     assert.equal(w.projectiles.length, type === "shotgun" ? 10 : 1);
     assert.ok(w.projectiles.every((b) => b.alternate));
     if (type === "plasma") {
-      assert.equal(w.projectiles[0].damage, 70);
-      assert.equal(w.projectiles[0].radius, 150);
+      assert.equal(w.projectiles[0].damage, 110);
+      assert.equal(w.projectiles[0].radius, 205);
     }
     w.step(STEP, { 0: { attack: true } });
     assert.equal(p.ammo, 3);

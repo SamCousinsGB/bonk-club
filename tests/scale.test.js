@@ -82,8 +82,8 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
     assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > 2400);
     assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
     assert.ok(Math.max(...w.platforms.map((p) => p.y)) >= 1200);
-    assert.ok(w.platforms.length >= 20);
-    assert.ok(w.cover.length >= 5);
+    assert.ok(w.platforms.length >= 16);
+    assert.ok(w.cover.length >= 3);
     assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());
@@ -104,9 +104,7 @@ for (const arena of CITY_ARENAS)
       Object.assign(p, { x: inside, y: 1270, ground: true, vx: 0, vy: 0 });
       for (let floorY = 1300; floorY > 340; floorY -= 320) {
         for (const [x, y] of [
-          [outside, floorY - 80],
-          [inside, floorY - 160],
-          [outside, floorY - 240],
+          [outside, floorY - 160],
           [inside, floorY - 320],
         ]) {
           let arrived = false;

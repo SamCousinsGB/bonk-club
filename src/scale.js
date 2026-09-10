@@ -4,6 +4,8 @@ export const H = 1440;
 export const RUN_SPEED = 240;
 export const CRAWL_SPEED = 85;
 export const GUARD_SPEED = 80;
+export const JUMP_SPEED = 700;
+export const AIR_JUMP_SPEED = 680;
 export const SUDDEN_DEATH = 120;
 
 // Keep the older arenas' lower geometry, then add connected upper routes.

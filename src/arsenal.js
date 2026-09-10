@@ -2,26 +2,26 @@ import { NUCLEAR } from "./impact.js";
 const original = {
   bat: {
     name: "BAT",
-    range: 94,
-    damage: 35,
-    force: 760,
-    cooldown: 0.65,
+    range: 112,
+    damage: 55,
+    force: 950,
+    cooldown: 0.56,
     ammo: 8,
     kind: "melee",
   },
   sword: {
     name: "SWORD",
-    range: 112,
-    damage: 28,
-    force: 520,
+    range: 128,
+    damage: 42,
+    force: 680,
     cooldown: 0.38,
     ammo: 12,
     kind: "melee",
   },
   blaster: {
     name: "PISTOL",
-    damage: 17,
-    force: 350,
+    damage: 24,
+    force: 440,
     cooldown: 0.25,
     ammo: 14,
     kind: "bullet",
@@ -29,8 +29,8 @@ const original = {
   },
   shotgun: {
     name: "SHOTGUN",
-    damage: 10,
-    force: 230,
+    damage: 15,
+    force: 300,
     cooldown: 0.85,
     ammo: 5,
     kind: "pellet",
@@ -47,8 +47,9 @@ const original = {
   },
   rocket: {
     name: "ROCKET LAUNCHER",
-    damage: 64,
-    force: 1100,
+    damage: 100,
+    force: 1600,
+    radius: 205,
     cooldown: 1.1,
     ammo: 3,
     kind: "rocket",
@@ -57,8 +58,9 @@ const original = {
   },
   grenade: {
     name: "GRENADE",
-    damage: 58,
-    force: 1050,
+    damage: 95,
+    force: 1550,
+    radius: 215,
     cooldown: 0.9,
     ammo: 4,
     kind: "grenade",
@@ -70,8 +72,8 @@ const original = {
   },
   minigun: {
     name: "MINIGUN",
-    damage: 10,
-    force: 190,
+    damage: 13,
+    force: 250,
     cooldown: 0.075,
     ammo: 80,
     kind: "bullet",
@@ -81,8 +83,8 @@ const original = {
   },
   railgun: {
     name: "RAILGUN",
-    damage: 85,
-    force: 1250,
+    damage: 105,
+    force: 1550,
     cooldown: 1.25,
     ammo: 4,
     kind: "rail",
@@ -91,20 +93,20 @@ const original = {
   },
   plasma: {
     name: "PLASMA CANNON",
-    damage: 48,
-    force: 850,
+    damage: 72,
+    force: 1200,
     cooldown: 0.65,
     ammo: 7,
     kind: "plasma",
     speed: 850,
     recoil: 280,
-    radius: 105,
+    radius: 155,
     alt: {
       label: "CHARGED SHOT",
       description: "Fire a charged plasma orb; uses two rounds",
-      damage: 70,
-      force: 1100,
-      radius: 150,
+      damage: 110,
+      force: 1550,
+      radius: 205,
       bounces: 4,
       recoil: 440,
       speed: 720,
@@ -115,15 +117,15 @@ const original = {
   },
   barrage: {
     name: "TRIPLE ROCKET LAUNCHER",
-    damage: 52,
-    force: 1150,
+    damage: 76,
+    force: 1500,
     cooldown: 1.6,
     ammo: 3,
     kind: "rocket",
     speed: 780,
     recoil: 760,
     count: 3,
-    radius: 180,
+    radius: 215,
   },
 };
 
@@ -181,8 +183,8 @@ const additions = {
   smg: {
     name: "SMG",
     kind: "bullet",
-    damage: 9,
-    force: 85,
+    damage: 12,
+    force: 145,
     cooldown: 0.065,
     ammo: 60,
     speed: 1400,
@@ -194,8 +196,8 @@ const additions = {
   burst: {
     name: "BURST RIFLE",
     kind: "bullet",
-    damage: 12,
-    force: 110,
+    damage: 17,
+    force: 210,
     cooldown: 0.3,
     ammo: 20,
     speed: 1750,
@@ -208,15 +210,15 @@ const additions = {
   flame: {
     name: "FLAMETHROWER",
     kind: "flame",
-    damage: 4,
-    force: 25,
+    damage: 7,
+    force: 50,
     cooldown: 0.055,
     ammo: 80,
     speed: 670,
     recoil: 3,
     spread: 0.23,
     life: 0.42,
-    burn: 1.5,
+    burn: 1.9,
     rarity: "uncommon",
     range: 270,
     color: "#ff9447",
@@ -224,8 +226,8 @@ const additions = {
   frost: {
     name: "FREEZE RAY",
     kind: "frost",
-    damage: 8,
-    force: 55,
+    damage: 12,
+    force: 105,
     cooldown: 0.12,
     ammo: 32,
     speed: 1250,
@@ -238,8 +240,8 @@ const additions = {
   ricochet: {
     name: "RICOCHET GUN",
     kind: "ricochet",
-    damage: 24,
-    force: 240,
+    damage: 34,
+    force: 470,
     cooldown: 0.28,
     ammo: 16,
     speed: 1450,
@@ -253,8 +255,8 @@ const additions = {
   saw: {
     name: "SAWBLADE LAUNCHER",
     kind: "saw",
-    damage: 38,
-    force: 320,
+    damage: 58,
+    force: 650,
     cooldown: 0.65,
     ammo: 7,
     speed: 800,
@@ -268,8 +270,8 @@ const additions = {
   tesla: {
     name: "TESLA GUN",
     kind: "tesla",
-    damage: 34,
-    force: 200,
+    damage: 48,
+    force: 400,
     cooldown: 0.45,
     ammo: 10,
     speed: 2200,
@@ -281,14 +283,14 @@ const additions = {
   homing: {
     name: "HOMING LAUNCHER",
     kind: "rocket",
-    damage: 56,
-    force: 950,
+    damage: 85,
+    force: 1400,
     cooldown: 1.1,
     ammo: 4,
     speed: 530,
     recoil: 320,
     homing: true,
-    radius: 150,
+    radius: 195,
     rarity: "rare",
     range: 1400,
     color: "#ffb79c",
@@ -296,14 +298,14 @@ const additions = {
   cluster: {
     name: "CLUSTER LAUNCHER",
     kind: "grenade",
-    damage: 32,
-    force: 700,
+    damage: 48,
+    force: 1100,
     cooldown: 1.3,
     ammo: 3,
     speed: 490,
     recoil: 260,
     cluster: true,
-    radius: 120,
+    radius: 170,
     rarity: "rare",
     range: 650,
     color: "#ffe796",
@@ -311,8 +313,8 @@ const additions = {
   machinegun: {
     name: "HEAVY MACHINE GUN",
     kind: "bullet",
-    damage: 18,
-    force: 100,
+    damage: 24,
+    force: 220,
     cooldown: 0.055,
     ammo: 100,
     speed: 2100,
@@ -326,15 +328,15 @@ const additions = {
   repulsor: {
     name: "REPULSOR",
     kind: "force",
-    damage: 12,
-    force: 1500,
+    damage: 28,
+    force: 2200,
     cooldown: 0.6,
     ammo: 6,
     speed: 1050,
     recoil: 380,
-    life: 0.28,
+    life: 0.32,
     rarity: "rare",
-    range: 280,
+    range: 330,
     color: "#8bffe0",
   },
   blackhole: {
@@ -347,7 +349,7 @@ const additions = {
     speed: 580,
     recoil: 300,
     life: 0.65,
-    radius: 290,
+    radius: 360,
     rarity: "exotic",
     range: 950,
     color: "#c6a1ff",
@@ -368,7 +370,7 @@ const rarity = {
 export const WEAPONS = Object.fromEntries(
   Object.entries({ ...original, ...additions }).map(([key, w]) => [
     key,
-    { rarity: rarity[key] || w.rarity, ...w },
+    { rarity: rarity[key] || w.rarity, ...w, ...(w.kind === "melee" ? { boost: 260 } : {}) },
   ]),
 );
 export const RARITY_COLORS = {
@@ -441,4 +443,13 @@ export class WeaponRotation {
   opening(round) {
     return [round % 3 === 1 ? "nuke" : this.next(), this.next()];
   }
+}
+
+// Ranged base damage stays useful at distance; close contact adds a bounded bonus.
+// Travelled distance includes bounces, so reflected rounds do not regain the bonus.
+export function projectileImpact(projectile, distance = 0) {
+  const w = WEAPONS[projectile.weapon];
+  const bonus = w && ["bullet","pellet","flame","frost"].includes(w.kind)
+    ? (w.kind === "pellet" ? 0.45 : 0.3) * Math.max(0,1-distance/(w.kind === "pellet" ? 320 : 260)) : 0;
+  return {damage:projectile.damage*(1+bonus),force:projectile.force*(1+bonus*0.65)};
 }

@@ -14,13 +14,15 @@ import {
   chooseWeapon,
   WeaponRotation,
   firingRecoil,
+  projectileImpact,
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
+import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
-import { updateHazards } from "./hazards.js";
+import { createHazards, updateHazards } from "./hazards.js";
 import { SKYSCRAPERS } from "./skyscrapers.js";
 import { segmentBox, playerBox } from "./collision.js";
 import {
@@ -37,12 +39,14 @@ import {
   CRAWL_SPEED,
   GUARD_SPEED,
   SUDDEN_DEATH,
+  JUMP_SPEED,
+  AIR_JUMP_SPEED,
 } from "./scale.js";
 export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS];
+export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS].map(equipArena);
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -150,9 +154,7 @@ export class World {
     }));
     for (const d of this.drops) Object.assign(d, this.pickupPosition(d));
     this.debris = [];
-    this.hazards = [];
-    this.nextHazard = 0;
-    this.hazardTimer = 8 + this.random() * 4;
+    this.hazards = createHazards(this);
     this.ragdolls = [];
     this.phase = "countdown";
     this.phaseTime = 2.4;
@@ -536,7 +538,7 @@ export class World {
       );
     else p.vx *= Math.pow(0.996, dt * 120);
     if (p.jumpBuffer > 0 && p.stun <= 0 && (p.coyote > 0 || p.jumps < 2)) {
-      p.vy = p.jumps === 0 ? -700 : -590;
+      p.vy = p.jumps === 0 ? -JUMP_SPEED : -AIR_JUMP_SPEED;
       p.jumps++;
       p.ground = false;
       p.coyote = 0;
@@ -1146,21 +1148,22 @@ export class World {
           break;
         }
         const hp = p.hp;
+        const impactPower = projectileImpact(b,(b.travelled || 0)+Math.hypot(b.x-x,b.y-y));
         this.hit(
           p,
           source,
-          b.damage,
-          b.force,
+          impactPower.damage,
+          impactPower.force,
           Math.sign(b.vx) || 0.1,
           Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
           {
             projectile: true,
             stun: ["flame", "frost"].includes(b.kind)
               ? 0.015
-              : b.damage <= 18
+              : (WEAPONS[b.weapon]?.cooldown || 1) < 0.2
                 ? 0.055
                 : undefined,
-            hitstop: b.damage <= 18 ? 0.008 : undefined,
+            hitstop: (WEAPONS[b.weapon]?.cooldown || 1) < 0.2 ? 0.008 : undefined,
           },
         );
         impactSpecial(this, b, p, p.hp < hp);
@@ -1176,6 +1179,7 @@ export class World {
         b.x = endX;
         b.y = endY;
       }
+      b.travelled = (b.travelled || 0) + Math.hypot(b.x-x,b.y-y);
       if (b.kind === "grenade" && (b.x < -80 || b.x > W + 80 || b.y > H + 80))
         b.life = 0;
       if (

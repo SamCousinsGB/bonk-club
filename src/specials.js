@@ -120,10 +120,10 @@ export function expireSpecial(world, b) {
         owner: b.owner,
         kind: "grenade",
         weapon: "cluster",
-        damage: 34,
-        force: 650,
+        damage: 45,
+        force: 1000,
         life: 0.4 + n * 0.055,
-        radius: 115,
+        radius: 150,
         r: 5,
         bounces: 0,
         hitIds: [],
@@ -155,11 +155,11 @@ export function updateFields(world, dt) {
         dy = f.y - p.y,
         d = Math.hypot(dx, dy);
       if (d > f.radius || !clear(world, f, p)) continue;
-      const pull = (1 - d / f.radius) * 2800 * dt;
+      const pull = (1 - d / f.radius) * 3600 * dt;
       p.vx += (dx / Math.max(d, 18)) * pull;
       p.vy += (dy / Math.max(d, 18)) * pull;
       if (p.id !== undefined && pulse && d < 100) {
-        p.hp = Math.max(0, p.hp - (d < 38 ? 22 : 9));
+        p.hp = Math.max(0, p.hp - (d < 38 ? 30 : 13));
         p.flash = 0.09;
         if (p.hp <= 0) world.kill(p);
       }
