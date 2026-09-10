@@ -59,6 +59,10 @@ function elbow(a, b, l1, l2, side) {
 }
 export function updateRig(p, dt, platforms, time) {
   if (!p.rig) p.rig = makeRig(p);
+  if(p.freeze>0 && p.freezePose) {
+    p.rig=p.freezePose.map(q=>({x:p.x+q.x,y:p.y+q.y,px:p.x+q.x,py:p.y+q.y}));
+    return;
+  }
   const rig = p.rig,
     prone = !!p.prone;
   const desired = prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);

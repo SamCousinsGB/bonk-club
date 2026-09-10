@@ -1,8 +1,9 @@
 const simulationOnly = new Set([
+  "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled",
 ]);
-const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields"];
+const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
 function copy(value) {
   if (typeof value === "number") return quantize(value);
@@ -30,7 +31,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 function blend(a, b, t) {
   if (!a) return b;
   const out = { ...b };
-  for (const key of ["x", "y", "walk", "angle", "bodyX", "bodyY", "age", "ashAge", "radius"])
+  for (const key of ["x", "y", "walk", "angle", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));

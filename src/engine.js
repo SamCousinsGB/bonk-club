@@ -1,3 +1,4 @@
+import { projectileEffect, deathPose, updateDeath, CUT_JOINTS } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
 import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
@@ -114,6 +115,7 @@ export class World {
     this.terrainVersion = 0;
     this.craters = [];
     this.craterSerial = 0;
+    this.wreckage=[];this.rifts=[];this.wreckSerial=0;this.riftSerial=0;this.wreckDirty=false;this.warpActive=false;
     this.platforms = preparePlatforms(this.arena, this.arenaIndex).map(
       (p, i) => ({
         id: "floor" + i,
@@ -207,6 +209,7 @@ export class World {
       rush: 0,
       burn: 0,
       chill: 0,
+      freeze:0, freezeCooldown:0, xray:0, xrayType:null,
       weapon: null,
       ammo: 0,
       walk: 0,
@@ -399,9 +402,9 @@ export class World {
     for (const p of this.players) {
       if (!p.alive) continue;
       const i = active ? cleanInput(inputs[p.id]) : emptyInput();
-      if (i.throw && !p.throwHeld && p.stun <= 0) this.throwWeapon(p);
+      if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze) this.throwWeapon(p);
       p.throwHeld = i.throw;
-      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
+      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
         else if (i.attack) this.attack(p);
       }
@@ -440,9 +443,9 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      const nuclearPending = this.projectiles.some(b => b.nuclear && b.life > 0) ||
-        this.fields.some(f => f.kind === "shockwave" && f.life > 0);
-      if (alive.length <= 1 && !nuclearPending && (this.players.length >= 2 || alive.length === 0)) {
+      const pendingBlast = this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0) ||
+        this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
+      if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         if (this.winner !== null) this.scores[this.winner]++;
         this.phase = "result";
@@ -459,6 +462,7 @@ export class World {
   }
   movePlatforms() {
     for (const p of this.platforms) {
+      if(p.wreckId)continue;
       const oldX = p.x,
         oldY = p.y;
       if (p.move) p.x = p.baseX + Math.sin(this.time * p.speed) * p.move;
@@ -481,10 +485,14 @@ export class World {
     p.comboTime = Math.max(0, p.comboTime - dt);
     p.rush = Math.max(0, p.rush - dt);
     p.chill = Math.max(0, p.chill - dt);
+    p.freeze=Math.max(0,(p.freeze||0)-dt);
+    p.freezeCooldown=Math.max(0,(p.freezeCooldown||0)-dt);
+    p.xray=Math.max(0,(p.xray||0)-dt);
+    if(p.freeze>0){i=emptyInput();i.duck=p.prone;p.stun=Math.max(p.stun,p.freeze);p.block=false;}
     if (p.burn > 0) {
       p.burn = Math.max(0, p.burn - dt);
       p.hp = Math.max(0, p.hp - 5 * dt);
-      if (!p.hp) this.kill(p);
+      if (!p.hp) this.kill(p,{effect:"burn",ash:true});
     }
     if (p.ground) p.airLunge = false;
     const wasProne = p.prone;
@@ -599,6 +607,15 @@ export class World {
       } else if (oldX > s.x + s.w) {
         p.x = s.x + s.w + radius;
         p.vx = Math.abs(p.vx) * 0.25;
+      } else if(s.wreckId) {
+        // A rotating chunk can sweep over a stationary body between ticks.
+        // Resolve that overlap rather than trapping the fighter inside it.
+        const exits=[p.x+radius-s.x,s.x+s.w-p.x+radius,p.y+bottom-s.y,s.y+s.h-p.y+top];
+        const exit=exits.indexOf(Math.min(...exits));
+        if(exit===0)p.x=s.x-radius;
+        else if(exit===1)p.x=s.x+s.w+radius;
+        else if(exit===2){p.y=s.y-bottom;p.vy=Math.min(0,p.vy);p.ground=true;p.support=s.id;}
+        else {p.y=s.y+s.h+top;p.vy=Math.max(0,p.vy);}
       }
     }
     p.walk += p.vx * dt * 0.032;
@@ -623,6 +640,7 @@ export class World {
     }
   }
   attack(p, alternate = false) {
+    if(p.freeze>0)return;
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
     const w = alternate ? { ...base, ...base.alt } : base;
@@ -735,15 +753,20 @@ export class World {
       this.event("parry", { x: (p.x + q.x) / 2, y: q.y - 10, color: q.color });
       return;
     }
+    if (q.freeze>0 && options.effect !== "ice" && damage>=20) {
+      damage*=1.5;q.freeze=0;options={...options,effect:"ice"};
+    }
+    if(options.effect==="plasma"||options.effect==="tesla"){q.xray=.32;q.xrayType=options.effect;}
+    if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
     const knockback = dir * force * (1 + (100 - q.hp) / 220);
     // A following low-force pellet must not cancel a launch in the same direction.
-    q.vx =
+    q.vx = force<=0 ? q.vx :
       q.vx * knockback > 0 && Math.abs(q.vx) > Math.abs(knockback)
         ? q.vx
         : knockback;
-    q.vy = Math.min(q.vy, force * vertical);
+    if(force>0)q.vy = Math.min(q.vy, force * vertical);
     carryImpulse(q, options.blast ? 0.55 : 0.26);
     q.stun = Math.max(q.stun, options.stun ?? (damage > 30 ? 0.4 : 0.26));
     if (q.rush > 0 && !q.weapon && options.projectile)
@@ -759,15 +782,16 @@ export class World {
     this.event("hit", {
       x: q.x, y: q.y - 10, color: q.color, force, damage,
       melee: !!options.melee, move: options.move || null,
-      projectile: !!options.projectile, blast: !!options.blast,
+      projectile: !!options.projectile, blast: !!options.blast, effect:options.effect||null,
     });
-    if (q.hp <= 0) this.kill(q);
+    if (q.hp <= 0) this.kill(q,{effect:options.execute?"slice":options.effect,
+      ash:["plasma","tesla","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
   }
-  kill(p, {ash = false, sourceX = p.x} = {}) {
+  kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0} = {}) {
     if (!p.alive) return;
     p.alive = false;
     p.hp = 0;
-    if (p.weapon && !ash)
+    if (p.weapon && !ash && effect!=="singularity")
       this.drops.push({
         x: p.x,
         y: p.y,
@@ -787,7 +811,8 @@ export class World {
       life: ash ? NUCLEAR.ashDuration : 5,
       ...(ash ? {ash:true, ashAge:0, ashDirection:Math.sign(p.x-sourceX)||1} : {}),
     });
-    this.event("ko", { x: p.x, y: p.y, color: ash ? "#eee4c8" : p.color, ash });
+    deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
+    this.event("ko", { x: p.x, y: p.y, color: ash ? "#eee4c8" : p.color, ash, effect });
   }
   pickup(p) {
     if (p.weapon || p.pickupCooldown > 0 || !p.alive) return;
@@ -951,6 +976,14 @@ export class World {
   }
   damageCover(c, damage, vx = 0, vy = 0) {
     if (!breakable(c) || c.hp <= 0) return;
+    if(c.wreckId){
+      const w=this.wreckage.find(w=>w.id===c.wreckId);if(!w)return;
+      w.hp=Math.max(0,w.hp-damage);this.wreckDirty=true;
+      for(const p of this.platforms)if(p.wreckId===w.id)p.hp=w.hp;
+      this.event(w.hp?"coverhit":"break",{x:w.x,y:w.y,color:"#9d94bc"});
+      if(!w.hp)this.terrainVersion++;
+      return;
+    }
     c.hp = Math.max(0, c.hp - damage);
     this.event(c.hp ? "coverhit" : "break", {
       x: c.x + c.w / 2,
@@ -1052,7 +1085,7 @@ export class World {
         b.force * scale,
         Math.sign(p.x - b.x) || 1,
         -0.7,
-        { blast: true, hitstop: 0.018 },
+        { blast: true, hitstop: 0.018, effect:projectileEffect(b) },
       );
     }
     for (const c of cover) {
@@ -1166,7 +1199,7 @@ export class World {
           Math.sign(b.vx) || 0.1,
           Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
           {
-            projectile: true,
+            projectile: true, effect:projectileEffect(b),execute:["rail","saw"].includes(b.kind),angle:Math.atan2(b.vy,b.vx),
             stun: ["flame", "frost"].includes(b.kind)
               ? 0.015
               : (WEAPONS[b.weapon]?.cooldown || 1) < 0.2
@@ -1214,6 +1247,7 @@ export class World {
     const joints = JOINTS;
     for (const rag of this.ragdolls) {
       rag.life -= dt;
+      if(updateDeath(rag,dt))continue;
       if (rag.ash) {
         rag.ashAge += dt;
         if (rag.ashAge < .6) continue;
@@ -1224,10 +1258,10 @@ export class World {
         p.px = p.x;
         p.py = p.y;
         p.x += vx;
-        p.y += vy + (rag.ash ? 150 : 1800) * dt * dt;
+        p.y += vy + (rag.ash ? 150 : rag.effect === "ice" ? 320 : 1800) * dt * dt;
       }
       for (let k = 0; k < 4; k++)
-        for (const [a, b, len] of joints) {
+        for (const [a, b, len] of (rag.effect==="slice"?CUT_JOINTS:rag.effect==="blast"?joints.filter(([a,b])=>a!==1&&a!==2):joints)) {
           const p = rag.points[a],
             q = rag.points[b],
             dx = q.x - p.x,
@@ -1257,8 +1291,7 @@ export class World {
   }
   spikes() {
     let spikes = this.arena.spikes;
-    for (const f of this.craters) {
-      if (this.time - f.born < NUCLEAR.meltAt) continue;
+    for (const f of [...this.craters.filter(f=>this.time-f.born>=NUCLEAR.meltAt),...this.rifts]) {
       spikes = spikes.flatMap(s => carveRectangle({...s,h:.5},f));
     }
     return spikes;
@@ -1273,6 +1306,7 @@ export class World {
       projectiles: this.projectiles,
       fields: this.fields,
       craters: this.craters,
+      wreckage:this.wreckage, rifts:this.rifts,
       drops: this.drops,
       ragdolls: this.ragdolls,
       scores: this.scores,

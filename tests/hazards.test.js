@@ -36,6 +36,7 @@ for(const prone of [false,true])test(`a conveyor carries a ${prone?'prone':'stan
 test("spike balls and saws hit at their moving body, not an entire invisible rectangle",()=>{
  for(const type of ["pendulum","saw"]){const {w,h,p}=lab(type);h.cooldown=0;updateHazards(w,STEP);
  Object.assign(p,{x:h.bodyX,y:h.bodyY});updateHazards(w,STEP);assert.ok(p.hp<100,type);
+ if(type==="saw"){assert.equal(p.alive,false);assert.equal(w.ragdolls[0].effect,"slice");}
  assert.equal(w.players[1].hp,100);assert.ok(hazardZone(h).w<100);}
 });
 test("a crusher kills beneath its swept head and breaks cover",()=>{

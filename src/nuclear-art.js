@@ -5,8 +5,7 @@ const TAU = Math.PI * 2;
 const circle = (c, x, y, radius) => { c.beginPath(); c.arc(x,y,Math.max(.01,radius),0,TAU); };
 
 export function clipCraters(c, state) {
-  for (const f of state.craters || []) {
-    if (state.time - f.born < NUCLEAR.meltAt) continue;
+  for (const f of [...(state.craters||[]).filter(f=>state.time-f.born>=NUCLEAR.meltAt),...(state.rifts||[])]) {
     c.beginPath(); c.rect(-200,-200,W+400,H+400);
     c.moveTo(f.x+f.radius,f.y); c.arc(f.x,f.y,f.radius,0,TAU);
     c.clip("evenodd");
@@ -19,7 +18,7 @@ export function clipCraters(c, state) {
 export function drawScorchedPlatforms(r, platforms, time) {
   const groups = new Map(), c = r.ctx;
   for (const p of platforms) {
-    if (p.move || p.travel) continue;
+    if (p.move || p.travel || p.wreckId) continue;
     if (typeof p.id !== "string" || !p.id.includes(":c")) {r.platform(p,time);continue;}
     const id = p.id.split(":c")[0];
     if (!groups.has(id)) groups.set(id,[]);

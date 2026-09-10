@@ -81,6 +81,13 @@ export class Sound {
       this.rumble(3.9, 1.2, 1800);
       return;
     }
+    if(detail.effect && ["hit","ko","explosion"].includes(type)) {
+      const dead=type==="ko",effect=detail.effect;
+      if(effect==="ice"){this.tone(1550,380,dead?.55:.17,.28,"triangle");this.rumble(dead?.45:.08,.22,4500);return;}
+      if(effect==="tesla"||effect==="plasma"){this.tone(effect==="tesla"?980:510,60,dead?.7:.23,.32,"sawtooth");this.rumble(dead?.6:.15,.32,2600);return;}
+      if(effect==="slice"){this.rumble(dead?.26:.12,.65,3800);this.tone(210,38,.24,.45);return;}
+      if(effect==="singularity"&&type!=="hit"){this.tone(150,22,dead?1.3:3,.55,"triangle");this.rumble(dead?1.1:2.8,.6,750);return;}
+    }
     if (type === "hit") {
       const heavy = detail.move === "spin" || detail.damage > 35;
       const kick = detail.move === "kick";

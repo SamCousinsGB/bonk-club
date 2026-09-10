@@ -1,3 +1,5 @@
+import { SINGULARITY } from "./blackhole.js";
+import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
@@ -21,7 +23,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 15;
+export const PROTOCOL = 16;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -678,7 +680,7 @@ export function validSnapshot(s) {
           p.recoilTime,
           p.rush,
           p.burn,
-          p.chill,
+          p.chill, p.freeze, p.xray,
           p.blockTime,
           p.parryCooldown,
           p.stamina,
@@ -689,6 +691,7 @@ export function validSnapshot(s) {
         ["punch", "kick", "spin", "weapon"].includes(p.meleeMove) &&
         integer(p.ammo, 0, 100) &&
         p.parryCooldown >= 0 && p.parryCooldown <= PARRY.cooldown + 0.01 &&
+        p.freeze >= 0 && p.freeze <= 1.2 && p.xray >= 0 && p.xray <= .4 &&
         p.hp >= 0 &&
         p.hp <= 100 &&
         (p.facing === 1 || p.facing === -1) &&
@@ -773,13 +776,17 @@ export function validSnapshot(s) {
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
         ["arc", "blackhole", "shockwave"].includes(f.kind) &&
         f.radius >= 0 &&
-        f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : 400) &&
-        (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 5)) &&
+        f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : f.kind === "blackhole" ? SINGULARITY.radius : 400) &&
+        (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 6)) &&
         (f.kind !== "shockwave" ||
           (integer(f.craterId,1,1000000) && typeof f.melted === "boolean")) &&
+        (f.kind!=="blackhole" || (integer(f.riftId,1,1000000) && typeof f.torn === "boolean")) &&
         f.life >= 0 &&
-        f.life <= 5,
+        f.life <= 6,
     ) &&
+    list(s.wreckage,60,w => xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
+      w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind)) &&
+    list(s.rifts,128,c => xy(c) && integer(c.id,1,1000000) && c.radius===SINGULARITY.radius && finite(c.born)) &&
     list(s.craters,128,c => xy(c) && integer(c.id,1,1000000) &&
       finite(c.radius) && c.radius > 0 && c.radius <= NUCLEAR.coreRadius && finite(c.born) && c.born >= 0 && c.born <= s.time + .01) &&
     new Set(s.craters.map(c=>c.id)).size === s.craters.length &&
@@ -796,8 +803,10 @@ export function validSnapshot(s) {
         (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
         typeof r.color === "string" &&
         /^#[a-fA-F0-9]{6}$/.test(r.color) &&
-        list(r.points, 11, xy) &&
-        r.points.length === 11,
+        (r.effect===undefined || (DEATH_EFFECTS.includes(r.effect) && finite(r.deathAge) && r.deathAge>=0 && r.deathAge<=6)) &&
+        (r.effect!=="singularity" || [r.targetX,r.targetY].every(finite)) &&
+        list(r.points, 13, xy) &&
+        r.points.length === (r.effect==="slice"?13:11),
     ) &&
     Array.isArray(s.scores) &&
     s.scores.length === 4 &&

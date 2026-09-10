@@ -31,7 +31,7 @@ export function meleeAttack(world, p, weapon) {
     carryImpulse(p, 0.23);
   }
   impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 100, ay * 100);
-  const strike = { w, unarmed, occupant: p.occupant, hits: new Set(), cover: new Set(), rewarded: false };
+  const strike = { w, unarmed, effect: p.weapon === "sword" ? "slice" : null, occupant: p.occupant, hits: new Set(), cover: new Set(), rewarded: false };
   swings.set(p, strike);
   if (!resolveMelee(world, p, strike)) world.event("swing", { x: p.x, y: p.y });
 }
@@ -84,7 +84,7 @@ function resolveMelee(world, p, strike) {
       unarmed && w.move !== "spin"
         ? Math.min(-0.13, ay * 0.35)
         : ay * 0.6 - 0.45,
-      { stun: w.stun, finisher: w.move === "spin", melee: true, move: w.move, hitstop: w.move === "spin" ? 0.075 : 0.05 },
+      { effect:strike.effect,angle, stun: w.stun, finisher: w.move === "spin", melee: true, move: w.move, hitstop: w.move === "spin" ? 0.075 : 0.05 },
     );
     connected = true;
     rewarded ||= q.hp < hp;

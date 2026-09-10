@@ -216,8 +216,8 @@ test("black holes arm, attract all sides and loose items, damage nearby fighters
   w.updateProjectiles(STEP);
   assert.equal(w.fields.length, 1);
   const f = w.fields[0];
-  Object.assign(p, { x: f.x - 60, y: f.y, vx: 0, vy: 0 });
-  Object.assign(q, { x: f.x + 60, y: f.y, vx: 0, vy: 0 });
+  Object.assign(p, { x: f.x - 180, y: f.y, vx: 0, vy: 0 });
+  Object.assign(q, { x: f.x + 180, y: f.y, vx: 0, vy: 0 });
   const d = {
     x: f.x + 100,
     y: f.y,

@@ -1,3 +1,5 @@
+import { drawDeath, drawStatus } from "./death-art.js";
+import { drawWreckage, drawRifts } from "./blackhole-art.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
@@ -925,6 +927,7 @@ export class Renderer {
       c.fillRect(0, 0, W, H);
     }
     drawCraters(this, state);
+    drawRifts(this,state);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     for (const s of ARENAS[state.arenaIndex].spikes) {
@@ -939,6 +942,7 @@ export class Renderer {
     }
     c.restore();
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
+    drawWreckage(this,state.wreckage,time);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -960,7 +964,7 @@ export class Renderer {
     for(const label of pickupLabels(state.drops,state.players,state.players.find(p=>p.id===this.localId&&p.alive),type=>this.pickup(type),WEAPONS))
       c.drawImage(label.art.label,label.x,label.y);
     for (const r of state.ragdolls) {
-      if (r.ash) continue;
+      if (r.ash || r.effect) continue;
       c.globalAlpha = Math.min(1, r.life);
       const pts = r.points;
       for (const [a, b] of JOINTS)
@@ -983,12 +987,15 @@ export class Renderer {
       );
       c.globalAlpha = 1;
     }
-    for (const p of state.players) this.fighter(p, time);
+    for (const p of state.players) {this.fighter(p, time);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);
     this.fragments(state.debris);
     drawFields(this, state.fields, time);
-    for (const rag of state.ragdolls) if (rag.ash) drawAshSkeleton(this,rag);
+    for (const rag of state.ragdolls) {
+      if(drawDeath(this,rag,time))continue;
+      if(rag.ash)drawAshSkeleton(this,rag);
+    }
     for (const b of state.projectiles) {
       if (drawSpecialProjectile(this, b, time)) continue;
       if (b.kind === "rail") {

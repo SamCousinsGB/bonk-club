@@ -106,6 +106,9 @@ export class BotController {
         time: world.time,
         spikes: world.spikes(),
         cache: this.navigationCache,
+        // A torn floor has hundreds of collision strips. Yield between flight
+        // traces so rebuilding its routes cannot monopolize a simulation tick.
+        batchSize: world.wreckage.some(w => w.hp > 0) ? 24 : Infinity,
       });
       this.builtAt = world.time;
       this.rebuildAt = world.time + 1.5;
@@ -119,7 +122,7 @@ export class BotController {
     if(this.pendingNavigation) {
       const next=this.pendingNavigation.next();
       if(next.done) this.pendingNavigation=null;
-      else this.graph.set(...next.value);
+      else if(next.value) this.graph.set(...next.value);
     }
   }
   inputs(world, dt) {

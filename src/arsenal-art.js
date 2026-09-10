@@ -1,3 +1,4 @@
+import { drawBlackhole } from "./blackhole-art.js";
 import { drawNuclear } from "./nuclear-art.js";
 import { WEAPONS } from "./arsenal.js";
 
@@ -273,28 +274,6 @@ export function drawFields(r, fields, time) {
       ]);
       r.line(points, "#a386ff66", 10);
       r.line(points, "#e9deff", 3);
-    } else {
-      c.save();
-      c.globalAlpha = Math.min(1, f.life * 2);
-      const active = f.age >= 0.4;
-      c.strokeStyle = "#c4a0ff44";
-      c.lineWidth = 2;
-      c.setLineDash([8, 12]);
-      c.beginPath();
-      c.arc(f.x, f.y, f.radius, 0, Math.PI * 2);
-      c.stroke();
-      c.setLineDash([]);
-      for (let n = 0; n < 5; n++) {
-        const a = time * 2 + n * Math.PI * 0.4;
-        c.beginPath();
-        c.strokeStyle = "#ad88ef88";
-        c.lineWidth = 3;
-        c.arc(f.x, f.y, 28 + n * 17, a, a + 1.7);
-        c.stroke();
-      }
-      r.circle(f.x, f.y, active ? 33 : 19, "#d2b0ff");
-      r.circle(f.x, f.y, active ? 27 : 14, "#070713");
-      c.restore();
-    }
+    } else if(f.kind==="blackhole") drawBlackhole(r,f,time);
   }
 }

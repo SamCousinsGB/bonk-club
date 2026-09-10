@@ -185,10 +185,13 @@ test("railgun penetrates a table and multiple players without hitting them twice
   w.projectiles = [{ ...bullet("rail"), damage: 85 }];
   w.updateProjectiles(STEP);
   assert.equal(w.cover[0].hp, 0);
-  assert.equal(w.players[1].hp, 15);
-  assert.equal(w.players[2].hp, 15);
+  assert.equal(w.players[1].hp, 0);
+  assert.equal(w.players[2].hp, 0);
+  assert.equal(w.ragdolls.length, 2);
+  assert.ok(w.ragdolls.every(r => r.effect === "slice"));
   w.updateProjectiles(STEP);
-  assert.equal(w.players[2].hp, 15);
+  assert.equal(w.ragdolls.length, 2);
+  assert.equal(w.events.filter(e => e.type === "ko").length, 2);
 });
 
 test("plasma reflects from a solid wall and detonates after its bounces are exhausted", () => {

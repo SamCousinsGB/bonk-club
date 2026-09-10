@@ -57,13 +57,20 @@ export function updateNuclear(world, f, dt) {
       if (rag.ash || !inBlast(rag.points[2], f, radius)) continue;
       Object.assign(rag, {ash: true, ashAge: 0, life: NUCLEAR.ashDuration,
         ashDirection: Math.sign(rag.points[2].x - f.x) || 1});
+      // Nuclear heat consumes other death poses too, including severed halves.
+      rag.points = rag.points.slice(0, 11);
+      delete rag.effect;
+      delete rag.deathAge;
+      delete rag.stretchOrigin;
       for (const p of rag.points) {p.px = p.x; p.py = p.y;}
     }
   }
   if (!f.melted && f.age >= NUCLEAR.meltAt) {
     f.melted = true;
     const crater = world.craters.find(c => c.id === f.craterId);
-    world.platforms = world.platforms.flatMap(s => carveRectangle(s, crater));
+    world.wreckage=world.wreckage.filter(w=>Math.hypot(w.x-f.x,w.y-f.y)>f.radius+Math.hypot(w.w,w.h)/2);
+    world.wreckDirty=true;
+    world.platforms = world.platforms.filter(p=>!p.wreckId||world.wreckage.some(w=>w.id===p.wreckId)).flatMap(s => carveRectangle(s, crater));
     // Props and trap mechanisms are consumed, not launched into a chain of
     // explosions across the rest of the arena.
     world.cover = world.cover.filter(s => carveRectangle(s, crater)[0] === s);

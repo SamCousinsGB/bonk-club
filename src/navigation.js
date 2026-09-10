@@ -140,14 +140,15 @@ export function traceFlight(
 export function navigation(
   solids, options = {},
 ) {
-  return new Map(navigationSteps(solids, options));
+  return new Map([...navigationSteps(solids, options)].filter(Boolean));
 }
 
 export function* navigationSteps(
   solids,
-  { time = 0, spikes = [], cache = null } = {},
+  { time = 0, spikes = [], cache = null, batchSize = Infinity } = {},
 ) {
   solids = solids.filter((p) => p.hp !== 0);
+  let traces = 0;
   for (const from of solids) {
     const signature =
       cache &&
@@ -222,6 +223,7 @@ export function* navigationSteps(
             spikes,
           );
           if (edge) candidates.push(edge);
+          if (++traces % batchSize === 0) yield null;
         }
     for (const dir of [-1, 1]) {
       const edge = traceFlight(
@@ -275,6 +277,7 @@ export function* navigationSteps(
             landingX,
           );
           if (edge?.to === to.id) candidates.push(edge);
+          if (++traces % batchSize === 0) yield null;
         }
       }
     }

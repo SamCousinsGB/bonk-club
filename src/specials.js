@@ -1,3 +1,4 @@
+import { blackholeField, updateBlackhole, updateWreckage } from "./blackhole.js";
 import { nuclearField, updateNuclear } from "./nuclear.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
@@ -46,7 +47,13 @@ export function steerSpecial(world, b, dt) {
 export function impactSpecial(world, b, target, hurt) {
   if (!hurt) return;
   if (b.burn) target.burn = Math.max(target.burn || 0, b.burn);
-  if (b.chill) target.chill = Math.max(target.chill || 0, b.chill);
+  if (b.chill) {
+    target.chill = Math.max(target.chill || 0, b.chill);
+    if(target.alive && !(target.freezeCooldown>0)) {
+      target.freeze=1.15;target.freezeCooldown=2.1;target.stun=Math.max(target.stun,1.15);target.block=false;
+      target.freezePose=target.rig?.map(q=>({x:q.x-target.x,y:q.y-target.y}));
+    }
+  }
   if (b.kind !== "tesla") return;
   const hit = new Set([b.owner, target.id]);
   let from = target;
@@ -82,7 +89,7 @@ export function impactSpecial(world, b, target, hurt) {
       b.force,
       Math.sign(next.x - from.x) || 1,
       -0.2,
-      { projectile: true, stun: 0.09 },
+      { projectile: true, stun: 0.09, effect:"tesla" },
     );
     hit.add(next.id);
     from = next;
@@ -95,19 +102,8 @@ export function expireSpecial(world, b) {
     world.fields = world.fields.slice(-12);
   }
   if (b.kind === "singularity") {
-    world.fields.push({
-      kind: "blackhole",
-      x: b.x,
-      y: b.y,
-      ex: b.x,
-      ey: b.y,
-      radius: b.radius,
-      life: 4.5,
-      owner: b.owner,
-      age: 0,
-      tick: 0,
-    });
-    world.fields = world.fields.slice(-12);
+    world.fields.push(blackholeField(world,b));
+    world.fields=world.fields.slice(-12);
   }
   if (b.cluster) {
     for (let n = 0; n < 6; n++) {
@@ -139,38 +135,8 @@ export function updateFields(world, dt) {
       updateNuclear(world, f, dt);
       continue;
     }
-    if (f.kind !== "blackhole") continue;
-    f.age += dt;
-    if (world.phase !== "fight") continue;
-    if (f.age < 0.4) continue;
-    f.tick -= dt;
-    const pulse = f.tick <= 0;
-    if (pulse) f.tick = 0.25;
-    for (const p of [
-      ...world.players.filter((p) => p.alive),
-      ...world.drops,
-      ...world.projectiles,
-    ]) {
-      const dx = f.x - p.x,
-        dy = f.y - p.y,
-        d = Math.hypot(dx, dy);
-      if (d > f.radius || !clear(world, f, p)) continue;
-      const pull = (1 - d / f.radius) * 3600 * dt;
-      p.vx += (dx / Math.max(d, 18)) * pull;
-      p.vy += (dy / Math.max(d, 18)) * pull;
-      if (p.id !== undefined && pulse && d < 100) {
-        p.hp = Math.max(0, p.hp - (d < 38 ? 30 : 13));
-        p.flash = 0.09;
-        if (p.hp <= 0) world.kill(p);
-      }
-    }
-    if (pulse)
-      for (const s of world.solids().filter(breakable)) {
-        const x = Math.max(s.x, Math.min(s.x + s.w, f.x)),
-          y = Math.max(s.y, Math.min(s.y + s.h, f.y));
-        if (Math.hypot(x - f.x, y - f.y) < 125)
-          world.damageCover(s, 16, Math.sign(f.x - x) * 200, -100);
-      }
+    if (f.kind === "blackhole") updateBlackhole(world,f,dt);
   }
+  if(world.wreckage.length)updateWreckage(world);
   world.fields = world.fields.filter((f) => f.life > 0).slice(-12);
 }
