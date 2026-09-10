@@ -117,6 +117,8 @@ function addWreck(world, f, s, kind = "platform") {
     angle: 0,
     hp: 120,
     kind,
+    sourceKind: s.kind || null,
+    elevator: !!s.elevator,
     trapType: s.type || null,
     surface: s.surface || null,
     material: s.material || null,
