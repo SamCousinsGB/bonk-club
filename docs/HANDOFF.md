@@ -21,15 +21,24 @@ The correction was isolated in `bonk-club-bend-art`, branch
 the branch in the canonical checkout. Only this correction's files were moved;
 the other tasks' edits were preserved.
 
-Verification: 312 gameplay/network tests and the production build passed.
+Verification: 312 gameplay/network tests passed for the isolated fix, then 323
+passed after integrating the latest melee release from main. Production builds passed.
 Browser pixel comparisons covered nine materials including glass; actual
 gameplay screenshots covered jungle, temple, desert, houses, hospital and volcano
 maps. Real host, mobile guest and late-joining browsers received matching warped
 geometry and furniture/lift identities through the Pi relay with no page errors.
 Guest drawing CPU time was 2.7 ms at the 95th percentile on the QA machine; this
 is not FPS or internet latency. QA helpers and screenshots are in the existing
-`bonk-club-qa` directory with the `bend-` prefix. Release confirmation follows
-after the Pages workflow and exact-build asset checks.
+`bonk-club-qa` directory with the `bend-` prefix.
+
+Published revision: `62fccd27283351e8501c4c7adb1a6bd967bb23cb`. Pages run
+`34477944690` passed gameplay tests, server tests, build and deployment:
+https://github.com/SamCousinsGB/bonk-club/actions/runs/34477944690.
+All 15 public files matched the exact committed build in
+`bonk-club-qa/bend-release/dist`; JS is `index-BY5fGDJW.js`. The public game
+passed browser checks for solo start, movement, jumping and the game menu with
+no page errors. The task's local Vite server was stopped. Later main releases
+may supersede these asset names; retain this correction when integrating them.
 
 ## Start here
 
