@@ -55,7 +55,20 @@ GitHub main while preserving concurrent work in the canonical checkout.
   No page errors. Guest renderer CPU cost was 2.3 ms at the 95th percentile over
   796 samples; this is drawing cost, not FPS or internet latency.
 - QA scripts/screenshots: `bonk-club-qa/collapse-visual.cjs`, `collapse-online.cjs`
-  and `collapse-*.png`. Final release verification follows after publication.
+  and `collapse-*.png`.
+- Verified live in `e031499e1a90df9cb02e54178423939274f2cf7f`, including black-hole
+  release `888d4c6` and the subsequent mobile clear-view update. Pages run
+  `34487368851` passed **436 gameplay/network tests**, **3 server tests**, build
+  and deployment. A transient GitHub deployment ID-token timeout was resolved by
+  retrying the deploy job; workflow permissions and application code were unchanged.
+- All **15 public files** matched the exact committed production archive byte for
+  byte: `index-C5-1pa9d.js`, `index-P_ztR8EB.css`. The public game passed actual
+  host/guest lobby, slots, hot join, departure/rejoin and mobile viewport checks
+  through selected TURN relay candidates without page errors. The exact build is
+  in `bonk-club-qa/collapse-release-e031499`; verification helpers are
+  `verify-collapse-live.cjs` and `collapse-production.cjs`. The task's port 5189
+  development server was stopped. The canonical checkout's unfinished edits were
+  left intact.
 
 ## Fullscreen and UI fit — 10 September 2026
 
@@ -170,6 +183,17 @@ the earlier explosion-pass rule that made all terrain immune to bullets.
   were verified, rendered gameplay inspected, and no browser errors occurred.
 - QA helper and screenshots: `bonk-club-qa/bot-identities-browser.cjs` and
   `bot-identities-*.png`. Browser hooks exist only in the external QA helper.
+- Published in combined revision `e031499e1a90df9cb02e54178423939274f2cf7f`;
+  NPC implementation commit `bec0002`. Pages run `34487368851` succeeded on its
+  second deployment attempt after a transient OIDC token error. All **436 game
+  tests and 3 server tests passed**. Earlier NPC runs were superseded by other
+  concurrent releases; all of their changes are preserved in this revision.
+- All **15 public files** matched the exact committed archive build byte for
+  byte. Public solo and real host/guest checks passed, including hot join,
+  departure/rejoin, stable bot names, selected TURN relay candidates and no page
+  errors. Live gameplay screenshots were inspected. JS: `index-C5-1pa9d.js`;
+  CSS: `index-P_ztR8EB.css`. Archive/build: `bonk-club-qa/bot-identities-release`.
+  This task's development server on port 5192 was stopped.
 
 ## Movement and animation pass — 10 September 2026
 
