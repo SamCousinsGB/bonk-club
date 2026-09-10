@@ -8,7 +8,7 @@ import { carveRectangle } from "./nuclear.js";
 import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
-import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
+import { defaultProfile, availableProfile, randomBotProfile } from "./identity.js";
 import { meleeAttack, updateMelee } from "./melee.js";
 import {
   steerSpecial,
@@ -180,11 +180,22 @@ export class World {
     this.victoryCause = null;
     this.events = [];
   }
+  playerProfile(id) {
+    if (!this.profiles[id]) {
+      const others = this.ids.filter(other => other !== id)
+        .map(other => this.profiles[other] || (!this.botIds.has(other) ? defaultProfile(other) : null))
+        .filter(Boolean);
+      this.profiles[id] = this.botIds.has(id)
+        ? randomBotProfile(others, this.random)
+        : defaultProfile(id);
+    }
+    return this.profiles[id];
+  }
   makePlayer(id) {
     const [x, y] = this.arena.spawns[id];
     return {
       id,
-      ...(this.profiles[id] || defaultProfile(id)),
+      ...this.playerProfile(id),
       bot: this.botIds.has(id),
       occupant: this.occupants[id],
       x,
@@ -243,10 +254,11 @@ export class World {
     }
     for (const p of this.players) {
       if (p.bot) {
-        const profile = availableProfile(defaultProfile(p.id), used);
-        profile.name = PALETTE.find(
-          (c) => c.value === profile.color,
-        ).name.toUpperCase();
+        // Keep each occupant's identity. A human colour choice only displaces
+        // the conflicting bot, without taking another bot's existing colour.
+        const reserved = this.players.filter(other => other.bot && other.id !== p.id)
+          .map(other => this.profiles[other.id]);
+        const profile = availableProfile(this.playerProfile(p.id), [...used, ...reserved]);
         this.profiles[p.id] = profile;
         used.push(profile);
       }
@@ -286,10 +298,9 @@ export class World {
   }
   replacePlayer(id, bot) {
     if (!this.ids.includes(id) || this.botIds.has(id) === bot) return;
-    if (bot) {
-      this.botIds.add(id);
-      delete this.profiles[id];
-    } else this.botIds.delete(id);
+    if (bot) this.botIds.add(id);
+    else this.botIds.delete(id);
+    delete this.profiles[id];
     this.scores[id] = 0;
     this.occupants[id]++;
     this.ai.forget(id);
@@ -335,7 +346,7 @@ export class World {
     }
     Object.assign(p, {
       bot,
-      ...(this.profiles[id] || defaultProfile(id)),
+      ...this.playerProfile(id),
       occupant: this.occupants[id],
       jumpHeld: false,
       jumpBuffer: 0,

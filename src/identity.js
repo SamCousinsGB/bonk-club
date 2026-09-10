@@ -104,6 +104,19 @@ export function randomProfile(value, others = [], random = Math.random) {
   }
   return result;
 }
+const BOT_NAMES = [
+  "Alex", "Amir", "Avery", "Blake", "Casey", "Charlie", "Cleo", "Dani",
+  "Ellis", "Emery", "Ezra", "Felix", "Finn", "Frankie", "Harper", "Hayden",
+  "Indie", "Iris", "Jamie", "Jesse", "Jordan", "Jules", "Kai", "Kit",
+  "Leo", "Luca", "Max", "Mika", "Milo", "Morgan", "Nico", "Noah",
+  "Parker", "Quinn", "Remy", "Riley", "Robin", "Rory", "Rowan", "Sage",
+  "Sasha", "Sidney", "Sky", "Taylor", "Toby", "Val", "Wren", "Zara",
+];
+export function randomBotProfile(others = [], random = Math.random) {
+  const names = BOT_NAMES.filter(name => !others.some(p => p.name === `${name} (BOT)`));
+  const name = (names.length ? names : BOT_NAMES)[Math.floor(random() * (names.length || BOT_NAMES.length))];
+  return randomProfile({ name: `${name} (BOT)` }, others, random);
+}
 export function availableProfile(value, others, fallback = defaultProfile()) {
   const profile = cleanProfile(value, fallback),
     used = new Set(others.map((p) => p.color));
