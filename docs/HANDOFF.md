@@ -52,7 +52,8 @@ and interpolated with stable entity identities. No Pi configuration changed.
 
 ## Verification and release record
 
-- 289 gameplay/network tests passed, including new physical effects, low-ceiling
+- 310 gameplay/network tests passed on the combined effects, mobile and bot
+  revision, including new physical effects, low-ceiling
   and elevator recovery, two overlapping black holes on all 24 arenas, blood
   limits/expiry, bent debris crossing a nuke boundary, and malformed snapshots.
 - Production build passed with the published room and TURN credential endpoints.
@@ -71,9 +72,20 @@ and interpolated with stable entity identities. No Pi configuration changed.
   machine. This is drawing cost, not FPS or a measurement on Sam's friend's PC.
   Host simulation can still have occasional navigation-building spikes; preserve
   batched route rebuilding rather than restoring synchronous rebuilds.
-- Publication verification for this effects revision will be recorded here after
-  the Pages workflow completes. Previous gameplay release: `86b159ab67bc01fb5ab893942ed3ccfbd0bbbd96`,
-  Pages run `34429700083`. Do not confuse that older release with this pass.
+- Published gameplay revision: `6c7c40d9cd387aa7c989986605f862ffb2ef3f70`.
+  The effects implementation is `3393f93`; the following commit reduces collision
+  and navigation work during overlapping effects. Existing mobile and bot updates
+  are included. Later documentation commits do not alter the published game.
+- Pages run `34475899263` passed gameplay tests, server tests, production build
+  and deployment: `https://github.com/SamCousinsGB/bonk-club/actions/runs/34475899263`.
+- All 15 public files matched the exact committed production build byte for byte.
+  JS: `index-CLwvnpTF.js`; CSS: `index-CUMQZt1D.css`. Public host/guest lobby,
+  slot changes, hot join, departure/rejoin and mobile viewport checks passed
+  through the Pi relay without browser errors.
+- For exact build parity, archive the committed source with
+  `git -c core.autocrlf=false archive <revision>` before building. A Windows
+  working copy can have different HTML/favicon hashes because of CRLF conversion.
+  The verified archive/build is in `bonk-club-qa/ci-release`, outside the repository.
 
 ## Mobile controls release verification — 10 September 2026
 
