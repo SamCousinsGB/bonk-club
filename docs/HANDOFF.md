@@ -37,7 +37,19 @@ release fix from main is included.
 - Local verification: all 387 movement/mouse gameplay and network tests passed.
   After integrating the current character release, 53 targeted movement,
   identity, network, interpolation and physical-effects tests passed.
-  Release confirmation follows Pages deployment of the combined revision.
+- Published gameplay revision: `bcfe475a906ad03c9e63ce20a36ce8d019c0cdbf`.
+  Pages run `34483731287` passed **391 gameplay/network tests**, **3 server
+  tests**, the production build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34483731287.
+- All **15 public files** match the exact committed archive build byte for byte.
+  Archive/build: `bonk-club-qa/movement-release-bcfe475`.
+  JS: `index-CSGEfSYG.js`; CSS: `index-Cr1OqD9M.css`.
+- The combined production bundle and the public game passed host/guest play,
+  lobby slots, hot join, departure/rejoin, mobile viewport/menu recovery and
+  selected TURN relay checks without browser errors. Helpers:
+  `movement-release-browser.cjs` and `verify-movement-live.cjs`.
+  The movement worktree is clean after the release-note commit; this task's
+  development server on port 5186 was stopped.
 
 ## Character customisation — 10 September 2026
 
