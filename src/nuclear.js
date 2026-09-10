@@ -96,7 +96,7 @@ export function updateNuclear(world, f, dt) {
       if (!p.alive || f.hitIds.includes(p.id) || !inBlast(p, f, radius))
         continue;
       f.hitIds.push(p.id);
-      world.kill(p, { ash: true, sourceX: f.x });
+      world.kill(p, { ash: true, sourceX: f.x, cause: "nuke" });
     }
     for (const rag of world.ragdolls) {
       if (rag.ash || !inBlast(rag.points[2], f, radius)) continue;

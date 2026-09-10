@@ -1,3 +1,4 @@
+import { validVictoryCause } from "./victory.js";
 import {BLOOD_LIMIT} from "./gore.js";
 import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
@@ -692,6 +693,7 @@ export function validSnapshot(s) {
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
     [s.phaseTime, s.elapsed, s.time].every(finite) &&
     (s.winner === null || integer(s.winner, 0, 3)) &&
+    validVictoryCause(s.victoryCause) &&
     list(
       s.players,
       4,

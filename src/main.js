@@ -1,3 +1,4 @@
+import { victoryMessage } from "./victory.js";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
@@ -61,13 +62,27 @@ let touchInput = emptyInput();
 let touchDevice = matchMedia("(pointer: coarse)").matches;
 const mobileScreen = new MobileScreen();
 const portraitScreen = matchMedia("(orientation: portrait)");
-function enterMobileScreen() {
-  if (touchDevice) void mobileScreen.enter();
+function enterGameScreen() {
+  void mobileScreen.enter({ landscape: touchDevice });
 }
-async function requestMobileFullscreen() {
-  await mobileScreen.enter();
+async function requestGameFullscreen() {
+  await mobileScreen.enter({ landscape: touchDevice });
   if (!mobileScreen.fullscreen)
     toast("Fullscreen is unavailable in this browser. The game will use the available screen.");
+}
+async function toggleFullscreen() {
+  try {
+    if (mobileScreen.fullscreen) await mobileScreen.exit();
+    else await requestGameFullscreen();
+  } catch {
+    toast("Fullscreen is unavailable in this browser.");
+  }
+}
+function syncFullscreenUi() {
+  const active = mobileScreen.fullscreen;
+  $("#fullscreen").setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+  $("#fullscreen").setAttribute("aria-pressed", String(active));
+  if ($("#game-fullscreen")) $("#game-fullscreen").textContent = active ? "EXIT FULLSCREEN" : "FULLSCREEN";
 }
 function needsRotation() {
   return playing && touchDevice && portraitScreen.matches;
@@ -228,9 +243,6 @@ function setPlaying(value) {
   $("#invite").classList.toggle("hidden", !value || !room);
   setHtml($("#announcement"), "");
   syncTouchUi();
-  $("#footer-hint").textContent = value
-    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK PARRY / ALT FIRE · S LIE DOWN · F THROW"
-    : "";
 }
 function home() {
   mobileScreen.release();
@@ -270,7 +282,7 @@ function arenaMenu() {
   $("#arena-close").onclick = hidePanel;
 }
 function startWorld(ids) {
-  enterMobileScreen();
+  enterGameScreen();
   const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
@@ -562,7 +574,7 @@ function connectionDetails(back) {
   };
 }
 async function quickMatch() {
-  enterMobileScreen();
+  enterGameScreen();
   solo = false;
   room?.close();
   room = null;
@@ -684,7 +696,7 @@ async function connectRoom(code) {
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
-  enterMobileScreen();
+  enterGameScreen();
   room?.close();
   const next = new Room(roomCallbacks(), undefined, roomOptions());
   room = next;
@@ -743,7 +755,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Move:</b> drag the left stick left or right. Release to stop. Swipe up to jump while moving; swipe up again for a second jump.</p><p><b>Aim / fire:</b> drag the right stick in the direction you want to shoot. Hold to keep firing; release to stop. You can move and fire at the same time.</p><p><b>Buttons:</b> tap Jump, then tap again to double jump. Tap Throw to release your weapon. Hold Lie down to stay prone. Dragging the left stick down and double-tapping the right stick still work.</p><p><b>Parry / alternate fire:</b> parry one hit with empty hands. Shotgun and plasma cannon show their alternate shot instead. Pickups are automatic.</p><p>Play with your phone sideways. Joining or starting requests fullscreen and landscape where supported. If fullscreen closes, open Game menu and tap Fullscreen. The game continues while you rotate or use menus.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Parry / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT parries with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a circular blast that removes nearby terrain and kills anyone inside, including you. Walls do not shield the nuclear flash. The mushroom cloud clears within 12 seconds; the hole remains until the next round. Leaving the arena also triggers detonation.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks have weight. Push them, hit them or blast them apart; loose pieces can hit fighters. Elevators carry players between floors. Explosions hurt everyone, including you. Explosions carve holes in every platform, wall and lift. Repeated blasts dig further through terrain; bullets do not damage it. Destroyed floors drop players and loose objects. Cut lifts stop moving. Terrain resets each round. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Parry / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT parries with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a circular blast that removes nearby terrain and kills anyone inside, including you. Walls do not shield the nuclear flash. The mushroom cloud clears within 12 seconds; the hole remains until the next round. Leaving the arena also triggers detonation.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks have weight. Push them, hit them or blast them apart; loose pieces can hit fighters. Elevators carry players between floors. Explosions hurt everyone, including you. Explosions carve holes in every platform, wall and lift. Repeated blasts dig further through terrain. Marked wood and glass panels can also be shot out; structural supports and lifts resist bullets. Destroyed floors drop players and loose objects. Cut lifts stop moving. Terrain resets each round. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -761,13 +773,17 @@ function gameMenu(forceOpen = false) {
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {
-    enterMobileScreen();
+    if (touchDevice) enterGameScreen();
     hidePanel();
   };
-  if (touchDevice && mobileScreen.supported && !mobileScreen.fullscreen) {
+  if (mobileScreen.supported) {
     $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
-    $("#game-fullscreen").onclick = () => { void requestMobileFullscreen(); hidePanel(); };
+    $("#game-fullscreen").onclick = toggleFullscreen;
   }
+  $("#pause-help").insertAdjacentHTML("beforebegin", `<button id="game-sound" class="button secondary">${sound.muted ? "UNMUTE SOUND" : "MUTE SOUND"}</button>`);
+  $("#game-sound").onclick = () => $("#sound").click();
+  if (room && !room.host) $("#resume").insertAdjacentHTML("beforebegin", `<p class="subtle">Connection: ${ping} ms</p>`);
+  syncFullscreenUi();
   $("#leave").onclick = home;
   $("#pause-help").onclick = () => help(hidePanel);
   $("#edit-character").onclick = characterMenu;
@@ -811,11 +827,9 @@ function updateHud(s) {
   if (s.phase === "countdown") {
     setHtml(a, `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`);
   } else if (s.phase === "result") {
-    setHtml(a, `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
+    const message = victoryMessage(s, s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner] || "Player");
+    setHtml(a, `<span class="victory-title" style="--victory-title-size:${Math.min(7, 110 / [...message.title].length)}vw">${esc(message.title)}</span>${message.detail ? `<span class="victory-detail">${esc(message.detail)}</span>` : ""}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
   } else setHtml(a, "");
-  if (room && !room.host)
-    $("#footer-hint").textContent =
-      `ONLINE · ${ping} MS · YOU ARE ${s.players.find((p) => p.id === room.id)?.name || NAMES[room.id]}`;
 }
 function equipmentInfo(p) {
   if (!p.alive) return '<small>ELIMINATED</small>';
@@ -888,12 +902,6 @@ $("#menu-controls").onclick = () => {
 };
 $("#online").onclick = () => connectRoom();
 $("#character").onclick = characterMenu;
-$("#help").onclick = () => {
-  unlock();
-  if (playing) {
-    help(hidePanel);
-  } else help();
-};
 $("#pause").onclick = gameMenu;
 $("#invite").onclick = copyInvite;
 $("#sound").onclick = () => {
@@ -905,22 +913,11 @@ $("#sound").onclick = () => {
     sound.muted ? "Unmute sound" : "Mute sound",
   );
   $("#sound").setAttribute("aria-pressed", String(sound.muted));
+  if ($("#game-sound")) $("#game-sound").textContent = sound.muted ? "UNMUTE SOUND" : "MUTE SOUND";
   toast(sound.muted ? "Sound off." : "Sound on.");
 };
-$("#fullscreen").onclick = async () => {
-  if (touchDevice && !mobileScreen.fullscreen) {
-    await requestMobileFullscreen();
-    return;
-  }
-  try {
-    if (mobileScreen.fullscreen) await mobileScreen.exit();
-    else await $("#app").requestFullscreen();
-  } catch {
-    toast(
-      "Fullscreen isn’t available here. Try opening the game in its own browser tab.",
-    );
-  }
-};
+$("#fullscreen").onclick = toggleFullscreen;
+syncFullscreenUi();
 window.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     if (view === "connection-details") {
@@ -1013,9 +1010,9 @@ const resizeGame = new ResizeObserver(measureGame);
 resizeGame.observe(canvas);
 window.addEventListener("orientationchange", clearInput);
 portraitScreen.addEventListener("change", () => { clearInput(); syncTouchUi(); });
-document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); });
-document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); });
-$("#rotate-fullscreen").onclick = () => { void requestMobileFullscreen(); };
+document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
+document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
+$("#rotate-fullscreen").onclick = () => { void requestGameFullscreen(); };
 $("#rotate-menu").onclick = gameMenu;
 window.addEventListener(
   "pointerdown",
@@ -1167,12 +1164,10 @@ setInterval(() => {
 requestAnimationFrame(frame);
 const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase();
 if (validCode(inviteCode)) {
-  if (touchDevice) {
-    // The tap supplies browser activation before any asynchronous room work.
-    showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
-    $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
-    $("#back").onclick = home;
-  } else connectRoom(inviteCode);
+  // The click supplies fullscreen activation before asynchronous room discovery.
+  showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
+  $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
+  $("#back").onclick = home;
 }
 if (import.meta.hot)
   import.meta.hot.dispose(() => {

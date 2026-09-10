@@ -164,7 +164,7 @@ function resolveWeaponSwing(world, p, strike) {
       // Follow the cutting/bludgeoning direction while retaining forward launch.
       const aim = p.aimAngle, push = Math.cos(aim) * 0.8 - ay * blade.side * 0.2;
       world.hit(q, p, w.damage, w.force, push, Math.sin(aim) * 0.5 - 0.45,
-        { effect: strike.effect, angle: blade.angle, stun: w.stun, melee: true,
+        { effect: strike.effect, weapon: strike.weapon, angle: blade.angle, stun: w.stun, melee: true,
           move: "weapon", hitstop: 0.05 });
       connected = true;
       if (p.stun > 0.15) return connected; // A parry stops the rest of the arc.

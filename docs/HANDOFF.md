@@ -2,6 +2,86 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Fullscreen and UI fit — 10 September 2026
+
+Implemented on `codex/fullscreen-ui` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-fullscreen`, preserving the canonical
+checkout's concurrent gameplay changes.
+
+- The stage fills the viewport in menus and gameplay, without the former outer
+  margins, maximum width, rounded frame, header row or footer row. The complete
+  arena retains its aspect ratio. Scores and menu controls stay inside safe areas.
+- Start, Online, Quick match and Join request fullscreen immediately on desktop
+  and touch. Invite links show Join room on both to provide browser activation.
+  Only touch requests landscape locking. Refusal leaves a usable viewport game.
+- Removed the question-mark help icon. Controls remain available in the menus.
+  Sound and fullscreen toggles are available from Game menu during play. Desktop
+  Back to game respects an intentional fullscreen exit.
+- Short landscape menus use two columns. Dialogs fit the viewport and scroll
+  internally, with a reachable sticky close button and no horizontal overflow.
+- Browser checks cover eight sizes from 320 x 568 portrait and 568 x 320 landscape
+  to 2560 x 1080, actual desktop fullscreen entry/exit/re-entry, denied APIs,
+  character/settings/controls panels and real simultaneous touch drags/releases.
+  Real host/guest staged production browsers passed lobby, slot controls, hot join,
+  departure/rejoin and selected TURN relay checks without browser errors.
+- QA helpers/screenshots: `bonk-club-qa/fullscreen-ui.cjs`, `fullscreen-online.cjs`
+  and `fullscreen-ui/`. No production debug hooks or Pi configuration changes.
+  Final release verification is recorded below after publication.
+
+## Victory messages — 10 September 2026
+
+Implemented in `bonk-club-victory` on `codex/victory-messages`, based on current
+GitHub main while preserving the canonical checkout's unfinished terrain work.
+
+- Results show `SAM WON` with a second line based on the final elimination.
+  Nuclear: `By nuclear apocalypse`. Black hole: `By commanding the forces of
+  space and time`. There are 25 finish messages covering weapons, melee, fire,
+  ice, traps, props, throws, falls and sudden death. This creative copy was
+  explicitly requested; the general ban on unsolicited filler still applies.
+- The authoritative engine records lethal causes independently of expiring
+  events/ragdolls. Later deaths overwrite earlier ones, dangerous special fields
+  still delay scoring, and draws/new rounds clear the result. A departure does
+  not reuse an earlier kill. Weapon identity comes from the hit, including the
+  final round of ammunition; shattering ice takes precedence over the weapon.
+- `src/victory.js` owns the bounded cause identifiers and copy. `victoryCause`
+  is validated in snapshots and survives compression, interpolation and hot join.
+  **Protocol 22: all players must refresh their tabs.** No Pi changes.
+- Added 21 regression tests covering real lethal attacks, nuclear/black-hole
+  sequencing, fall ordering, draws, resets, departures and malformed wire values.
+- Real Edge host/mobile guest and a late joiner received nuclear and black-hole
+  messages through selected TURN relay candidates without browser errors. Actual
+  rendered gameplay was inspected at desktop, 844 × 390 and 568 × 320 sizes.
+  Long names scale down to keep the title readable. QA helper and screenshots:
+  `bonk-club-qa/victory-browser.cjs` and `victory-*.png`, outside production.
+- Release verification is recorded below after publishing.
+
+## Restore bullet damage to marked panels — 10 September 2026
+
+Sam's latest request restores shooting out destructible platforms. This supersedes
+the earlier explosion-pass rule that made all terrain immune to bullets.
+
+- Fixed both exclusions: marked wood/glass panels are breakable again, and
+  projectile impacts can damage breakable platforms. Structural supports/lifts
+  still resist bullets. Circular blast carving, physical props and grenade fuses
+  retain their current behavior. Bots can shoot a marked panel under an opponent.
+- Existing damage, collision removal, navigation invalidation, debris and snapshot
+  paths handle the result. Surviving blast-cut panels and warped wreckage can also
+  be shot out. No wire shape or protocol change; protocol remains **21**.
+- Added 13 regressions: pistol hits from all four sides, other projectile weapons,
+  falling fighters/props/pickups, blast remnants, wreck collision, every arena's
+  panels, transport/interpolation and round restoration. The new tests reproduced
+  the regression before the fix. Updated obsolete bullet-immunity expectations.
+- All **404 gameplay/network tests** and the production build passed. Real Edge
+  host/guest browsers used mouse firing to damage and destroy both materials;
+  the guest fell through and a third browser hot joined the destroyed map.
+  All three selected TURN relay candidates; no page errors. Inspected damaged
+  panels and the cleared opening in gameplay screenshots.
+- Worktree: `C:\Users\SamCo\Documents\ChatGPT\bonk-club-panel-fix`, branch
+  `codex/restore-panel-bullets`, based on `d51781d`. The canonical checkout's
+  unfinished edits were preserved. QA helper/screenshots use `panel-` under
+  `bonk-club-qa`; hooks are external and never enter production.
+- Release verification is recorded below once the Pages deployment completes.
+
 ## Movement and animation pass — 10 September 2026
 
 Implemented on `codex/movement-pass` in

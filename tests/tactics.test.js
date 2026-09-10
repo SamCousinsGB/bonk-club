@@ -98,7 +98,7 @@ test("AI chooses a reachable opponent over one behind an unreachable solid floor
   assert.equal(w.players[0].hp, 100);
   assert.ok(w.players[2].hp < 100);
 });
-test("AI does not waste ordinary ammunition trying to shoot out a floor", () => {
+test("AI shoots out a marked floor beneath an opponent with ordinary ammunition", () => {
   const w = fixture();
   const panel = floor("panel", 690, 660, 220, {
     destructible: true,
@@ -122,9 +122,9 @@ test("AI does not waste ordinary ammunition trying to shoot out a floor", () => 
     ammo: 14,
   });
   advance(w, 2);
-  assert.equal(panel.hp, 65);
-  assert.equal(w.terrainVersion, 0);
-  assert.equal(w.players[1].ammo, 14);
+  assert.equal(panel.hp, 0);
+  assert.equal(w.terrainVersion, 1);
+  assert.ok(w.players[1].ammo < 14);
 });
 test("AI upgrades a melee weapon to a nearby ranged weapon for a distant opponent", () => {
   const w = fixture();
