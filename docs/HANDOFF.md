@@ -2,6 +2,34 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Black-hole capture and collapse — 10 September 2026
+
+Implemented in `bonk-club-collapse` on `codex/blackhole-collapse`, based on current
+GitHub main while preserving concurrent work in the canonical checkout.
+
+- Living fighters become passive, connected particle strands. Differential forces
+  stretch and curve each limb; intermediate particles sweep against platforms and
+  moving wreckage. Controls remain suppressed until compression or release. Even
+  a fighter caught at the centre gets a visible orbit before closing.
+- The last 1.1 seconds compress the collected matter. Fighters are consumed during
+  that closing phase, retaining their colour and carried weapon in the final ball.
+  Dead bodies, weapons, props, traps, projectiles, debris and blood also contribute.
+  Captured ammunition becomes inert matter. All source counts are retained with
+  at most 96 visual samples per core, including rare contents among common rubble.
+- The dense ball persists as breakable wreckage with 14 circular collision strips.
+  The outer twisted platforms keep their existing textured art and collision.
+  The ball follows the existing damage, nuke, transport and round-reset paths.
+- **Protocol 23: all players must refresh their tabs.** Live strands, forming cores
+  and settled matter are validated and interpolated; sample identities are stable.
+  No production debug hooks, new dependencies or Pi changes.
+- Real Edge host/guest browsers verified live stretched fighters, visible packing
+  and the final mixed ball through selected TURN relay candidates. A third browser
+  hot joined and received matching core contents and outer wreck collision.
+  No page errors. Guest renderer CPU cost was 2.3 ms at the 95th percentile over
+  796 samples; this is drawing cost, not FPS or internet latency.
+- QA scripts/screenshots: `bonk-club-qa/collapse-visual.cjs`, `collapse-online.cjs`
+  and `collapse-*.png`. Final release verification follows after publication.
+
 ## Fullscreen and UI fit — 10 September 2026
 
 Implemented on `codex/fullscreen-ui` in

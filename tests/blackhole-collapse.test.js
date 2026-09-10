@@ -58,6 +58,14 @@ test("orbiting limbs sweep against a thin wall instead of passing through it",()
   }
   assert.ok(contacts>0,"limbs contact the wall during orbit");
 });
+test("a fighter caught at the centre is lifted into a visible orbit before compression",()=>{
+  const w=fixture(),p=w.players[0],f=blackholeField(w,{x:1100,y:700,owner:1});w.fields=[f];
+  Object.assign(p,{x:f.x,y:f.y});p.rig=makeRig(p);captureFighter(p,f);
+  for(let n=0;n<180;n++)moveCaptured(p,w,[],STEP);
+  assert.ok(p.alive);
+  assert.ok(p.rig.some(q=>Math.hypot(q.x-f.x,q.y-f.y)>90));
+  assert.ok(validSnapshot(wire.make(w.snapshot())));
+});
 test("closing collects every matter category into a persistent, collidable ball while retaining outer twisted platforms",async()=>{
   const w=fixture(),f=blackholeField(w,{x:1100,y:700,owner:0});w.fields=[f];
   w.platforms=[{id:"floor",x:520,y:900,w:1160,h:24,baseX:520,baseY:900,dx:0,dy:0}];
