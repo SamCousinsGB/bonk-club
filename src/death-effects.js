@@ -23,7 +23,7 @@ export function projectileEffect(b) {
   if (["plasma", "tesla"].includes(b.kind)) return b.kind;
   if (b.kind === "frost") return "ice";
   if (b.kind === "flame") return "burn";
-  if (["rocket", "grenade"].includes(b.kind)) return "blast";
+  if (["rocket", "grenade", "duck"].includes(b.kind)) return "blast";
   if (WEAPONS[b.weapon]?.dismember) return "gib";
   return null;
 }

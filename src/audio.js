@@ -103,6 +103,9 @@ export class Sound {
     }
     if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
       const kind = detail.kind || type;
+      if (kind === "bubble") { this.tone(280, 920, .19, .24, "sine"); return; }
+      if (kind === "boomerang") { this.tone(560, 160, .23, .18, "triangle"); this.rumble(.15, .12, 2200); return; }
+      if (kind === "duck") { this.tone(620, 390, .18, .25, "square"); this.tone(470, 320, .25, .12, "triangle"); return; }
       if (kind === "phaser") {
         this.tone(520, 85, .42, .35, "sawtooth");
         this.tone(1040, 210, .35, .18, "sine");

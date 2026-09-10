@@ -162,6 +162,21 @@ export const COMBO = [
   },
 ];
 const additions = {
+  bubble: {
+    name: "BUBBLE GUN", kind: "bubble", damage: 14, force: 60,
+    cooldown: .55, ammo: 10, speed: 660, life: 1.4, r: 14,
+    recoil: 12, rarity: "rare", range: 900, color: "#b2edff",
+  },
+  boomerang: {
+    name: "BOOMERANG", kind: "boomerang", damage: 38, force: 420,
+    cooldown: .9, ammo: 7, speed: 780, life: 2.4, r: 14, bounces: 3,
+    recoil: 35, rarity: "rare", range: 650, color: "#ffce87",
+  },
+  duck: {
+    name: "RUBBER DUCK LAUNCHER", kind: "duck", damage: 76, force: 1450,
+    cooldown: 1.05, ammo: 5, speed: 610, life: 2.2, r: 14, bounces: 8,
+    radius: 175, recoil: 180, rarity: "exotic", range: 1000, color: "#ffe665",
+  },
   phaser: {
     name: "PHASER CANNON",
     kind: "phaser",
@@ -172,6 +187,7 @@ const additions = {
     speed: 12000,
     range: 3500,
     radius: 72,
+    flare: 150,
     life: .42,
     recoil: 90,
     rarity: "exotic",
@@ -225,17 +241,17 @@ const additions = {
   flame: {
     name: "FLAMETHROWER",
     kind: "flame",
-    damage: 7,
+    damage: 10,
     force: 50,
     cooldown: 0.055,
     ammo: 80,
-    speed: 670,
+    speed: 950,
     recoil: 3,
-    spread: 0.23,
-    life: 0.42,
-    burn: 1.9,
+    spread: 0.16,
+    life: 0.85,
+    burn: 1,
     rarity: "uncommon",
-    range: 270,
+    range: 800,
     color: "#ff9447",
   },
   frost: {

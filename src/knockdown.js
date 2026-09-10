@@ -24,6 +24,9 @@ export const THROW_MASS = {
   minigun: 3.2,
   blackhole: 3.4,
   phaser: 3.4,
+  bubble: 1.1,
+  boomerang: .8,
+  duck: 2.1,
   machinegun: 3.6,
 };
 export function knockDown(p, type) {

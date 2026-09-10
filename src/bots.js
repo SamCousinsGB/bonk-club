@@ -30,7 +30,7 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
-  if (w.kind === "phaser") return w.range;
+  if (["phaser", "boomerang", "duck"].includes(w.kind)) return w.range;
   if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
   if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
   const life = w.life || (w.kind === "rail" ? 0.8 : 4.5);
@@ -40,7 +40,7 @@ const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type
   range:engagementRange(w), speed:w.kind === "melee" ? undefined : w.speed,
   value:{common:5,uncommon:7,rare:9,exotic:11}[w.rarity], damage:w.damage,
   recoil:firingRecoil(w,{prone:!!w.proneOnly,ground:true}),
-  blast:["rocket","grenade","plasma"].includes(w.kind)?w.radius||145:0,
+  blast:["rocket","grenade","plasma","duck"].includes(w.kind)?w.radius||145:0,
   singularity:w.kind === "singularity",
 }]));
 const fists = { range: 92, value: 3, damage: 25 };
@@ -621,7 +621,7 @@ export class BotController {
     for (const shot of world.projectiles) {
       if (
         shot.owner === p.id &&
-        !["rocket", "grenade", "plasma"].includes(shot.kind)
+        !["rocket", "grenade", "plasma", "duck"].includes(shot.kind)
       )
         continue;
       const vx = shot.vx - p.vx,
@@ -629,7 +629,7 @@ export class BotController {
         speed2 = vx * vx + vy * vy;
       if (speed2 < 100) continue;
       const t = ((p.x - shot.x) * vx + (p.y - shot.y) * vy) / speed2;
-      const radius = ["rocket", "grenade", "plasma"].includes(shot.kind)
+      const radius = ["rocket", "grenade", "plasma", "duck"].includes(shot.kind)
         ? 90
         : 38;
       if (
@@ -647,7 +647,7 @@ export class BotController {
       b.reactToThreat = world.random() < skill.defence;
     }
     if (threat && b.reactToThreat) {
-      if (["rocket", "grenade", "plasma"].includes(threat.kind)) {
+      if (["rocket", "grenade", "plasma", "duck"].includes(threat.kind)) {
         b.flight = null;
         const away = Math.sign(p.x - threat.x) || 1;
         if (here)

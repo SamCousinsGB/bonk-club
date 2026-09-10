@@ -853,3 +853,38 @@ Publish tested commits to GitHub `main`, wait for successful CI/deployment,
 compare live asset hashes with the exact build, and check the public game in
 real browsers. Update this record after later changes; do not report old tests
 or old release hashes as verification of new code.
+
+## Phase muzzle, persistent fire and new weapons - 10 September 2026
+
+Implemented in `bonk-club-weapons` on `codex/strange-weapons` from current main,
+preserving the canonical checkout's concurrent edits.
+
+- Phase cannon fires from the actual gun tip. A 150-unit triangular flare grows
+  into the existing 144-unit-wide beam. Player hits and terrain carving use that
+  same footprint. Its brief afterglow follows the recoiling hand, and the final
+  ammo use retains the gun until the discharge finishes.
+- Flamethrower reach is about 800 units (950 speed, 0.85-second lifetime), up from
+  about 280. Direct damage is 10, up from 7. A hit ignites persistent 18 HP/second
+  burning until death, including during knockdowns/black-hole capture. Living
+  bodies char under pose-following flames; deaths leave the existing char/ember
+  remains. Cover blocks ignition. Fire resets with the round.
+- Bubble gun: buoyant shots lift opponents for 2.4 seconds while preserving
+  controls and world collision. Hits of 20+ damage pop the bubble; repeated
+  bubble shots do not extend an active lift. Black-hole capture pops it.
+- Boomerang: a spinning projectile curves back toward its living owner, can hit
+  once on each leg, bounces off cover and is caught without hurting its owner.
+  It expires if it cannot return. Rubber duck launcher: bouncing explosive ducks
+  with a 2.2-second fuse and 175-unit blast radius; fighter contact detonates them.
+- All three new weapons have distinctive pickup/held/projectile art and sounds,
+  explicit throw masses, AI handling and featured pickup rotation. There are now
+  27 weapons. Existing nuclear rotation and rare pickup weighting remain intact.
+- Protocol **24**: all players must refresh. Bubble state, the beam flare and new
+  projectiles are validated. New state follows existing snapshot/interpolation,
+  hot join, destruction and round-reset paths. No dependencies or Pi changes.
+- Source browser QA passed with real Edge host/guest and a third hot joiner through
+  selected TURN relay candidates. Verified burning to char death, bubble lift and
+  expiry, returning boomerangs, duck explosions and matching phase-cut terrain.
+  Rendered gameplay, flame streams and reversed/prone/diagonal beams were inspected.
+  No page errors. QA helpers/screenshots: `bonk-club-qa/weapons-visual.cjs`,
+  `weapons-online.cjs` and `weapons-*.png`. These helpers keep hooks outside the
+  repository; production has no debug hooks. Final release verification follows.

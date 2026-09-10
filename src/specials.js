@@ -2,10 +2,12 @@ import { blackholeField, updateBlackhole, updateWreckage } from "./blackhole.js"
 import { nuclearField, updateNuclear } from "./nuclear.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
+import { BUBBLE_TIME, steerBoomerang } from "./weird-weapons.js";
 
 const clear = (world, a, b) =>
   !world.solids().some((s) => segmentBox(a.x, a.y, b.x, b.y, s));
 export function steerSpecial(world, b, dt) {
+  steerBoomerang(world, b, dt);
   if (b.homing) {
     const target = world.players
       .filter((p) => p.alive && p.id !== b.owner && clear(world, b, p))
@@ -46,7 +48,11 @@ export function steerSpecial(world, b, dt) {
 
 export function impactSpecial(world, b, target, hurt) {
   if (!hurt) return;
-  if (b.burn) target.burn = Math.max(target.burn || 0, b.burn);
+  if (b.burn && target.alive) target.burn = 1;
+  if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
+    target.bubble = BUBBLE_TIME; target.ground = false; target.support = null;
+    target.vy = Math.min(target.vy, -110);
+  }
   if (b.chill) {
     target.chill = Math.max(target.chill || 0, b.chill);
     if(target.alive && !(target.freezeCooldown>0)) {

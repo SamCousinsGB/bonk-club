@@ -1,12 +1,14 @@
 import { drawBlackhole } from "./blackhole-art.js";
 import { drawNuclear } from "./nuclear-art.js";
 import { WEAPONS } from "./arsenal.js";
+import { drawWeirdWeapon, drawWeirdProjectile } from "./weird-art.js";
 
 // Canvas silhouettes share the existing game's materials, with different barrels,
 // coils, tanks and drums so pickups remain identifiable at arena scale.
 export function drawNewWeapon(r, type) {
   const w = WEAPONS[type],
     c = r.ctx;
+  if (drawWeirdWeapon(r, type)) return;
   if (type === "phaser") {
     c.fillStyle = "#233d43"; c.fillRect(-23, -15, 67, 30);
     c.fillStyle = "#789f9f"; c.fillRect(-18, -15, 55, 6);
@@ -213,6 +215,7 @@ export function drawNewWeapon(r, type) {
 export function drawSpecialProjectile(r, b, time) {
   const c = r.ctx,
     color = WEAPONS[b.weapon]?.color || "#c8edff";
+  if (drawWeirdProjectile(r, b, time)) return true;
   if (b.nuclear) {
     c.save();
     c.globalAlpha = r.reduced ? 0.3 : 0.35 + Math.sin(time * 9) * 0.12;
@@ -224,10 +227,18 @@ export function drawSpecialProjectile(r, b, time) {
     c.font = "700 18px sans-serif";
     c.fillText(Math.max(0, b.life).toFixed(1), b.x, b.y - 34);
   } else if (b.kind === "flame") {
-    const size = 6 + (1 - b.life / 0.42) * 13;
-    r.circle(b.x, b.y, size * 1.4, "#ff653832");
-    r.circle(b.x, b.y, size, "#ff993988");
-    r.circle(b.x, b.y, size * 0.45, "#ffe399");
+    const size = 8 + Math.max(0, 1 - b.life / WEAPONS.flame.life) * 23;
+    const flicker = r.reduced ? 0 : Math.sin(time * 25 + b.life * 20) * 6;
+    c.save(); c.translate(b.x, b.y); c.rotate(Math.atan2(b.vy, b.vx));
+    const tail = Math.min(48 + size * 1.8, Math.max(1, (WEAPONS.flame.life - b.life) * WEAPONS.flame.speed));
+    for (const [scale, color] of [[1.25, "#ff582944"], [1, "#ff8d32aa"], [.45, "#ffe8a3dd"]]) {
+      c.fillStyle = color; c.beginPath(); c.moveTo(-tail, flicker);
+      c.quadraticCurveTo(-size, -size * scale, size, -size * .25 * scale);
+      c.quadraticCurveTo(size * 1.3, 0, size * .7, size * .5 * scale);
+      c.quadraticCurveTo(-size * .5, size * scale, -tail, flicker);
+      c.fill();
+    }
+    c.restore();
   } else if (b.kind === "saw") {
     r.circle(b.x, b.y, 15, "#b5c8d3");
     for (let n = 0; n < 8; n++) {
