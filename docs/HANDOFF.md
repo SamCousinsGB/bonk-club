@@ -170,6 +170,17 @@ the earlier explosion-pass rule that made all terrain immune to bullets.
   were verified, rendered gameplay inspected, and no browser errors occurred.
 - QA helper and screenshots: `bonk-club-qa/bot-identities-browser.cjs` and
   `bot-identities-*.png`. Browser hooks exist only in the external QA helper.
+- Published in combined revision `e031499e1a90df9cb02e54178423939274f2cf7f`;
+  NPC implementation commit `bec0002`. Pages run `34487368851` succeeded on its
+  second deployment attempt after a transient OIDC token error. All **436 game
+  tests and 3 server tests passed**. Earlier NPC runs were superseded by other
+  concurrent releases; all of their changes are preserved in this revision.
+- All **15 public files** matched the exact committed archive build byte for
+  byte. Public solo and real host/guest checks passed, including hot join,
+  departure/rejoin, stable bot names, selected TURN relay candidates and no page
+  errors. Live gameplay screenshots were inspected. JS: `index-C5-1pa9d.js`;
+  CSS: `index-P_ztR8EB.css`. Archive/build: `bonk-club-qa/bot-identities-release`.
+  This task's development server on port 5192 was stopped.
 
 ## Movement and animation pass — 10 September 2026
 
