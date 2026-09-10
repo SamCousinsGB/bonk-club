@@ -94,7 +94,23 @@ checkout's concurrent gameplay changes.
   departure/rejoin and selected TURN relay checks without browser errors.
 - QA helpers/screenshots: `bonk-club-qa/fullscreen-ui.cjs`, `fullscreen-online.cjs`
   and `fullscreen-ui/`. No production debug hooks or Pi configuration changes.
-  Final release verification is recorded below after publication.
+- Fullscreen implementation: `a23cbd0`; the combined published revision is
+  `e031499e1a90df9cb02e54178423939274f2cf7f`. It includes the later mobile-control
+  cleanup and other concurrent gameplay changes. Preserve those updates.
+- Pages run `34487368851` passed **436 gameplay/network tests**, **3 server
+  tests**, production build and deployment. The initial publish step hit a GitHub
+  OIDC request timeout; the deployment-only retry succeeded:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34487368851.
+- All **15 public files** match the exact committed production build byte for
+  byte. Archive/build: `bonk-club-qa/fullscreen-release-e031499`; JS:
+  `index-C5-1pa9d.js`; CSS: `index-P_ztR8EB.css`.
+- Public-site checks passed all eight viewport sizes, actual desktop fullscreen
+  Start/exit/re-entry, denied fullscreen/orientation fallback, scrolling panels,
+  sound toggles and simultaneous touch drags/releases. Live host/guest lobby,
+  hot join, departure/rejoin and selected TURN relay checks passed without page
+  errors. Rendered gameplay was inspected. Phone checks use browser emulation;
+  physical iOS/Android fullscreen and orientation locking remain device-dependent.
+- This task's development server on port 5194 was stopped.
 
 ## Victory messages — 10 September 2026
 
