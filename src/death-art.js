@@ -2,6 +2,7 @@ import { JOINTS } from "./puppet.js";
 import { deathJoints } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawAppearance } from "./identity.js";
+import { drawSingularityBody } from "./singularity-art.js";
 function energy(r, points, color, time) {
   const c = r.ctx;
   c.save();
@@ -157,37 +158,7 @@ export function drawDeath(r, rag, time) {
       c.fill();
     }
   } else if (rag.effect === "singularity") {
-    c.globalAlpha = Math.min(1, rag.life / 0.6);
-    for (const strand of rag.strands) {
-      const points = strand.points,
-        d = Math.hypot(points[0].x - rag.targetX, points[0].y - rag.targetY),
-        width = Math.max(0.5, Math.min(5, d / 32));
-      for (const [color, size] of [
-        ["#071420", width + 2],
-        [rag.color, width],
-      ]) {
-        c.beginPath();
-        c.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length - 1; i++)
-          c.quadraticCurveTo(
-            points[i].x,
-            points[i].y,
-            (points[i].x + points[i + 1].x) / 2,
-            (points[i].y + points[i + 1].y) / 2,
-          );
-        c.lineTo(points.at(-1).x, points.at(-1).y);
-        c.strokeStyle = color;
-        c.lineWidth = size;
-        c.lineCap = "round";
-        c.stroke();
-      }
-    }
-    const head = pts[0],
-      radius = Math.min(
-        8,
-        Math.hypot(head.x - rag.targetX, head.y - rag.targetY) / 12,
-      );
-    if (radius > 1) r.circle(head.x, head.y, radius, rag.color);
+    drawSingularityBody(r, rag);
   } else {
     c.globalAlpha = Math.min(1, rag.life);
     const joints = deathJoints(rag);

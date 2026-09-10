@@ -2,6 +2,48 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Black-hole lens and continuous player artwork — 10 September 2026
+
+Implemented in the existing `bonk-club-bend-art` worktree on
+`codex/blackhole-lensing`, preserving the other tasks in the canonical checkout.
+
+- The core now has a gold-white photon ring, flowing accretion filaments and an
+  equatorial stream. A localized shader warps the current rendered scene around
+  the core. The ring and physics remain planar; there are no perspective ellipses.
+- The shader uses one reusable surface capped at 384 pixels per side, warms while
+  idle, and avoids CPU pixel readback. A Canvas ring/stream fallback handles
+  missing WebGL and context loss. Reduced motion freezes the gas and lens motion.
+- Black holes composite after the scene's bodies, projectiles and particles, so
+  the central shadow remains black as objects are consumed.
+- Spaghettified players use smoothly tapered curves and a single compound body
+  fill over a single outline. Per-limb borders and repeated overlap alpha no
+  longer create seams. Existing strand physics and the terrain artwork fix remain.
+- No new gameplay or wire state is introduced. The isolated release passed all
+  340 gameplay/network tests and a production build. Browser pixel checks verified
+  continuous player colour at joins, actual displacement of the scene, a black
+  core even over bright projectiles/particles, clearing, reduced motion, screen
+  edges, missing WebGL and context-loss fallback. Shader errors: zero.
+- Real host, mobile guest and a late joiner passed through the Pi relay with
+  matching warped terrain and player colour. Two simultaneous holes rendered
+  without page errors; guest drawing CPU time was 2.4 ms at the 95th percentile
+  on the QA machine, not a GPU completion or FPS measurement.
+- QA helpers and screenshots are in `bonk-club-qa` with the `lens-` prefix.
+  Combined validation after integrating weighted props: all **361 tests** and
+  the production build passed, followed by repeated real relay, pixel, fallback
+  and body-join checks. In a separate run after the test workload ended, guest
+  drawing CPU time with two holes was 2.3 ms at the 95th percentile. Guest rAF
+  callback intervals were 13.9 ms median / 14 ms p95 with two holes, 13.8 / 13.9 ms
+  with one, and 7 / 14 ms without a hole. These are QA-machine scheduling and CPU
+  measurements, not a guarantee of displayed frame rate on another device.
+  Published gameplay revision: `ea170c08f065c5044ac314592fec669405ff3338`.
+  Pages run `34481478107` passed tests, server tests, build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34481478107.
+  All 15 published files matched `bonk-club-qa/lens-release/dist` from the exact
+  committed source archive. JS: `index-BGZi4lyb.js`; CSS: `index-CUMQZt1D.css`.
+  The public game passed solo start, movement, jumping and menu checks without
+  page errors. The task's development server was stopped. Protocol remains 20;
+  refresh all players to see the same new artwork.
+
 ## Weighted props - 10 September 2026
 
 Implemented on `codex/weighted-props` in

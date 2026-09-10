@@ -1,6 +1,7 @@
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
-import { drawWreckage, drawRifts } from "./blackhole-art.js";
+import { drawWreckage, drawRifts, drawBlackhole } from "./blackhole-art.js";
+import { warmBlackholeLens } from "./blackhole-lens.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
@@ -27,6 +28,7 @@ const TAU = Math.PI * 2;
 export class Renderer {
   constructor(canvas) {
     warmNuclearArt();
+    warmBlackholeLens(this);
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.particles = [];
@@ -1023,7 +1025,7 @@ export class Renderer {
     this.fragments(state.debris);
     drawChunks(this.ctx, state.chunks);
     drawBlood(this,state.blood);
-    drawFields(this, state.fields, time);
+    drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {
       if(drawDeath(this,rag,time))continue;
       if(rag.ash)drawAshSkeleton(this,rag);
@@ -1133,6 +1135,10 @@ export class Renderer {
       c.restore();
     }
     this.words = this.words.filter((w) => w.life > 0);
+    // Lensing sees the complete scene, and the horizon hides consumed bodies,
+    // bullets and particles instead of letting them draw over the black core.
+    for (const f of state.fields)
+      if (f.kind === "blackhole") drawBlackhole(this, f, time);
     c.restore();
   }
 }
