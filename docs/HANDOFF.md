@@ -118,7 +118,20 @@ concurrent terrain and melee changes in the canonical checkout.
   hot joined with identical surviving terrain and spikes. Screenshots inspected.
 - QA helper and captures: `../bonk-club-qa/phaser-online.cjs`, `phaser-host.png`,
   `phaser-guest.png`, `phaser-survivor.png`. Hooks exist only in the external QA
-  helper. Release verification is recorded below after integration and publishing.
+  helper.
+- PHASER implementation published as `d70de9c65af1d98e512b25548e80c371574d9a17`;
+  Pages run `34478247676` passed. The subsequent combined terrain release
+  `25a684a8cf2b01a2b5110e819f29439c23824c16` preserves it and passed **340 game
+  tests and 3 server tests**, build and deployment in run `34478453160`.
+- Rechecked all nine PHASER regressions and the real three-browser PHASER scenario
+  on that combined release: guest upward jump velocity, landing alive at 62 HP,
+  low-HP skeleton death, and identical late-join terrain all passed. Selected
+  relay candidates were verified for all three pages; no browser errors.
+- All 15 public files matched an archive/build of `25a684a` byte for byte:
+  JS `index-DurcXg25.js`, CSS `index-CUMQZt1D.css`. The public build also passed
+  host/guest lobby, start and gameplay through selected TURN relay candidates.
+  `phaser-public.cjs` checks the unmodified public bundle;
+  `verify-phaser-live.cjs` compares assets. Archive/build: `bonk-club-qa/phaser-release`.
 
 ## Sword and bat swings — 10 September 2026
 
