@@ -2,6 +2,32 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Player join and leave notifications — 10 September 2026
+
+Implemented in `bonk-club-notifications`, branch `codex/player-notifications`,
+preserving the canonical checkout's concurrent terrain changes.
+
+- Human arrivals and departures show a compact named notification in the lobby
+  and gameplay. Up to three notices stack, then expire after four seconds. They
+  do not intercept controls, names are inserted as text, and reduced motion is
+  respected. Host connection loss has a departure tone and room-disconnect notice.
+- Arrivals have a soft rising two-note chime; departures have a lower falling
+  chime. They use the existing sound toggle and limiter, with bounded voices and
+  same-type burst coalescing. Opening or joining a room unlocks lobby audio;
+  automatically opened invites resume suspended audio on the first user gesture.
+- `src/room-presence.js` compares copied human rosters per room. Initial rosters,
+  duplicate updates, profile/slot edits and AI replacements do not produce false
+  alerts. Leaving/changing rooms clears notices. No wire or Pi changes.
+- 473 gameplay/network tests passed, including six new presence/audio cases.
+  Final targeted presence tests passed after browser-driven audio adjustments.
+  Production build and whitespace checks passed.
+- Three real Edge contexts verified host/guest notifications through selected
+  TURN relay candidates: lobby joins, renamed departures, hot join, in-game leave,
+  mute, expiry, room reset and host disconnect. Web Audio oscillator scheduling
+  confirmed both chimes. Rendered gameplay and a 568 x 320 viewport were inspected;
+  no browser errors. QA helper: `bonk-club-qa/presence-browser.cjs`.
+- Release verification is recorded below after deployment.
+
 ## Current release: death feedback — 10 September 2026
 
 Implemented in `bonk-club-death-cue`, branch `codex/death-cue`, preserving the

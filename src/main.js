@@ -34,6 +34,7 @@ import {
 } from "./engine.js";
 import { Renderer } from "./renderer.js";
 import { Sound } from "./audio.js";
+import { RoomPresence } from "./room-presence.js";
 import { Room, validCode } from "./network.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
@@ -100,6 +101,8 @@ let world = null,
   toastTimer,
   returnFocus = null;
 const guestFrames = new GuestFrames();
+const roomPresence = new RoomPresence();
+const roomNoticeTimers = new Map();
 let difficulty = "easy";
 try { difficulty = cleanDifficulty(localStorage.getItem("bonk-difficulty")); } catch { /* Private browsing. */ }
 let solo = false;
@@ -204,6 +207,36 @@ function toast(message) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("#toast").classList.add("hidden"), 4200);
 }
+function clearRoomNotices() {
+  for (const timer of roomNoticeTimers.values()) clearTimeout(timer);
+  roomNoticeTimers.clear();
+  $("#room-notifications").replaceChildren();
+  roomPresence.reset();
+}
+function roomNotice({ type, name, message }) {
+  const list = $("#room-notifications");
+  while (list.children.length >= 3) {
+    const oldest = list.firstElementChild;
+    clearTimeout(roomNoticeTimers.get(oldest));
+    roomNoticeTimers.delete(oldest);
+    oldest.remove();
+  }
+  const notice = document.createElement("div");
+  notice.className = `room-notice room-notice-${type}`;
+  const icon = document.createElement("span");
+  icon.className = "room-notice-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = type === "join" ? "+" : "−";
+  const label = document.createElement("span");
+  label.textContent = message || `${name} ${type === "join" ? "joined" : "left"}`;
+  notice.append(icon, label);
+  list.append(notice);
+  roomNoticeTimers.set(notice, setTimeout(() => {
+    notice.remove();
+    roomNoticeTimers.delete(notice);
+  }, 4000));
+  sound.play(type === "join" ? "player-join" : "player-leave");
+}
 function unlock() {
   try {
     sound.unlock();
@@ -245,6 +278,7 @@ function setPlaying(value) {
   syncTouchUi();
 }
 function home() {
+  clearRoomNotices();
   mobileScreen.release();
   searchId++;
   room?.close();
@@ -575,6 +609,8 @@ function connectionDetails(back) {
   };
 }
 async function quickMatch() {
+  unlock();
+  clearRoomNotices();
   enterGameScreen();
   solo = false;
   room?.close();
@@ -659,6 +695,7 @@ function enterGuest() {
 function roomCallbacks() {
   return {
     onRoster: (roster) => {
+      if (room) for (const change of roomPresence.update(room, roster)) roomNotice(change);
       if (room?.host && world) {
         world.syncSlots(room.slots, roster);
         room.sendState(world.snapshot());
@@ -681,6 +718,9 @@ function roomCallbacks() {
       guestFrames.push(s, performance.now());
     },
     onError: (message) => {
+      const wasConnected = room?.roster.some(p => p.id === room.id);
+      clearRoomNotices();
+      if (wasConnected) roomNotice({ type: "leave", message: "Disconnected from room" });
       lastDiagnosticRoom = room;
       room?.close();
       room = null;
@@ -698,6 +738,8 @@ async function connectRoom(code) {
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
+  unlock();
+  clearRoomNotices();
   enterGameScreen();
   room?.close();
   const next = new Room(roomCallbacks(), undefined, roomOptions());
@@ -921,6 +963,7 @@ $("#sound").onclick = () => {
 $("#fullscreen").onclick = toggleFullscreen;
 syncFullscreenUi();
 window.addEventListener("keydown", (e) => {
+  if (sound.context?.state === "suspended") unlock();
   if (e.code === "Escape") {
     if (view === "connection-details") {
       e.preventDefault();
@@ -956,6 +999,10 @@ window.addEventListener("keydown", (e) => {
   }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
+// An automatically opened invite cannot play audio until the first user gesture.
+window.addEventListener("pointerdown", () => {
+  if (sound.context?.state === "suspended") unlock();
+});
 window.addEventListener("blur", clearInput);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) clearInput();

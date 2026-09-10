@@ -71,6 +71,17 @@ export class Sound {
     const c = this.context;
     if (this.muted || !c || (c.state !== "running" && !c.startRendering)) return;
     if (!this.master) this.connect();
+    if (type === "player-join" || type === "player-leave") {
+      // A soft rising chime for arrivals; a lower falling chime for exits.
+      // Closely spaced arrivals or exits share a cue, with a bounded voice reserve
+      // so normal gunfire cannot swallow it or a join burst stack loud chords.
+      if (c.currentTime - (this.last.get(type) ?? -10) < 0.3 || this.active > 44) return;
+      this.last.set(type, c.currentTime);
+      const notes = type === "player-join" ? [660, 880] : [440, 330];
+      this.tone(notes[0], notes[0], 0.17, 0.2, "sine");
+      this.tone(notes[1], notes[1], 0.3, 0.18, "sine", 0.12);
+      return;
+    }
     const key = detail.nuclear ? "nuclear" : type;
     if (c.currentTime - (this.last.get(key) ?? -10) < (type === "ko" ? 0.12 : type === "shoot" ? 0.045 : 0.025)) return;
     this.last.set(key, c.currentTime);

@@ -592,6 +592,56 @@ h1 > span {
   max-width: 90%;
   text-align: center;
 }
+#room-notifications {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 76px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  display: grid;
+  gap: 6px;
+  width: max-content;
+  max-width: min(340px, calc(100% - 32px));
+  pointer-events: none;
+}
+.room-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  border: 1px solid #ffffff24;
+  border-radius: 8px;
+  background: #15221ef5;
+  color: #f0f5ed;
+  box-shadow: 0 4px 18px #0005;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  animation: room-notice-life 4s ease both;
+}
+.room-notice-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #bce9831a;
+  color: #bce983;
+  font-size: 17px;
+  line-height: 1;
+}
+.room-notice-leave .room-notice-icon {
+  background: #efa3931a;
+  color: #efa393;
+}
+@keyframes room-notice-life {
+  0% { opacity: 0; transform: translateY(-5px); }
+  5%, 87% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-notice { animation: none; }
+}
 #touch-controls {
   position: absolute;
   z-index: 2;
