@@ -1,4 +1,4 @@
-import { seedOrbit, orbitPoint, limitRope, ribbonOutline } from "./orbit.js";
+import { seedOrbit, orbitPoint, limitRope, springRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
 import { collectMatter, packMatter, matterTiles } from "./accretion.js";
@@ -133,6 +133,9 @@ function addWreck(world, f, s, kind = "platform") {
     originX: x,
     originY: y,
     originAngle: 0,
+    vx: s.vx || 0,
+    vy: s.vy || 0,
+    spin: s.spin || s.angularVelocity || 0,
   });
 }
 function tear(world, f) {
@@ -288,8 +291,13 @@ export function updateWreckage(world, dt = 1 / 120) {
         x: w.x + (i / 5 - 0.5) * w.w * Math.cos(w.angle),
         y: w.y + (i / 5 - 0.5) * w.w * Math.sin(w.angle),
       }));
-      for (const p of w.spine) seedOrbit(p, f);
+      for (const p of w.spine) {
+        p.vx = w.vx - (p.y - w.y) * w.spin;
+        p.vy = w.vy + (p.x - w.x) * w.spin;
+        seedOrbit(p, f);
+      }
     }
+    springRope(w.spine, w.w / 5, dt, 110);
     for (const p of w.spine) orbitPoint(p, f, dt);
     limitRope(w.spine, w.w / 5, 4);
     w.x = w.spine.reduce((sum, p) => sum + p.x, 0) / w.spine.length;

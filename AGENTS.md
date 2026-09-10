@@ -140,6 +140,9 @@ Keep this constitution for durable rules and the handoff for current work.
   debris and blood become a persistent dense ball with real collision. Keep the
   outer twisted platforms and their existing artwork. Captured matter must not
   simply disappear at the core; bound visual samples while retaining all counts.
+  Keep capture violent: retain incoming momentum, fast eccentric orbits, elastic
+  strands and independent limb flailing. Loose matter tumbles until compression;
+  do not restore continuous steering to a fixed orbital speed or early packing.
 - Do not assume the latest requested effects already exist; use the handoff to
   distinguish implemented behavior from requested changes.
 

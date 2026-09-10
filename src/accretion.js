@@ -24,6 +24,8 @@ export function collectMatter(world, f, source, kind) {
       color: /^#[0-9a-f]{6}$/i.test(source.color) ? source.color : colors[index],
       type: kind === "weapon" ? (source.type || source.weapon) : null,
       sourceKind: source.sourceKind || (kind === "prop" && source.kind !== "prop" ? source.kind : null) || null,
+      vx: source.vx || 0, vy: source.vy || 0,
+      spin: source.spin || source.angularVelocity || 0,
     });
   }
   core.mass = Math.min(1000000, core.mass);
@@ -33,6 +35,7 @@ export function collectMatter(world, f, source, kind) {
 function addSample(core, item) {
   item.id = core.sampleSerial = (core.sampleSerial || 0) + 1;
   seedOrbit(item, core, .7);
+  item.spin ||= Math.sin(item.id * 2.399963) * 9;
   if (core.items.length < MATTER_LIMIT) core.items.push(item);
   else {
     // Keep rare contents (a fighter, weapon or trap) visible among the rubble.
@@ -50,7 +53,12 @@ export function packMatter(f, dt) {
     const q = core.items[i], a = i * 2.399963,
       d = Math.sqrt((i + .5) / core.items.length) * (core.w / 2 - 6),
       x = core.x + Math.cos(a) * d, y = core.y + Math.sin(a) * d;
-    if (f.life > 1.1 && Math.hypot(q.x-core.x,q.y-core.y)>80) { orbitPoint(q,core,dt,.8); continue; }
+    if (f.life > 1.1) {
+      orbitPoint(q, f, dt, .8, 155);
+      q.spin += Math.sin(f.age * 9 + q.id) * dt * 7;
+      q.angle += q.spin * dt;
+      continue;
+    }
     const response = f.life <= 0 ? 1 : Math.min(1, dt * (core.packing ? 12 : 3));
     q.x += (x - q.x) * response; q.y += (y - q.y) * response;
     q.angle += (a - q.angle) * response;
