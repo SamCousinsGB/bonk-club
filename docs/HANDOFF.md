@@ -141,7 +141,8 @@ GitHub main while preserving the canonical checkout's unfinished terrain work.
   final round of ammunition; shattering ice takes precedence over the weapon.
 - `src/victory.js` owns the bounded cause identifiers and copy. `victoryCause`
   is validated in snapshots and survives compression, interpolation and hot join.
-  **Protocol 22: all players must refresh their tabs.** No Pi changes.
+  This change introduced protocol 22; the combined black-hole release now uses
+  **protocol 23: all players must refresh their tabs.** No Pi changes.
 - Added 21 regression tests covering real lethal attacks, nuclear/black-hole
   sequencing, fall ordering, draws, resets, departures and malformed wire values.
 - Real Edge host/mobile guest and a late joiner received nuclear and black-hole
@@ -149,7 +150,26 @@ GitHub main while preserving the canonical checkout's unfinished terrain work.
   rendered gameplay was inspected at desktop, 844 × 390 and 568 × 320 sizes.
   Long names scale down to keep the title readable. QA helper and screenshots:
   `bonk-club-qa/victory-browser.cjs` and `victory-*.png`, outside production.
-- Release verification is recorded below after publishing.
+- Published in combined revision `e031499e1a90df9cb02e54178423939274f2cf7f`,
+  including the later panel, fullscreen, bot-identity, black-hole capture and
+  mobile-clear-view updates. Victory implementation: `bb3cb47`.
+- Pages run `34487368851` passed **436 gameplay/network tests**, **3 server
+  tests**, production build and deployment. The first deployment attempt hit a
+  transient GitHub OIDC request timeout; the deployment retry succeeded:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34487368851.
+- All **15 live files** match the exact committed archive build byte for byte:
+  `bonk-club-qa/victory-release-e031499/dist`. JS: `index-C5-1pa9d.js`;
+  CSS: `index-P_ztR8EB.css`. Earlier release runs were superseded by concurrent
+  main updates; their unfinished deployments were not claimed as live.
+- The staged production bundle and public game both passed a normal two-player
+  round driven with browser keyboard events. The guest fell out of the arena;
+  both screens showed `SAM WON` / `By trusting gravity to finish the job`, then
+  cleared it on the next round. Both selected TURN relay candidates, with no
+  page errors. Helper: `victory-release-browser.cjs`; live-file checker:
+  `verify-victory-live.cjs` (set `VICTORY_REVISION=e031499`). Final screenshots:
+  `victory-live-host.png`, `victory-live-guest.png` under `bonk-club-qa`.
+- The task's development server on port 5193 was stopped. Canonical checkout
+  changes were preserved; this worktree is clean after the release-note commit.
 
 ## Restore bullet damage to marked panels — 10 September 2026
 
