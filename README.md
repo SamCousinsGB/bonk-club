@@ -30,9 +30,10 @@ On phones, use **Online multiplayer** with one player per device. Single player 
 | Left          | Drag down and hold to lie down                                                                 |
 | Right         | Drag to aim and fire, or hold to fire in the current direction                                 |
 | Right         | Double-tap to throw the held weapon without firing first                                       |
+| Jump button   | Tap to jump; tap again for the second jump                                                     |
 | Action button | Tap to parry with fists, double shot with shotgun, charged shot with plasma; hidden for other weapons |
 
-Portrait uses a camera that follows the local player, an arena overview, and a separate thumb-control area. Landscape shows the full arena with transparent thumb controls. Gestures reset on opening a menu, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
+Play in landscape to see the full arena. Light joystick guides hide, including their labels, while held and return on release. The invisible touch areas remain large; only compact Jump and contextual Parry/Alt fire buttons stay visible at the bottom edges. Throw and lie down use the gestures above. Portrait shows a rotate-phone prompt with access to the game menu. Gestures reset on opening a menu, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
 
 Escape opens or closes the game menu. The simulation continues while menus are open, while another tab is visible, and after focus loss. A dedicated worker clock drives simulation and network sends independently of rendering. Closing the browser or the operating system suspending/discarding the tab still stops its execution.
 

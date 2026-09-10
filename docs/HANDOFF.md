@@ -2,6 +2,33 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Clear mobile controls — 10 September 2026
+
+Sam requested less obstruction, no Lie down/Throw buttons, and joysticks that
+hide while held. This supersedes the older visible-button requirement below.
+
+- Removed those two buttons and the permanent gesture hints. Retained gesture
+  throws (double-tap right) and prone movement (drag down on the left).
+- Joysticks are small, unfilled guides near the bottom corners. Each guide and
+  label fades out while its pointer is held and returns on release/cancellation.
+  Only the artwork hides: the original large touch zones and pointer capture
+  remain active. Removed per-frame layout reads for invisible joystick artwork.
+- Jump and contextual Parry/Alt fire are translucent 64 x 48 targets at the
+  bottom edges, leaving the arena centre clear. No game/world/wire changes.
+- 426 gameplay/network tests and the production build passed before integration
+  with the subsequent bot identity release. Real Chromium touch events verified
+  independent guide visibility, simultaneous movement/fire, two jumps, prone
+  drag/cancellation, gesture throws preserving ammo, rotation/menu recovery,
+  and desktop-host/mobile-guest control delivery, release and hot rejoin.
+- Visually inspected actual gameplay at 568 x 320, 667 x 375, 844 x 390 and
+  1024 x 768. All remaining button targets are at least 44 pixels, with no
+  overlap or page scrolling. These are emulated phone/tablet browsers, not
+  physical iOS/Android hardware tests. No TURN configuration changed.
+- Isolated worktree: `bonk-club-mobile-clear`, branch `codex/mobile-clear-view`.
+  The original checkout's unfinished edits were preserved. QA helper/screenshots:
+  `bonk-club-qa/mobile-clear-browser.cjs` and `mobile-clear-source/`.
+  Production verification is recorded here after deployment.
+
 ## Fullscreen and UI fit — 10 September 2026
 
 Implemented on `codex/fullscreen-ui` in

@@ -63,8 +63,11 @@ Keep this constitution for durable rules and the handoff for current work.
   permanent crouch-walking, rigid canned animation and purely cosmetic knockback.
 - Preserve keyboard/mouse, controller and usable mobile touch controls. Left click
   punches/fires, S lies down, F throws. Pickups are automatic. Touch uses movement
-  drags, jump swipes, aim/fire gestures and double-tap to throw, plus visible Jump,
-  Throw and hold-to-Lie-down buttons. Keep simultaneous movement and firing possible.
+  drags, jump swipes, aim/fire gestures and double-tap to throw. Keep only compact
+  Jump and contextual Parry/Alt fire buttons; no Throw or Lie down buttons. Use
+  light joystick guides that hide, including their labels, while held and return
+  on release. Preserve generous invisible touch areas, simultaneous movement and
+  firing, and dragging down to lie down.
   Mobile play uses landscape. Request fullscreen and landscape locking from Join
   and Start taps; show a rotate-phone prompt when locking is unavailable. Keep the
   game menu reachable in portrait and prevent page drag. Browser refusal must never
