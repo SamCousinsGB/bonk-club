@@ -61,13 +61,27 @@ let touchInput = emptyInput();
 let touchDevice = matchMedia("(pointer: coarse)").matches;
 const mobileScreen = new MobileScreen();
 const portraitScreen = matchMedia("(orientation: portrait)");
-function enterMobileScreen() {
-  if (touchDevice) void mobileScreen.enter();
+function enterGameScreen() {
+  void mobileScreen.enter({ landscape: touchDevice });
 }
-async function requestMobileFullscreen() {
-  await mobileScreen.enter();
+async function requestGameFullscreen() {
+  await mobileScreen.enter({ landscape: touchDevice });
   if (!mobileScreen.fullscreen)
     toast("Fullscreen is unavailable in this browser. The game will use the available screen.");
+}
+async function toggleFullscreen() {
+  try {
+    if (mobileScreen.fullscreen) await mobileScreen.exit();
+    else await requestGameFullscreen();
+  } catch {
+    toast("Fullscreen is unavailable in this browser.");
+  }
+}
+function syncFullscreenUi() {
+  const active = mobileScreen.fullscreen;
+  $("#fullscreen").setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
+  $("#fullscreen").setAttribute("aria-pressed", String(active));
+  if ($("#game-fullscreen")) $("#game-fullscreen").textContent = active ? "EXIT FULLSCREEN" : "FULLSCREEN";
 }
 function needsRotation() {
   return playing && touchDevice && portraitScreen.matches;
@@ -228,9 +242,6 @@ function setPlaying(value) {
   $("#invite").classList.toggle("hidden", !value || !room);
   setHtml($("#announcement"), "");
   syncTouchUi();
-  $("#footer-hint").textContent = value
-    ? "MOUSE AIM · LEFT CLICK ATTACK · RIGHT CLICK PARRY / ALT FIRE · S LIE DOWN · F THROW"
-    : "";
 }
 function home() {
   mobileScreen.release();
@@ -270,7 +281,7 @@ function arenaMenu() {
   $("#arena-close").onclick = hidePanel;
 }
 function startWorld(ids) {
-  enterMobileScreen();
+  enterGameScreen();
   const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
@@ -562,7 +573,7 @@ function connectionDetails(back) {
   };
 }
 async function quickMatch() {
-  enterMobileScreen();
+  enterGameScreen();
   solo = false;
   room?.close();
   room = null;
@@ -684,7 +695,7 @@ async function connectRoom(code) {
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
-  enterMobileScreen();
+  enterGameScreen();
   room?.close();
   const next = new Room(roomCallbacks(), undefined, roomOptions());
   room = next;
@@ -761,13 +772,17 @@ function gameMenu(forceOpen = false) {
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {
-    enterMobileScreen();
+    if (touchDevice) enterGameScreen();
     hidePanel();
   };
-  if (touchDevice && mobileScreen.supported && !mobileScreen.fullscreen) {
+  if (mobileScreen.supported) {
     $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
-    $("#game-fullscreen").onclick = () => { void requestMobileFullscreen(); hidePanel(); };
+    $("#game-fullscreen").onclick = toggleFullscreen;
   }
+  $("#pause-help").insertAdjacentHTML("beforebegin", `<button id="game-sound" class="button secondary">${sound.muted ? "UNMUTE SOUND" : "MUTE SOUND"}</button>`);
+  $("#game-sound").onclick = () => $("#sound").click();
+  if (room && !room.host) $("#resume").insertAdjacentHTML("beforebegin", `<p class="subtle">Connection: ${ping} ms</p>`);
+  syncFullscreenUi();
   $("#leave").onclick = home;
   $("#pause-help").onclick = () => help(hidePanel);
   $("#edit-character").onclick = characterMenu;
@@ -813,9 +828,6 @@ function updateHud(s) {
   } else if (s.phase === "result") {
     setHtml(a, `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
   } else setHtml(a, "");
-  if (room && !room.host)
-    $("#footer-hint").textContent =
-      `ONLINE · ${ping} MS · YOU ARE ${s.players.find((p) => p.id === room.id)?.name || NAMES[room.id]}`;
 }
 function equipmentInfo(p) {
   if (!p.alive) return '<small>ELIMINATED</small>';
@@ -888,12 +900,6 @@ $("#menu-controls").onclick = () => {
 };
 $("#online").onclick = () => connectRoom();
 $("#character").onclick = characterMenu;
-$("#help").onclick = () => {
-  unlock();
-  if (playing) {
-    help(hidePanel);
-  } else help();
-};
 $("#pause").onclick = gameMenu;
 $("#invite").onclick = copyInvite;
 $("#sound").onclick = () => {
@@ -905,22 +911,11 @@ $("#sound").onclick = () => {
     sound.muted ? "Unmute sound" : "Mute sound",
   );
   $("#sound").setAttribute("aria-pressed", String(sound.muted));
+  if ($("#game-sound")) $("#game-sound").textContent = sound.muted ? "UNMUTE SOUND" : "MUTE SOUND";
   toast(sound.muted ? "Sound off." : "Sound on.");
 };
-$("#fullscreen").onclick = async () => {
-  if (touchDevice && !mobileScreen.fullscreen) {
-    await requestMobileFullscreen();
-    return;
-  }
-  try {
-    if (mobileScreen.fullscreen) await mobileScreen.exit();
-    else await $("#app").requestFullscreen();
-  } catch {
-    toast(
-      "Fullscreen isn’t available here. Try opening the game in its own browser tab.",
-    );
-  }
-};
+$("#fullscreen").onclick = toggleFullscreen;
+syncFullscreenUi();
 window.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     if (view === "connection-details") {
@@ -1013,9 +1008,9 @@ const resizeGame = new ResizeObserver(measureGame);
 resizeGame.observe(canvas);
 window.addEventListener("orientationchange", clearInput);
 portraitScreen.addEventListener("change", () => { clearInput(); syncTouchUi(); });
-document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); });
-document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); });
-$("#rotate-fullscreen").onclick = () => { void requestMobileFullscreen(); };
+document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
+document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
+$("#rotate-fullscreen").onclick = () => { void requestGameFullscreen(); };
 $("#rotate-menu").onclick = gameMenu;
 window.addEventListener(
   "pointerdown",
@@ -1167,12 +1162,10 @@ setInterval(() => {
 requestAnimationFrame(frame);
 const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase();
 if (validCode(inviteCode)) {
-  if (touchDevice) {
-    // The tap supplies browser activation before any asynchronous room work.
-    showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
-    $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
-    $("#back").onclick = home;
-  } else connectRoom(inviteCode);
+  // The click supplies fullscreen activation before asynchronous room discovery.
+  showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
+  $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
+  $("#back").onclick = home;
 }
 if (import.meta.hot)
   import.meta.hot.dispose(() => {

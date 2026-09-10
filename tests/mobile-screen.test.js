@@ -36,6 +36,15 @@ test("denied or missing screen APIs never prevent joining, and can be retried", 
   unsupported.release();
 });
 
+test("desktop fullscreen leaves the screen orientation unchanged", async () => {
+  let locks = 0;
+  const doc = { documentElement: { requestFullscreen() { doc.fullscreenElement = {}; } } };
+  const s = new MobileScreen(doc, { orientation: { lock() { locks++; } } });
+  await s.enter({ landscape: false });
+  assert.equal(s.fullscreen, true);
+  assert.equal(locks, 0);
+});
+
 test("prefixed fullscreen is supported without requiring orientation APIs", async () => {
   const doc = {
     documentElement: { webkitRequestFullscreen() { doc.webkitFullscreenElement = {}; } },

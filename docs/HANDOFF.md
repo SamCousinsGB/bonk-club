@@ -2,6 +2,32 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Fullscreen and UI fit — 10 September 2026
+
+Implemented on `codex/fullscreen-ui` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-fullscreen`, preserving the canonical
+checkout's concurrent gameplay changes.
+
+- The stage fills the viewport in menus and gameplay, without the former outer
+  margins, maximum width, rounded frame, header row or footer row. The complete
+  arena retains its aspect ratio. Scores and menu controls stay inside safe areas.
+- Start, Online, Quick match and Join request fullscreen immediately on desktop
+  and touch. Invite links show Join room on both to provide browser activation.
+  Only touch requests landscape locking. Refusal leaves a usable viewport game.
+- Removed the question-mark help icon. Controls remain available in the menus.
+  Sound and fullscreen toggles are available from Game menu during play. Desktop
+  Back to game respects an intentional fullscreen exit.
+- Short landscape menus use two columns. Dialogs fit the viewport and scroll
+  internally, with a reachable sticky close button and no horizontal overflow.
+- Browser checks cover eight sizes from 320 x 568 portrait and 568 x 320 landscape
+  to 2560 x 1080, actual desktop fullscreen entry/exit/re-entry, denied APIs,
+  character/settings/controls panels and real simultaneous touch drags/releases.
+  Real host/guest staged production browsers passed lobby, slot controls, hot join,
+  departure/rejoin and selected TURN relay checks without browser errors.
+- QA helpers/screenshots: `bonk-club-qa/fullscreen-ui.cjs`, `fullscreen-online.cjs`
+  and `fullscreen-ui/`. No production debug hooks or Pi configuration changes.
+  Final release verification is recorded below after publication.
+
 ## Movement and animation pass — 10 September 2026
 
 Implemented on `codex/movement-pass` in
