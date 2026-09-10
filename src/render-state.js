@@ -30,7 +30,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 function blend(a, b, t) {
   if (!a) return b;
   const out = { ...b };
-  for (const key of ["x", "y", "walk", "angle", "bodyX", "bodyY", "age", "radius"])
+  for (const key of ["x", "y", "walk", "angle", "bodyX", "bodyY", "age", "ashAge", "radius"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));
@@ -48,7 +48,12 @@ export function interpolateStates(a, b, t) {
     const old = a.players.find(q => q.id === p.id);
     return old && old.occupant === p.occupant && old.alive === p.alive ? blend(old, p, t) : p;
   });
-  out.platforms = b.platforms.map((p, i) => blend(a.platforms[i], p, t));
+  const platforms = new Map(a.platforms.map(p => [p.id,p]));
+  out.platforms = b.platforms.map(p => {
+    const old = platforms.get(p.id);
+    return old && old.w === p.w && old.h === p.h ? blend(old,p,t) : p;
+  });
+  out.time = lerp(a.time,b.time,t);
   out.hazards = b.hazards.map(h => {
     const old = a.hazards.find(q => q.id === h.id);
     return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;

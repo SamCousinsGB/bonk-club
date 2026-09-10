@@ -21,7 +21,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 14;
+export const PROTOCOL = 15;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -699,7 +699,7 @@ export function validSnapshot(s) {
     new Set(s.players.map((p) => p.id)).size === s.players.length &&
     list(
       s.platforms,
-      72,
+      1024,
       (p) =>
         xy(p) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
@@ -776,11 +776,13 @@ export function validSnapshot(s) {
         f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : 400) &&
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 5)) &&
         (f.kind !== "shockwave" ||
-          (list(f.strikes, 6, s => xy(s) && finite(s.at) && s.at >= 0 && s.at <= 4) &&
-            integer(f.nextStrike, 0, 6))) &&
+          (integer(f.craterId,1,1000000) && typeof f.melted === "boolean")) &&
         f.life >= 0 &&
         f.life <= 5,
     ) &&
+    list(s.craters,128,c => xy(c) && integer(c.id,1,1000000) &&
+      finite(c.radius) && c.radius > 0 && c.radius <= NUCLEAR.coreRadius && finite(c.born) && c.born >= 0 && c.born <= s.time + .01) &&
+    new Set(s.craters.map(c=>c.id)).size === s.craters.length &&
     list(
       s.drops,
       20,
@@ -791,6 +793,7 @@ export function validSnapshot(s) {
       4,
       (r) =>
         finite(r.life) &&
+        (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
         typeof r.color === "string" &&
         /^#[a-fA-F0-9]{6}$/.test(r.color) &&
         list(r.points, 11, xy) &&

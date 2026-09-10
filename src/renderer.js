@@ -1,3 +1,4 @@
+import { drawCraters, clipCraters, drawAshSkeleton } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawHair } from "./identity.js";
@@ -117,8 +118,8 @@ export class Renderer {
           "break",
         ].includes(e.type)
       ) {
-        const count = e.nuclear
-          ? 90
+        const count = e.ash ? 0 : e.nuclear
+          ? 24
           : e.type === "explosion"
             ? 38
             : e.type === "ko"
@@ -129,7 +130,7 @@ export class Renderer {
             v =
               70 +
               Math.random() *
-                (e.nuclear ? 1500 : e.type === "explosion" ? 570 : 330);
+                (e.nuclear ? 400 : e.type === "explosion" ? 570 : 330);
           this.particles.push({
             x: e.x,
             y: e.y,
@@ -891,6 +892,16 @@ export class Renderer {
       return;
     }
     const arena = ARENAS[state.arenaIndex];
+    c.save();
+    const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
+    this.shake = Math.max(this.shake, pressure);
+    if (!this.reduced && this.shake > 0)
+      c.translate(
+        (Math.random() - 0.5) * this.shake,
+        (Math.random() - 0.5) * this.shake,
+      );
+    this.shake = Math.max(0, this.shake - dt * 40);
+
     if (arena.theme) {
       if (!this.scenery.has(state.arenaIndex)) {
         const layer = document.createElement("canvas");
@@ -909,20 +920,13 @@ export class Renderer {
       this.city(arena, state.platforms);
     }
     ambientDetail(this, arena, time);
-    c.save();
-    const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
-    this.shake = Math.max(this.shake, pressure);
-    if (!this.reduced && this.shake > 0)
-      c.translate(
-        (Math.random() - 0.5) * this.shake,
-        (Math.random() - 0.5) * this.shake,
-      );
-    this.shake = Math.max(0, this.shake - dt * 40);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
     }
-    for (const p of state.platforms) this.platform(p, time);
+    drawCraters(this, state);
+    c.save(); clipCraters(c,state);
+    for (const p of state.platforms) if (!p.move && !p.travel) this.platform(p, time);
     for (const s of ARENAS[state.arenaIndex].spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {
@@ -933,6 +937,8 @@ export class Renderer {
         c.fill();
       }
     }
+    c.restore();
+    for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -954,6 +960,7 @@ export class Renderer {
     for(const label of pickupLabels(state.drops,state.players,state.players.find(p=>p.id===this.localId&&p.alive),type=>this.pickup(type),WEAPONS))
       c.drawImage(label.art.label,label.x,label.y);
     for (const r of state.ragdolls) {
+      if (r.ash) continue;
       c.globalAlpha = Math.min(1, r.life);
       const pts = r.points;
       for (const [a, b] of JOINTS)
@@ -978,9 +985,10 @@ export class Renderer {
     }
     for (const p of state.players) this.fighter(p, time);
     for (const cover of state.cover || []) this.table(cover);
-    this.fragments(state.debris);
     drawHazards(c, state.hazards, time);
+    this.fragments(state.debris);
     drawFields(this, state.fields, time);
+    for (const rag of state.ragdolls) if (rag.ash) drawAshSkeleton(this,rag);
     for (const b of state.projectiles) {
       if (drawSpecialProjectile(this, b, time)) continue;
       if (b.kind === "rail") {

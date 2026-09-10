@@ -104,7 +104,7 @@ export class BotController {
       const solids=world.solids().map(s=>({...s}));
       this.pendingNavigation = navigationSteps(solids, {
         time: world.time,
-        spikes: world.arena.spikes || [],
+        spikes: world.spikes(),
         cache: this.navigationCache,
       });
       this.builtAt = world.time;
@@ -406,7 +406,7 @@ export class BotController {
             edge.jumps,
             edge.secondAt,
             world.time,
-            world.arena.spikes || [],
+            world.spikes(),
             p.vx,
             edge.landingX,
           );

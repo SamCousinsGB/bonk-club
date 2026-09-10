@@ -1,80 +1,95 @@
 import { NUCLEAR } from "./impact.js";
+import { JOINTS } from "./puppet.js";
 import { W, H } from "./scale.js";
+const TAU = Math.PI * 2;
+const circle = (c, x, y, radius) => { c.beginPath(); c.arc(x,y,Math.max(.01,radius),0,TAU); };
 
-const sprites = new Map();
-function cloudSprite(core) {
-  if (sprites.has(core)) return sprites.get(core);
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 192;
-  const c = canvas.getContext("2d");
-  const g = c.createRadialGradient(83, 72, 4, 96, 96, 94);
-  for (const [stop, color] of core
-    ? [[0,"#fff5ca"],[0.25,"#ffde7c"],[0.55,"#f48039"],[0.8,"#8c3829cc"],[1,"#461e1500"]]
-    : [[0,"#826251f0"],[0.45,"#574b43ed"],[0.76,"#302e2cb0"],[1,"#171d2100"]]) g.addColorStop(stop, color);
-  c.fillStyle = g; c.fillRect(0, 0, 192, 192);
-  sprites.set(core, canvas);
-  return canvas;
+export function clipCraters(c, state) {
+  for (const f of state.craters || []) {
+    if (state.time - f.born < NUCLEAR.meltAt) continue;
+    c.beginPath(); c.rect(-200,-200,W+400,H+400);
+    c.moveTo(f.x+f.radius,f.y); c.arc(f.x,f.y,f.radius,0,TAU);
+    c.clip("evenodd");
+  }
 }
 
-export function drawNuclear(r, f, time) {
-  const c = r.ctx, age = f.age;
-  const fade = Math.min(1, f.life / 1.25);
-  const grow = 1 - Math.exp(-age * 2.7);
-  const radius = Math.max(1, Math.min(f.radius, age * NUCLEAR.waveSpeed));
+export function drawCraters(r, state) {
+  const c = r.ctx;
   c.save();
-  // One bloom at detonation, followed by a sustained warm exposure and ash.
-  c.globalAlpha = fade * Math.min(0.3, age * 0.3);
-  c.fillStyle = "#471e12"; c.fillRect(0, 0, W, H);
-  if (!r.reduced && age < 0.24) {
-    c.globalAlpha = 0.58 * (1 - age / 0.24);
-    c.fillStyle = "#fff3d3"; c.fillRect(0, 0, W, H);
+  for (const f of state.craters || []) {
+    const age = Math.max(0,state.time-f.born);
+    if (age < NUCLEAR.meltAt) continue;
+    // Opaque emptiness removes the scenery as well as the destroyed geometry.
+    circle(c,f.x,f.y,f.radius); c.fillStyle="#050b12"; c.fill();
+  }
+  c.restore();
+}
+
+export function drawNuclear(r, f) {
+  const c = r.ctx, age = f.age, radius = Math.min(f.radius, age*NUCLEAR.waveSpeed);
+  const fade = Math.min(1,Math.max(0,f.life/1.2));
+  c.save();
+  circle(c,f.x,f.y,radius); c.clip();
+  if (age < .72) {
+    // A single circular white exposure, then the flash burns down to the hole.
+    c.globalAlpha = r.reduced ? Math.max(0,.42*(1-age/.72)) : Math.min(1,Math.max(0,(.72-age)/.42));
+    c.fillStyle = r.reduced ? "#d4a267" : "#fffff2";
+    c.fillRect(f.x-radius,f.y-radius,radius*2,radius*2);
   }
   c.globalAlpha = fade;
-  for (const [width, color] of [[80,"#ffdb8026"],[30,"#fbc57566"],[7,"#fff1c5"]]) {
-    c.beginPath(); c.strokeStyle = color; c.lineWidth = width;
-    c.ellipse(f.x, f.y, radius, radius * 0.93, 0, 0, Math.PI * 2); c.stroke();
+  for (const [width,color] of [[42,"#e9572420"],[17,"#ff8d3748"],[6,"#ffb14d"],[2,"#fff0b9"]]) {
+    circle(c,f.x,f.y,Math.max(1,radius-width/2));c.strokeStyle=color;c.lineWidth=width;c.stroke();
   }
-  const height = 140 + grow * 570, headY = f.y - height;
-  const fire = cloudSprite(true), smoke = cloudSprite(false);
-  // Cached plumes keep the cloud inexpensive even with several simultaneous nukes.
-  for (let n = 0; n < 7; n++) {
-    const climb = n / 6, size = (130 + n * 22) * grow;
-    c.globalAlpha = fade * 0.88;
-    c.drawImage(age < 1.45 ? fire : smoke, f.x - size / 2 + Math.sin(n * 3) * 25 * grow,
-      f.y - climb * height - size / 2, size, size * 1.35);
+  // Molten fragments peel inward from the cut. Fixed counts and no blur keep
+  // the effect inexpensive on online guests and phones.
+  for (let n=0;n<72;n++) {
+    const angle=n*2.39996, start=.25+(n%9)*.06, t=Math.max(0,age-start);
+    const edge=f.radius-(n%5)*2;
+    const x=f.x+Math.cos(angle)*(edge-t*(12+n%7*5));
+    const y=f.y+Math.sin(angle)*edge+t*t*(25+n%4*12);
+    c.globalAlpha=fade*Math.min(1,t*4)*Math.max(0,1-t/2.7);
+    r.line([[x,y],[x-Math.cos(angle)*3,y-8-t*12]],n%3?"#ff9f47":"#fff2b9",2+n%3);
   }
-  for (let n = 0; n < 13; n++) {
-    const a = n * 2.4, spread = grow * (160 + (n % 4) * 45);
-    const size = grow * (260 + (n % 3) * 64);
-    const x = f.x + Math.cos(a) * spread, y = headY + Math.sin(a) * 85 * grow;
-    c.globalAlpha = fade * 0.95;
-    c.drawImage(age < 1.25 + (n % 3) * 0.2 ? fire : smoke, x - size / 2, y - size / 2, size, size);
+  c.restore();
+}
+
+export function drawAshSkeleton(r, rag) {
+  const c=r.ctx, age=rag.ashAge, pts=rag.points;
+  const crumble=Math.max(0,Math.min(1,(age-.65)/1.05));
+  c.save();
+  c.globalAlpha=Math.min(1,rag.life)*Math.max(0,1-crumble);
+  for (const [a,b] of JOINTS) {
+    if(a===0) continue;
+    r.line([[pts[a].x,pts[a].y],[pts[b].x,pts[b].y]],"#121418",8);
+    r.line([[pts[a].x,pts[a].y],[pts[b].x,pts[b].y]],"#eee5cb",3.5);
+    r.circle(pts[b].x,pts[b].y,2.7,"#fff4d8");
   }
-  // Rolling dust at the detonation floor and long-lived embers use fixed counts.
-  for (let n = 0; n < 12; n++) {
-    const side = n % 2 ? 1 : -1, travel = age * (170 + (n % 6) * 110);
-    const size = 110 + grow * 100;
-    c.globalAlpha = fade * 0.6;
-    c.drawImage(smoke, f.x + side * travel - size / 2, f.y - 60 - size / 2, size * 1.8, size);
+  const neck=pts[1],hip=pts[2],dx=hip.x-neck.x,dy=hip.y-neck.y,len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len,ny=dx/len;
+  for(let n=1;n<=4;n++) {
+    const t=n/5,x=neck.x+dx*t,y=neck.y+dy*t,width=10-n;
+    r.line([[x+nx*width,y+ny*width],[x+dx*.09,y+dy*.09],[x-nx*width,y-ny*width]],"#eee5cb",2.2);
   }
-  c.globalAlpha = fade * 0.8;
-  for (let n = 0; n < 28; n++) {
-    const x = f.x + Math.sin(n * 13.1) * age * 350;
-    const y = f.y - age * (180 + n % 7 * 75) + age * age * 90;
-    r.line([[x, y],[x - Math.sin(n * 13.1) * 18, y + 24]], n % 2 ? "#ffc45b" : "#ff753e", 3);
-  }
-  for (const s of f.strikes || []) {
-    const remaining = s.at - age;
-    if (remaining > 0 && remaining < 0.65) {
-      c.globalAlpha = Math.min(0.8, (0.65 - remaining) * 2);
-      c.strokeStyle = "#ffc580"; c.lineWidth = 3;
-      c.beginPath(); c.ellipse(s.x, s.y, 100, 25, 0, 0, Math.PI * 2); c.stroke();
-      r.line([[s.x,s.y-85],[s.x,s.y-20]], "#ffe3b2", 4);
-    } else if (remaining <= 0 && remaining > -0.45) {
-      const size = 250 + -remaining * 350;
-      c.globalAlpha = 1 + remaining / 0.45;
-      c.drawImage(fire, s.x - size / 2, s.y - size * 0.85, size, size);
-    }
+  r.line([[hip.x+nx*6,hip.y+ny*6],[hip.x+dx*.16,hip.y+dy*.16],[hip.x-nx*6,hip.y-ny*6]],"#eee5cb",3);
+  const head=pts[0];
+  c.save();c.translate(head.x,head.y);
+  c.rotate(Math.atan2(head.y-neck.y,head.x-neck.x)+Math.PI/2);
+  r.circle(0,0,11.5,"#10151b");r.circle(0,-1,9.5,"#f7eed4");
+  c.fillStyle="#eee5cb";c.fillRect(-5,4,10,8);
+  r.circle(-4,-1,2.8,"#111721");r.circle(4,-1,2.8,"#111721");
+  r.line([[0,2],[-1,5]],"#111721",2);
+  for(let x=-3;x<=3;x+=3)r.line([[x,8],[x,11]],"#111721",1);
+  c.restore();
+  // Ash starts on the actual bones, then separates into a falling, drifting cloud.
+  const t=Math.max(0,age-.6),dir=rag.ashDirection||1;
+  for(let n=0;n<66;n++) {
+    const [a,b]=JOINTS[n%JOINTS.length],along=((n*17)%31)/31;
+    const x=pts[a].x+(pts[b].x-pts[a].x)*along;
+    const y=pts[a].y+(pts[b].y-pts[a].y)*along;
+    c.globalAlpha=Math.min(1,t*3)*Math.min(1,rag.life/.65)*(.45+(n%4)*.15);
+    c.fillStyle=n%4===0?"#ffbf68":n%2?"#b7b2a5":"#6c7277";
+    const size=1.3+n%3*.7;
+    c.fillRect(x+dir*t*(12+n%9*8)+Math.sin(n*7)*t*15,y+t*t*(12+n%5*8)-t*(n%7)*7,size,size);
   }
   c.restore();
 }

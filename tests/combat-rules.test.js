@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, W, WEAPONS, cleanInput } from "../src/engine.js";
 import { secondaryAction } from "../src/arsenal.js";
-import { updateFields } from "../src/specials.js";
 import { validSnapshot } from "../src/network.js";
 import { combatFloor } from "./helpers.js";
 
@@ -284,71 +283,4 @@ test("nuclear pickup is single use and launches a live grenade through attack or
     assert.equal(w.drops.length, 0);
     assert.equal(WEAPONS.nuke.rarity, "exotic");
   }
-});
-test("nuclear blast breaks nearby cover and launches a shockwave that strikes beyond the core once", () => {
-  const w = fixture(),
-    [p, q, r] = w.players;
-  p.x = 1700;
-  q.x = 1050;
-  r.x = 1250;
-  w.cover.push({
-    id: "panel",
-    kind: "table",
-    x: 200,
-    y: 515,
-    w: 80,
-    h: 50,
-    hp: 100,
-    maxHp: 100,
-  });
-  equip(p, "nuke");
-  w.attack(p);
-  const b = w.projectiles[0];
-  Object.assign(b, { x: 100, y: 520, vx: 0, vy: 0, life: 0.001 });
-  w.updateProjectiles(STEP);
-  assert.equal(w.cover[0].hp, 0);
-  assert.equal(w.fields[0].kind, "shockwave");
-  assert.equal(q.hp, 100);
-  for (let n = 0; n < 120; n++) updateFields(w, STEP);
-  assert.ok(q.hp < 100 && q.vx > 700);
-  assert.ok(r.hp < 100);
-  const hp = q.hp;
-  for (let n = 0; n < 10; n++) updateFields(w, STEP);
-  assert.equal(q.hp, hp);
-  assert.ok(validSnapshot(w.snapshot()));
-});
-test("nuclear blast hurts its owner, solid walls reduce damage, and the cloud can finish after a knockout", () => {
-  const w = fixture(),
-    [p, q] = w.players;
-  p.x = 800;
-  q.x = 1100;
-  w.platforms.push({
-    id: "wall",
-    x: 1000,
-    y: 200,
-    w: 35,
-    h: 350,
-    baseX: 1000,
-    baseY: 200,
-    dx: 0,
-    dy: 0,
-  });
-  equip(p, "nuke");
-  w.attack(p);
-  Object.assign(w.projectiles[0], {
-    x: 800,
-    y: 520,
-    vx: 0,
-    vy: 0,
-    life: 0.001,
-  });
-  w.updateProjectiles(STEP);
-  assert.equal(p.alive, false);
-  assert.ok(q.hp > 0 && q.hp < 100);
-  w.phase = "result";
-  w.phaseTime = 5.5;
-  const before = q.hp;
-  for (let n = 0; n < 640; n++) w.step(STEP);
-  assert.equal(w.fields.length, 0);
-  assert.equal(q.hp, before);
 });

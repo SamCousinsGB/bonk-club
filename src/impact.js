@@ -37,8 +37,11 @@ export function carryImpulse(p, seconds = 0.3) {
 }
 
 export const NUCLEAR = {
-  coreRadius: 850,
-  waveRadius: 3600,
-  waveSpeed: 1450,
-  duration: 4.8,
+  // Diameter is half the 2560-unit arena. Nothing outside this circle is hit.
+  coreRadius: 640,
+  waveRadius: 640,
+  waveSpeed: 3200,
+  meltAt: 0.24,
+  duration: 3.2,
+  ashDuration: 2.5,
 };

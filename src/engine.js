@@ -1,4 +1,5 @@
-import { updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
+import { carveRectangle } from "./nuclear.js";
+import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
@@ -111,6 +112,8 @@ export class World {
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
     this.terrainVersion = 0;
+    this.craters = [];
+    this.craterSerial = 0;
     this.platforms = preparePlatforms(this.arena, this.arenaIndex).map(
       (p, i) => ({
         id: "floor" + i,
@@ -423,7 +426,7 @@ export class World {
       for (const p of this.players) {
         if (!p.alive) continue;
         if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p);
-        for (const s of this.arena.spikes)
+        for (const s of this.spikes())
           if (
             p.x > s.x - 9 &&
             p.x < s.x + s.w + 9 &&
@@ -760,11 +763,11 @@ export class World {
     });
     if (q.hp <= 0) this.kill(q);
   }
-  kill(p) {
+  kill(p, {ash = false, sourceX = p.x} = {}) {
     if (!p.alive) return;
     p.alive = false;
     p.hp = 0;
-    if (p.weapon)
+    if (p.weapon && !ash)
       this.drops.push({
         x: p.x,
         y: p.y,
@@ -775,14 +778,16 @@ export class World {
         life: 10,
       });
     const points = (p.rig || makeRig(p)).map((q) => ({ ...q }));
+    if (ash) for (const q of points) {q.px = q.x; q.py = q.y;}
     this.ragdolls.push({
       points,
       color: p.color,
       hair: p.hair,
       facing: p.facing,
-      life: 5,
+      life: ash ? NUCLEAR.ashDuration : 5,
+      ...(ash ? {ash:true, ashAge:0, ashDirection:Math.sign(p.x-sourceX)||1} : {}),
     });
-    this.event("ko", { x: p.x, y: p.y, color: p.color });
+    this.event("ko", { x: p.x, y: p.y, color: ash ? "#eee4c8" : p.color, ash });
   }
   pickup(p) {
     if (p.weapon || p.pickupCooldown > 0 || !p.alive) return;
@@ -1025,6 +1030,10 @@ export class World {
     this.debris = this.debris.filter((d) => d.life > 0 && d.y < H + 100);
   }
   explode(b) {
+    if (b.nuclear) {
+      this.event("explosion", {x:b.x, y:b.y, radius:NUCLEAR.coreRadius, nuclear:true});
+      return; // The expanding flash handles destruction and skeletal deaths.
+    }
     const radius = b.radius || 145;
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
     const cover = this.solids().filter(breakable);
@@ -1033,9 +1042,9 @@ export class World {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
       const walls = solidWalls.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
-      if (dist >= radius || (walls && !b.nuclear)) continue;
+      if (dist >= radius || walls) continue;
       const shield = cover.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
-      const scale = (1 - dist / (radius * 1.32)) * (b.nuclear ? (walls ? 0.35 : shield ? 0.72 : 1) : shield ? 0.12 : 1);
+      const scale = (1 - dist / (radius * 1.32)) * (shield ? 0.12 : 1);
       this.hit(
         p,
         { x: b.x, y: b.y, vx: 0, vy: 0, stun: 0 },
@@ -1051,7 +1060,7 @@ export class World {
         y = clamp(b.y, c.y, c.y + c.h);
       if (
         Math.hypot(b.x - x, b.y - y) < radius &&
-        (b.nuclear || !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s)))
+        !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s))
       )
         this.damageCover(
           c,
@@ -1099,7 +1108,7 @@ export class World {
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (s) {
-          if (breakable(s)) {
+          if (breakable(s) && !b.nuclear) {
             this.damageCover(
               s,
               b.kind === "rail" ? 180 : b.damage,
@@ -1205,13 +1214,17 @@ export class World {
     const joints = JOINTS;
     for (const rag of this.ragdolls) {
       rag.life -= dt;
+      if (rag.ash) {
+        rag.ashAge += dt;
+        if (rag.ashAge < .6) continue;
+      }
       for (const p of rag.points) {
         const vx = (p.x - p.px) * 0.993,
           vy = (p.y - p.py) * 0.993;
         p.px = p.x;
         p.py = p.y;
         p.x += vx;
-        p.y += vy + 1800 * dt * dt;
+        p.y += vy + (rag.ash ? 150 : 1800) * dt * dt;
       }
       for (let k = 0; k < 4; k++)
         for (const [a, b, len] of joints) {
@@ -1220,7 +1233,7 @@ export class World {
             dx = q.x - p.x,
             dy = q.y - p.y,
             d = Math.hypot(dx, dy) || 1,
-            f = ((d - len) / d) * 0.5;
+            f = ((d - len) / d) * (rag.ash ? Math.max(0, 1.1 - rag.ashAge) * .3 : .5);
           p.x += dx * f;
           p.y += dy * f;
           q.x -= dx * f;
@@ -1242,6 +1255,14 @@ export class World {
     }
     this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
   }
+  spikes() {
+    let spikes = this.arena.spikes;
+    for (const f of this.craters) {
+      if (this.time - f.born < NUCLEAR.meltAt) continue;
+      spikes = spikes.flatMap(s => carveRectangle({...s,h:.5},f));
+    }
+    return spikes;
+  }
   snapshot() {
     return {
       players: this.players,
@@ -1251,6 +1272,7 @@ export class World {
       hazards: this.hazards,
       projectiles: this.projectiles,
       fields: this.fields,
+      craters: this.craters,
       drops: this.drops,
       ragdolls: this.ragdolls,
       scores: this.scores,

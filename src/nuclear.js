@@ -1,62 +1,78 @@
 import { NUCLEAR } from "./impact.js";
-import { segmentBox } from "./collision.js";
-import { breakable } from "./maps.js";
-import { W } from "./scale.js";
-const sweeps = new WeakMap();
+
+export const inBlast = (p, f, radius = f.radius) =>
+  Math.hypot(p.x - f.x, p.y - f.y) <= radius;
+
+// Thin horizontal slices follow the circular cut to within 8 units without
+// leaving invisible collision inside the crater. Intact elevators keep moving.
+export function carveRectangle(s, f) {
+  const nearX = Math.max(s.x, Math.min(s.x + s.w, f.x));
+  const nearY = Math.max(s.y, Math.min(s.y + s.h, f.y));
+  if (!inBlast({x: nearX, y: nearY}, f)) return [s];
+  const pieces = [];
+  const add = (x, y, w, h) => {
+    if (w < 0.5 || h < 0.5) return;
+    const previous = pieces.at(-1);
+    if (previous && previous.x === x && previous.w === w && Math.abs(previous.y + previous.h - y) < .001) {
+      previous.h += h; return;
+    }
+    pieces.push({...s, id: `${s.id}:c${f.id}:${pieces.length}`, x, y, w, h,
+      baseX: x, baseY: y, dx: 0, dy: 0, move: undefined, travel: undefined, elevator: false});
+  };
+  for (let y = s.y; y < s.y + s.h; y += 8) {
+    const h = Math.min(8, s.y + s.h - y);
+    const dy = Math.max(y - f.y, f.y - y - h, 0);
+    if (dy >= f.radius) { add(s.x, y, s.w, h); continue; }
+    const span = Math.sqrt(f.radius ** 2 - dy ** 2);
+    const left = Math.max(s.x, Math.min(s.x + s.w, f.x - span));
+    const right = Math.max(s.x, Math.min(s.x + s.w, f.x + span));
+    add(s.x, y, left - s.x, h);
+    add(right, y, s.x + s.w - right, h);
+  }
+  return pieces;
+}
 
 export function nuclearField(world, b) {
-  const floors = world.platforms.filter(s => s.hp !== 0 && s.w >= 90);
-  const strikes = Array.from({length: 6}, (_, n) => {
-    const x = W * (n + 0.5) / 6;
-    const floor = [...floors].sort((a, c) =>
-      Math.abs(a.x + a.w / 2 - x) + Math.abs(a.y - b.y) * 0.3 -
-      Math.abs(c.x + c.w / 2 - x) - Math.abs(c.y - b.y) * 0.3)[0];
-    return { x: floor ? Math.max(floor.x + 20, Math.min(floor.x + floor.w - 20, x)) : x,
-      y: floor ? floor.y - 8 : b.y, at: 1.1 + n * 0.36 };
-  });
-  return { kind: "shockwave", x: b.x, y: b.y, ex: b.x, ey: b.y,
+  const crater = {id: ++world.craterSerial, x: b.x, y: b.y,
+    radius: NUCLEAR.coreRadius, born: world.time};
+  world.craters.push(crater);
+  return {kind: "shockwave", x: b.x, y: b.y, ex: b.x, ey: b.y,
     radius: NUCLEAR.waveRadius, life: NUCLEAR.duration, age: 0, owner: b.owner,
-    hitIds: [], strikes, nextStrike: 0 };
+    craterId: crater.id, melted: false, hitIds: []};
 }
 
 export function updateNuclear(world, f, dt) {
-  const previous = Math.min(f.radius, f.age * NUCLEAR.waveSpeed);
+  const previousAge = f.age;
   f.age += dt;
   const radius = Math.min(f.radius, f.age * NUCLEAR.waveSpeed);
-  if (world.phase !== "fight") return;
-  const walls = world.platforms.filter(s => !s.destructible);
-  for (const p of world.players) {
-    const distance = Math.hypot(p.x - f.x, p.y - f.y);
-    if (!p.alive || f.hitIds.includes(p.id) || distance < previous - 35 || distance > radius + 35) continue;
-    f.hitIds.push(p.id);
-    const shield = walls.some(s => segmentBox(f.x, f.y, p.x, p.y, s));
-    const power = (1 - distance / (f.radius * 1.4)) * (shield ? 0.5 : 1);
-    world.hit(p, {x:f.x, y:f.y, vx:0, vy:0}, 46 * power, 2400 * power,
-      Math.sign(p.x - f.x) || 1, -0.46, {blast:true, stun:0.3, hitstop:0.012});
+  // The flash is lethal, including to its owner. The cooled hole is safe to
+  // traverse afterwards; it is not a lingering invisible damage field.
+  if (world.phase === "fight" && previousAge <= NUCLEAR.meltAt) {
+    for (const p of world.players) {
+      if (!p.alive || f.hitIds.includes(p.id) || !inBlast(p, f, radius)) continue;
+      f.hitIds.push(p.id);
+      world.kill(p, {ash: true, sourceX: f.x});
+    }
+    for (const rag of world.ragdolls) {
+      if (rag.ash || !inBlast(rag.points[2], f, radius)) continue;
+      Object.assign(rag, {ash: true, ashAge: 0, life: NUCLEAR.ashDuration,
+        ashDirection: Math.sign(rag.points[2].x - f.x) || 1});
+      for (const p of rag.points) {p.px = p.x; p.py = p.y;}
+    }
   }
-  const swept = sweeps.get(f) || new WeakSet();
-  sweeps.set(f, swept);
-  for (const c of world.solids().filter(breakable)) {
-    if (Math.hypot(c.x + c.w / 2 - f.x, c.y - f.y) > radius || swept.has(c)) continue;
-    swept.add(c);
-    world.damageCover(c, 240, Math.sign(c.x - f.x) * 2000, -1500);
-  }
-  for (const p of [...world.drops, ...world.debris, ...world.projectiles]) {
-    const distance = Math.hypot(p.x - f.x, p.y - f.y);
-    if (swept.has(p) || distance > radius + 35 || distance < previous - 35) continue;
-    swept.add(p);
-    const power = Math.max(0.25, 1 - distance / f.radius);
-    p.vx += (Math.sign(p.x - f.x) || 1) * 1100 * power;
-    p.vy -= 650 * power;
-    p.support = null;
-  }
-  for (const ragdoll of world.ragdolls) {
-    if (swept.has(ragdoll) || Math.hypot(ragdoll.points[0].x-f.x, ragdoll.points[0].y-f.y)>radius) continue;
-    swept.add(ragdoll);
-    for (const p of ragdoll.points) { p.px -= (Math.sign(p.x-f.x)||1)*9; p.py += 7; }
-  }
-  while (f.nextStrike < f.strikes.length && f.age >= f.strikes[f.nextStrike].at) {
-    const s = f.strikes[f.nextStrike++];
-    world.explode({ ...s, damage: 75, force: 1600, radius: 210, aftershock: true });
+  if (!f.melted && f.age >= NUCLEAR.meltAt) {
+    f.melted = true;
+    const crater = world.craters.find(c => c.id === f.craterId);
+    world.platforms = world.platforms.flatMap(s => carveRectangle(s, crater));
+    // Props and trap mechanisms are consumed, not launched into a chain of
+    // explosions across the rest of the arena.
+    world.cover = world.cover.filter(s => carveRectangle(s, crater)[0] === s);
+    world.hazards = world.hazards.filter(h => !inBlast(h, f) && !inBlast({x:h.bodyX,y:h.bodyY}, f));
+    for (const key of ["drops", "projectiles", "debris"])
+      world[key] = world[key].filter(p => !inBlast(p, f));
+    world.terrainVersion++;
+    for (const p of world.players) if (!world.solids().some(s => s.id === p.support)) {
+      p.support = null; p.ground = false;
+    }
   }
 }
