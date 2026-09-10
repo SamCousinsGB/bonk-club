@@ -2,7 +2,37 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
-## Current release: phase beam, fire and three new weapons
+## Death feedback — 10 September 2026
+
+Implemented in `bonk-club-death-cue`, branch `codex/death-cue`, preserving the
+canonical checkout's concurrent terrain work. Release verification follows below
+when published; the preceding live release is recorded in the next section.
+
+- Every death has a drawn ivory skull with the fighter's colour around its edge.
+  It pops in above the body, follows its motion, rises gently and fades completely
+  after 1.1 seconds. Reduced motion removes the pop/rise. Falls keep the marker
+  inside the arena edge; consumed bodies retain a marker at their last location.
+- A short impact and descending two-note chime accompany every death. Existing
+  weapon death sounds remain layered underneath. Death cues have priority during
+  busy combat, a bounded voice count, simultaneous-death coalescing and mute support.
+- Optional `ko.at` and ragdoll `deathId` fields share the host clock and link the
+  marker to its body. Validation rejects malformed metadata. The required wire
+  shape is unchanged and older snapshots remain accepted: protocol stays **24**.
+  Four markers maximum; duplicate events cannot restart them; round/room changes
+  clear them; hot join and background catch-up skip expired death cues.
+- Ten new regressions cover death variants, body following, lifetime, consumption,
+  simultaneous deaths, event churn, resets, transport/interpolation, invalid wire
+  values, audio priority/mute/caps and stale audio suppression.
+- Source-build real Edge host/guest checks passed through selected TURN relay
+  candidates, with one cue per death, matching corpse attachment, expiry and
+  third-browser late join without old sounds/skulls. Actual rendered gameplay
+  was inspected. Offline Web Audio output peaked at 0.379, faded to silence,
+  and released all voices. No browser errors, new dependencies or Pi changes.
+- QA helper and screenshots: `bonk-club-qa/death-cue-browser.cjs`,
+  `death-cue-host.png`, `death-cue-guest.png`, `death-cue-expired.png`; audio:
+  `death-cue.wav`. Browser hooks exist only in the QA helper.
+
+## Previous release: phase beam, fire and three new weapons
 
 - Live gameplay revision: `6a9cfeb75c5b36f832b9c1a44988e5187da669d2`, including
   weapon implementation `6e6fafa` and concurrent violent-black-hole update

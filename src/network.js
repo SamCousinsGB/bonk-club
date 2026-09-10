@@ -851,6 +851,7 @@ export function validSnapshot(s) {
       4,
       (r) =>
         finite(r.life) &&
+        (r.deathId === undefined || integer(r.deathId, 0, 10000000)) &&
         (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
         validAppearance(r) &&
         (r.effect===undefined || (DEATH_EFFECTS.includes(r.effect) && finite(r.deathAge) && r.deathAge>=0 && r.deathAge<=6)) &&
@@ -886,6 +887,7 @@ export function validSnapshot(s) {
           "break",
         ].includes(e.type) &&
         (e.x === undefined || xy(e)) &&
+        (e.at === undefined || (finite(e.at) && e.at >= 0)) &&
         (e.color === undefined ||
           (typeof e.color === "string" && /^#[a-fA-F0-9]{6}$/.test(e.color))),
     )

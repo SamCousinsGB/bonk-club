@@ -876,7 +876,8 @@ export class World {
     deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
     this.ragdolls = this.ragdolls.slice(-4);
     if(["gib","blast"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
-    this.event("ko", { x: p.x, y: p.y, color: ash ? "#eee4c8" : p.color, ash, effect });
+    this.event("ko", { x: p.x, y: p.y, color: p.color, ash, effect, at: this.time });
+    this.ragdolls.at(-1).deathId = this.nextEvent;
   }
   pickup(p) {
     if (p.weapon || p.pickupCooldown > 0 || !p.alive || p.knockdown > 0) return;

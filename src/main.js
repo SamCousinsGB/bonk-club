@@ -302,6 +302,7 @@ function startWorld(ids) {
   renderer.particles = [];
   renderer.words = [];
   renderer.impacts = [];
+  renderer.deathCues.reset();
   accumulator = 0;
   simulationLast = performance.now();
   hidePanel();
@@ -651,6 +652,7 @@ function enterGuest() {
   renderer.particles = [];
   renderer.words = [];
   renderer.impacts = [];
+  renderer.deathCues.reset();
   hidePanel();
   setPlaying(true);
 }
@@ -880,7 +882,7 @@ function frame(now) {
   const state = world ? world.snapshot() : interpolated(now);
   renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
-    renderer.events(state.events, sound);
+    renderer.events(state.events, sound, state.time);
     if (hudClock > 0.07) {
       hudClock = 0;
       updateHud(state);

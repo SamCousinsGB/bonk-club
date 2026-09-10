@@ -72,9 +72,19 @@ export class Sound {
     if (this.muted || !c || (c.state !== "running" && !c.startRendering)) return;
     if (!this.master) this.connect();
     const key = detail.nuclear ? "nuclear" : type;
-    if (c.currentTime - (this.last.get(key) ?? -10) < (type === "shoot" ? 0.045 : 0.025)) return;
+    if (c.currentTime - (this.last.get(key) ?? -10) < (type === "ko" ? 0.12 : type === "shoot" ? 0.045 : 0.025)) return;
     this.last.set(key, c.currentTime);
-    if (this.active > 28 && !detail.nuclear && !detail.melee) return;
+    if (this.active > 28 && !detail.nuclear && !detail.melee && type !== "ko") return;
+    if (type === "ko") {
+      // Reserve a short, recognizable death cue even during busy gunfire.
+      // Simultaneous deaths share one cue; the existing master limits output.
+      if (this.active > 44) return;
+      this.tone(145, 62, 0.12, 0.35, "triangle");
+      this.tone(784, 740, 0.18, 0.25, "sine", 0.015);
+      this.tone(1568, 1480, 0.12, 0.07, "sine", 0.015);
+      this.tone(523, 392, 0.43, 0.3, "triangle", 0.13);
+      if (!detail.effect || this.active > 44) return;
+    }
     if (detail.nuclear && type === "explosion") {
       this.tone(130, 28, 2.7, 0.9);
       this.tone(52, 22, 3.8, 0.6, "triangle", 0.08);
@@ -119,7 +129,7 @@ export class Sound {
       return;
     }
     const table = {
-      hazard: [780, 0.22, "sine"], ko: [65, 0.28, "sawtooth"],
+      hazard: [780, 0.22, "sine"],
       parry: [920, 0.15, "sine"], swing: [160, 0.035, "triangle"],
       throw: [190, 0.06, "triangle"], coverhit: [160, 0.055, "triangle"],
       break: [75, 0.16, "square"], jump: [230, 0.055, "sine"],

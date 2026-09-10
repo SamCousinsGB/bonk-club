@@ -1,5 +1,6 @@
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
+import { DeathCues, drawDeathCue, DEATH_CUE_DURATION } from "./death-cue.js";
 import { drawWreckage, drawRifts, drawBlackhole } from "./blackhole-art.js";
 import { warmBlackholeLens } from "./blackhole-lens.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
@@ -37,6 +38,7 @@ export class Renderer {
     this.impacts = [];
     this.shake = 0;
     this.lastEvent = 0;
+    this.deathCues = new DeathCues();
     this.scenery = new Map();
     this.pickupArt = new Map();
     this.localId = null;
@@ -94,10 +96,12 @@ export class Renderer {
     c.fillStyle = color;
     c.fill();
   }
-  events(events, sound) {
+  events(events, sound, time) {
     for (const e of events || []) {
       if (e.id <= this.lastEvent) continue;
       this.lastEvent = e.id;
+      if (e.type === "ko" && Number.isFinite(time) && Number.isFinite(e.at) &&
+          time - e.at >= DEATH_CUE_DURATION) continue;
       sound?.play(
         e.type === "shoot" &&
           ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
@@ -917,6 +921,7 @@ export class Renderer {
     this.weapon("rocket", 890, 289, 1, Math.sin(time) * 0.04);
   }
   draw(state, dt, time) {
+    const deathCues = this.deathCues.update(state);
     const c = this.ctx;
     c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
@@ -1142,6 +1147,7 @@ export class Renderer {
     // bullets and particles instead of letting them draw over the black core.
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
+    for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     c.restore();
   }
 }
