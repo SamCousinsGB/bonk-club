@@ -106,7 +106,7 @@ export class BotController {
     if (
       !this.graph ||
       (!this.pendingNavigation && world.time >= this.rebuildAt) ||
-      (this.revision !== world.terrainVersion &&
+      (!this.pendingNavigation && this.revision !== world.terrainVersion &&
         world.time > this.builtAt + 0.15)
     ) {
       const solids=world.solids().filter(s=>!s.chunk).map(s=>({...s}));
@@ -116,8 +116,9 @@ export class BotController {
         cache: this.navigationCache,
         // A torn floor has hundreds of collision strips. Yield between flight
         // traces so rebuilding its routes cannot monopolize a simulation tick.
-        batchSize: world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) || world.wreckage.some(w => w.hp > 0) ||
-          world.fields.some(f => f.kind === "blackhole") ? 8 : Infinity,
+        batchSize: world.wreckage.some(w => w.hp > 0) ||
+          world.fields.some(f => f.kind === "blackhole") ? 8 :
+          world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) ? 64 : Infinity,
       });
       this.builtAt = world.time;
       this.rebuildAt = world.time + 1.5;
@@ -549,6 +550,7 @@ export class BotController {
     const cover = solids.find(
       (s) =>
         s.kind &&
+        !s.chunk &&
         s.hp > 0 &&
         (s.x + s.w / 2 - p.x) * dir > 0 &&
         Math.abs(s.x + s.w / 2 - p.x) < s.w / 2 + 72 &&
@@ -745,8 +747,21 @@ export class BotController {
       const roof=solids.some(s=>s.y+s.h<p.y-25&&s.y+s.h>p.y-165&&p.x+20>s.x&&p.x-20<s.x+s.w);
       i.jump=p.ground&&!roof;
     }
-    if (!p.ground && !b.flight && p.jumps === 1 && p.vy > 0 && p.y > H - 180)
-      i.jump = true;
+    // A physical prop can push a bot off its takeoff before a planned flight
+    // begins. Spend its ordinary air jump while a nearby ledge is still in reach.
+    if (p.ground) b.fallRecovery = null;
+    if (!hazard && !p.ground && !b.flight && !b.recovery && p.jumps === 1 && p.vy > 60) {
+      const landing = world.platforms.filter(s => s.hp !== 0 && s.w >= 55 &&
+        s.y > p.y-160 && s.y < p.y+80 && p.x > s.x-270 && p.x < s.x+s.w+270)
+        .map(s => ({x:clamp(p.x,s.x+22,s.x+s.w-22),y:s.y}))
+        .sort((a,b) => Math.abs(a.x-p.x)+Math.abs(a.y-p.y)*.3 - Math.abs(b.x-p.x)-Math.abs(b.y-p.y)*.3)[0];
+      const roof = solids.some(s=>s.y+s.h<p.y-25 && s.y+s.h>p.y-110 && p.x+16>s.x && p.x-16<s.x+s.w);
+      if (landing && !roof) { b.fallRecovery={x:landing.x,until:world.time+1.2};i.jump=true; }
+      else if(p.y>H-180) i.jump=true;
+    }
+    if (!hazard && b.fallRecovery && !p.ground && !b.flight && world.time < b.fallRecovery.until) {
+      Object.assign(i,steer(p,b.fallRecovery.x));i.attack=false;
+    }
     if (b.recovery) {
       const recovery = b.recovery;
       if (world.time >= recovery.until) {
