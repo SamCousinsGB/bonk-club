@@ -39,4 +39,9 @@ export class MobileScreen {
     this.generation++;
     try { this.screen.orientation?.unlock?.(); } catch { /* Unsupported browser. */ }
   }
+  async exit() {
+    this.release();
+    if (this.doc.exitFullscreen) await this.doc.exitFullscreen();
+    else await this.doc.webkitExitFullscreen?.();
+  }
 }

@@ -887,7 +887,7 @@ $("#fullscreen").onclick = async () => {
     return;
   }
   try {
-    if (document.fullscreenElement) await document.exitFullscreen();
+    if (mobileScreen.fullscreen) await mobileScreen.exit();
     else await $("#app").requestFullscreen();
   } catch {
     toast(

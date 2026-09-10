@@ -37,11 +37,16 @@ test("denied or missing screen APIs never prevent joining, and can be retried", 
 });
 
 test("prefixed fullscreen is supported without requiring orientation APIs", async () => {
-  const doc = { documentElement: { webkitRequestFullscreen() { doc.webkitFullscreenElement = {}; } } };
+  const doc = {
+    documentElement: { webkitRequestFullscreen() { doc.webkitFullscreenElement = {}; } },
+    webkitExitFullscreen() { doc.webkitFullscreenElement = null; },
+  };
   const s = new MobileScreen(doc, {});
   assert.equal(s.supported, true);
   await s.enter();
   assert.equal(s.fullscreen, true);
+  await s.exit();
+  assert.equal(s.fullscreen, false);
 });
 
 test("leaving during a fullscreen request prevents a late landscape lock", async () => {
