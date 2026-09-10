@@ -2,6 +2,36 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Current release: phase beam, fire and three new weapons
+
+- Live gameplay revision: `6a9cfeb75c5b36f832b9c1a44988e5187da669d2`, including
+  weapon implementation `6e6fafa` and concurrent violent-black-hole update
+  `701aa59`. The phase beam now grows from the physical muzzle through a triangle
+  into its full width, with matching collision/destruction. Fire reaches about
+  800 units and burns persistently at 18 HP/second until char death. Bubble gun,
+  returning boomerang and bouncing explosive rubber duck launcher are included.
+  Detailed mechanics and source QA are recorded in the weapons section below.
+- **Current protocol is 24; all players must refresh their tabs.** Older sections
+  below describe their own release protocols.
+- All **457 gameplay/network tests** passed on the exact combined committed
+  archive. Pages run **34490871282** passed those tests, all **3 server tests**,
+  production build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34490871282.
+- All **15 public files** matched that production build byte for byte. JS:
+  `index-C9hyXMi9.js`; CSS: `index-P_ztR8EB.css`. Archive/build:
+  `bonk-club-qa/weapons-release-6a9cfeb`; checker: `verify-weapons-live.cjs`.
+- Combined-source effects checks passed again after merging: real Edge host,
+  guest and third-browser hot join through selected TURN relay candidates,
+  receiving burn deaths, bubbles, boomerangs, ducks and matching phase-cut terrain.
+  Actual rendered gameplay and aimed/prone beams were inspected without errors.
+- The unmodified production build passed in-app browser gameplay and controls
+  checks. The public site passed host/guest lobby, match start and rendered
+  gameplay checks, including visible bubble pickups, without console errors.
+  Source effects checks forced relay; public in-app checks used normal ICE.
+- Development/preview servers started by this task on ports 5198 and 5199 were
+  stopped. The canonical checkout's concurrent edits were preserved. No Pi changes,
+  dependencies or production debug hooks were added.
+
 ## Violent black-hole orbits — 10 September 2026
 
 Implemented in `bonk-club-violent-orbit`, branch `codex/violent-blackhole`, from
