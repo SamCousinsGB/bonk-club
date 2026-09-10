@@ -23,6 +23,7 @@ import { JOINTS } from "./puppet.js";
 import { drawChunks } from "./prop-art.js";
 import { meleePose, SWING_START } from "./melee-pose.js";
 import { drawPhaser } from "./phaser-art.js";
+import { drawBurning, drawBubble } from "./weird-art.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -688,6 +689,9 @@ export class Renderer {
     if (!p.alive || !p.rig) return;
     if (p.strands) {
       drawDeath(this, { ...p, points:p.rig, effect:"singularity", life:1, deathAge:0 }, time);
+      if (p.burn > 0) {
+        this.ctx.save(); this.ctx.translate(p.x, p.y); drawBurning(this, p, time); this.ctx.restore();
+      }
       if (p.weapon) this.weapon(p.weapon,p.rig[6].x,p.rig[6].y,1,p.aimAngle,.8);
       return;
     }
@@ -773,14 +777,8 @@ export class Renderer {
       c.stroke();
       c.globalAlpha = 1;
     }
-    if (p.burn > 0)
-      for (let n = 0; n < 3; n++)
-        this.circle(
-          Math.sin(time * 12 + n * 3) * 12,
-          5 - n * 12,
-          5,
-          "#ffac58aa",
-        );
+    if (p.burn > 0) drawBurning(this, p, time);
+    if (p.bubble > 0) drawBubble(this, 0, -8, 47 + Math.sin(time * 5) * 2, p.bubble / 2.4);
     if (p.chill > 0) {
       c.strokeStyle = "#b7f4ff";
       c.lineWidth = 2;
@@ -1023,7 +1021,7 @@ export class Renderer {
       );
       c.globalAlpha = 1;
     }
-    for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time);
+    for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
     for (const p of state.players) {this.fighter(p, time);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);

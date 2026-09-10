@@ -28,7 +28,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 23;
+export const PROTOCOL = 24;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -728,6 +728,8 @@ export function validSnapshot(s) {
         p.parryCooldown >= 0 && p.parryCooldown <= PARRY.cooldown + 0.01 &&
         p.knockdown>=0 && p.knockdown<=1.8 &&
         p.freeze >= 0 && p.freeze <= 1.2 && p.xray >= 0 && p.xray <= .4 &&
+        finite(p.bubble) && p.bubble >= 0 && p.bubble <= 2.4 &&
+        (p.burn === 0 || p.burn === 1) &&
         p.hp >= 0 &&
         p.hp <= 100 &&
         (p.facing === 1 || p.facing === -1) &&
@@ -802,7 +804,11 @@ export function validSnapshot(s) {
       (p) =>
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
-        PROJECTILE_KINDS.includes(p.kind),
+        PROJECTILE_KINDS.includes(p.kind) &&
+        (!['bubble', 'boomerang', 'duck'].includes(p.kind) ||
+          (p.weapon === p.kind && integer(p.owner, 0, 3) && p.r === WEAPONS[p.kind].r &&
+           p.life >= 0 && p.life <= WEAPONS[p.kind].life &&
+           (p.returning === undefined || typeof p.returning === "boolean"))),
     ) &&
     list(
       s.fields,
@@ -817,7 +823,7 @@ export function validSnapshot(s) {
         (f.kind !== "shockwave" ||
           (integer(f.craterId,1,1000000) && typeof f.melted === "boolean")) &&
         (f.kind!=="blackhole" || (integer(f.riftId,1,1000000) && typeof f.torn === "boolean" && (f.matter===undefined || matter(f.matter)))) &&
-        (f.kind !== "phaser" || (f.radius === WEAPONS.phaser.radius &&
+        (f.kind !== "phaser" || (f.radius === WEAPONS.phaser.radius && f.flare === WEAPONS.phaser.flare &&
           f.life <= WEAPONS.phaser.life && f.age <= WEAPONS.phaser.life &&
           integer(f.owner,0,3) && Math.abs(Math.hypot(f.ex-f.x,f.ey-f.y)-WEAPONS.phaser.range) < .03)) &&
         f.life >= 0 &&

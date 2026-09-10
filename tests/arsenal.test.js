@@ -262,8 +262,8 @@ test("repulsor redirects incoming shots and has much more force than damage", ()
   assert.ok(w.players[1].hp >= 60);
   assert.ok(force.hitIds.includes(1));
 });
-test("all 24 weapons and their effects produce valid online snapshots", () => {
-  assert.equal(Object.keys(WEAPONS).length, 24);
+test("all weapons and their effects produce valid online snapshots", () => {
+  assert.equal(Object.keys(WEAPONS).length, 27);
   for (const type of Object.keys(WEAPONS)) {
     const w = arena();
     if (WEAPONS[type].proneOnly) w.players[0].prone = true;

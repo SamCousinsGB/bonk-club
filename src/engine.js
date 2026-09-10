@@ -26,6 +26,8 @@ import {
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms, carveExplosion } from "./terrain.js";
 import { firePhaser } from "./phaser.js";
+import { BURN_DAMAGE } from "./weird-weapons.js";
+import { projectileMuzzle } from "./weapon-mount.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { BotController } from "./bots.js";
@@ -230,6 +232,7 @@ export class World {
       airLunge: false,
       rush: 0,
       burn: 0,
+      bubble: 0,
       chill: 0,
       freeze:0, freezeCooldown:0, xray:0, xrayType:null, knockdown:0,
       weapon: null,
@@ -513,14 +516,14 @@ export class World {
     p.comboTime = Math.max(0, p.comboTime - dt);
     p.rush = Math.max(0, p.rush - dt);
     p.chill = Math.max(0, p.chill - dt);
+    p.bubble = Math.max(0, (p.bubble || 0) - dt);
     p.freeze=Math.max(0,(p.freeze||0)-dt);
     p.freezeCooldown=Math.max(0,(p.freezeCooldown||0)-dt);
     p.xray=Math.max(0,(p.xray||0)-dt);
     if(p.freeze>0){i=emptyInput();i.duck=p.prone;p.stun=Math.max(p.stun,p.freeze);p.block=false;}
     if (p.burn > 0) {
-      p.burn = Math.max(0, p.burn - dt);
-      p.hp = Math.max(0, p.hp - 5 * dt);
-      if (!p.hp) this.kill(p,{effect:"burn",ash:true});
+      p.hp = Math.max(0, p.hp - BURN_DAMAGE * dt);
+      if (!p.hp) { this.kill(p,{effect:"burn",ash:true}); return; }
     }
     if(p.knockdown>0){
       p.cooldown=Math.max(0,p.cooldown-dt);p.flash=Math.max(0,p.flash-dt);p.swing=0;p.block=false;
@@ -595,7 +598,9 @@ export class World {
     p.aimAngle = i.aim === null ? (p.facing === 1 ? 0 : Math.PI) : i.aim;
     if (i.aim !== null && Math.abs(Math.cos(i.aim)) > 0.1)
       p.facing = Math.sign(Math.cos(i.aim));
-    p.vy = Math.min(p.vy + 1800 * dt, 1150);
+    p.vy = p.bubble > 0
+      ? p.vy + (-175 - p.vy) * Math.min(1, dt * 5)
+      : Math.min(p.vy + 1800 * dt, 1150);
     const oldX = p.x,
       oldY = p.y;
     p.x += p.vx * dt;
@@ -699,11 +704,12 @@ export class World {
       meleeAttack(this, p, w);
     } else {
       p.cooldown = w.cooldown;
-      p.swing = 0.16;
-      p.swingDuration = 0.16;
+      p.swing = w.kind === "phaser" ? w.life : 0.16;
+      p.swingDuration = p.swing;
       p.meleeMove = "weapon";
       p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
+      const muzzle = projectileMuzzle(this, p, p.weapon, ax, ay);
       if (w.kind === "phaser") firePhaser(this, p, ax, ay);
       for (let n = 0; n < (w.kind === "phaser" ? 0 : count); n++) {
         const spread =
@@ -712,8 +718,8 @@ export class World {
               (w.spread || (w.kind === "rocket" ? 0.18 : 0.12))
             : (this.random() - 0.5) * (w.spread || 0);
         this.projectiles.push({
-          x: p.x + ax * 12,
-          y: p.y - 10 + ay * 12,
+          x: muzzle.x,
+          y: muzzle.y,
           vx: w.speed * Math.cos(angle + spread),
           vy:
             w.speed * Math.sin(angle + spread) -
@@ -778,8 +784,8 @@ export class World {
     if (p.weapon) {
       p.ammo -= w.ammoCost || 1;
       if (p.ammo <= 0) {
-        // Keep the final melee use visible and hittable through its follow-through.
-        if (w.kind !== "melee") p.weapon = null;
+        // Keep the final melee swing or phase discharge visible until it finishes.
+        if (!["melee", "phaser"].includes(w.kind)) p.weapon = null;
         p.ammo = 0;
       }
     }
@@ -810,6 +816,7 @@ export class World {
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
+    if (q.bubble > 0 && damage >= 20) q.bubble = 0;
     if(["gib","slice"].includes(options.effect))bloodBurst(this,q.x,q.y-12,dir*force,vertical*force,q.hp?6:22);
     const knockback = dir * force * (1 + (100 - q.hp) / 220);
     // A following low-force pellet must not cancel a launch in the same direction.
@@ -1144,11 +1151,13 @@ export class World {
       if (b.life <= 0) continue;
       b.life -= dt;
       steerSpecial(this, b, dt);
+      if (b.life <= 0 && b.kind === "boomerang") continue;
       const x = b.x,
         y = b.y;
       b.px = x;
       b.py = y;
       if (b.kind === "grenade") b.vy += 1100 * dt;
+      if (b.kind === "duck") b.vy += 380 * dt;
       const endX = x + b.vx * dt,
         endY = y + b.vy * dt;
       const collisions = this.solids().map((s) => ({
@@ -1192,7 +1201,7 @@ export class World {
           }
           if (
             b.kind === "grenade" ||
-            (["plasma", "ricochet", "saw"].includes(b.kind) && b.bounces > 0)
+            (["plasma", "ricochet", "saw", "boomerang", "duck"].includes(b.kind) && b.bounces > 0)
           ) {
             const damp = b.kind === "grenade" ? 0.6 : 1;
             if (hit.nx) b.vx *= -damp;
@@ -1207,7 +1216,7 @@ export class World {
           impact = true;
           break;
         }
-        if (["rocket", "plasma", "singularity"].includes(b.kind)) {
+        if (["rocket", "plasma", "singularity", "duck"].includes(b.kind)) {
           impact = true;
           break;
         }
@@ -1249,7 +1258,7 @@ export class World {
           },
         );
         impactSpecial(this, b, p, p.hp < hp);
-        if (["rail", "saw", "force"].includes(b.kind)) {
+        if (["rail", "saw", "force", "boomerang"].includes(b.kind)) {
           (b.hitIds ||= []).push(p.id);
           continue;
         }
@@ -1257,7 +1266,7 @@ export class World {
         break;
       }
       // A piercing beam carries on to the end of its swept segment after passing cover or a player.
-      if (!impact && !redirected && ["rail", "saw", "force"].includes(b.kind)) {
+      if (!impact && !redirected && ["rail", "saw", "force", "boomerang"].includes(b.kind)) {
         b.x = endX;
         b.y = endY;
       }
@@ -1266,7 +1275,7 @@ export class World {
         b.life = 0;
       if (
         (impact || b.life <= 0) &&
-        ["rocket", "grenade", "plasma"].includes(b.kind)
+        ["rocket", "grenade", "plasma", "duck"].includes(b.kind)
       )
         this.explode(b);
       if (impact || b.life <= 0) expireSpecial(this, b);

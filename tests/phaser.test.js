@@ -81,7 +81,7 @@ test("beam cuts structural terrain through the far edge, consuming props, traps 
   assert.ok(!w.platforms.some(p => p.id === "far"));
   assert.ok(w.platforms.some(p => p.sourceId === "wall" && p.y < 400));
   assert.ok(w.platforms.filter(p => p.sourceId === "lift").every(p => !p.travel && !p.elevator));
-  for (let x = beam.x + 2; x < 2500; x += 17)
+  for (let x = beam.x + beam.flare; x < 2500; x += 17)
     for (let y = beam.y - 70; y < beam.y + 70; y += 15)
       assert.ok(!w.solids().some(p => x > p.x && x < p.x + p.w && y > p.y && y < p.y + p.h));
   assert.equal(w.cover.length, 0); assert.equal(w.hazards.length, 0);

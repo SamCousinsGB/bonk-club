@@ -1,9 +1,10 @@
 import { playerBox } from "./collision.js";
 import { WEAPONS } from "./arsenal.js";
 import { bodyPoints } from "./props.js";
+import { weaponMuzzle } from "./weapon-mount.js";
 
 // Clip convex polygons to a half-plane. The same beam footprint drives player
-// hits and terrain removal, including diagonal shots and the flat muzzle end.
+// hits and terrain removal, including the triangular flare from the muzzle.
 function clip(points, a, b, limit) {
   const out = [];
   for (let i = 0; i < points.length; i++) {
@@ -29,6 +30,13 @@ export function beamIntersection(s, f, polygon) {
     [-ay, ax, -ay * f.x + ax * f.y + f.radius],
     [ay, -ax, ay * f.x - ax * f.y + f.radius],
   ]) points = clip(points, a, b, limit);
+  if (f.flare > 0) {
+    const slope = f.radius / f.flare;
+    for (const side of [-1, 1]) {
+      const a = -slope * ax - side * ay, b = -slope * ay + side * ax;
+      points = clip(points, a, b, a * f.x + b * f.y);
+    }
+  }
   return points;
 }
 export const beamTouches = (s, f) => beamIntersection(s, f).length > 0;
@@ -69,9 +77,10 @@ export function carveBeam(s, f, nextId) {
 
 export function firePhaser(world, player, ax, ay) {
   const weapon = WEAPONS.phaser;
-  const x = player.x + ax * 52, y = player.y - 10 + ay * 52;
+  const { x, y } = weaponMuzzle(player, 54, Math.atan2(ay, ax));
   const beam = { kind: "phaser", x, y, ex: x + ax * weapon.range,
-    ey: y + ay * weapon.range, radius: weapon.radius, life: weapon.life, age: 0, owner: player.id };
+    ey: y + ay * weapon.range, radius: weapon.radius, flare: weapon.flare,
+    life: weapon.life, age: 0, owner: player.id };
   const id = s => `${s.sourceId || s.id || "spike"}:cph${++world.terrainSerial}`;
   const removedWreck = new Set(world.platforms.filter(s => s.wreckId && beamTouches(s, beam)).map(s => s.wreckId));
   world.wreckage = world.wreckage.filter(w => !removedWreck.has(w.id));
