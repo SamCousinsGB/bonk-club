@@ -1,3 +1,4 @@
+import { seedOrbit, orbitPoint, limitRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { carryImpulse } from "./impact.js";
 export const SINGULARITY = { radius: 620, duration: 5.5, arm: 0.4, core: 135 };
@@ -20,6 +21,7 @@ export function blackholeField(world, b) {
   };
 }
 export function wreckCorners(w) {
+  if (w.outline) return w.outline;
   const c = Math.cos(w.angle),
     s = Math.sin(w.angle);
   return [
@@ -32,14 +34,36 @@ export function wreckCorners(w) {
     y: w.y + ((x * w.w) / 2) * s + ((y * w.h) / 2) * c,
   }));
 }
-// Rasterized collision follows each rotated piece, instead of leaving an
-// invisible unrotated floor behind. At most twelve strips per piece.
+// Collision follows each curved ribbon: five links with at most three strips
+// each. The global 60-fragment cap keeps even overlapping fields bounded.
 export function wreckTiles(w, old = new Map()) {
   if (w.hp <= 0) return [];
-  const points = wreckCorners(w),
+  if (w.spine) {
+    const tiles = [];
+    for (let n = 0; n < w.spine.length - 1; n++) {
+      const quad = [
+        w.outline[n],
+        w.outline[n + 1],
+        w.outline[w.outline.length - 2 - n],
+        w.outline[w.outline.length - 1 - n],
+      ];
+      for (const tile of polygonTiles(w, quad, 3, `${w.id}r${n}`)) {
+        const before = old.get(tile.id);
+        tile.dx = before ? tile.x - before.x : 0;
+        tile.dy = before ? tile.y - before.y : 0;
+        tiles.push(tile);
+      }
+    }
+    return tiles;
+  }
+  return polygonTiles(w, wreckCorners(w), 12, w.id, old);
+}
+function polygonTiles(w, polygon, cap, prefix, old = new Map()) {
+  const points = polygon,
     left = Math.min(...points.map((p) => p.x)),
     right = Math.max(...points.map((p) => p.x));
-  const count = Math.max(1, Math.ceil((right - left) / 16)),
+  if (right - left < 0.5) return [];
+  const count = Math.max(1, Math.min(cap, Math.ceil((right - left) / 16))),
     width = (right - left) / count,
     tiles = [];
   for (let i = 0; i < count; i++) {
@@ -59,7 +83,7 @@ export function wreckTiles(w, old = new Map()) {
     if (!ys.length) continue;
     const y = Math.min(...ys),
       h = Math.max(0.5, Math.max(...ys) - y),
-      id = `wreck${w.id}:${i}`,
+      id = `wreck${prefix}:${i}`,
       before = old.get(id);
     tiles.push({
       id,
@@ -106,6 +130,7 @@ function addWreck(world, f, s, kind = "platform") {
 }
 function tear(world, f) {
   f.torn = true;
+  world.wreckage = world.wreckage.filter((w) => w.hp > 0);
   const cut = { id: `rift${f.riftId}`, x: f.x, y: f.y, radius: f.radius };
   world.rifts.push({ ...cut, id: f.riftId, born: world.time });
   const retained = [],
@@ -207,7 +232,7 @@ export function updateBlackhole(world, f, dt) {
       });
   }
 }
-export function updateWreckage(world) {
+export function updateWreckage(world, dt = 1 / 120) {
   const old = new Map(
     world.platforms.filter((p) => p.wreckId).map((p) => [p.id, p]),
   );
@@ -224,6 +249,7 @@ export function updateWreckage(world) {
   if (world.warpActive && !active) world.terrainVersion++;
   world.warpActive = active;
   for (const w of world.wreckage) {
+    if (w.hp <= 0) continue;
     const f = world.fields.find(
       (f) =>
         f.kind === "blackhole" &&
@@ -232,19 +258,26 @@ export function updateWreckage(world) {
         f.life > 0,
     );
     if (!f) continue;
-    const t = clamp(
-      (f.age - SINGULARITY.arm) / (SINGULARITY.duration - SINGULARITY.arm),
-      0,
-      1,
+    if (!w.spine) {
+      w.spine = Array.from({ length: 6 }, (_, i) => ({
+        x: w.x + (i / 5 - 0.5) * w.w * Math.cos(w.angle),
+        y: w.y + (i / 5 - 0.5) * w.w * Math.sin(w.angle),
+      }));
+      for (const p of w.spine) seedOrbit(p, f);
+    }
+    for (const p of w.spine) orbitPoint(p, f, dt);
+    limitRope(w.spine, w.w / 5, 4);
+    w.x = w.spine.reduce((sum, p) => sum + p.x, 0) / w.spine.length;
+    w.y = w.spine.reduce((sum, p) => sum + p.y, 0) / w.spine.length;
+    w.angle = Math.atan2(
+      w.spine.at(-1).y - w.spine[0].y,
+      w.spine.at(-1).x - w.spine[0].x,
     );
-    const ease = t * t * (3 - 2 * t),
-      dx = w.originX - f.x,
-      dy = w.originY - f.y;
-    const orbit = Math.atan2(dy, dx) + ease * (1.7 + (w.id % 5) * 0.37);
-    const radius = Math.hypot(dx, dy) * (1 - 0.35 * ease);
-    w.x = f.x + Math.cos(orbit) * radius;
-    w.y = f.y + Math.sin(orbit) * radius;
-    w.angle = w.originAngle + ease * (Math.PI * 1.6 + (w.id % 4) * 0.5);
+    w.outline = ribbonOutline(w.spine, w.h, f);
+    if (w.spine.every((p) => Math.hypot(p.x - f.x, p.y - f.y) < 24)) {
+      w.hp = 0;
+      world.terrainVersion++;
+    }
   }
   world.platforms = world.platforms.filter((p) => !p.wreckId);
   for (const w of world.wreckage) world.platforms.push(...wreckTiles(w, old));

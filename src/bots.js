@@ -116,7 +116,8 @@ export class BotController {
         cache: this.navigationCache,
         // A torn floor has hundreds of collision strips. Yield between flight
         // traces so rebuilding its routes cannot monopolize a simulation tick.
-        batchSize: world.wreckage.some(w => w.hp > 0) ? 24 : Infinity,
+        batchSize: world.wreckage.some(w => w.hp > 0) ||
+          world.fields.some(f => f.kind === "blackhole") ? 8 : Infinity,
       });
       this.builtAt = world.time;
       this.rebuildAt = world.time + 1.5;

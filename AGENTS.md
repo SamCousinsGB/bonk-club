@@ -101,13 +101,16 @@ Keep this constitution for durable rules and the handoff for current work.
   chars. Preserve weapon identities rather than using one generic explosion.
 - Sam explicitly wants stylized stick-figure blood, impalement and dismemberment.
   Implement these as readable game effects with bounded particles and physical
-  consequences. Their latest requested extensions are pending in the handoff.
+  consequences. Spikes hold bodies at their contact point; heavy ballistic kills
+  separate limbs. Thrown weapons cause living, recovering physical knockdowns,
+  with more impulse and recovery time for heavier weapons.
 - Powerful and strange weapons should be rare but actually appear during short
   rounds. Preserve featured weapon rotation and regular nuclear pickups.
 - Nuclear destruction is localized to at most half the map's width (current
-  radius 640). Keep the background, remove affected physical terrain/props and
-  use a circular flash and skeleton-to-ash deaths. Fallout is visual only and
-  should smoke away, not leave an opaque disk or permanent damage zone.
+  radius 480, reduced 25% from 640). Keep the background, remove affected physical
+  terrain/props and use a circular flash, a rising mushroom cloud and skeleton-to-ash
+  deaths. Fallout is visual only and clears completely after 12 seconds; terrain
+  remains destroyed. Do not leave an opaque disk or permanent damage zone.
 - **Black holes must stay visibly and physically 2D.** Bodies should stretch into
   curved strands through differential forces/constraints. Fragments should orbit
   and gradually spiral inward. Do not fake this with CSS-like scale transforms,

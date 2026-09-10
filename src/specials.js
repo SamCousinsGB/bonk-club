@@ -137,6 +137,6 @@ export function updateFields(world, dt) {
     }
     if (f.kind === "blackhole") updateBlackhole(world,f,dt);
   }
-  if(world.wreckage.length)updateWreckage(world);
+  if(world.wreckage.length)updateWreckage(world,dt);
   world.fields = world.fields.filter((f) => f.life > 0).slice(-12);
 }

@@ -1,4 +1,6 @@
-import { projectileEffect, deathPose, updateDeath, CUT_JOINTS } from "./death-effects.js";
+import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
+import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
+import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
 import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
@@ -28,7 +30,6 @@ import { createHazards, updateHazards } from "./hazards.js";
 import { SKYSCRAPERS } from "./skyscrapers.js";
 import { segmentBox, playerBox } from "./collision.js";
 import {
-  JOINTS,
   makeRig,
   updateRig,
   impulseRig,
@@ -161,6 +162,7 @@ export class World {
     this.debris = [];
     this.hazards = createHazards(this);
     this.ragdolls = [];
+    this.blood = [];
     this.phase = "countdown";
     this.phaseTime = 2.4;
     this.elapsed = 0;
@@ -209,7 +211,7 @@ export class World {
       rush: 0,
       burn: 0,
       chill: 0,
-      freeze:0, freezeCooldown:0, xray:0, xrayType:null,
+      freeze:0, freezeCooldown:0, xray:0, xrayType:null, knockdown:0,
       weapon: null,
       ammo: 0,
       walk: 0,
@@ -347,6 +349,7 @@ export class World {
     this.movePlatforms();
     this.updateCover(dt);
     this.updateDebris(dt);
+    updateBlood(this,dt);
     if (this.phase === "result") {
       updateFields(this, dt);
       for (const p of this.players)
@@ -402,9 +405,9 @@ export class World {
     for (const p of this.players) {
       if (!p.alive) continue;
       const i = active ? cleanInput(inputs[p.id]) : emptyInput();
-      if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze) this.throwWeapon(p);
+      if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown) this.throwWeapon(p);
       p.throwHeld = i.throw;
-      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze) {
+      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
         else if (i.attack) this.attack(p);
       }
@@ -429,14 +432,7 @@ export class World {
       for (const p of this.players) {
         if (!p.alive) continue;
         if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p);
-        for (const s of this.spikes())
-          if (
-            p.x > s.x - 9 &&
-            p.x < s.x + s.w + 9 &&
-            p.y + (p.prone ? 10 : 30) > s.y - 20 &&
-            p.y - (p.prone ? 10 : 25) < s.y + 15
-          )
-            this.kill(p);
+        for (const s of this.spikes()) impale(this,p,s);
         if (this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
           if (p.hp <= 0) this.kill(p);
@@ -458,6 +454,7 @@ export class World {
     return [
       ...this.platforms.filter((p) => p.hp !== 0),
       ...this.cover.filter((c) => c.hp > 0),
+      ...this.spikes().map(spikeBase),
     ];
   }
   movePlatforms() {
@@ -476,6 +473,7 @@ export class World {
   }
   move(p, i, dt) {
     const solids = this.solids();
+    const boxBefore=playerBox(p);p.spikeY=boxBefore.y+boxBefore.h;
     const support = p.ground && solids.find((s) => s.id === p.support);
     if (support) {
       p.x += support.dx || 0;
@@ -493,6 +491,10 @@ export class World {
       p.burn = Math.max(0, p.burn - dt);
       p.hp = Math.max(0, p.hp - 5 * dt);
       if (!p.hp) this.kill(p,{effect:"burn",ash:true});
+    }
+    if(p.knockdown>0){
+      p.cooldown=Math.max(0,p.cooldown-dt);p.flash=Math.max(0,p.flash-dt);p.swing=0;p.block=false;
+      moveKnocked(p,solids,dt);return;
     }
     if (p.ground) p.airLunge = false;
     const wasProne = p.prone;
@@ -624,6 +626,7 @@ export class World {
     if (
       !a.alive ||
       !b.alive ||
+      a.knockdown > 0 || b.knockdown > 0 ||
       Math.abs(a.y - b.y) > (a.prone ? 10 : 28) + (b.prone ? 10 : 28)
     )
       return;
@@ -640,7 +643,7 @@ export class World {
     }
   }
   attack(p, alternate = false) {
-    if(p.freeze>0)return;
+    if(p.freeze>0||p.knockdown>0)return;
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
     const w = alternate ? { ...base, ...base.alt } : base;
@@ -736,6 +739,7 @@ export class World {
     }
   }
   hit(q, p, damage, force, dir, vertical = -0.5, options = {}) {
+    if (!q.alive) return;
     if (q.weapon) q.block = false;
     if (!options.blast && canParry(q, p)) {
       consumeParry(q);
@@ -760,6 +764,7 @@ export class World {
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
+    if(["gib","slice"].includes(options.effect))bloodBurst(this,q.x,q.y-12,dir*force,vertical*force,q.hp?6:22);
     const knockback = dir * force * (1 + (100 - q.hp) / 220);
     // A following low-force pellet must not cancel a launch in the same direction.
     q.vx = force<=0 ? q.vx :
@@ -812,10 +817,12 @@ export class World {
       ...(ash ? {ash:true, ashAge:0, ashDirection:Math.sign(p.x-sourceX)||1} : {}),
     });
     deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
+    this.ragdolls = this.ragdolls.slice(-4);
+    if(["gib","blast"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
     this.event("ko", { x: p.x, y: p.y, color: ash ? "#eee4c8" : p.color, ash, effect });
   }
   pickup(p) {
-    if (p.weapon || p.pickupCooldown > 0 || !p.alive) return;
+    if (p.weapon || p.pickupCooldown > 0 || !p.alive || p.knockdown > 0) return;
     let best = null,
       dist = 48;
     for (const d of this.drops) {
@@ -840,7 +847,7 @@ export class World {
     }
   }
   throwWeapon(p) {
-    if (!p.weapon) return;
+    if (!p.weapon || !p.alive || p.knockdown || p.freeze) return;
     if (p.weapon === "nuke") {
       this.attack(p);
       p.pickupCooldown = 0.35;
@@ -948,8 +955,11 @@ export class World {
         const { s, p, hit } = collision;
         d.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         d.y = y + (endY - y) * hit.t + hit.ny * 0.2;
-        if (p)
-          this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 560, Math.sign(d.vx) || 1);
+        if (p) {
+          const hp=p.hp,mass=THROW_MASS[d.type]||1;
+          this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 360+mass*180, Math.sign(d.vx) || 1,-.35);
+          if(p.alive&&p.hp<hp)knockDown(p,d.type);
+        }
         if (breakable(s) && d.armed) this.damageCover(s, 38, d.vx, d.vy);
         if (s && hit.ny === -1) {
           d.y = s.y - 7;
@@ -1244,10 +1254,10 @@ export class World {
       .slice(-160);
   }
   updateRagdolls(dt) {
-    const joints = JOINTS;
     for (const rag of this.ragdolls) {
       rag.life -= dt;
       if(updateDeath(rag,dt))continue;
+      if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
       if (rag.ash) {
         rag.ashAge += dt;
         if (rag.ashAge < .6) continue;
@@ -1261,7 +1271,7 @@ export class World {
         p.y += vy + (rag.ash ? 150 : rag.effect === "ice" ? 320 : 1800) * dt * dt;
       }
       for (let k = 0; k < 4; k++)
-        for (const [a, b, len] of (rag.effect==="slice"?CUT_JOINTS:rag.effect==="blast"?joints.filter(([a,b])=>a!==1&&a!==2):joints)) {
+        for (const [a, b, len] of deathJoints(rag)) {
           const p = rag.points[a],
             q = rag.points[b],
             dx = q.x - p.x,
@@ -1306,7 +1316,7 @@ export class World {
       projectiles: this.projectiles,
       fields: this.fields,
       craters: this.craters,
-      wreckage:this.wreckage, rifts:this.rifts,
+      wreckage:this.wreckage, rifts:this.rifts, blood:this.blood,
       drops: this.drops,
       ragdolls: this.ragdolls,
       scores: this.scores,

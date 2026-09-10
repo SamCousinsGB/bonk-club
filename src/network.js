@@ -1,3 +1,4 @@
+import {BLOOD_LIMIT} from "./gore.js";
 import { SINGULARITY } from "./blackhole.js";
 import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
@@ -23,7 +24,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 16;
+export const PROTOCOL = 17;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -680,7 +681,7 @@ export function validSnapshot(s) {
           p.recoilTime,
           p.rush,
           p.burn,
-          p.chill, p.freeze, p.xray,
+          p.chill, p.freeze, p.xray, p.knockdown,
           p.blockTime,
           p.parryCooldown,
           p.stamina,
@@ -691,6 +692,7 @@ export function validSnapshot(s) {
         ["punch", "kick", "spin", "weapon"].includes(p.meleeMove) &&
         integer(p.ammo, 0, 100) &&
         p.parryCooldown >= 0 && p.parryCooldown <= PARRY.cooldown + 0.01 &&
+        p.knockdown>=0 && p.knockdown<=1.8 &&
         p.freeze >= 0 && p.freeze <= 1.2 && p.xray >= 0 && p.xray <= .4 &&
         p.hp >= 0 &&
         p.hp <= 100 &&
@@ -702,7 +704,7 @@ export function validSnapshot(s) {
     new Set(s.players.map((p) => p.id)).size === s.players.length &&
     list(
       s.platforms,
-      1024,
+      1536,
       (p) =>
         xy(p) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
@@ -784,8 +786,10 @@ export function validSnapshot(s) {
         f.life >= 0 &&
         f.life <= 6,
     ) &&
+    list(s.blood,BLOOD_LIMIT,b=>xy(b)&&[b.vx,b.vy,b.r,b.life].every(finite)&&b.r>0&&b.r<=4&&b.life>=0&&b.life<=7&&typeof b.landed==="boolean") &&
     list(s.wreckage,60,w => xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
-      w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind)) &&
+      w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
+      (w.spine===undefined||(list(w.spine,6,xy)&&w.spine.length===6&&list(w.outline,12,xy)&&w.outline.length===12))) &&
     list(s.rifts,128,c => xy(c) && integer(c.id,1,1000000) && c.radius===SINGULARITY.radius && finite(c.born)) &&
     list(s.craters,128,c => xy(c) && integer(c.id,1,1000000) &&
       finite(c.radius) && c.radius > 0 && c.radius <= NUCLEAR.coreRadius && finite(c.born) && c.born >= 0 && c.born <= s.time + .01) &&
@@ -804,7 +808,9 @@ export function validSnapshot(s) {
         typeof r.color === "string" &&
         /^#[a-fA-F0-9]{6}$/.test(r.color) &&
         (r.effect===undefined || (DEATH_EFFECTS.includes(r.effect) && finite(r.deathAge) && r.deathAge>=0 && r.deathAge<=6)) &&
-        (r.effect!=="singularity" || [r.targetX,r.targetY].every(finite)) &&
+        (r.effect!=="singularity" || ([r.targetX,r.targetY].every(finite)&&list(r.strands,10,s=>list(s.points,6,xy)&&s.points.length===6)&&r.strands.length===10)) &&
+        (r.effect!=="gib" || (Array.isArray(r.severed)&&r.severed.length===2&&r.severed.every(i=>integer(i,0,9)))) &&
+        (r.effect!=="impale" || (r.anchor&&xy(r.anchor)&&integer(r.anchor.point,0,10))) &&
         list(r.points, 13, xy) &&
         r.points.length === (r.effect==="slice"?13:11),
     ) &&

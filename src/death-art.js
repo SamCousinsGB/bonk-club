@@ -1,5 +1,5 @@
 import { JOINTS } from "./puppet.js";
-import { CUT_JOINTS } from "./death-effects.js";
+import { deathJoints } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawHair } from "./identity.js";
 function energy(r, points, color, time) {
@@ -156,16 +156,42 @@ export function drawDeath(r, rag, time) {
       c.closePath();
       c.fill();
     }
+  } else if (rag.effect === "singularity") {
+    c.globalAlpha = Math.min(1, rag.life / 0.6);
+    for (const strand of rag.strands) {
+      const points = strand.points,
+        d = Math.hypot(points[0].x - rag.targetX, points[0].y - rag.targetY),
+        width = Math.max(0.5, Math.min(5, d / 32));
+      for (const [color, size] of [
+        ["#071420", width + 2],
+        [rag.color, width],
+      ]) {
+        c.beginPath();
+        c.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 1; i++)
+          c.quadraticCurveTo(
+            points[i].x,
+            points[i].y,
+            (points[i].x + points[i + 1].x) / 2,
+            (points[i].y + points[i + 1].y) / 2,
+          );
+        c.lineTo(points.at(-1).x, points.at(-1).y);
+        c.strokeStyle = color;
+        c.lineWidth = size;
+        c.lineCap = "round";
+        c.stroke();
+      }
+    }
+    const head = pts[0],
+      radius = Math.min(
+        8,
+        Math.hypot(head.x - rag.targetX, head.y - rag.targetY) / 12,
+      );
+    if (radius > 1) r.circle(head.x, head.y, radius, rag.color);
   } else {
     c.globalAlpha = Math.min(1, rag.life);
-    const joints =
-      rag.effect === "slice"
-        ? CUT_JOINTS
-        : rag.effect === "blast"
-          ? JOINTS.filter(([a]) => a !== 1 && a !== 2)
-          : JOINTS;
-    const width =
-      rag.effect === "singularity" ? Math.max(1, 5 - age * 2.8) : 5.5;
+    const joints = deathJoints(rag);
+    const width = 5.5;
     for (const [a, b] of joints) {
       r.line(
         [
@@ -184,15 +210,7 @@ export function drawDeath(r, rag, time) {
         width,
       );
     }
-    if (rag.effect === "singularity") {
-      const head = pts[0];
-      c.save();
-      c.translate(head.x, head.y);
-      c.rotate(Math.atan2(rag.targetY - head.y, rag.targetX - head.x));
-      c.scale(1 + age * 2, Math.max(0.1, 1 - age * 0.6));
-      r.circle(0, 0, 9, rag.color);
-      c.restore();
-    } else {
+    {
       r.circle(pts[0].x, pts[0].y, 10, rag.color);
       drawHair(
         c,
@@ -202,6 +220,10 @@ export function drawDeath(r, rag, time) {
         Math.atan2(pts[0].y - pts[1].y, pts[0].x - pts[1].x) + Math.PI / 2,
         rag.facing || 1,
       );
+      if (rag.effect === "gib")
+        for (const joint of rag.severed)
+          for (const id of JOINTS[joint].slice(0, 2))
+            r.circle(pts[id].x, pts[id].y, 3, "#b72b45");
       if (rag.effect === "slice")
         for (const p of [pts[11], pts[12]]) r.circle(p.x, p.y, 3, "#fff0d5");
     }
