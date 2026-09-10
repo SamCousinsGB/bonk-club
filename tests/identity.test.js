@@ -6,6 +6,12 @@ import {
   validProfile,
   PALETTE,
   HAIRSTYLES,
+  HAIR_COLOURS,
+  FACIAL_HAIR,
+  ACCESSORIES,
+  defaultProfile,
+  availableProfile,
+  randomProfile,
 } from "../src/identity.js";
 import { validSnapshot } from "../src/network.js";
 import { WEAPONS, WeaponRotation } from "../src/arsenal.js";
@@ -17,7 +23,7 @@ test("player names and appearance are bounded and accept only supported choices"
       color: PALETTE[5].value,
       hair: "Mohawk",
     }),
-    { name: "Sam Smith", color: PALETTE[5].value, hair: "Mohawk" },
+    { ...defaultProfile(), name: "Sam Smith", color: PALETTE[5].value, hair: "Mohawk" },
   );
   assert.equal(
     Array.from(cleanProfile({ name: "😀".repeat(50) }).name).length,
@@ -32,6 +38,74 @@ test("player names and appearance are bounded and accept only supported choices"
     validProfile({ name: "Friend", color: PALETTE[0].value, hair: "unknown" }),
     false,
   );
+});
+
+test("old saved profiles gain cosmetic defaults without losing existing choices", () => {
+  const old = {name: "Sam", color: "#ff7393", hair: "Ponytail"};
+  const profile = cleanProfile(old, old);
+  assert.deepEqual(profile, {...defaultProfile(), ...old});
+  assert.ok(validProfile(profile));
+  assert.ok(validProfile(cleanProfile(null, {name: "Player", color: "#55baff", hair: "None"})));
+});
+
+test("new appearance choices survive edits, death, round reset and wire validation", () => {
+  const w = new World({players: [0]});
+  const look = {...defaultProfile(), name: "Sam", color: PALETTE.at(-1).value,
+    hair: "Space buns", hairColor: HAIR_COLOURS[9].value, facialHair: "Full beard", accessory: "Goggles"};
+  w.setProfiles([{id: 0, ...look}]);
+  w.scores[0] = 12;
+  w.players[0].hp = 37;
+  w.players[0].weapon = "railgun";
+  for (const [field, choices] of Object.entries({hair: HAIRSTYLES, hairColor: HAIR_COLOURS.map(c => c.value), facialHair: FACIAL_HAIR, accessory: ACCESSORIES, color: PALETTE.map(c => c.value)})) {
+    for (const choice of choices) {
+      w.setProfiles([{id: 0, ...look, [field]: choice}]);
+      assert.equal(w.players[0][field], choice);
+      assert.equal(w.players[0].hp, 37);
+      assert.equal(w.players[0].weapon, "railgun");
+      assert.equal(w.scores[0], 12);
+      assert.ok(validSnapshot(w.snapshot()), `${field}: ${choice}`);
+    }
+  }
+  w.setProfiles([{id: 0, ...look}]);
+  w.step(1 / 120);
+  w.kill(w.players[0]);
+  for (const key of ["color", "hair", "hairColor", "facialHair", "accessory"]) assert.equal(w.ragdolls[0][key], look[key]);
+  assert.ok(validSnapshot(w.snapshot()));
+  w.startRound();
+  assert.equal(w.ragdolls.length, 0);
+  assert.deepEqual(cleanProfile(w.players[0]), look);
+  assert.equal(w.scores[0], 12);
+});
+
+test("malformed cosmetic metadata is cleaned locally and rejected on the wire, including bodies", () => {
+  const profile = {...defaultProfile(), hairColor: HAIR_COLOURS[5].value, accessory: "Glasses"};
+  for (const field of ["hair", "hairColor", "facialHair", "accessory"]) {
+    for (const invalid of ["url(secret)", "x".repeat(10000), {}, [], null, 7, undefined]) {
+      assert.equal(cleanProfile({...profile, [field]: invalid}, profile)[field], profile[field]);
+      assert.equal(validProfile({...profile, [field]: invalid}), false);
+      const w = new World();
+      w.players[0][field] = invalid;
+      assert.equal(validSnapshot(w.snapshot()), false);
+      w.players[0][field] = profile[field];
+      w.kill(w.players[0]);
+      w.ragdolls[0][field] = invalid;
+      assert.equal(validSnapshot(w.snapshot()), false);
+    }
+  }
+});
+
+test("random appearance preserves the name and avoids reserved colours; conflicts retain cosmetics", () => {
+  const others = PALETTE.slice(0,-1).map(c => ({color: c.value}));
+  for (const random of [() => 0, () => .5, () => .999999]) {
+    const p = randomProfile({...defaultProfile(), name: "Sam"}, others, random);
+    assert.ok(validProfile(p));
+    assert.equal(p.name, "Sam");
+    assert.equal(p.color, PALETTE.at(-1).value);
+  }
+  const profile = {...defaultProfile(), hair: "Braids", hairColor: HAIR_COLOURS[5].value, accessory: "Headband", facialHair: "Goatee"};
+  const assigned = availableProfile(profile, [defaultProfile()]);
+  assert.notEqual(assigned.color, profile.color);
+  assert.deepEqual({...assigned, color: profile.color}, profile);
 });
 
 test("character edits preserve combat state and scores and persist into the next round", () => {

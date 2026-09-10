@@ -354,12 +354,20 @@ test("pregame lobby shares profiles, reserves colours and starts all guests with
     guest.setProfile({
       name: "New name",
       hair: "Afro",
+      hairColor: "#f2d17a",
+      facialHair: "Moustache",
+      accessory: "Sunglasses",
       color: "#ff9b58",
       id: 0,
       hp: 999,
     });
     await tick();
     assert.equal(host.roster[1].name, "New name");
+    for (const roster of [host.roster, guest.roster]) {
+      assert.equal(roster[1].hairColor, "#f2d17a");
+      assert.equal(roster[1].facialHair, "Moustache");
+      assert.equal(roster[1].accessory, "Sunglasses");
+    }
     assert.equal(host.roster[0].name, "Sam");
     assert.equal(host.roster[1].hp, undefined);
     assert.equal(guest.start(), false);

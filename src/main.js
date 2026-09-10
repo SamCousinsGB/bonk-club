@@ -4,9 +4,13 @@ import { GuestFrames } from "./render-state.js";
 import {
   PALETTE,
   HAIRSTYLES,
+  HAIR_COLOURS,
+  FACIAL_HAIR,
+  ACCESSORIES,
+  randomProfile,
   defaultProfile,
   cleanProfile,
-  drawHair,
+  drawAppearance,
 } from "./identity.js";
 import { secondaryAction } from "./arsenal.js";
 import "./style.css";
@@ -93,7 +97,7 @@ try {
     hair: "None",
   });
 } catch {
-  profile = { name: "Player", color: COLORS[0], hair: "None" };
+  profile = { ...defaultProfile(), name: "Player" };
 }
 function saveProfile(value) {
   profile = cleanProfile(value, profile);
@@ -293,16 +297,20 @@ function startWorld(ids) {
   unlock();
 }
 function characterHtml() {
-  return `<div class="character-editor"><canvas id="character-preview" width="160" height="170" aria-label="Character preview"></canvas><div class="character-fields"><label>NAME<input id="player-name" maxlength="20" autocomplete="nickname" value="${esc(profile.name)}"></label><label>COLOUR<div id="colours" class="colour-options">${PALETTE.map((c) => `<button type="button" class="colour-option" data-colour="${c.value}" aria-label="${c.name}" aria-pressed="${profile.color === c.value}" style="--colour:${c.value}"></button>`).join("")}</div></label><label>HAIRSTYLE<select id="player-hair">${HAIRSTYLES.map((h) => `<option ${profile.hair === h ? "selected" : ""}>${h}</option>`).join("")}</select></label></div></div>`;
+  const swatches = (choices, key, title) => `<fieldset class="appearance-swatches"><legend>${title}</legend><div class="colour-options">${choices.map(c => `<button type="button" class="colour-option" data-appearance="${key}" data-value="${c.value}" aria-label="${title}: ${c.name}" title="${c.name}" aria-pressed="${profile[key] === c.value}" style="--colour:${c.value}"></button>`).join("")}</div></fieldset>`;
+  const select = (key, title, choices) => `<label>${title}<select id="player-${key}" data-profile-field="${key}">${choices.map(value => `<option ${profile[key] === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>`;
+  return `<div class="character-editor"><div class="character-portrait"><canvas id="character-preview" width="352" height="440" role="img" aria-label="Character preview"></canvas><button type="button" id="random-character" class="button secondary">RANDOMISE</button></div><div class="character-fields"><label>NAME<input id="player-name" maxlength="20" autocomplete="nickname" value="${esc(profile.name)}"></label>${swatches(PALETTE, "color", "Body colour")}${select("hair", "Hairstyle", HAIRSTYLES)}${swatches(HAIR_COLOURS, "hairColor", "Hair colour")}<div class="character-selects">${select("facialHair", "Facial hair", FACIAL_HAIR)}${select("accessory", "Accessory", ACCESSORIES)}</div></div></div>`;
 }
 function drawPreview() {
   const canvas = $("#character-preview");
   if (!canvas) return;
   const c = canvas.getContext("2d");
-  c.clearRect(0, 0, 160, 170);
+  c.clearRect(0, 0, canvas.width, canvas.height);
   c.save();
-  c.translate(80, 70);
-  c.scale(1.7, 1.7);
+  c.translate(176, 175);
+  c.scale(4, 4);
+  c.fillStyle = "#060e1455";
+  c.beginPath(); c.ellipse(0, 48, 22, 3, 0, 0, Math.PI * 2); c.fill();
   c.strokeStyle = profile.color;
   c.fillStyle = profile.color;
   c.lineWidth = 4;
@@ -333,43 +341,52 @@ function drawPreview() {
     points.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
     c.stroke();
   }
-  drawHair(c, profile.hair, 0, -15);
+  c.strokeStyle = "#18262c"; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(3, -16); c.lineTo(7, -16); c.stroke();
+  drawAppearance(c, profile, 0, -15);
   c.restore();
+  canvas.setAttribute("aria-label", `${profile.name}: ${profile.hair}, ${profile.facialHair}, ${profile.accessory}`);
 }
-function submitProfile() {
+function submitProfile(overrides = {}) {
   if (!$("#player-name")) return;
   saveProfile({
     ...profile,
     name: $("#player-name").value,
-    hair: $("#player-hair").value,
+    ...Object.fromEntries([...document.querySelectorAll("[data-profile-field]")].map(el => [el.dataset.profileField, el.value])),
+    ...overrides,
   });
+  syncColourOptions();
   room?.setProfile(profile);
   if (!room && world) world.setProfiles([{ id: 0, ...profile }]);
   drawPreview();
 }
-function syncColourOptions() {
+function syncColourOptions(acceptRoster = false) {
   const own = room?.roster.find((p) => p.id === room.id);
-  if (own) saveProfile(own);
-  for (const button of document.querySelectorAll("[data-colour]")) {
-    button.disabled = !!room?.roster.some(
-      (p) => p.id !== room.id && p.color === button.dataset.colour,
+  if (own && acceptRoster) saveProfile(own);
+  for (const button of document.querySelectorAll("[data-appearance]")) {
+    const key = button.dataset.appearance;
+    button.disabled = key === "color" && !!room?.roster.some(
+      (p) => p.id !== room.id && p.color === button.dataset.value,
     );
     button.setAttribute(
       "aria-pressed",
-      String(profile.color === button.dataset.colour),
+      String(profile[key] === button.dataset.value),
     );
+    button.title = button.getAttribute("aria-label") + (button.disabled ? " (in use)" : "");
   }
+  for (const el of document.querySelectorAll("[data-profile-field]")) el.value = profile[el.dataset.profileField];
   drawPreview();
 }
 function wireCharacter() {
-  $("#player-name").onchange = submitProfile;
-  $("#player-hair").onchange = submitProfile;
-  for (const button of document.querySelectorAll("[data-colour]"))
+  $("#player-name").onchange = () => submitProfile();
+  for (const el of document.querySelectorAll("[data-profile-field]")) el.onchange = () => submitProfile();
+  for (const button of document.querySelectorAll("[data-appearance]"))
     button.onclick = () => {
-      saveProfile({ ...profile, color: button.dataset.colour });
-      submitProfile();
-      syncColourOptions();
+      submitProfile({ [button.dataset.appearance]: button.dataset.value });
     };
+  $("#random-character").onclick = () => submitProfile(randomProfile(
+    { ...profile, name: $("#player-name").value }, room?.roster.filter(p => p.id !== room.id) || [],
+  ));
   syncColourOptions();
 }
 function characterMenu() {
@@ -412,10 +429,18 @@ function updateLobby() {
     const p = roster.find(q => q.id === id), mode = room.slots[id];
     const title = p ? esc(p.name) : mode === "closed" ? "Closed" : mode === "player" ? "Waiting for player" : "AI";
     const label = id === 0 ? "Host" : SLOT_LABELS[mode];
-    const content = `<span class="player-dot" style="background:${p?.color || "#73817b"}"></span><span>${title}<small>${label}</small></span>`;
+    const content = `${p ? `<canvas class="player-portrait" data-portrait="${id}" width="64" height="80" aria-hidden="true"></canvas>` : '<span class="player-dot" style="background:#73817b"></span>'}<span>${title}<small>${label}</small></span>`;
     const editable = room.host && id !== 0;
     return `<div class="lobby-slot">${editable ? `<button type="button" class="lobby-player ${p ? "" : "empty"}" data-slot="${id}" aria-label="Slot ${id + 1}: ${label}" aria-expanded="${openSlot === id}">${content}</button>` : `<div class="lobby-player ${p ? "" : "empty"}">${content}</div>`}</div>`;
   }).join("") + slotOptionsHtml();
+  for (const canvas of $("#lobby-players").querySelectorAll("[data-portrait]")) {
+    const p = roster.find(p => p.id === Number(canvas.dataset.portrait)), c = canvas.getContext("2d");
+    c.translate(32, 40); c.scale(1.2, 1.2);
+    c.strokeStyle = p.color; c.lineWidth = 5; c.lineCap = "round";
+    c.beginPath(); c.moveTo(0, 11); c.lineTo(0, 28); c.moveTo(-11, 24); c.lineTo(0, 14); c.lineTo(11, 24); c.stroke();
+    c.fillStyle = p.color; c.beginPath(); c.arc(0, 0, 10.5, 0, Math.PI * 2); c.fill();
+    drawAppearance(c, p, 0, 0);
+  }
   $("#lobby-players").querySelectorAll("[data-slot]").forEach(button => button.onclick = () => {
     const id = Number(button.dataset.slot);
     openSlot = openSlot === id ? null : id;
@@ -435,7 +460,7 @@ function updateLobby() {
     start.disabled = activeSlots(room.slots, roster).length < 2;
     $("#start-status").textContent = start.disabled ? "Add AI or wait for another player to start." : "";
   }
-  syncColourOptions();
+  syncColourOptions(true);
 }
 function lobby() {
   if (!room || room.closed || room.running) return;
@@ -627,6 +652,7 @@ function roomCallbacks() {
       const own = roster.find((p) => p.id === room?.id);
       if (own) saveProfile(own);
       updateLobby();
+      if (view === "character") syncColourOptions();
     },
     onLobby: lobby,
     onStatus: (status) => {
