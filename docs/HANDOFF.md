@@ -26,7 +26,16 @@ preserving the canonical checkout's concurrent terrain changes.
   mute, expiry, room reset and host disconnect. Web Audio oscillator scheduling
   confirmed both chimes. Rendered gameplay and a 568 x 320 viewport were inspected;
   no browser errors. QA helper: `bonk-club-qa/presence-browser.cjs`.
-- Release verification is recorded below after deployment.
+- Live gameplay revision: `a1889f3fd5295d618172bdf08178a46864c5d7a9`.
+  Pages run `34514514304` passed 473 game/network tests, three server tests,
+  build and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34514514304.
+  All 15 public files match the exact committed production build byte for byte.
+  JS: `index-3wh8c88d.js`; CSS: `index-Cn7ksyh0.css`. The full three-browser
+  presence check above also passed against the public site, without asset routing.
+  Exact archive/build: `bonk-club-qa/presence-release-a1889f3`.
+- Offline Web Audio rendering passed: join/leave peaks 0.231/0.224, both fade to
+  silence and release all voices. Samples: `bonk-club-qa/player-join.wav` and
+  `player-leave.wav`; helper: `presence-audio.cjs`. No QA hooks ship in the game.
 
 ## Current release: death feedback — 10 September 2026
 
