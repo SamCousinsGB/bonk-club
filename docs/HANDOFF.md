@@ -15,8 +15,8 @@ hide while held. This supersedes the older visible-button requirement below.
   remain active. Removed per-frame layout reads for invisible joystick artwork.
 - Jump and contextual Parry/Alt fire are translucent 64 x 48 targets at the
   bottom edges, leaving the arena centre clear. No game/world/wire changes.
-- 426 gameplay/network tests and the production build passed before integration
-  with the subsequent bot identity release. Real Chromium touch events verified
+- 436 gameplay/network tests and the production build passed after integrating
+  the subsequent bot identity and black-hole releases. Real Chromium touch events verified
   independent guide visibility, simultaneous movement/fire, two jumps, prone
   drag/cancellation, gesture throws preserving ammo, rotation/menu recovery,
   and desktop-host/mobile-guest control delivery, release and hot rejoin.
@@ -27,7 +27,19 @@ hide while held. This supersedes the older visible-button requirement below.
 - Isolated worktree: `bonk-club-mobile-clear`, branch `codex/mobile-clear-view`.
   The original checkout's unfinished edits were preserved. QA helper/screenshots:
   `bonk-club-qa/mobile-clear-browser.cjs` and `mobile-clear-source/`.
-  Production verification is recorded here after deployment.
+- Live gameplay revision: `e031499e1a90df9cb02e54178423939274f2cf7f`;
+  mobile implementation: `c408aed`. Pages run `34487368851` passed tests, build
+  and deployment: `https://github.com/SamCousinsGB/bonk-club/actions/runs/34487368851`.
+  The first publishing attempt hit a GitHub ID-token request timeout; retrying
+  only the failed publish job succeeded using the same tested build.
+- All 15 public files matched the exact committed archive/build byte for byte.
+  JS: `index-C5-1pa9d.js`; CSS: `index-P_ztR8EB.css`. Archive/build:
+  `bonk-club-qa/mobile-clear-release`; production and public QA screenshots:
+  `mobile-clear-staged/` and `mobile-clear-live/`. The public bundle passed the
+  four-size layout/real-touch checks and real desktop-host/mobile-guest lobby,
+  gameplay, leave and hot rejoin checks without browser errors. Internal host
+  control-state assertions used the source build; public checks used the
+  unmodified bundle. Protocol remains **23**. Refresh players' tabs.
 
 ## Black-hole capture and collapse — 10 September 2026
 
