@@ -370,7 +370,7 @@ const rarity = {
 export const WEAPONS = Object.fromEntries(
   Object.entries({ ...original, ...additions }).map(([key, w]) => [
     key,
-    { rarity: rarity[key] || w.rarity, ...w, ...(w.kind === "melee" ? { boost: 260 } : {}) },
+    { rarity: rarity[key] || w.rarity, dismember: ["minigun","machinegun","shotgun"].includes(key), ...w, ...(w.kind === "melee" ? { boost: 260 } : {}) },
   ]),
 );
 export const RARITY_COLORS = {

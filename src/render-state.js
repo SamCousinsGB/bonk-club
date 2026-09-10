@@ -1,9 +1,10 @@
 const simulationOnly = new Set([
+  "spikeY", "ragVx", "ragVy", "bleed", "rest",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled",
 ]);
-const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage"];
+const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
 function copy(value) {
   if (typeof value === "number") return quantize(value);
@@ -37,7 +38,7 @@ function blend(a, b, t) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));
     out.aimAngle = a.aimAngle + turn * t;
   }
-  for (const key of ["rig", "points"])
+  for (const key of ["rig", "points", "spine", "outline", "strands"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
       out[key] = b[key].map((p, i) => blend(a[key][i], p, t));
   return out;

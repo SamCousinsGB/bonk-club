@@ -87,7 +87,7 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
     assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());
-    bad.platforms = Array(1025).fill(bad.platforms[0]);
+    bad.platforms = Array(1537).fill(bad.platforms[0]);
     assert.equal(validSnapshot(bad), false);
   }
 });

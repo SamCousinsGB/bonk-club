@@ -1,6 +1,10 @@
+import { seedOrbit, orbitPoint, limitRope } from "./orbit.js";
+import { WEAPONS } from "./arsenal.js";
 import { JOINTS } from "./puppet.js";
 export const DEATH_EFFECTS = [
   "slice",
+  "gib",
+  "impale",
   "plasma",
   "tesla",
   "ice",
@@ -19,6 +23,7 @@ export function projectileEffect(b) {
   if (b.kind === "frost") return "ice";
   if (b.kind === "flame") return "burn";
   if (["rocket", "grenade"].includes(b.kind)) return "blast";
+  if (WEAPONS[b.weapon]?.dismember) return "gib";
   return null;
 }
 export function deathPose(rag, effect, angle = 0, target = null) {
@@ -41,6 +46,13 @@ export function deathPose(rag, effect, angle = 0, target = null) {
       p.px -= (-Math.sin(angle) * side * 220 + Math.cos(angle) * 100) / 120;
       p.py -= (Math.cos(angle) * side * 220 - 110) / 120;
     }
+  } else if (effect === "gib") {
+    rag.severed = Math.cos(angle) >= 0 ? [4, 6] : [2, 8];
+    for (let n = 0; n < rag.points.length; n++) {
+      const p = rag.points[n];
+      p.px -= Math.sin(n * 4.2) * 2.5;
+      p.py += Math.cos(n * 2.1) * 2;
+    }
   } else if (effect === "ice") {
     rag.life = 1.9;
     for (const p of rag.points) {
@@ -55,10 +67,28 @@ export function deathPose(rag, effect, angle = 0, target = null) {
       p.py += Math.cos(i * 2.3) * 2;
     }
   } else if (effect === "singularity") {
-    rag.life = 1.5;
+    rag.life = 4.6;
     rag.targetX = target.x;
     rag.targetY = target.y;
-    rag.stretchOrigin = rag.points.map((p) => ({ x: p.x, y: p.y }));
+    rag.strands = JOINTS.map(([a, b, len]) => ({
+      rest: len / 5,
+      points: Array.from({ length: 6 }, (_, i) =>
+        i === 0
+          ? rag.points[a]
+          : i === 5
+            ? rag.points[b]
+            : {
+                x:
+                  rag.points[a].x +
+                  ((rag.points[b].x - rag.points[a].x) * i) / 5,
+                y:
+                  rag.points[a].y +
+                  ((rag.points[b].y - rag.points[a].y) * i) / 5,
+              },
+      ),
+    }));
+    for (const p of new Set(rag.strands.flatMap((s) => s.points)))
+      seedOrbit(p, target, 1.5);
   }
 }
 export function updateDeath(rag, dt) {
@@ -66,23 +96,19 @@ export function updateDeath(rag, dt) {
   rag.deathAge += dt;
   if (rag.effect === "ice" && rag.deathAge < 0.4) return true;
   if (rag.effect !== "singularity") return false;
-  const t = Math.min(1, rag.deathAge / 1.5),
-    cx = rag.stretchOrigin[2].x,
-    cy = rag.stretchOrigin[2].y;
-  const angle = Math.atan2(cy - rag.targetY, cx - rag.targetX) + t * 5;
-  const distance =
-    Math.hypot(cx - rag.targetX, cy - rag.targetY) * (1 - t) ** 1.7;
-  for (let i = 0; i < rag.points.length; i++) {
-    const source = rag.stretchOrigin[i],
-      along = (source.y - cy) * (0.9 + Math.sin(t * Math.PI) * 4.5);
-    const across = (source.x - cx) * (1 - t) * 0.65;
-    const arc = angle + (along / Math.max(80, distance)) * 0.45;
-    const radius = Math.max(0, distance + along * (1 - t));
-    const p = rag.points[i];
-    p.x = rag.targetX + Math.cos(arc) * radius - Math.sin(arc) * across;
-    p.y = rag.targetY + Math.sin(arc) * radius + Math.cos(arc) * across;
-    p.px = p.x;
-    p.py = p.y;
-  }
+  const center = { x: rag.targetX, y: rag.targetY };
+  for (const p of new Set(rag.strands.flatMap((s) => s.points)))
+    orbitPoint(p, center, dt, 1.5);
+  for (const strand of rag.strands) limitRope(strand.points, strand.rest, 7);
   return true;
+}
+
+export function deathJoints(rag) {
+  return rag.effect === "slice"
+    ? CUT_JOINTS
+    : rag.effect === "blast"
+      ? JOINTS.filter(([a]) => a !== 1 && a !== 2)
+      : rag.effect === "gib"
+        ? JOINTS.filter((_, i) => !rag.severed.includes(i))
+        : JOINTS;
 }

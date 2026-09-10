@@ -33,6 +33,7 @@ export function segmentBox(x, y, endX, endY, box, radius = 0) {
 }
 
 export function playerBox(p) {
+  if(p.knockdown>0&&p.rig){const x=Math.min(...p.rig.map(q=>q.x))-5,y=Math.min(...p.rig.map(q=>q.y))-8;return {x,y,w:Math.max(...p.rig.map(q=>q.x))+5-x,h:Math.max(...p.rig.map(q=>q.y))+5-y};}
   const rx = p.prone ? 34 : 18,
     ry = p.prone ? 10 : 28;
   return { x: p.x - rx, y: p.y - ry, w: rx * 2, h: ry * 2 };

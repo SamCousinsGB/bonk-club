@@ -192,7 +192,7 @@ test("black hole pulls through cover, lifts grounded fighters and stretches anyo
   fields(w, 0.55);
   assert.notDeepEqual(rag.points, old);
   assert.ok(validSnapshot(wire.make(w.snapshot())));
-  fields(w, 1.2);
+  fields(w, 4.6);
   assert.ok(!w.ragdolls.includes(rag));
 });
 
@@ -287,8 +287,8 @@ test("nuke vaporizes warped machinery without rebuilding invisible wreck collide
   const n = nuclearField(w, { x: 1000, y: 500, owner: 1 });
   w.fields = [n];
   fields(w, 0.4);
-  assert.equal(w.wreckage.length, 0);
-  assert.ok(!w.platforms.some((p) => p.wreckId));
+  assert.ok(w.wreckage.every(piece=>Math.hypot(piece.x-n.x,piece.y-n.y)>n.radius));
+  assert.ok(w.platforms.filter(p=>p.wreckId).every(p=>w.wreckage.some(piece=>piece.id===p.wreckId)));
   assert.ok(validSnapshot(wire.make(w.snapshot())));
 });
 

@@ -23,21 +23,21 @@ function detonate(w,x,y) {
 }
 function advance(w,seconds){for(let n=0;n<Math.ceil(seconds/STEP);n++){w.time+=STEP;updateFields(w,STEP);w.updateRagdolls(STEP);}}
 
-test("nuke is one half-map circle: lethal through walls, owner included, no distant damage or afterstrikes",()=>{
+test("nuke is a 25% smaller circle: lethal through walls, owner included, no distant damage or afterstrikes",()=>{
   const w=world(),[owner,near,edge,outside]=w.players;
   Object.assign(owner,{x:800,y:600});Object.assign(near,{x:1000,y:600});
-  Object.assign(edge,{x:1439,y:600});Object.assign(outside,{x:1441,y:600,vx:70,vy:0});
+  Object.assign(edge,{x:1279,y:600});Object.assign(outside,{x:1281,y:600,vx:70,vy:0});
   for(const p of w.players)p.rig=makeRig(p);
   w.platforms.push(floor("wall",900,300,30,600));
   const f=detonate(w,800,600);advance(w,.3);
-  assert.equal(NUCLEAR.coreRadius*2,W/2);assert.equal(f.radius,NUCLEAR.coreRadius);
+  assert.equal(NUCLEAR.coreRadius,640*.75);assert.equal(f.radius,NUCLEAR.coreRadius);
   assert.deepEqual(w.players.map(p=>p.alive),[false,false,false,true]);
   assert.equal(outside.hp,100);assert.equal(outside.vx,70);assert.equal(outside.vy,0);
   assert.equal(w.ragdolls.length,3);assert.ok(w.ragdolls.every(r=>r.ash&&r.life>2));
   advance(w,3.2);
   assert.equal(w.fields.length,0);assert.equal(w.events.filter(e=>e.type==="explosion").length,1);
   assert.equal(outside.hp,100);assert.equal(w.craters.length,1);
-  assert.equal(w.craters[0].radius,640);assert.equal(w.ragdolls.length,0);
+  assert.equal(w.craters[0].radius,480);assert.equal(w.ragdolls.length,0);
 });
 
 test("circle carves permanent floors, panels and tall walls while preserving the outside",()=>{
@@ -102,12 +102,12 @@ test("cooled craters are traversable, remove spikes, persist for hot join and re
   advance(w,.5);assert.equal(survivor.hp,100);
   const wire=new RenderSnapshots();assert.ok(validSnapshot(wire.make(w.snapshot())));
   const guest=JSON.parse(JSON.stringify(wire.make(w.snapshot())));
-  assert.equal(guest.craters[0].x,1000);assert.ok(Math.abs(guest.craters[0].y-700)<.1);assert.equal(guest.craters[0].radius,640);
+  assert.equal(guest.craters[0].x,1000);assert.ok(Math.abs(guest.craters[0].y-f.y)<.1);assert.equal(guest.craters[0].radius,480);
   w.startRound();assert.equal(w.craters.length,0);assert.equal(w.craterSerial,0);
 });
 
 test("round scoring waits for the flash and ash to finish",()=>{
-  const w=world();detonate(w,900,1170);
+  const w=world();w.players.slice(0,3).forEach((p,i)=>{p.x=600+i*300;p.rig=makeRig(p);});detonate(w,900,1170);
   for(let n=0;n<Math.floor(3/STEP);n++)w.step(STEP);
   assert.deepEqual(w.scores,[0,0,0,0]);
   assert.ok(w.fields.length>0);

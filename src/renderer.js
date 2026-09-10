@@ -1,3 +1,4 @@
+import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
 import { drawWreckage, drawRifts } from "./blackhole-art.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton } from "./nuclear-art.js";
@@ -991,6 +992,7 @@ export class Renderer {
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);
     this.fragments(state.debris);
+    drawBlood(this,state.blood);
     drawFields(this, state.fields, time);
     for (const rag of state.ragdolls) {
       if(drawDeath(this,rag,time))continue;
