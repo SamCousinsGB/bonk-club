@@ -5,7 +5,7 @@ import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
 import { grenadePlan } from "./ballistics.js";
 import {
-  navigation,
+  navigationSteps,
   traceFlight,
   predictedSurface,
   routesFrom,
@@ -119,21 +119,29 @@ export class BotController {
     this.bots = new Map();
     this.navigationCache = new Map();
     this.graph = null;
+    this.pendingNavigation = null;
+    this.navigationAt = -1;
     this.rebuildAt = 0;
     this.revision = -1;
   }
   forget(id) {
     this.bots.delete(id);
   }
-  inputs(world, dt) {
-    const solids = world.solids();
+  prepare(world) {
+    if (this.navigationAt === world.time) return;
+    this.navigationAt = world.time;
+    if (!world.players.some(p=>p.bot && p.alive)) {
+      this.pendingNavigation = null;
+      return;
+    }
     if (
       !this.graph ||
-      world.time >= this.rebuildAt ||
+      (!this.pendingNavigation && world.time >= this.rebuildAt) ||
       (this.revision !== world.terrainVersion &&
         world.time > this.builtAt + 0.15)
     ) {
-      this.graph = navigation(solids, {
+      const solids=world.solids().map(s=>({...s}));
+      this.pendingNavigation = navigationSteps(solids, {
         time: world.time,
         spikes: world.arena.spikes || [],
         cache: this.navigationCache,
@@ -141,7 +149,22 @@ export class BotController {
       this.builtAt = world.time;
       this.rebuildAt = world.time + 1.5;
       this.revision = world.terrainVersion;
+      this.graph ||= new Map();
+      const ids=new Set(solids.map(s=>s.id));
+      for(const id of this.graph.keys()) if(!ids.has(id)) this.graph.delete(id);
     }
+    // One landing per tick, including the countdown. Keep the previous routes
+    // usable while rebuilding; execution still checks each actual takeoff.
+    if(this.pendingNavigation) {
+      const next=this.pendingNavigation.next();
+      if(next.done) this.pendingNavigation=null;
+      else this.graph.set(...next.value);
+    }
+  }
+  inputs(world, dt) {
+    this.prepare(world);
+    if (!world.players.some(p=>p.bot && p.alive)) return {};
+    const solids = world.solids();
     const inputs = {};
     for (const p of world.players)
       if (p.bot && p.alive) {

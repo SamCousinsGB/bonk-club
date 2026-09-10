@@ -737,7 +737,7 @@ function updateHud(s) {
   setHtml($("#scoreboard"), s.players
     .map(
       (p) =>
-        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div><small>${p.alive ? (p.weapon ? WEAPONS[p.weapon].name + " · " + p.ammo + (WEAPONS[p.weapon].proneOnly && (!p.prone || !p.ground) ? " · LIE DOWN TO FIRE" : "") : "FISTS · " + Math.ceil(p.hp) + " HP") : "ELIMINATED"}</small></div>`,
+        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div>${equipmentInfo(p)}</div>`,
     )
     .join(""));
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
@@ -765,6 +765,13 @@ function updateHud(s) {
   if (room && !room.host)
     $("#footer-hint").textContent =
       `ONLINE · ${ping} MS · YOU ARE ${s.players.find((p) => p.id === room.id)?.name || NAMES[room.id]}`;
+}
+function equipmentInfo(p) {
+  if (!p.alive) return '<small>ELIMINATED</small>';
+  const weapon=p.weapon && WEAPONS[p.weapon];
+  const name=weapon?.name || 'FISTS';
+  const detail=weapon ? `${p.ammo} · ${weapon.proneOnly && (!p.prone || !p.ground) ? 'LIE DOWN TO FIRE' : Math.ceil(p.hp)+' HP'}` : Math.ceil(p.hp)+' HP';
+  return `<small title="${esc(name+' · '+detail)}"><span class="held-weapon">${esc(name)}</span><span class="weapon-state">${esc(detail)}</span></small>`;
 }
 function interpolated(now) {
   return guestFrames.sample(now);
@@ -806,6 +813,7 @@ function frame(now) {
   last = now;
   hudClock += dt;
   const state = world ? world.snapshot() : interpolated(now);
+  renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
     renderer.events(state.events, sound);
     if (hudClock > 0.07) {

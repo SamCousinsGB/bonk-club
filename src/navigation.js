@@ -137,11 +137,16 @@ export function traceFlight(
 }
 
 export function navigation(
+  solids, options = {},
+) {
+  return new Map(navigationSteps(solids, options));
+}
+
+export function* navigationSteps(
   solids,
   { time = 0, spikes = [], cache = null } = {},
 ) {
   solids = solids.filter((p) => p.hp !== 0);
-  const graph = new Map();
   for (const from of solids) {
     const signature =
       cache &&
@@ -165,7 +170,7 @@ export function navigation(
           ]),
       );
     if (cache?.get(from.id)?.signature === signature) {
-      graph.set(from.id, cache.get(from.id).edges);
+      yield [from.id, cache.get(from.id).edges];
       continue;
     }
     const pad = Math.min(28, from.w / 3);
@@ -309,10 +314,9 @@ export function navigation(
           });
         }
       }
-    graph.set(from.id, edges);
     cache?.set(from.id, { signature, edges });
+    yield [from.id, edges];
   }
-  return graph;
 }
 
 export function routesFrom(

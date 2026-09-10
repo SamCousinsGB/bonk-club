@@ -2,7 +2,7 @@ import { updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { PALETTE, defaultProfile, availableProfile } from "./identity.js";
-import { meleeAttack } from "./melee.js";
+import { meleeAttack, updateMelee } from "./melee.js";
 import {
   steerSpecial,
   impactSpecial,
@@ -17,6 +17,7 @@ import {
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
+import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
 import { updateHazards } from "./hazards.js";
@@ -36,159 +37,12 @@ import {
   CRAWL_SPEED,
   GUARD_SPEED,
   SUDDEN_DEATH,
-  expandArena,
 } from "./scale.js";
 export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-const platform = (x, y, w, h = 22, extra = {}) => ({ x, y, w, h, ...extra });
-export const ARENAS = [
-  {
-    name: "PLATFORMS",
-    color: "#283c38",
-    platforms: [
-      platform(180, 565, 920, 38),
-      platform(400, 410, 170),
-      platform(720, 410, 170),
-    ],
-    spawns: [
-      [310, 470],
-      [970, 470],
-      [450, 330],
-      [820, 330],
-    ],
-    spikes: [],
-  },
-  {
-    name: "SPLIT FLOOR",
-    color: "#33364b",
-    platforms: [
-      platform(130, 535, 350, 40),
-      platform(800, 535, 350, 40),
-      platform(555, 405, 170),
-    ],
-    spawns: [
-      [260, 445],
-      [1010, 445],
-      [400, 445],
-      [875, 445],
-    ],
-    spikes: [{ x: 493, y: 675, w: 294 }],
-  },
-  {
-    name: "SPIKES",
-    color: "#41372f",
-    platforms: [platform(200, 570, 880, 32), platform(440, 410, 400)],
-    spawns: [
-      [285, 470],
-      [990, 470],
-      [500, 330],
-      [760, 330],
-    ],
-    spikes: [
-      { x: 590, y: 570, w: 100 },
-      { x: 170, y: 600, w: 50 },
-      { x: 1060, y: 600, w: 50 },
-    ],
-  },
-  {
-    name: "TIERS",
-    color: "#293c46",
-    platforms: [
-      platform(140, 590, 280),
-      platform(860, 590, 280),
-      platform(380, 455, 200),
-      platform(700, 455, 200),
-      platform(530, 310, 220),
-    ],
-    spawns: [
-      [260, 500],
-      [1010, 500],
-      [460, 360],
-      [810, 360],
-    ],
-    spikes: [],
-  },
-  {
-    name: "ICE",
-    color: "#304449",
-    platforms: [
-      platform(170, 565, 940, 38, { ice: true }),
-      platform(360, 390, 200, 20, { ice: true }),
-      platform(720, 390, 200, 20, { ice: true }),
-    ],
-    spawns: [
-      [300, 470],
-      [980, 470],
-      [440, 310],
-      [820, 310],
-    ],
-    spikes: [
-      { x: 80, y: 645, w: 130 },
-      { x: 1070, y: 645, w: 130 },
-    ],
-  },
-  {
-    name: "MOVING PLATFORMS",
-    color: "#413344",
-    platforms: [
-      platform(120, 570, 260),
-      platform(900, 570, 260),
-      platform(470, 440, 200, 22, { move: 140, speed: 1.1 }),
-      platform(390, 300, 160, 22, { move: 130, speed: -0.8 }),
-      platform(790, 300, 160, 22, { move: 90, speed: 0.9 }),
-    ],
-    spawns: [
-      [240, 480],
-      [1030, 480],
-      [460, 205],
-      [850, 205],
-    ],
-    spikes: [],
-  },
-  {
-    name: "SIDE BALCONIES",
-    color: "#403c28",
-    platforms: [
-      platform(310, 570, 660, 40),
-      platform(160, 420, 170),
-      platform(950, 420, 170),
-    ],
-    spawns: [
-      [395, 480],
-      [880, 480],
-      [245, 330],
-      [1030, 330],
-    ],
-    spikes: [
-      { x: 130, y: 630, w: 200 },
-      { x: 950, y: 630, w: 200 },
-    ],
-  },
-  {
-    name: "ISLAND",
-    color: "#2e4241",
-    platforms: [
-      platform(400, 555, 480, 45),
-      platform(180, 400, 180, 20),
-      platform(920, 400, 180, 20),
-      platform(550, 310, 180, 20),
-    ],
-    spawns: [
-      [470, 465],
-      [810, 465],
-      [260, 300],
-      [1020, 300],
-    ],
-    spikes: [
-      { x: 50, y: 675, w: 380 },
-      { x: 850, y: 675, w: 380 },
-    ],
-  },
-]
-  .map(expandArena)
-  .concat(SKYSCRAPERS, THEMED_ARENAS);
+export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -269,7 +123,13 @@ export class World {
     this.fields = [];
     const featured = this.weaponRotation.opening(this.round);
     const seenWeapons = new Set();
-    this.drops = (this.arena.weapons || []).map(([x, y], index) => {
+    const positions = [...(this.arena.weapons || [])];
+    // Shuffle locations as well as weapons: no slot owns the opening exotic.
+    for (let i = positions.length - 1; i > 0; i--) {
+      const j = Math.min(i, Math.floor(this.random() * (i + 1)));
+      [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    this.drops = positions.map(([x, y], index) => {
       const type = featured[index] || chooseWeapon(this.random, seenWeapons);
       seenWeapons.add(type);
       return {
@@ -288,6 +148,7 @@ export class World {
       dx: 0,
       dy: 0,
     }));
+    for (const d of this.drops) Object.assign(d, this.pickupPosition(d));
     this.debris = [];
     this.hazards = [];
     this.nextHazard = 0;
@@ -319,6 +180,7 @@ export class World {
       coyote: 0,
       jumps: 0,
       jumpHeld: false,
+      jumpBuffer: 0,
       throwHeld: false,
       pickupCooldown: 0,
       support: null,
@@ -455,6 +317,7 @@ export class World {
       ...(this.profiles[id] || defaultProfile(id)),
       occupant: this.occupants[id],
       jumpHeld: false,
+      jumpBuffer: 0,
       throwHeld: false,
       block: false,
       blockHeld: false,
@@ -505,6 +368,7 @@ export class World {
       return;
     }
     const active = this.phase === "fight";
+    if (this.botIds.size) this.ai.prepare(this);
     if (active && this.botIds.size)
       inputs = { ...inputs, ...this.ai.inputs(this, dt) };
     if (!active) {
@@ -540,6 +404,8 @@ export class World {
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         this.collidePlayers(this.players[a], this.players[b]);
+    for (const p of this.players)
+      if (active && p.alive) updateMelee(this, p);
     for (const p of this.players)
       if (p.alive) updateRig(p, dt, this.solids(), this.time);
     for (let a = 0; a < this.players.length; a++)
@@ -645,6 +511,9 @@ export class World {
     p.stamina = clamp(p.stamina + 25 * dt, 0, 100);
     const momentum = p.recoilTime > 0 || p.impactTime > 0 || p.rush > 0;
     p.coyote = p.ground ? 0.09 : Math.max(0, p.coyote - dt);
+    p.jumpBuffer = i.jump && !p.jumpHeld ? 0.12 : Math.max(0, (p.jumpBuffer || 0) - dt);
+    // Walking off a ledge uses the ground jump once the grace period expires.
+    if (!p.ground && p.coyote <= 0 && p.jumps === 0) p.jumps = 1;
     const dir = Number(i.right) - Number(i.left);
     if (dir && p.stun <= 0) {
       p.facing = dir;
@@ -666,11 +535,13 @@ export class World {
         dt * 120,
       );
     else p.vx *= Math.pow(0.996, dt * 120);
-    if (i.jump && !p.jumpHeld && p.stun <= 0 && (p.coyote > 0 || p.jumps < 2)) {
+    if (p.jumpBuffer > 0 && p.stun <= 0 && (p.coyote > 0 || p.jumps < 2)) {
       p.vy = p.jumps === 0 ? -700 : -590;
       p.jumps++;
       p.ground = false;
       p.coyote = 0;
+      p.jumpBuffer = 0;
+      p.support = null;
       this.event("jump", { x: p.x, y: p.y + 28, color: p.color });
     }
     p.jumpHeld = i.jump;
@@ -708,6 +579,13 @@ export class World {
         p.ice = !!s.ice;
         p.support = s.id;
       } else if (oldY - top >= s.y + s.h - 3 && p.vy < 0) {
+        // Tiny edge catches should not cancel an otherwise clear jump.
+        const leftOverlap = p.x + radius - s.x, rightOverlap = s.x + s.w - p.x + radius;
+        const shift = leftOverlap <= 7 ? -leftOverlap - 0.1 : rightOverlap <= 7 ? rightOverlap + 0.1 : 0;
+        if (shift && !solids.some(q => q !== s && p.x + shift + radius > q.x && p.x + shift - radius < q.x + q.w && p.y + bottom > q.y && p.y - top < q.y + q.h)) {
+          p.x += shift;
+          continue;
+        }
         p.y = s.y + s.h + top;
         p.vy = Math.abs(p.vy) * 0.2;
       } else if (oldX < s.x) {
@@ -965,7 +843,14 @@ export class World {
   spawnWeapon() {
     if (this.drops.length >= 12) return;
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
-    const s = platforms[Math.floor(this.random() * platforms.length)];
+    // Prefer accessible, unoccupied landings near the current fight. Avoid
+    // repeatedly piling weapons on a single ledge or abandoned rooftop.
+    const living = this.players.filter(p => p.alive);
+    const ranked = platforms.map(s => ({s, cost:
+      Math.min(...living.map(p => Math.hypot(p.x - (s.x + s.w/2), p.y - s.y)), 2500) +
+      this.drops.filter(d => Math.abs(d.y - s.y) < 100 && d.x > s.x - 40 && d.x < s.x + s.w + 40).length * 900 +
+      this.random() * 750})).sort((a,b) => a.cost-b.cost);
+    const s = ranked[0]?.s;
     if (!s) return;
     const type = chooseWeapon(
       this.random,
@@ -974,14 +859,27 @@ export class World {
     const x = s.x + s.w * (0.2 + this.random() * 0.6);
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
-      x,
-      y: s.y - 75,
+      ...this.pickupPosition({x, y:s.y-75}),
       vx: 0,
       vy: 0,
       type,
       ammo: WEAPONS[type].ammo,
       life: 60,
     });
+  }
+  pickupPosition(point) {
+    const surface = this.platforms.filter(s => s.hp !== 0 && point.x >= s.x && point.x <= s.x+s.w && s.y >= point.y)
+      .sort((a,b) => a.y-b.y)[0];
+    if (!surface) return {x:point.x,y:point.y};
+    const options = [point.x, surface.x+25, surface.x+surface.w-25, surface.x+surface.w*.35, surface.x+surface.w*.65];
+    for (const x of options) {
+      const y=surface.y-30;
+      if (x < surface.x+12 || x > surface.x+surface.w-12) continue;
+      if (this.solids().some(s => s !== surface && x+18 > s.x && x-18 < s.x+s.w && y+12 > s.y && y-18 < s.y+s.h)) continue;
+      if (this.drops?.some(d => d !== point && Math.hypot(d.x-x,d.y-y)<70)) continue;
+      return {x,y};
+    }
+    return {x:point.x,y:point.y};
   }
   updateDrops(dt) {
     for (const d of this.drops) {

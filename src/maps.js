@@ -24,7 +24,7 @@ const steps = (x, y, count, dx, dy, material) =>
     slab(
       x +
         i * dx +
-        (!dx && (x < 200 || x > 2300) ? (i % 2) * (x < 200 ? 100 : -100) : 0),
+        (!dx ? (i % 2) * (x < 200 ? 100 : x > 2300 ? -100 : x < 1280 ? 140 : -140) : 0),
       y + i * dy,
       120,
       material,

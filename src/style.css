@@ -470,9 +470,18 @@ footer i {
   display: block;
 }
 .score small {
+  display: block;
   font-size: 10px;
   color: #b3c0b7;
 }
+.held-weapon, .weapon-state {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+}
+.weapon-state { color: #dce6db; font-size: .9em; }
 .round-meta {
   display: flex;
   flex-direction: column;

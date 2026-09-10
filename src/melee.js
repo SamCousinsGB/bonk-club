@@ -3,6 +3,7 @@ import { COMBO } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
 import { impulseRig } from "./puppet.js";
+const swings = new WeakMap();
 
 export function meleeAttack(world, p, weapon) {
   const unarmed = !p.weapon;
@@ -30,11 +31,31 @@ export function meleeAttack(world, p, weapon) {
     carryImpulse(p, 0.23);
   }
   impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 100, ay * 100);
+  const strike = { w, unarmed, occupant: p.occupant, hits: new Set(), cover: new Set(), rewarded: false };
+  swings.set(p, strike);
+  if (!resolveMelee(world, p, strike)) world.event("swing", { x: p.x, y: p.y });
+}
+
+// Contact remains active during the forward part of the animation. A lunge can
+// connect after its first frame; each fighter/surface is struck only once.
+export function updateMelee(world, p) {
+  const strike = swings.get(p);
+  if (!strike || !p.alive || p.stun > 0.15 || p.block || p.occupant !== strike.occupant ||
+      p.swing <= strike.w.duration * 0.3 || p.meleeMove !== strike.w.move) {
+    swings.delete(p);
+    return;
+  }
+  resolveMelee(world, p, strike);
+}
+
+function resolveMelee(world, p, strike) {
+  const { w, unarmed } = strike;
+  const angle = p.aimAngle, ax = Math.cos(angle), ay = Math.sin(angle);
   const solids = world.solids();
   let connected = false,
     rewarded = false;
   for (const q of world.players) {
-    if (q.id === p.id || !q.alive) continue;
+    if (q.id === p.id || !q.alive || strike.hits.has(q.id)) continue;
     const dx = q.x - p.x,
       dy = q.y - (p.y - 10);
     const along = dx * ax + dy * ay,
@@ -49,6 +70,7 @@ export function meleeAttack(world, p, weapon) {
     )
       continue;
     const hp = q.hp;
+    strike.hits.add(q.id);
     world.hit(
       q,
       p,
@@ -70,7 +92,7 @@ export function meleeAttack(world, p, weapon) {
   // Strike the first solid surface in each direction, never through a wall.
   const angles =
     w.move === "spin" ? [angle, angle + Math.PI, angle - Math.PI / 2] : [angle];
-  const damaged = new Set();
+  const damaged = strike.cover;
   for (const a of angles) {
     const obstacle = solids
       .map((s) => ({
@@ -92,9 +114,10 @@ export function meleeAttack(world, p, weapon) {
       connected = true;
     }
   }
-  if (rewarded && unarmed) {
+  if (rewarded && unarmed && !strike.rewarded) {
     p.hp = Math.min(100, p.hp + 4);
     p.stamina = Math.min(100, p.stamina + 12);
+    strike.rewarded = true;
   }
-  if (!connected) world.event("swing", { x: p.x, y: p.y });
+  return connected;
 }

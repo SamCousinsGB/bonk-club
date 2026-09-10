@@ -1,4 +1,5 @@
 import { PARRY } from "./impact.js";
+import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawHair } from "./identity.js";
 import {
   drawNewWeapon,
@@ -27,6 +28,7 @@ export class Renderer {
     this.lastEvent = 0;
     this.scenery = new Map();
     this.pickupArt = new Map();
+    this.localId = null;
     document.fonts?.ready.then(() => this.pickupArt.clear());
     this.reduced = globalThis.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
@@ -43,7 +45,9 @@ export class Renderer {
     if (this.pickupArt.has(type)) return this.pickupArt.get(type);
     const sprite = document.createElement("canvas"), label = document.createElement("canvas");
     sprite.width = 180; sprite.height = 140;
-    label.width = 320; label.height = 32;
+    const measure = label.getContext("2d");
+    measure.font = "600 18px 'DM Sans',sans-serif";
+    label.width = Math.ceil(measure.measureText(WEAPONS[type].name).width)+20; label.height = 32;
     const main = this.ctx, c = sprite.getContext("2d");
     this.ctx = c;
     try {
@@ -55,7 +59,9 @@ export class Renderer {
     text.textAlign = "center";
     text.fillStyle = RARITY_COLORS[WEAPONS[type].rarity];
     text.font = "600 18px 'DM Sans',sans-serif";
-    text.fillText(WEAPONS[type].name, 160, 24);
+    text.lineJoin = "round"; text.lineWidth = 5; text.strokeStyle = "#0d1929ee";
+    text.strokeText(WEAPONS[type].name, label.width/2, 24);
+    text.fillText(WEAPONS[type].name, label.width/2, 24);
     const art = { sprite, label };
     this.pickupArt.set(type, art);
     return art;
@@ -664,6 +670,11 @@ export class Renderer {
     c.save();
     c.translate(p.x, p.y);
     c.scale(scale, scale);
+    if (p.ground) {
+      c.fillStyle="#030e1b70"; c.beginPath(); c.ellipse(0,p.prone?11:31,p.prone?37:24,4,0,0,TAU); c.fill();
+    }
+    for (const [a,b] of JOINTS)
+      this.line([[rig[a].x-p.x,rig[a].y-p.y],[rig[b].x-p.x,rig[b].y-p.y]],"#081626d9",a===1&&b===2?11:9);
     for (const [a, b] of JOINTS)
       this.line(
         [
@@ -674,6 +685,7 @@ export class Renderer {
         a === 1 && b === 2 ? 7 : 5.5,
       );
     const head = rig[0];
+    this.circle(head.x - p.x, head.y - p.y, 13, "#081626dd");
     this.circle(head.x - p.x, head.y - p.y, 10.5, col);
     const neck = rig[1];
     drawHair(
@@ -743,7 +755,16 @@ export class Renderer {
       c.font = "700 18px 'DM Sans',sans-serif";
       c.textAlign = "center";
       c.fillStyle = p.color || COLORS[p.id];
+      c.strokeStyle = "#0c1729ee"; c.lineWidth = 5; c.lineJoin="round";
+      c.strokeText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
       c.fillText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
+      if(p.id===this.localId) {
+        c.fillStyle="#fff9df"; c.beginPath(); c.moveTo(-6,-88); c.lineTo(6,-88); c.lineTo(0,-81); c.fill();
+      }
+      if(p.hp<100) {
+        c.fillStyle="#081626cc";c.fillRect(-22,p.prone?-26:-56,44,4);
+        c.fillStyle=p.color;c.fillRect(-22,p.prone?-26:-56,44*p.hp/100,4);
+      }
       if (!p.weapon && p.parryCooldown > 0) {
         c.fillStyle = "#ffffff20";
         c.fillRect(-18, 43, 36, 3);
@@ -872,6 +893,7 @@ export class Renderer {
         layer.width = W;
         layer.height = H;
         drawEnvironment(layer.getContext("2d"), arena);
+        sceneDetail(layer.getContext("2d"), arena);
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);
@@ -882,6 +904,7 @@ export class Renderer {
       this.background(arena.color, time);
       this.city(arena, state.platforms);
     }
+    ambientDetail(this, arena, time);
     c.save();
     const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
     this.shake = Math.max(this.shake, pressure);
@@ -914,7 +937,6 @@ export class Renderer {
       c.rotate(d.angle ?? -0.15 + Math.sin(time * 2) * 0.08);
       c.drawImage(art.sprite, -90, -70);
       c.restore();
-      c.drawImage(art.label, d.x - 160, d.y - 84);
       this.line(
         [
           [d.x - 4, d.y - 43],
@@ -925,6 +947,8 @@ export class Renderer {
         2,
       );
     }
+    for(const label of pickupLabels(state.drops,state.players,state.players.find(p=>p.id===this.localId&&p.alive),type=>this.pickup(type),WEAPONS))
+      c.drawImage(label.art.label,label.x,label.y);
     for (const r of state.ragdolls) {
       c.globalAlpha = Math.min(1, r.life);
       const pts = r.points;
