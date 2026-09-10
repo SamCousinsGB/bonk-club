@@ -43,8 +43,21 @@ visuals and PHASER releases from main.
   0.5 ms for ordinary rubble and 2.9 ms in the run including bent black-hole art.
   These are QA-PC drawing times, not internet latency or hardware-phone FPS.
 - QA helper and screenshots: `bonk-club-qa/props-online.cjs` and `props-*.png`.
-  Hooks exist only in the external test helper. Publication verification is
-  recorded below once the exact committed build is deployed.
+  Hooks exist only in the external test helper.
+- Published revision: `3fdc00f54124ddff0873e3da1432e63e8413e399`. Pages run
+  `34480155003` passed **361 gameplay/network tests**, **3 server tests**, the
+  production build and deployment:
+  `https://github.com/SamCousinsGB/bonk-club/actions/runs/34480155003`.
+- All **15 public files** matched the exact committed archive build byte for
+  byte. JavaScript: `index-BaI1obsq.js`; CSS: `index-CUMQZt1D.css`. The archive
+  and build are in `bonk-club-qa/props-release-3fdc00f`.
+- The exact production bundle and then the public site passed real host/guest
+  lobby, occupied-slot removal, slot-mode changes, hot join, departure/rejoin and
+  mobile viewport checks with selected relay candidates and no browser errors.
+  The helper is `bonk-club-qa/props-release-browser.cjs`.
+- The canonical checkout still contains unrelated uncommitted changes in
+  `src/network.js`, `src/nuclear.js` and `src/terrain.js`; they were not overwritten.
+  Start from current main or this clean prop worktree for the completed release.
 
 ## Explosion terrain and nuclear visuals - 10 September 2026
 
