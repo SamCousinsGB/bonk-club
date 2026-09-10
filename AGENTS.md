@@ -47,6 +47,10 @@ Keep this constitution for durable rules and the handoff for current work.
 - Rounds continue indefinitely. No best-of-five or winning-score match end.
   Track the current leader. Scores belong to the current occupant and reset when
   that occupant leaves or is replaced, not when an unrelated player joins.
+- Round results show the winner and a message based on the final elimination.
+  Sam explicitly requested creative victory lines, including nuclear apocalypse
+  and commanding the forces of space and time. Keep this exception in the result
+  banner; preserve actual death causes, draws, guest consistency and round reset.
 - Escape opens/closes a menu, never pauses. Focus loss, alt-tab and background
   rendering must not intentionally pause simulation or networking. Clear held
   controls on blur. Do not claim to defeat browser/OS suspension or tab discard.

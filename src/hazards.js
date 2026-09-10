@@ -23,7 +23,7 @@ export function hazardZone(h) {
 }
 export function dangerous(h) { return !h.done&&(h.active||h.warning>0); }
 function hit(world,p,h,damage,force=600) {
-  world.hit(p,{x:h.bodyX,y:h.bodyY,vx:0,vy:0},damage,force,Math.sign(p.x-h.bodyX)||h.dir,-.55,{blast:true,hitstop:.018,execute:h.type==="saw",effect:h.type==="saw"?"slice":h.type==="tesla"?"tesla":h.type==="geyser"?"burn":h.type==="crusher"?"blast":null});
+  world.hit(p,{x:h.bodyX,y:h.bodyY,vx:0,vy:0},damage,force,Math.sign(p.x-h.bodyX)||h.dir,-.55,{blast:true,hitstop:.018,cause:h.type==="geyser"?"burn":h.type,execute:h.type==="saw",effect:h.type==="saw"?"slice":h.type==="tesla"?"tesla":h.type==="geyser"?"burn":h.type==="crusher"?"blast":null});
 }
 export function updateHazards(world,dt) {
   if(world.phase!=="fight")return;

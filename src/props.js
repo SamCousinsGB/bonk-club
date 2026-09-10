@@ -268,7 +268,7 @@ export function contactProp(world, p, s, nx, ny, dt) {
     times.set(p, world.time + .4);
     const damage = clamp((closing - 170) * b.mass / 450, 2, 55);
     world.hit(p, { ...q, vx: 0, vy: 0 }, damage, Math.min(650, j / 55), nx, ny,
-      { blast: true, effect: "blast", hitstop: .012, stun: .12 });
+      { blast: true, effect: "blast", cause: "props", hitstop: .012, stun: .12 });
     if (p.alive && damage >= 25 && !p.knockdown) knockDown(p, b.mass >= 50 ? "machinegun" : "bat");
   }
 }

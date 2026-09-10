@@ -1,3 +1,4 @@
+import { victoryMessage } from "./victory.js";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
@@ -811,7 +812,8 @@ function updateHud(s) {
   if (s.phase === "countdown") {
     setHtml(a, `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`);
   } else if (s.phase === "result") {
-    setHtml(a, `${s.winner === null ? "DRAW" : esc(s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner]) + " WINS THE ROUND"}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
+    const message = victoryMessage(s, s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner] || "Player");
+    setHtml(a, `<span class="victory-title" style="--victory-title-size:${Math.min(7, 110 / [...message.title].length)}vw">${esc(message.title)}</span>${message.detail ? `<span class="victory-detail">${esc(message.detail)}</span>` : ""}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
   } else setHtml(a, "");
   if (room && !room.host)
     $("#footer-hint").textContent =

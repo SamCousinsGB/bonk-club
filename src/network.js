@@ -1,3 +1,4 @@
+import { validVictoryCause } from "./victory.js";
 import {BLOOD_LIMIT} from "./gore.js";
 import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
@@ -26,7 +27,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 21;
+export const PROTOCOL = 22;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -682,6 +683,7 @@ export function validSnapshot(s) {
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
     [s.phaseTime, s.elapsed, s.time].every(finite) &&
     (s.winner === null || integer(s.winner, 0, 3)) &&
+    validVictoryCause(s.victoryCause) &&
     list(
       s.players,
       4,

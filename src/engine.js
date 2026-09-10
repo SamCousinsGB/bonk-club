@@ -1,3 +1,4 @@
+import { hitCause } from "./victory.js";
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
@@ -174,6 +175,8 @@ export class World {
     this.weaponTimer = 2;
     this.hitstop = 0;
     this.winner = null;
+    this.lastDeathCause = null;
+    this.victoryCause = null;
     this.events = [];
   }
   makePlayer(id) {
@@ -254,6 +257,7 @@ export class World {
     const countBefore = this.players.length;
     for (const id of [...this.ids]) {
       if (active.some(p => p.id === id)) continue;
+      if (this.players.find(p => p.id === id)?.alive) this.lastDeathCause = null;
       this.ids = this.ids.filter(n => n !== id);
       this.players = this.players.filter(p => p.id !== id);
       this.botIds.delete(id);
@@ -437,11 +441,11 @@ export class World {
     if (active) {
       for (const p of this.players) {
         if (!p.alive) continue;
-        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p);
+        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p, { cause: "fall" });
         for (const s of this.spikes()) impale(this,p,s);
         if (this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
-          if (p.hp <= 0) this.kill(p);
+          if (p.hp <= 0) this.kill(p, { cause: "sudden" });
         }
       }
       const alive = this.players.filter((p) => p.alive);
@@ -449,6 +453,7 @@ export class World {
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
+        this.victoryCause = this.winner === null ? null : this.lastDeathCause;
         if (this.winner !== null) this.scores[this.winner]++;
         this.phase = "result";
         this.phaseTime = 2.8;
@@ -817,11 +822,12 @@ export class World {
       melee: !!options.melee, move: options.move || null,
       projectile: !!options.projectile, blast: !!options.blast, effect:options.effect||null,
     });
-    if (q.hp <= 0) this.kill(q,{effect:options.execute?"slice":options.effect,
+    if (q.hp <= 0) this.kill(q,{cause:hitCause(options),effect:options.execute?"slice":options.effect,
       ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
   }
-  kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0} = {}) {
+  kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null} = {}) {
     if (!p.alive) return;
+    if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
     p.hp = 0;
     if (p.weapon && !ash && effect!=="singularity")
@@ -989,7 +995,7 @@ export class World {
         d.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (p) {
           const hp=p.hp,mass=THROW_MASS[d.type]||1;
-          this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 360+mass*180, Math.sign(d.vx) || 1,-.35);
+          this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 360+mass*180, Math.sign(d.vx) || 1,-.35, { cause: "thrown" });
           if(p.alive&&p.hp<hp)knockDown(p,d.type);
         }
         if (breakable(s) && d.armed) {
@@ -1098,7 +1104,7 @@ export class World {
         b.force * scale,
         Math.sign(p.x - b.x) || 1,
         -0.7,
-        { blast: true, hitstop: 0.018, effect:projectileEffect(b) },
+        { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon },
       );
     }
     for (const c of cover) {
@@ -1220,7 +1226,7 @@ export class World {
           Math.sign(b.vx) || 0.1,
           Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
           {
-            projectile: true, effect:projectileEffect(b),execute:["rail","saw"].includes(b.kind),angle:Math.atan2(b.vy,b.vx),
+            projectile: true, weapon: b.weapon, effect:projectileEffect(b),execute:["rail","saw"].includes(b.kind),angle:Math.atan2(b.vy,b.vx),
             stun: ["flame", "frost"].includes(b.kind)
               ? 0.015
               : (WEAPONS[b.weapon]?.cooldown || 1) < 0.2
@@ -1340,6 +1346,7 @@ export class World {
       elapsed: this.elapsed,
       time: this.time,
       winner: this.winner,
+      victoryCause: this.victoryCause,
       events: this.events,
     };
   }
