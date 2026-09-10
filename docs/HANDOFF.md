@@ -55,7 +55,20 @@ GitHub main while preserving concurrent work in the canonical checkout.
   No page errors. Guest renderer CPU cost was 2.3 ms at the 95th percentile over
   796 samples; this is drawing cost, not FPS or internet latency.
 - QA scripts/screenshots: `bonk-club-qa/collapse-visual.cjs`, `collapse-online.cjs`
-  and `collapse-*.png`. Final release verification follows after publication.
+  and `collapse-*.png`.
+- Verified live in `e031499e1a90df9cb02e54178423939274f2cf7f`, including black-hole
+  release `888d4c6` and the subsequent mobile clear-view update. Pages run
+  `34487368851` passed **436 gameplay/network tests**, **3 server tests**, build
+  and deployment. A transient GitHub deployment ID-token timeout was resolved by
+  retrying the deploy job; workflow permissions and application code were unchanged.
+- All **15 public files** matched the exact committed production archive byte for
+  byte: `index-C5-1pa9d.js`, `index-P_ztR8EB.css`. The public game passed actual
+  host/guest lobby, slots, hot join, departure/rejoin and mobile viewport checks
+  through selected TURN relay candidates without page errors. The exact build is
+  in `bonk-club-qa/collapse-release-e031499`; verification helpers are
+  `verify-collapse-live.cjs` and `collapse-production.cjs`. The task's port 5189
+  development server was stopped. The canonical checkout's unfinished edits were
+  left intact.
 
 ## Fullscreen and UI fit — 10 September 2026
 
