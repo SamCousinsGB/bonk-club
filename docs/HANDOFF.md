@@ -2,6 +2,33 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Violent black-hole orbits — 10 September 2026
+
+Implemented in `bonk-club-violent-orbit`, branch `codex/violent-blackhole`, from
+current main while preserving the canonical checkout's unfinished terrain edits.
+
+- Replaced continuous steering toward an orbital velocity with softened central
+  gravity, retained momentum, weak drag and uneven radial/tangential forces.
+  Capture preserves translation and spin; close passes rebound through a soft
+  pressure region instead of settling on a prescribed radius.
+- Body strands have elastic tension and local eddies that make arms/legs fold,
+  whip and recoil independently. Existing swept limb collision and control
+  suppression remain. The visible orbit sits outside the lens until compression.
+- Weapons and other collected samples keep orbiting and tumbling until the final
+  1.1 seconds. Samples caught exactly at the centre also enter the active flow.
+  The persistent compressed ball, all contents counts, outer warped artwork,
+  collision, host authority, hot join and round reset remain intact.
+- Six new regressions cover capture momentum, rapid eccentric body motion, joint
+  bending, a hand impulse, loose-matter movement/transport, inherited prop spin
+  and exact-centre capture. No required wire shape changed; protocol remains 23.
+- Final source-build Edge host/guest and third-browser hot-join checks passed
+  through verified selected TURN relay candidates, including the live strands,
+  packing, final contents and matching outer collision. No browser errors.
+  Guest drawing CPU p95 was 1.6 ms over 786 samples, not FPS or internet latency.
+- Actual rendered gameplay inspected at six points through capture and collapse.
+  QA helpers/screenshots: `bonk-club-qa/violent-visual.cjs`, `violent-online.cjs`
+  and `violent-*.png`. No production hooks, new dependencies or Pi changes.
+
 ## Clear mobile controls — 10 September 2026
 
 Sam requested less obstruction, no Lie down/Throw buttons, and joysticks that
