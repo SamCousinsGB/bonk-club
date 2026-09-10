@@ -1,6 +1,7 @@
 import {BLOOD_LIMIT} from "./gore.js";
 import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
+import { MATTER_KINDS, MATTER_LIMIT } from "./accretion.js";
 import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
@@ -26,7 +27,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 21;
+export const PROTOCOL = 22;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -654,6 +655,15 @@ const list = (value, max, check) =>
   value.length <= max &&
   value.every((v) => v && typeof v === "object" && check(v));
 const xy = (p) => finite(p.x) && finite(p.y);
+const strands = value => list(value,10,s => list(s.points,6,xy) && s.points.length===6) && value.length===10;
+const matter = c => c && c.kind === "matter" && xy(c) && integer(c.id,1,1000000) &&
+  [c.w,c.h,c.angle,c.hp,c.packing,c.mass].every(finite) && c.w>=42 && c.w<=140 && c.h===c.w &&
+  c.hp>=0 && c.hp<=120 && c.packing>=0 && c.packing<=1 && c.mass>0 && c.mass<=1000000 &&
+  Array.isArray(c.totals) && c.totals.length===MATTER_KINDS.length && c.totals.every(n=>integer(n,0,1000000)) &&
+  list(c.items,MATTER_LIMIT,q=>xy(q) && integer(q.id,1,1000000) && MATTER_KINDS.includes(q.kind) && [q.angle,q.size].every(finite) && q.size>0 && q.size<=16 &&
+    typeof q.color==="string" && /^#[0-9a-f]{6}$/i.test(q.color) &&
+    (q.type===null || weaponTypes.includes(q.type)) && (q.sourceKind===null || COVER_KINDS.includes(q.sourceKind))) &&
+  new Set(c.items.map(q=>q.id)).size===c.items.length;
 const propShape = shape => {
   if (shape === undefined) return true;
   if (!Array.isArray(shape) || shape.length < 3 || shape.length > 6 ||
@@ -709,6 +719,7 @@ export function validSnapshot(s) {
           p.flash,
         ].every(finite) &&
         (p.rig === null || (list(p.rig, 11, xy) && p.rig.length === 11)) &&
+        (p.strands === undefined || (strands(p.strands) && [p.targetX,p.targetY].every(finite))) &&
         integer(p.comboStep, 0, 2) &&
         ["punch", "kick", "spin", "weapon"].includes(p.meleeMove) &&
         integer(p.ammo, 0, 100) &&
@@ -803,7 +814,7 @@ export function validSnapshot(s) {
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 6)) &&
         (f.kind !== "shockwave" ||
           (integer(f.craterId,1,1000000) && typeof f.melted === "boolean")) &&
-        (f.kind!=="blackhole" || (integer(f.riftId,1,1000000) && typeof f.torn === "boolean")) &&
+        (f.kind!=="blackhole" || (integer(f.riftId,1,1000000) && typeof f.torn === "boolean" && (f.matter===undefined || matter(f.matter)))) &&
         (f.kind !== "phaser" || (f.radius === WEAPONS.phaser.radius &&
           f.life <= WEAPONS.phaser.life && f.age <= WEAPONS.phaser.life &&
           integer(f.owner,0,3) && Math.abs(Math.hypot(f.ex-f.x,f.ey-f.y)-WEAPONS.phaser.range) < .03)) &&
@@ -811,7 +822,7 @@ export function validSnapshot(s) {
         f.life <= 6,
     ) &&
     list(s.blood,BLOOD_LIMIT,b=>xy(b)&&[b.vx,b.vy,b.r,b.life].every(finite)&&b.r>0&&b.r<=4&&b.life>=0&&b.life<=7&&typeof b.landed==="boolean") &&
-    list(s.wreckage,60,w => xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
+    list(s.wreckage,60,w => w.kind === "matter" ? matter(w) : xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
       w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
       (w.sourceKind==null || COVER_KINDS.includes(w.sourceKind)) &&
       (w.sourceChunk===undefined || typeof w.sourceChunk==="boolean") &&

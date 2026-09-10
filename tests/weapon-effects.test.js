@@ -159,7 +159,7 @@ test("frozen bodies shatter on a lethal follow-up; flame and explosive kills hav
   assert.equal(blast.ragdolls[0].effect, "blast");
 });
 
-test("black hole pulls through cover, lifts grounded fighters and stretches anyone caught in its core", () => {
+test("black hole captures grounded fighters through torn cover and compresses them only when it closes", () => {
   const w = fixture(),
     f = blackholeField(w, { x: 1000, y: 400, owner: 0 });
   w.fields = [f];
@@ -177,22 +177,18 @@ test("black hole pulls through cover, lifts grounded fighters and stretches anyo
     dy: 0,
   });
   fields(w, 0.55);
-  assert.ok(p.vx > 300);
-  assert.ok(p.vy < 0);
+  assert.ok(p.knockdown > 0 && p.strands);
   assert.equal(p.ground, false);
   const q = w.players[1];
   Object.assign(q, { x: 970, y: 390, hp: 100, alive: true });
   q.rig = makeRig(q);
   fields(w, 0.025);
-  assert.equal(q.alive, false);
-  const rag = w.ragdolls.find((r) => r.effect === "singularity");
-  assert.ok(rag);
-  const old = structuredClone(rag.points);
-  fields(w, 0.55);
-  assert.notDeepEqual(rag.points, old);
+  assert.equal(q.alive, true);
+  assert.ok(q.strands);
   assert.ok(validSnapshot(wire.make(w.snapshot())));
-  fields(w, 4.6);
-  assert.ok(!w.ragdolls.includes(rag));
+  fields(w, 5.1);
+  assert.equal(q.alive,false);
+  assert.ok(w.wreckage.some(w=>w.kind === "matter" && w.totals[3]>=1));
 });
 
 test("black hole twists structural platforms and traps into lasting, breakable collision geometry", () => {

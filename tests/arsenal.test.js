@@ -208,7 +208,7 @@ test("homing rockets steer and cluster bombs release six secondary explosives", 
   assert.equal(w.projectiles.length, 6);
   assert.ok(w.projectiles.every((p) => !p.cluster));
 });
-test("black holes arm, attract all sides and loose items, damage nearby fighters, then expire", () => {
+test("black holes arm, capture fighters from both sides and retain loose weapons in the collapse", () => {
   const w = arena(),
     [p, q] = w.players;
   const b = fire(w, "blackhole");
@@ -229,8 +229,10 @@ test("black holes arm, attract all sides and loose items, damage nearby fighters
   };
   w.drops = [d];
   for (let n = 0; n < 60; n++) updateFields(w, STEP);
-  assert.ok(p.vx > 0 && q.vx < 0 && d.vx < 0);
-  assert.ok(p.hp < 100 && q.hp < 100);
+  assert.ok(p.strands && q.strands && p.knockdown && q.knockdown);
+  assert.ok(p.alive && q.alive);
+  assert.ok(!w.drops.includes(d));
+  assert.ok(f.matter.items.some(i=>i.type === "bat"));
   assert.ok(validSnapshot(w.snapshot()));
   for (let n = 0; n < 600; n++) updateFields(w, STEP);
   assert.equal(w.fields.length, 0);

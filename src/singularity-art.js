@@ -1,3 +1,4 @@
+import { drawAppearance } from "./identity.js";
 const TAU = Math.PI * 2;
 
 function smoothStrand(points) {
@@ -58,4 +59,6 @@ export function drawSingularityBody(r, rag) {
   c.globalAlpha = Math.min(1, rag.life / .6);
   c.fillStyle = "#071420"; c.fill(silhouette);
   c.fillStyle = rag.color; c.fill(body);
+  if (radius > 7) drawAppearance(c,rag,head.x,head.y,
+    Math.atan2(head.y-rag.points[1].y,head.x-rag.points[1].x)+Math.PI/2,rag.facing||1);
 }

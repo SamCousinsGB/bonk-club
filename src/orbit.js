@@ -8,17 +8,17 @@ export function seedOrbit(p, center, drift = 1) {
   p.px = p.x - ((-dy / d) * speed - (dx / d) * 24 * drift) / 120;
   p.py = p.y - ((dx / d) * speed - (dy / d) * 24 * drift) / 120;
 }
-export function orbitPoint(p, center, dt, drift = 1) {
+export function orbitPoint(p, center, dt, drift = 1, minRadius = 0) {
   const dx = p.x - center.x,
     dy = p.y - center.y,
     d = Math.max(1, Math.hypot(dx, dy));
-  if (d < 12) {
+  if (d < 12 && !minRadius) {
     p.x = p.px = center.x;
     p.y = p.py = center.y;
     return;
   }
   const omega = 0.65 + 110 / (d + 50),
-    sink = (22 + d * 0.085) * drift;
+    sink = minRadius && d < minRadius ? (d - minRadius) * 3 : (22 + d * 0.085) * drift;
   const wantX = -dy * omega - (dx / d) * sink,
     wantY = dx * omega - (dy / d) * sink;
   const vx = (p.x - p.px) / dt,

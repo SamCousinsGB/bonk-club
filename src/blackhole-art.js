@@ -1,8 +1,10 @@
 import { drawHazards } from "./trap-art.js";
 import { drawChunks } from "./prop-art.js";
 import { drawBlackholeLens } from "./blackhole-lens.js";
+import { drawMatter } from "./accretion-art.js";
 
 export function drawBlackhole(r, f, time) {
+  if (f.matter) drawMatter(r, f.matter);
   const c = r.ctx,
     age = f.age,
     t = r.reduced ? 0 : age,
@@ -38,7 +40,7 @@ export function drawBlackhole(r, f, time) {
     );
   }
   c.globalAlpha = 1;
-  const size = (38 + Math.min(1, age) * 38) * grow;
+  const size = (38 + Math.min(1, age) * 38) * grow * Math.min(1, Math.max(.03, f.life / 1.1));
   if (!drawBlackholeLens(r, f, size, fade, t)) {
     // Canvas-only fallback for devices without WebGL or after context loss.
     c.globalAlpha = fade;
@@ -133,6 +135,7 @@ export function drawWreckage(r, wreckage, time) {
   const c = r.ctx;
   for (const w of wreckage || []) {
     if (!w.hp) continue;
+    if (w.kind === "matter") { drawMatter(r,w); continue; }
     const art = wreckArtwork(r, w);
     if (w.outline) {
       const outline = artworkOutline(w, art),

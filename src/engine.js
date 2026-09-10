@@ -1,6 +1,7 @@
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
+import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
 import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
@@ -507,6 +508,7 @@ export class World {
     }
     if(p.knockdown>0){
       p.cooldown=Math.max(0,p.cooldown-dt);p.flash=Math.max(0,p.flash-dt);p.swing=0;p.block=false;
+      if (moveCaptured(p,this,solids,dt)) return;
       moveKnocked(p,solids,dt);return;
     }
     if (p.ground) p.airLunge = false;
@@ -1267,6 +1269,19 @@ export class World {
   updateRagdolls(dt) {
     for (const rag of this.ragdolls) {
       rag.life -= dt;
+      if (rag.capturedBy) {
+        const f = this.fields.find(f => f.kind === "blackhole" && f.riftId === rag.capturedBy && f.life > 0);
+        if (f) {
+          rag.strands ||= bodyStrands(rag.points);
+          rag.effect = "singularity"; rag.deathAge = Math.min(5.9, (rag.deathAge || 0) + dt);
+          delete rag.ash; delete rag.anchor;
+          // Sliced bodies may have two extra cut points, outside the intact skeleton.
+          rag.points = rag.points.slice(0,11);
+          orbitBody(rag.strands, f, this.solids(), dt, f.life < 1.1 ? 5 : .7);
+          continue;
+        }
+        delete rag.capturedBy;
+      }
       if(updateDeath(rag,dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
       if (rag.ash) {

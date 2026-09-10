@@ -1,9 +1,9 @@
 import { seedOrbit, orbitPoint, limitRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
-import { carryImpulse } from "./impact.js";
+import { captureFighter } from "./singularity-body.js";
+import { collectMatter, packMatter, matterTiles } from "./accretion.js";
 import { bodyInBlast } from "./props.js";
 export const SINGULARITY = { radius: 620, duration: 5.5, arm: 0.4, core: 135 };
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
 export function blackholeField(world, b) {
   return {
@@ -39,6 +39,7 @@ export function wreckCorners(w) {
 // each. The global 60-fragment cap keeps even overlapping fields bounded.
 export function wreckTiles(w, old = new Map()) {
   if (w.hp <= 0) return [];
+  if (w.kind === "matter") return matterTiles(w, old);
   if (w.spine) {
     const tiles = [];
     for (let n = 0; n < w.spine.length - 1; n++) {
@@ -106,7 +107,7 @@ function polygonTiles(w, polygon, cap, prefix, old = new Map()) {
   return tiles;
 }
 function addWreck(world, f, s, kind = "platform") {
-  if (world.wreckage.length >= 60) return;
+  if (world.wreckage.length >= 59) { collectMatter(world, f, s, kind); return; }
   const x = s.x + s.w / 2,
     y = s.y + s.h / 2;
   world.wreckage.push({
@@ -128,6 +129,7 @@ function addWreck(world, f, s, kind = "platform") {
     ice: !!s.ice,
     panel: s.panel || null,
     fieldId: f.riftId,
+    outer: kind === "platform" && Math.hypot(x - f.x, y - f.y) > f.radius * .64,
     originX: x,
     originY: y,
     originAngle: 0,
@@ -156,7 +158,8 @@ function tear(world, f) {
   world.platforms = retained;
   for (const w of world.wreckage)
     if (inBlast(w, f))
-      Object.assign(w, {
+      if (w.kind === "matter") { collectMatter(world, f, w, "debris"); w.hp = 0; }
+      else Object.assign(w, {
         fieldId: f.riftId,
         originX: w.x,
         originY: w.y,
@@ -185,8 +188,10 @@ function tear(world, f) {
   });
   // Prefer a spread of fragments across the affected floors, not one huge floor.
   const count = Math.min(26, sources.length);
+  const chosen = new Set();
   for (let n = 0; n < count; n++)
-    addWreck(world, f, sources[Math.floor((n * sources.length) / count)]);
+    { const index = Math.floor((n * sources.length) / count); chosen.add(index); addWreck(world, f, sources[index]); }
+  for (let i = 0; i < sources.length; i++) if (!chosen.has(i)) collectMatter(world, f, sources[i], "platform");
   world.wreckDirty = true;
   world.terrainVersion++;
   world.event("explosion", {
@@ -207,41 +212,49 @@ export function updateBlackhole(world, f, dt) {
     addWreck(world,f,p,"prop"); world.wreckDirty=true; world.terrainVersion++;
     return false;
   });
-  if (world.phase !== "fight") return;
-  f.tick -= dt;
-  const pulse = f.tick <= 0;
-  if (pulse) f.tick = 0.2;
-  for (const p of [
-    ...world.players.filter((p) => p.alive),
-    ...world.drops,
-    ...world.projectiles,
-    ...world.debris,
-  ]) {
-    const dx = f.x - p.x,
-      dy = f.y - p.y,
-      d = Math.hypot(dx, dy);
-    if (d > f.radius) continue;
-    if (p.id !== undefined && d < SINGULARITY.core) {
+  for (const p of world.players.filter(p => p.alive)) {
+    const d = Math.hypot(p.x - f.x, p.y - f.y);
+    if (!p.capturedBy && d < f.radius * .88) captureFighter(p, f);
+    if (p.capturedBy !== f.riftId) continue;
+    if (f.life <= .7 || (f.life < 1.1 && d < 85)) {
+      collectMatter(world, f, p, "fighter");
+      if (p.weapon) collectMatter(world, f, { ...p, type: p.weapon }, "weapon");
       world.kill(p, { effect: "singularity", sourceX: f.x, sourceY: f.y });
-      continue;
+      world.ragdolls.pop(); // The same body is now part of the compressed matter.
+      delete p.capturedBy; delete p.strands;
     }
-    const nx = dx / Math.max(18, d),
-      ny = dy / Math.max(18, d),
-      force = (1 - d / f.radius) * 14500;
-    p.vx = clamp((p.vx || 0) + (nx - ny * 0.22) * force * dt, -1700, 1700);
-    p.vy = clamp((p.vy || 0) + (ny + nx * 0.22) * force * dt, -1700, 1700);
-    if (p.id !== undefined) {
-      carryImpulse(p, 0.25);
-      p.ground = false;
-      p.support = null;
+  }
+  // Existing corpses join the same colliding flow, regardless of how they died.
+  for (const rag of world.ragdolls) {
+    if (!rag.capturedBy && rag.points.some(p => Math.hypot(p.x-f.x,p.y-f.y) < f.radius * .88)) {
+      rag.capturedBy = f.riftId; rag.targetX = f.x; rag.targetY = f.y;
     }
-    if (p.id !== undefined && pulse && d < 290)
-      world.hit(p, { x: f.x, y: f.y, vx: 0, vy: 0 }, 9, 0, 0, 0, {
-        blast: true,
-        effect: "singularity",
-        hitstop: 0,
-        stun: 0.01,
-      });
+    if (rag.capturedBy !== f.riftId) continue;
+    rag.life = Math.max(rag.life, f.life + .1);
+    if (f.life <= .7) { collectMatter(world, f, { ...rag, ...rag.points[2] }, "fighter"); rag.life = 0; }
+  }
+  world.ragdolls = world.ragdolls.filter(r => r.life > 0);
+  for (const [key, kind] of [["drops", "weapon"], ["projectiles", "projectile"], ["debris", "debris"], ["blood", "blood"]]) {
+    world[key] = world[key].filter(p => {
+      if (Math.hypot(p.x-f.x,p.y-f.y) > f.radius) return true;
+      // Retained as orbiting matter; captured ammunition cannot detonate again.
+      collectMatter(world,f,p,kind); return false;
+    });
+  }
+  for (const w of world.wreckage) {
+    if (w.hp <= 0 || w.fieldId !== f.riftId || w.outer || w.kind === "matter") continue;
+    if (f.life < 1.1 || (w.spine && w.spine.every(p => Math.hypot(p.x-f.x,p.y-f.y)<30))) {
+      collectMatter(world, f, w, w.kind); w.hp = 0; world.wreckDirty = true;
+    }
+  }
+  packMatter(f, dt);
+  if (f.life <= 0 && f.matter) {
+    world.wreckage = world.wreckage.filter(w => w.hp > 0);
+    if (world.wreckage.length >= 60) {
+      const w = world.wreckage.pop(); collectMatter(world, f, w, w.kind); packMatter(f, dt);
+    }
+    world.wreckage.push(f.matter); delete f.matter;
+    world.wreckDirty = true; world.terrainVersion++;
   }
 }
 export function updateWreckage(world, dt = 1 / 120) {
@@ -261,7 +274,7 @@ export function updateWreckage(world, dt = 1 / 120) {
   if (world.warpActive && !active) world.terrainVersion++;
   world.warpActive = active;
   for (const w of world.wreckage) {
-    if (w.hp <= 0) continue;
+    if (w.hp <= 0 || w.kind === "matter") continue;
     const f = world.fields.find(
       (f) =>
         f.kind === "blackhole" &&
@@ -286,10 +299,6 @@ export function updateWreckage(world, dt = 1 / 120) {
       w.spine.at(-1).x - w.spine[0].x,
     );
     w.outline = ribbonOutline(w.spine, w.h, f);
-    if (w.spine.every((p) => Math.hypot(p.x - f.x, p.y - f.y) < 24)) {
-      w.hp = 0;
-      world.terrainVersion++;
-    }
   }
   world.platforms = world.platforms.filter((p) => !p.wreckId);
   for (const w of world.wreckage) world.platforms.push(...wreckTiles(w, old));
