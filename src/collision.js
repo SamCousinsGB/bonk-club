@@ -1,5 +1,11 @@
 // Swept point against an expanded rectangle: fast shots cannot skip thin cover.
 export function segmentBox(x, y, endX, endY, box, radius = 0) {
+  const minX = box.x - radius, maxX = box.x + box.w + radius,
+    minY = box.y - radius, maxY = box.y + box.h + radius;
+  // Most blood/limb sweeps cannot reach most terrain strips. Reject them before
+  // allocating slab tuples or dividing, especially in a black-hole aftermath.
+  if ((x < minX && endX < minX) || (x > maxX && endX > maxX) ||
+      (y < minY && endY < minY) || (y > maxY && endY > maxY)) return null;
   const dx = endX - x,
     dy = endY - y;
   let near = 0,
@@ -7,8 +13,8 @@ export function segmentBox(x, y, endX, endY, box, radius = 0) {
     nx = 0,
     ny = 0;
   for (const [start, delta, min, max, axis] of [
-    [x, dx, box.x - radius, box.x + box.w + radius, 0],
-    [y, dy, box.y - radius, box.y + box.h + radius, 1],
+    [x, dx, minX, maxX, 0],
+    [y, dy, minY, maxY, 1],
   ]) {
     if (Math.abs(delta) < 1e-9) {
       if (start < min || start > max) return null;
