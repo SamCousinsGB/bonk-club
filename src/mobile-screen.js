@@ -14,13 +14,13 @@ export class MobileScreen {
     const root = this.doc.documentElement;
     return !!(root.requestFullscreen || root.webkitRequestFullscreen);
   }
-  enter() {
+  enter({ landscape = true } = {}) {
     if (this.pending) return this.pending;
     const generation = this.generation;
-    this.pending = this.request(generation).finally(() => { this.pending = null; });
+    this.pending = this.request(generation, landscape).finally(() => { this.pending = null; });
     return this.pending;
   }
-  async request(generation) {
+  async request(generation, landscape) {
     const root = this.doc.documentElement;
     try {
       if (!this.fullscreen) {
@@ -28,7 +28,7 @@ export class MobileScreen {
         else if (root.webkitRequestFullscreen) await root.webkitRequestFullscreen();
       }
     } catch { /* Keep the viewport layout when fullscreen is refused. */ }
-    if (generation !== this.generation) return;
+    if (generation !== this.generation || !landscape) return;
     try { await this.screen.orientation?.lock?.("landscape"); }
     catch { /* The rotate prompt remains available without orientation locking. */ }
     if (generation !== this.generation) {
