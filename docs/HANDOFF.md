@@ -37,7 +37,21 @@ Those changes and the PHASER cannon were preserved from GitHub main in this rele
 - QA helpers/screenshots: `bonk-club-qa/terrain-visual.cjs`, `terrain-online.cjs`,
   `terrain-nuke-*.png`, `terrain-online-*.png`, `terrain-craters.png`.
   Hooks exist only in the external QA scripts. No Pi infrastructure changed.
-- Release revision, CI and public asset parity are recorded below after deployment.
+- Published gameplay revision: `25a684a8cf2b01a2b5110e819f29439c23824c16`.
+  Includes the concurrent melee, original-art black-hole and PHASER releases.
+  Final combined validation: **340 gameplay/network tests**, CI server tests,
+  production build and real three-browser relay checks all passed. In the final
+  combined browser run, guest draw CPU time was 0.8 ms at the 95th percentile.
+- Pages run `34478453160` succeeded:
+  `https://github.com/SamCousinsGB/bonk-club/actions/runs/34478453160`.
+  All **15 public files** matched the exact committed build byte for byte.
+  JS: `index-DurcXg25.js`; CSS: `index-CUMQZt1D.css`.
+  Exact source archive/build: `bonk-club-qa/terrain-release-25a684a`.
+- The published game passed host/guest lobby, slot changes, hot join, leave/rejoin,
+  mobile viewport and selected TURN-relay checks without browser errors.
+  `terrain-public.cjs` checks the public bundle without source hooks;
+  `verify-terrain-live.py` verifies all published files. The temporary Vite server
+  for this pass was stopped. The isolated branch is clean after recording this release.
 
 ## Black-hole artwork correction — 10 September 2026
 
