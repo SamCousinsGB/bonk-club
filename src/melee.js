@@ -108,9 +108,11 @@ function resolveMelee(world, p, strike) {
       }))
       .filter((o) => o.hit)
       .sort((a, b) => a.hit.t - b.hit.t)[0]?.s;
-    if (breakable(obstacle) && !damaged.has(obstacle)) {
-      world.damageCover(obstacle, w.damage * 1.8, ax * w.force, ay * w.force);
-      damaged.add(obstacle);
+    const identity = obstacle?.propId || obstacle?.id || obstacle;
+    if (breakable(obstacle) && !damaged.has(identity)) {
+      world.damageCover(obstacle, w.damage * 1.8, ax * w.force, ay * w.force,
+        { x: Math.max(obstacle.x, Math.min(obstacle.x+obstacle.w,p.x)), y: p.y-10 });
+      damaged.add(identity);
       connected = true;
     }
   }

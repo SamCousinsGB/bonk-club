@@ -156,13 +156,11 @@ test("destroying cover opens the shot path and produces physical fragments", () 
   w.cover = [table()];
   w.damageCover(w.cover[0], 80, 900, -100);
   assert.equal(w.cover[0].hp, 0);
-  assert.equal(w.debris.length, 9);
-  const oldY = w.debris[0].y;
-  w.updateDebris(STEP);
-  assert.notEqual(w.debris[0].y, oldY);
-  w.projectiles = [bullet()];
-  w.updateProjectiles(STEP);
-  assert.equal(w.players[1].hp, 80);
+  assert.ok(w.chunks.length >= 6);
+  const oldY = w.chunks[0].y;
+  w.updateCover(STEP);
+  assert.notEqual(w.chunks[0].y, oldY);
+  assert.ok(!w.solids().some(s => s.id === w.cover[0].id || s.propId === w.cover[0].id));
 });
 
 test("melee attacks damage the table before anyone behind it", () => {

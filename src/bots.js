@@ -109,14 +109,14 @@ export class BotController {
       (this.revision !== world.terrainVersion &&
         world.time > this.builtAt + 0.15)
     ) {
-      const solids=world.solids().map(s=>({...s}));
+      const solids=world.solids().filter(s=>!s.chunk).map(s=>({...s}));
       this.pendingNavigation = navigationSteps(solids, {
         time: world.time,
         spikes: world.spikes(),
         cache: this.navigationCache,
         // A torn floor has hundreds of collision strips. Yield between flight
         // traces so rebuilding its routes cannot monopolize a simulation tick.
-        batchSize: world.wreckage.some(w => w.hp > 0) ||
+        batchSize: world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) || world.wreckage.some(w => w.hp > 0) ||
           world.fields.some(f => f.kind === "blackhole") ? 8 : Infinity,
       });
       this.builtAt = world.time;

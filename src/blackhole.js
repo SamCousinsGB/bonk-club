@@ -1,6 +1,7 @@
 import { seedOrbit, orbitPoint, limitRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { carryImpulse } from "./impact.js";
+import { bodyInBlast, bodyBounds } from "./props.js";
 export const SINGULARITY = { radius: 620, duration: 5.5, arm: 0.4, core: 135 };
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
@@ -114,7 +115,7 @@ function addWreck(world, f, s, kind = "platform") {
     y,
     w: Math.min(150, s.w),
     h: Math.min(90, s.h),
-    angle: 0,
+    angle: s.angle || 0,
     hp: 120,
     kind,
     trapType: s.type || null,
@@ -158,7 +159,7 @@ function tear(world, f) {
         originAngle: w.angle,
       });
   world.cover = world.cover.filter((p) => {
-    if (carveRectangle(p, cut)[0] === p) return true;
+    if (p.hp <= 0 || !bodyInBlast(p,cut)) return true;
     addWreck(world, f, p, "prop");
     return false;
   });
@@ -195,6 +196,13 @@ export function updateBlackhole(world, f, dt) {
   f.age += dt;
   if (f.age < SINGULARITY.arm) return;
   if (!f.torn) tear(world, f);
+  // Loose fragments and props can enter an already active field. Convert them
+  // into the same deformable, collidable ribbons as the original torn terrain.
+  for (const key of ["cover", "chunks"]) world[key] = world[key].filter(p => {
+    if (p.hp <= 0 || !bodyInBlast(p,f)) return true;
+    addWreck(world,f,p,"prop"); world.wreckDirty=true; world.terrainVersion++;
+    return false;
+  });
   if (world.phase !== "fight") return;
   f.tick -= dt;
   const pulse = f.tick <= 0;

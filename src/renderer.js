@@ -19,6 +19,7 @@ import {
 } from "./environment.js";
 import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
+import { drawChunks } from "./prop-art.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -305,6 +306,13 @@ export class Renderer {
       }
   }
   table(p) {
+    if (p.hp <= 0) return;
+    const c = this.ctx, x = p.x + p.w / 2, y = p.y + p.h / 2;
+    c.save(); c.translate(x,y); c.rotate(p.angle || 0); c.translate(-x,-y);
+    this.tableArt(p);
+    c.restore();
+  }
+  tableArt(p) {
     if (p.hp <= 0) return;
     const c = this.ctx;
     if (drawCover(c, p)) return;
@@ -860,6 +868,7 @@ export class Renderer {
     for (const p of w.players) this.fighter(p, time, 1.2, false);
     for (const c of w.cover) this.table(c);
     this.fragments(w.debris);
+    drawChunks(this.ctx, w.chunks);
     for (const r of w.ragdolls) {
       for (const [a, b] of JOINTS)
         this.line(
@@ -992,6 +1001,7 @@ export class Renderer {
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);
     this.fragments(state.debris);
+    drawChunks(this.ctx, state.chunks);
     drawBlood(this,state.blood);
     drawFields(this, state.fields, time);
     for (const rag of state.ragdolls) {

@@ -1,4 +1,5 @@
 import { NUCLEAR } from "./impact.js";
+import { bodyInBlast } from "./props.js";
 
 export const inBlast = (p, f, radius = f.radius) =>
   Math.hypot(p.x - f.x, p.y - f.y) <= radius;
@@ -144,7 +145,8 @@ export function updateNuclear(world, f, dt) {
       .flatMap((s) => carveRectangle(s, crater));
     // Props and trap mechanisms are consumed, not launched into a chain of
     // explosions across the rest of the arena.
-    world.cover = world.cover.filter((s) => carveRectangle(s, crater)[0] === s);
+    world.cover = world.cover.filter((s) => !bodyInBlast(s, crater));
+    world.chunks = world.chunks.filter((s) => !bodyInBlast(s, crater));
     world.hazards = world.hazards.filter(
       (h) => !inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f),
     );

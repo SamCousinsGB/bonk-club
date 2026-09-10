@@ -1,4 +1,5 @@
 import {BLOOD_LIMIT} from "./gore.js";
+import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
 import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
@@ -24,7 +25,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 17;
+export const PROTOCOL = 18;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -652,6 +653,14 @@ const list = (value, max, check) =>
   value.length <= max &&
   value.every((v) => v && typeof v === "object" && check(v));
 const xy = (p) => finite(p.x) && finite(p.y);
+const physicalProp = c => xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
+  [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
+  c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
+  c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
+  Math.abs(c.angle) <= Math.PI+.01 && Math.abs(c.spin) <= 18.01 && COVER_KINDS.includes(c.kind) &&
+  Object.hasOwn(PROP_MATERIALS,c.material) &&
+  (c.shape === undefined || (Array.isArray(c.shape) && c.shape.length >= 3 && c.shape.length <= 6 &&
+    c.shape.every(p => Array.isArray(p) && p.length === 2 && p.every(n => finite(n) && Math.abs(n) <= .5))));
 export function validSnapshot(s) {
   return (
     !!s &&
@@ -723,15 +732,11 @@ export function validSnapshot(s) {
     list(
       s.cover,
       64,
-      (c) =>
-        xy(c) &&
-        [c.w, c.h, c.hp, c.maxHp].every(finite) &&
-        c.w > 0 &&
-        c.h > 0 &&
-        c.hp >= 0 &&
-        c.hp <= c.maxHp &&
-        COVER_KINDS.includes(c.kind),
+      c => physicalProp(c) && !c.chunk,
     ) &&
+    new Set(s.cover.map(c => c.id)).size === s.cover.length &&
+    list(s.chunks,CHUNK_LIMIT,c => physicalProp(c) && c.chunk === true) &&
+    new Set([...s.cover,...s.chunks].map(c => c.id)).size === s.cover.length+s.chunks.length &&
     list(
       s.hazards,
       8,

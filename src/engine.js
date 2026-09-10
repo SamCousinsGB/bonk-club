@@ -1,4 +1,5 @@
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
+import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, impulseProp, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
@@ -152,7 +153,8 @@ export class World {
         life: SUDDEN_DEATH,
       };
     });
-    this.cover = (this.arena.cover || []).map((c, i) => ({
+    this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0;
+    this.cover = (this.arena.cover || []).map((c, i) => prepareProp({
       ...c,
       id: "cover" + i,
       dx: 0,
@@ -453,7 +455,8 @@ export class World {
   solids() {
     return [
       ...this.platforms.filter((p) => p.hp !== 0),
-      ...this.cover.filter((c) => c.hp > 0),
+      ...this.cover.flatMap(propSolids),
+      ...this.chunks.flatMap(propSolids),
       ...this.spikes().map(spikeBase),
     ];
   }
@@ -583,6 +586,7 @@ export class World {
         oldY + bottom <= s.y - (support === s ? 0 : s.dy || 0) + 3 &&
         p.vy >= 0
       ) {
+        contactProp(this, p, s, 0, -1, dt);
         p.y = s.y - bottom;
         if (p.vy > 220) {
           p.landing = Math.min(1, p.vy / 900);
@@ -601,19 +605,23 @@ export class World {
           p.x += shift;
           continue;
         }
+        contactProp(this, p, s, 0, 1, dt);
         p.y = s.y + s.h + top;
         p.vy = Math.abs(p.vy) * 0.2;
       } else if (oldX < s.x) {
+        contactProp(this, p, s, -1, 0, dt);
         p.x = s.x - radius;
-        p.vx = -Math.abs(p.vx) * 0.25;
+        if (!propFor(this, s)) p.vx = -Math.abs(p.vx) * 0.25;
       } else if (oldX > s.x + s.w) {
+        contactProp(this, p, s, 1, 0, dt);
         p.x = s.x + s.w + radius;
-        p.vx = Math.abs(p.vx) * 0.25;
-      } else if(s.wreckId) {
+        if (!propFor(this, s)) p.vx = Math.abs(p.vx) * 0.25;
+      } else if(s.wreckId || propFor(this, s)) {
         // A rotating chunk can sweep over a stationary body between ticks.
         // Resolve that overlap rather than trapping the fighter inside it.
         const exits=[p.x+radius-s.x,s.x+s.w-p.x+radius,p.y+bottom-s.y,s.y+s.h-p.y+top];
         const exit=exits.indexOf(Math.min(...exits));
+        contactProp(this,p,s,exit===0?-1:exit===1?1:0,exit===2?-1:exit===3?1:0,dt);
         if(exit===0)p.x=s.x-radius;
         else if(exit===1)p.x=s.x+s.w+radius;
         else if(exit===2){p.y=s.y-bottom;p.vy=Math.min(0,p.vy);p.ground=true;p.support=s.id;}
@@ -960,7 +968,10 @@ export class World {
           this.hit(p, { x, y, vx: 0, vy: 0 }, 22, 360+mass*180, Math.sign(d.vx) || 1,-.35);
           if(p.alive&&p.hp<hp)knockDown(p,d.type);
         }
-        if (breakable(s) && d.armed) this.damageCover(s, 38, d.vx, d.vy);
+        if (breakable(s) && d.armed) {
+          const mass = THROW_MASS[d.type] || 1;
+          this.damageCover(s, 26 + mass * 5, d.vx * mass / 3, d.vy * mass / 3, {x:d.x,y:d.y});
+        }
         if (s && hit.ny === -1) {
           d.y = s.y - 7;
           d.vy = 0;
@@ -984,8 +995,10 @@ export class World {
       (d) => d.life > 0 && d.y < H + 100 && d.x > -150 && d.x < W + 150,
     );
   }
-  damageCover(c, damage, vx = 0, vy = 0) {
+  damageCover(c, damage, vx = 0, vy = 0, point) {
     if (!breakable(c) || c.hp <= 0) return;
+    const body = propFor(this, c);
+    if (body) { damageProp(this, body, damage, vx, vy, point); return; }
     if(c.wreckId){
       const w=this.wreckage.find(w=>w.id===c.wreckId);if(!w)return;
       w.hp=Math.max(0,w.hp-damage);this.wreckDirty=true;
@@ -1017,42 +1030,7 @@ export class World {
     this.debris = this.debris.slice(-90);
   }
   updateCover(dt) {
-    for (const c of this.cover) {
-      c.dx = 0;
-      c.dy = 0;
-      if (c.hp <= 0) continue;
-      const floors = this.platforms.filter(
-        (p) => p.hp !== 0 && c.x + c.w > p.x + 3 && c.x < p.x + p.w - 3,
-      );
-      const support =
-        floors.find(
-          (p) =>
-            p.id === c.support && Math.abs(c.y + c.h - (p.y - (p.dy || 0))) < 4,
-        ) || floors.find((p) => Math.abs(c.y + c.h - p.y) < 3);
-      if (support) {
-        const oldY = c.y;
-        c.x += support.dx || 0;
-        c.y = support.y - c.h;
-        c.dx = support.dx || 0;
-        c.dy = c.y - oldY;
-        c.support = support.id;
-        c.vy = 0;
-        continue;
-      }
-      c.support = null;
-      const oldY = c.y;
-      c.vy = Math.min(900, (c.vy || 0) + 1400 * dt);
-      c.y += c.vy * dt;
-      for (const p of floors)
-        if (oldY + c.h <= p.y + 3 && c.y + c.h >= p.y) {
-          c.y = p.y - c.h;
-          c.vy = 0;
-          c.support = p.id;
-          break;
-        }
-      c.dy = c.y - oldY;
-      if (c.y > H + 100) this.damageCover(c, c.hp);
-    }
+    updateProps(this, dt);
   }
   updateDebris(dt) {
     for (const d of this.debris) {
@@ -1079,7 +1057,8 @@ export class World {
     }
     const radius = b.radius || 145;
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
-    const cover = this.solids().filter(breakable);
+    const cover = [...this.cover.filter(c => c.hp > 0), ...this.chunks.filter(c => c.hp > 0),
+      ...this.platforms.filter(breakable)];
     const solidWalls = this.platforms.filter((p) => !p.destructible);
     for (const p of this.players) {
       if (!p.alive) continue;
@@ -1099,17 +1078,19 @@ export class World {
       );
     }
     for (const c of cover) {
-      const x = clamp(b.x, c.x, c.x + c.w),
-        y = clamp(b.y, c.y, c.y + c.h);
+      const box = propFor(this,c) ? bodyBounds(c) : c;
+      const x = clamp(b.x, box.x, box.x + box.w),
+        y = clamp(b.y, box.y, box.y + box.h);
       if (
         Math.hypot(b.x - x, b.y - y) < radius &&
         !solidWalls.some((s) => segmentBox(b.x, b.y, x, y, s))
       )
         this.damageCover(
           c,
-          b.damage * 1.7,
-          Math.sign(c.x + c.w / 2 - b.x) * b.force,
-          -b.force * 0.5,
+          b.damage * 1.7 * (1 - Math.hypot(b.x-x,b.y-y) / (radius * 1.3)),
+          ((c.x+c.w/2-b.x) / (Math.hypot(c.x+c.w/2-b.x,c.y+c.h/2-b.y)||1)) * b.force,
+          ((c.y+c.h/2-b.y) / (Math.hypot(c.x+c.w/2-b.x,c.y+c.h/2-b.y)||1) - .3) * b.force,
+          {x,y},
         );
     }
     this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
@@ -1157,6 +1138,7 @@ export class World {
               b.kind === "rail" ? 180 : b.damage,
               b.vx * 0.3,
               b.vy * 0.3,
+              {x: b.x, y: b.y},
             );
             if (["rail", "saw"].includes(b.kind) && s.hp <= 0) continue;
           }
@@ -1312,6 +1294,7 @@ export class World {
       platforms: this.platforms,
       cover: this.cover,
       debris: this.debris,
+      chunks: this.chunks,
       hazards: this.hazards,
       projectiles: this.projectiles,
       fields: this.fields,

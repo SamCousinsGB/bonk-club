@@ -40,6 +40,11 @@ export function collidePoint(
     const vx = p.x - p.px,
       vy = p.y - p.py,
       normal = vx * nx + vy * ny;
+    const bodyId = `impulse:${s.propId || s.id}`;
+    if (normal < 0 && s.onContact && !carried.has(bodyId)) {
+      s.onContact(x,y,nx*normal*120*5,ny*normal*120*5);
+      carried.add(bodyId);
+    }
     p.x = x + nx * 0.05;
     p.y = y + ny * 0.05;
     p.px = p.x - (vx - normal * nx) * 0.78;

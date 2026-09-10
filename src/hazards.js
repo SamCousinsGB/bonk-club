@@ -1,6 +1,7 @@
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { breakable } from "./maps.js";
+import { hazardProps, propFor } from "./props.js";
 export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw"];
 export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
@@ -60,9 +61,10 @@ export function updateHazards(world,dt) {
     const oldY=h.bodyY;
     if(h.type==="crusher") {
       h.bodyY=Math.min(h.y-22,h.bodyY+1100*dt);
-      for(const s of world.solids())if(breakable(s)&&segmentBox(h.x,oldY,h.x,h.bodyY,s,h.w/2))world.damageCover(s,200);
+      for(const s of world.solids())if(breakable(s)&&!propFor(world,s)&&segmentBox(h.x,oldY,h.x,h.bodyY,s,h.w/2))world.damageCover(s,200);
     }
     const zone=hazardZone(h);
+    hazardProps(world,h,zone,dt);
     for(const p of world.players) {
       if(!p.alive)continue;
       const box=playerBox(p);
