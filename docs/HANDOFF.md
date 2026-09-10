@@ -2,6 +2,38 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Stuck mouse buttons - 10 September 2026
+
+Implemented in `bonk-club-mouse` on `codex/mouse-release-fix`, starting from
+current main and preserving unrelated changes in the canonical checkout.
+
+- Reproduced with real Edge mouse events: left down, right down, left up, right
+  up left attack held. Intermediate button changes arrive as `pointermove`, so
+  the old per-button `pointerdown`/`pointerup` flags missed presses and releases.
+- `src/mouse.js` now reads the complete `buttons` mask for the active pointer.
+  Window events handle release outside the canvas. Capture loss, cancellation,
+  blur, menu, visibility and resize resets clear both buttons and require a fresh
+  press. Mouse movement cannot restart a cancelled hold. Touch events are ignored;
+  the touch/controller mappings and wire protocol 20 are unchanged.
+- Added 14 input regressions. All 375 gameplay/network tests passed locally.
+  Real Edge checks covered all four chord orders, outside releases, actual capture
+  loss, focus/menu/resize resets, and no further attack calls after release during
+  active simulation. Separate host/guest browsers verified each release reaching
+  the host through the existing room service. This was not a new TURN audit.
+- The exact production bundle passed active solo gameplay, overlapping clicks,
+  movement/jump and menu recovery checks without browser errors. QA hooks remain
+  outside production in `bonk-club-qa/mouse-browser.cjs`.
+- Gameplay revision: `59c4a95745ac6860c14f0ab50122fc8ca633ae19`. The exact archive
+  build is `bonk-club-qa/mouse-release-59c4a95/dist`; production smoke checks are
+  in `mouse-release-browser.cjs`, with parity checks in `verify-mouse-live.cjs`.
+- Pages run `34482244296` passed gameplay tests, server tests, production build
+  and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34482244296.
+  All 15 public files matched that exact archive build byte for byte. JavaScript:
+  `index-iSNUfu0-.js`; CSS: `index-CUMQZt1D.css`. The public game passed active
+  solo gameplay, overlapping clicks, movement/jump and menu release/resume without
+  browser errors. This task's development server was stopped. Refresh the game
+  to load the fix; no Pi changes or protocol change were required.
+
 ## Black-hole lens and continuous player artwork — 10 September 2026
 
 Implemented in the existing `bonk-club-bend-art` worktree on
