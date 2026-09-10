@@ -9,7 +9,6 @@ import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { makeRig } from "../src/puppet.js";
 import { nuclearField } from "../src/nuclear.js";
 import { navigation, navigationSteps } from "../src/navigation.js";
-import { updateMelee } from "../src/melee.js";
 const wire = new RenderSnapshots();
 function fixture() {
   const w = new World({
@@ -353,12 +352,15 @@ test("the final sword swing still cuts if contact occurs after its ammo is spent
   p.ammo = 1;
   q.hp = 10;
   w.attack(p);
-  assert.equal(p.weapon, null);
+  assert.equal(p.weapon, "sword");
+  assert.equal(p.ammo, 0);
   q.x = p.x + 45;
   q.rig = makeRig(q);
-  updateMelee(w, p);
+  for (let n = 0; n < 35 && q.alive; n++) w.step(STEP);
   assert.equal(q.alive, false);
   assert.equal(w.ragdolls[0].effect, "slice");
+  for (let n = 0; n < 70; n++) w.step(STEP);
+  assert.equal(p.weapon, null);
 });
 
 test("a launched singularity must resolve before the last survivor scores", () => {
