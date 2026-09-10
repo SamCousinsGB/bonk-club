@@ -653,14 +653,25 @@ const list = (value, max, check) =>
   value.length <= max &&
   value.every((v) => v && typeof v === "object" && check(v));
 const xy = (p) => finite(p.x) && finite(p.y);
+const propShape = shape => {
+  if (shape === undefined) return true;
+  if (!Array.isArray(shape) || shape.length < 3 || shape.length > 6 ||
+    !shape.every(p => Array.isArray(p) && p.length === 2 && p.every(n=>finite(n)&&Math.abs(n)<=.5))) return false;
+  let sign=0, area=0;
+  for(let i=0;i<shape.length;i++) {
+    const a=shape[i],b=shape[(i+1)%shape.length],c=shape[(i+2)%shape.length];
+    const turn=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);
+    if(Math.abs(turn)<.0001 || (sign && Math.sign(turn)!==sign)) return false;
+    sign=Math.sign(turn);area+=a[0]*b[1]-a[1]*b[0];
+  }
+  return Math.abs(area)>.12;
+};
 const physicalProp = c => xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
   Math.abs(c.angle) <= Math.PI+.01 && Math.abs(c.spin) <= 18.01 && COVER_KINDS.includes(c.kind) &&
-  Object.hasOwn(PROP_MATERIALS,c.material) &&
-  (c.shape === undefined || (Array.isArray(c.shape) && c.shape.length >= 3 && c.shape.length <= 6 &&
-    c.shape.every(p => Array.isArray(p) && p.length === 2 && p.every(n => finite(n) && Math.abs(n) <= .5))));
+  typeof c.material === "string" && Object.hasOwn(PROP_MATERIALS,c.material) && propShape(c.shape);
 export function validSnapshot(s) {
   return (
     !!s &&
@@ -802,6 +813,8 @@ export function validSnapshot(s) {
     list(s.wreckage,60,w => xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
       w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
       (w.sourceKind==null || COVER_KINDS.includes(w.sourceKind)) &&
+      (w.sourceChunk===undefined || typeof w.sourceChunk==="boolean") &&
+      (!w.sourceChunk || (w.kind==="prop" && typeof w.material==="string" && Object.hasOwn(PROP_MATERIALS,w.material))) && propShape(w.shape) &&
       (w.elevator===undefined || typeof w.elevator==="boolean") &&
       (w.spine===undefined||(list(w.spine,6,xy)&&w.spine.length===6&&list(w.outline,12,xy)&&w.outline.length===12))) &&
     list(s.rifts,128,c => xy(c) && integer(c.id,1,1000000) && c.radius===SINGULARITY.radius && finite(c.born)) &&

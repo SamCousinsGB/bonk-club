@@ -7,6 +7,7 @@ import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { blackholeField, updateBlackhole, updateWreckage } from "../src/blackhole.js";
 import { nuclearField, updateNuclear } from "../src/nuclear.js";
 import { hazardProps } from "../src/props.js";
+import { firePhaser } from "../src/phaser.js";
 
 const floor = (id,x,y,w,h=24) => ({id,x,y,w,h,baseX:x,baseY:y,dx:0,dy:0});
 const prop = (kind="crate", extra={}) => prepareProp({id:"prop0",kind,x:500,y:950,w:90,h:50,hp:110,maxHp:110,...extra});
@@ -136,6 +137,35 @@ test("explosions launch surviving props and existing rubble; solid walls shield 
   blocked.explode({x:440,y:940,radius:180,damage:80,force:800});assert.equal(blocked.cover[0].vx,0);
 });
 
+test("grenades bump furniture without applying their explosion before the fuse",()=>{
+  const w=lab("table");
+  w.projectiles=[{x:490,y:970,vx:450,vy:0,r:6,kind:"grenade",weapon:"grenade",damage:95,force:1550,life:2.8,owner:0,bounces:0,hitIds:[]}];
+  w.updateProjectiles(.02);
+  assert.equal(w.cover[0].hp,110);assert.ok(w.cover[0].vx>0);
+  assert.equal(w.projectiles.length,1);assert.ok(w.projectiles[0].life>2.7);
+});
+
+test("faster tracers do not imply heavier hits, and bullets collide with physical rubble",()=>{
+  const shot=(speed,force=200)=>({x:460,y:975,vx:speed,vy:0,r:3,kind:"bullet",damage:5,force,life:1,owner:0,hitIds:[]});
+  const a=lab(),b=lab();a.projectiles=[shot(2000)];b.projectiles=[shot(4000)];
+  a.updateProjectiles(.025);b.updateProjectiles(.025);
+  assert.ok(Math.abs(a.cover[0].vx-b.cover[0].vx)<.001);
+  const w=lab("stone");w.damageCover(w.cover[0],200);
+  const c=w.chunks[0];w.chunks=[c];
+  w.projectiles=[{...shot(4000,1000),x:c.x-40,y:c.y+c.h/2}];
+  const hp=c.hp,vx=c.vx;w.updateProjectiles(.025);
+  assert.ok(c.hp<hp);assert.ok(c.vx>vx);assert.equal(w.projectiles.length,0);
+});
+
+test("all arenas keep valid, bounded physical rubble after repeated destruction and motion",()=>{
+  for(let arena=0;arena<ARENAS.length;arena++) {
+    const w=new World({arena,random:()=>.43});w.phase="fight";w.hazards=[];w.drops=[];
+    for(const c of w.cover)w.damageCover(c,200,300,-180,{x:c.x,y:c.y});
+    for(let n=0;n<120;n++) {w.time+=STEP;w.updateCover(STEP);}
+    assert.ok(w.chunks.length<=CHUNK_LIMIT);assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())),ARENAS[arena].name);
+  }
+});
+
 test("conveyors carry rubble and saw fixtures break intact objects",()=>{
   const w=lab(),c=w.cover[0],zone={x:400,y:900,w:300,h:100};
   hazardProps(w,{type:"conveyor",dir:1,y:1000},zone,STEP);assert.ok(c.vx>0);
@@ -146,10 +176,20 @@ test("black holes capture loose chunks into real wreckage, and nukes consume it 
   const w=lab("bed");w.damageCover(w.cover[0],200);
   const f=blackholeField(w,{x:550,y:940,owner:0});w.fields=[f];updateBlackhole(w,f,.41);updateWreckage(w,STEP);
   assert.equal(w.chunks.length,0);assert.ok(w.wreckage.some(b=>b.kind==="prop"&&b.spine));
+  assert.ok(w.wreckage.some(b=>b.sourceChunk && b.material==="fabric"));
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
   const other=lab("stone");other.damageCover(other.cover[0],200);
   const n=nuclearField(other,{x:550,y:940,owner:0});updateNuclear(other,n,.4);
   assert.equal(other.chunks.length,0);assert.equal(other.cover.length,0);
   advance(other,.2);assert.equal(other.chunks.length,0);
+});
+
+test("PHASER consumes rotated props and rubble in its corridor and leaves pieces behind the muzzle intact",()=>{
+  const w=lab("stone");w.damageCover(w.cover[0],200);
+  const protectedPiece={...w.chunks[0],id:"protected",x:100};w.chunks.push(protectedPiece);
+  const p=w.players[0];Object.assign(p,{x:300,y:980});
+  firePhaser(w,p,1,0);
+  assert.deepEqual(w.chunks.map(c=>c.id),["protected"]);
 });
 
 test("props and persistent chunks survive bounded wire transport and hot join with stable interpolation",async()=>{
@@ -171,6 +211,8 @@ test("snapshots reject invalid mass, spin, shape, duplicate identity and unbound
   const w=lab();w.damageCover(w.cover[0],200);
   for(const mutate of [s=>s.chunks[0].mass=0,s=>s.chunks[0].vx=Infinity,s=>s.chunks[0].spin=19,
     s=>s.chunks[0].material="unknown",s=>s.chunks[0].shape=[[0,0],[.6,0],[0,.5]],
+    s=>s.chunks[0].shape=[[0,0],[0,0],[0,0]],
+    s=>s.chunks[0].shape=[[-.5,-.5],[.5,.5],[-.5,.5],[.5,-.5]],
     s=>s.chunks[1].id=s.chunks[0].id,s=>s.chunks=Array(97).fill(s.chunks[0])]) {
     const s=structuredClone(w.snapshot());mutate(s);assert.equal(validSnapshot(s),false);
   }

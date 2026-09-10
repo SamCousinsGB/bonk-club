@@ -1,4 +1,5 @@
 import { drawHazards } from "./trap-art.js";
+import { drawChunks } from "./prop-art.js";
 
 export function drawBlackhole(r, f, time) {
   const c = r.ctx,
@@ -59,7 +60,7 @@ export function drawBlackhole(r, f, time) {
 function wreckArtwork(r, w) {
   const key = JSON.stringify([
     w.kind, w.sourceKind, w.trapType, w.material, w.surface, w.panel,
-    w.ice, w.elevator, w.w, w.h,
+    w.ice, w.elevator, w.w, w.h, w.sourceChunk, w.shape,
   ]);
   const cache = (r.wreckArt ||= new Map());
   if (cache.has(key)) return cache.get(key);
@@ -74,11 +75,12 @@ function wreckArtwork(r, w) {
   c.translate(0, top);
   r.ctx = c;
   try {
-    const source = { ...w, x: 0, y: 0, hp: 120, maxHp: 120 };
+    const source = { ...w, x: 0, y: 0, angle: 0, hp: 120, maxHp: 120 };
     if (w.kind === "platform") {
       r.platform({ ...source, destructible: !!w.panel }, 0);
     } else if (w.kind === "prop") {
-      r.table({ ...source, kind: w.sourceKind || "crate" });
+      if (w.sourceChunk) drawChunks(c,[{...source,kind:w.sourceKind}]);
+      else r.table({ ...source, kind: w.sourceKind || "crate" });
     } else {
       drawHazards(c, [{
         ...source, type: w.trapType, x: w.w / 2, y: w.h / 2,

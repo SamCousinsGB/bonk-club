@@ -1,5 +1,6 @@
 import { playerBox } from "./collision.js";
 import { WEAPONS } from "./arsenal.js";
+import { bodyPoints } from "./props.js";
 
 // Clip convex polygons to a half-plane. The same beam footprint drives player
 // hits and terrain removal, including diagonal shots and the flat muzzle end.
@@ -16,11 +17,11 @@ function clip(points, a, b, limit) {
   }
   return out;
 }
-export function beamIntersection(s, f) {
+export function beamIntersection(s, f, polygon) {
   const length = Math.hypot(f.ex - f.x, f.ey - f.y);
   if (!length) return [];
   const ax = (f.ex - f.x) / length, ay = (f.ey - f.y) / length;
-  let points = [{ x: s.x, y: s.y }, { x: s.x + s.w, y: s.y },
+  let points = polygon || [{ x: s.x, y: s.y }, { x: s.x + s.w, y: s.y },
     { x: s.x + s.w, y: s.y + s.h }, { x: s.x, y: s.y + s.h }];
   for (const [a, b, limit] of [
     [-ax, -ay, -ax * f.x - ay * f.y],
@@ -83,7 +84,8 @@ export function firePhaser(world, player, ax, ay) {
     const left = Math.min(...cut.map(p => p.x)), right = Math.max(...cut.map(p => p.x));
     return [{ ...s, w: left - s.x }, { ...s, x: right, w: s.x + s.w - right }].filter(p => p.w >= .5);
   });
-  world.cover = world.cover.filter(s => !beamTouches(s, beam));
+  for (const key of ["cover", "chunks"])
+    world[key] = world[key].filter(s => !beamIntersection(s,beam,bodyPoints(s)).length);
   world.hazards = world.hazards.filter(h =>
     !beamTouches({ x: h.bodyX - h.w / 2, y: h.bodyY - 20, w: h.w, h: 40 }, beam) &&
     !beamTouches({ x: h.x, y: h.y, w: h.w, h: h.h }, beam));
