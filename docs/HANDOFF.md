@@ -135,7 +135,20 @@ the earlier explosion-pass rule that made all terrain immune to bullets.
   `codex/restore-panel-bullets`, based on `d51781d`. The canonical checkout's
   unfinished edits were preserved. QA helper/screenshots use `panel-` under
   `bonk-club-qa`; hooks are external and never enter production.
-- Release verification is recorded below once the Pages deployment completes.
+- Fix commit: `10880829a0946431a11621cc471a6d96de8cfb35`, included in published
+  revision `e031499e1a90df9cb02e54178423939274f2cf7f` with the later main changes.
+  Pages run `34487368851` passed **436 gameplay/network tests**, **3 server tests**,
+  build and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34487368851.
+- All **15 public files** matched the exact committed archive/build byte for byte.
+  Archive: `bonk-club-qa/panel-release-e031499`. JS: `index-C5-1pa9d.js`;
+  CSS: `index-P_ztR8EB.css`. The production bundle and public game passed real
+  host/guest play, slot controls, hot join, departure/rejoin and mobile viewport
+  checks through selected TURN relay candidates, without page errors.
+- The panel tests passed again after integrating subsequent gameplay changes,
+  alongside the affected identity, black-hole, physical-effects and wire tests.
+  Current combined protocol is **23**; all players should refresh. Helpers:
+  `panel-release-browser.cjs` and `verify-panel-live.cjs`. This task's development
+  server on port 5187 is stopped; the canonical unfinished edits remain intact.
 
 ## Random NPC identities — 10 September 2026
 
