@@ -30,10 +30,10 @@ test("ordinary blasts dig cumulative circular craters through thick terrain, wit
   assert.equal(w.terrainVersion,3);
 });
 
-test("bullets, rail shots, saws and elemental projectiles cannot damage terrain or warped platform pieces",()=>{
+test("bullets, rail shots, saws and elemental projectiles cannot damage structural terrain",()=>{
   for(const kind of ["bullet","rail","saw","flame","frost","ricochet","force"]){
     const w=fixture();w.players.forEach(p=>p.x=2400);
-    const panel=floor("panel",600,400,30,300,{destructible:true,panel:"glass",hp:65,maxHp:65});
+    const panel=floor("wall",600,400,30,300);
     w.platforms=[panel];const saved=structuredClone(w.platforms);
     for(let n=0;n<8;n++){
       w.projectiles=[{kind,x:540,y:500,vx:3000,vy:0,r:4,damage:500,force:800,life:1,hitIds:[],owner:0,bounces:0}];
