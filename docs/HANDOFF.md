@@ -56,6 +56,20 @@ The host uses Wi-Fi; the guest uses a wired connection.
   build passed, and `git diff --check` passed. New tests cover packet loss,
   reordering/duplicates, bounded decoding, pacing, negotiation/fallback, invalid
   controls/ribbons, all 24 arenas with overlapping fields and round reset.
+- Published gameplay revision: `ca056123404d54a75d8e55039e5604dab0da44d9`.
+  Pages run `34516969530` succeeded with **481 game/network tests and 3 server
+  tests**, production build and deployment:
+  `https://github.com/SamCousinsGB/bonk-club/actions/runs/34516969530`.
+- All **15 public files matched the exact committed build byte for byte**.
+  JS: `index-BUzRUMlv.js`; CSS: `index-Cn7ksyh0.css`;
+  worker: `clock-worker-CSNsw-OA.js`. Export/build in
+  `bonk-club-qa/performance-release-ca05612`, made with `git archive` for LF parity.
+- The production bundle passed staged and live four-player checks through
+  selected relay candidates. All connections used negotiated unordered streams
+  with zero retransmissions. Guests continuously received updates; controls,
+  Connection details, leave and hot rejoin worked without browser errors.
+  Maximum normal-play update gap in the public fixture was 66 ms. This does not
+  supersede the overlapping-field measurements or claim the friend's ISP tested.
 
 ## Player join and leave notifications — 10 September 2026
 
