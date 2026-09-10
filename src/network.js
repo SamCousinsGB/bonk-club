@@ -7,6 +7,8 @@ import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
+import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from "./realtime.js";
+import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
@@ -28,8 +30,12 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 24;
+export const PROTOCOL = 25;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+// Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
+// relay overhead. The same ceiling also protects the host's Wi-Fi upload.
+const STATE_BYTES_PER_SECOND = 90000;
+const realtimeOpen = c => c?.realtimeReady && c.realtime?.readyState === "open";
 const makeCode = () =>
   Array.from(
     crypto.getRandomValues(new Uint8Array(6)),
@@ -96,7 +102,8 @@ export class Room {
     this.lastInputs = {};
     this.sequence = 0;
     this.reconnectAttempts = 0;
-    this.decoding = Promise.resolve();
+    this.inputSequence = 0;
+    this.streamStats = { received: 0, skipped: 0, lastBytes: 0, lastGapMs: 0, maxGapMs: 0 };
   }
   emit(name, ...args) {
     this.callbacks[name]?.(...args);
@@ -125,6 +132,68 @@ export class Room {
   }
   broadcast(data) {
     for (const c of this.connections.values()) this.send(c, data);
+  }
+  setupRealtime(c) {
+    if (!this.compression || c.metadata?.compression === false || !c.peerConnection?.createDataChannel) return;
+    try {
+      const channel = c.peerConnection.createDataChannel(REALTIME_LABEL, {
+        negotiated: true, id: 2, ordered: false, maxRetransmits: 0,
+      });
+      c.realtime = channel;
+      channel.binaryType = "arraybuffer";
+      const announce = () => {
+        if (c.open && channel.readyState === "open") this.send(c, {t:"realtime-ready"});
+      };
+      channel.onopen = announce;
+      c.on("open", announce);
+      c.on("data", m => { if (m?.t === "realtime-ready") c.realtimeReady = true; });
+      const assembler = new FrameAssembler();
+      channel.onmessage = ({ data }) => {
+        if (this.closed || !c.open || !this.running) return;
+        if (this.host) {
+          const id = [...this.connections].find(([, conn]) => conn === c)?.[0];
+          if (id === undefined || typeof data !== "string" || data.length > 1000) return;
+          try {
+            const m = JSON.parse(data);
+            if (m.t === "input" && Number.isSafeInteger(m.seq) && m.seq > (c.inputSequence || 0)) {
+              c.inputSequence = m.seq;
+              this.lastInputs[id] = cleanInput(m.input);
+              this.inputTimes[id] = performance.now();
+            }
+          } catch { /* Ignore malformed guest controls. */ }
+        } else if (this.connection === c && this.id !== null) {
+          const frame = assembler.push(data, performance.now());
+          if (frame) this.receiveFrame(c, frame);
+        }
+      };
+      channel.onerror = () => { /* Reliable fallback remains available. */ };
+      c.on("close", () => { channel.close(); c.decoder?.close(); });
+    } catch { /* Browsers without a second stream retain bounded reliable delivery. */ }
+  }
+  receiveFrame(c, frame) {
+    c.decoder ||= new LatestFrameDecoder(async m => {
+      try {
+        const decoded = m.t === "frame" ? await decodeState(m.bytes) : m.state;
+        if (this.closed || this.connection !== c) return;
+        const state = expandSnapshot(decoded, validSnapshot);
+        if (validSnapshot(state)) {
+          const now = performance.now(), stats = this.streamStats;
+          if (this.lastFrameAt !== undefined) {
+            stats.lastGapMs = Math.round(now - this.lastFrameAt);
+            stats.maxGapMs = Math.max(stats.maxGapMs, stats.lastGapMs);
+          }
+          this.lastFrameAt = now; stats.received++;
+          stats.lastBytes = m.bytes?.byteLength || 0;
+          this.emit("onState", state);
+        }
+      } catch {
+        this.emit("onNotice", "A game update could not be read. Waiting for the next update.");
+      } finally {
+        if (m.ack) this.send(c, { t: "ack", seq: m.seq });
+      }
+    });
+    if (c.decoder.pending && frame.seq > c.decoder.last) this.streamStats.skipped++;
+    c.decoder.push(frame);
   }
   async openPeer(id) {
     if (!this.config) this.config = await loadIceConfig(this.iceServersUrl);
@@ -276,6 +345,7 @@ export class Room {
   }
   accept(c) {
     if (this.closed) return c.close();
+    this.setupRealtime(c);
     this.diagnostics.watch(c, "incoming");
     this.pending.add(c);
     const t = this.later(() => {
@@ -334,6 +404,7 @@ export class Room {
       )
         return;
       if (m.t === "input" && this.running) {
+        if (realtimeOpen(c)) return;
         this.lastInputs[id] = cleanInput(m.input);
         this.inputTimes[id] = performance.now();
       }
@@ -386,6 +457,7 @@ export class Room {
         },
       }));
       this.diagnostics.watch(c, "outgoing");
+      this.setupRealtime(c);
       const fail = (error) => {
         if (settled) return;
         settled = true;
@@ -466,22 +538,7 @@ export class Room {
           this.emit("onStart");
         }
         if ((m.t === "state" || m.t === "frame") && this.running) {
-          const consume = async () => {
-            try {
-              const state =
-                m.t === "frame" ? await decodeState(m.bytes) : m.state;
-              if (this.closed || this.connection !== c) return;
-              if (validSnapshot(state)) this.emit("onState", state);
-              this.send(c, { t: "ack", seq: m.seq });
-            } catch {
-              this.emit(
-                "onNotice",
-                "A game update could not be read. Waiting for the next update.",
-              );
-              this.send(c, { t: "ack", seq: m.seq });
-            }
-          };
-          this.decoding = this.decoding.then(consume);
+          this.receiveFrame(c, { ...m, ack: true });
         }
         if (m.t === "pong")
           this.emit("onPing", Math.round(performance.now() - m.time));
@@ -556,8 +613,12 @@ export class Room {
     this.emit("onRoster", this.roster);
   }
   sendInput(input) {
-    if (this.running)
-      this.send(this.connection, { t: "input", input: cleanInput(input) });
+    if (!this.running) return;
+    const c = this.connection, channel = c?.realtime;
+    const m = { t: "input", seq: ++this.inputSequence, input: cleanInput(input) };
+    if (realtimeOpen(c)) {
+      if (channel.bufferedAmount < 1000) try { channel.send(JSON.stringify(m)); } catch { /* Next input replaces it. */ }
+    } else if (!c?.bufferSize && (c?.dataChannel?.bufferedAmount || 0) < 1000) this.send(c, m);
   }
   getInputs(now = performance.now()) {
     const out = {};
@@ -576,26 +637,43 @@ export class Room {
     const ready = [...this.connections.values()].filter(
       (c) =>
         c.open &&
-        !c.bufferSize &&
-        (c.dataChannel?.bufferedAmount || 0) < 65536 &&
-        (c.inFlight.length < 4 || now - c.frameSentAt > 1200),
+        now >= (c.nextFrameAt || 0) &&
+        (realtimeOpen(c)
+          ? c.realtime.bufferedAmount === 0
+          : !c.bufferSize && (c.dataChannel?.bufferedAmount || 0) < 16384 &&
+            (c.inFlight.length < 4 || now - c.frameSentAt > 1200)),
     );
     if (!ready.length) return;
     this.encoding = true;
+    const encodeAt = performance.now();
     try {
-      state = this.renderSnapshots.make(state);
+      state = compactSnapshot(this.renderSnapshots.make(state));
       const compressed =
         this.compression && ready.some((c) => c.metadata?.compression)
           ? await encodeState(state)
           : null;
       if (this.closed) return;
       const seq = ++this.sequence;
+      this.streamStats.encodeMs = Math.round(performance.now() - encodeAt);
+      this.streamStats.maxEncodeMs = Math.max(this.streamStats.maxEncodeMs || 0, this.streamStats.encodeMs);
+      this.streamStats.sent = (this.streamStats.sent || 0) + 1;
+      const packets = compressed ? framePackets(compressed, seq) : null;
       for (const c of ready) {
         if (!c.open || ![...this.connections.values()].includes(c)) continue;
+        if (packets && realtimeOpen(c)) {
+          if (!c.realtime.bufferedAmount) {
+            try { for (const packet of packets) c.realtime.send(packet); }
+            catch { /* Drop the frame; the next complete one is independent. */ }
+            c.nextFrameAt = performance.now() + compressed.byteLength * 1000 / STATE_BYTES_PER_SECOND;
+          }
+          continue;
+        }
         if (now - c.frameSentAt > 1200) c.inFlight = [];
         c.inFlight.push(seq);
         c.frameSequence = seq;
         c.frameSentAt = performance.now();
+        const bytes = compressed && c.metadata?.compression ? compressed.byteLength : new TextEncoder().encode(JSON.stringify(state)).byteLength;
+        c.nextFrameAt = c.frameSentAt + bytes * 1000 / STATE_BYTES_PER_SECOND;
         this.send(
           c,
           compressed && c.metadata?.compression
@@ -620,6 +698,13 @@ export class Room {
       relayConfigured: hasRelay(this.config),
       roomClosed: this.closed,
       roomService: this.roomServiceAtClose || this.roomServiceState(),
+      realtime: {
+        ...this.streamStats,
+        channels: (this.host ? [...this.connections.values()] : [this.connection]).filter(Boolean).map(c => ({
+          transport: realtimeOpen(c) ? "unordered" : "reliable-fallback",
+          queuedBytes: c.realtime?.bufferedAmount || c.dataChannel?.bufferedAmount || 0,
+        })),
+      },
       ...this.diagnostics.report(),
     };
   }

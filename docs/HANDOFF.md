@@ -2,6 +2,61 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Guest freezes and black-hole bandwidth — 10 September 2026
+
+Worktree: `bonk-club-performance`, branch `codex/performance-network`.
+Sam reported that the guest froze then fast-forwarded while the host stayed smooth.
+The host uses Wi-Fi; the guest uses a wired connection.
+
+- Reproduced through real Edge host/guest browsers with selected TURN relay
+  candidates. In a four-second held black-hole scene, one hole delivered only
+  18 guest updates with a 1.257-second maximum gap; two delivered 12 with a
+  1.274-second gap. Host rendering remained smooth. These are delivery gaps,
+  not renderer CPU timing or measurements on Sam's friend's PC.
+- Verified the live game TURN allocation limit is 131072 bytes/second. The old
+  overlapping-field snapshots reached about 35 KB each at a requested 30 Hz,
+  substantially exceeding that limit. No Pi settings or services were changed.
+- Gameplay now uses a negotiated unordered, zero-retransmission RTC stream on
+  the existing peer connection. PeerJS retains reliable room/lobby messages.
+  Both ends announce stream readiness; bounded reliable fallback remains.
+  Controls are sequenced and validated; full independent snapshots use bounded
+  12 KB packets, two incomplete assemblies maximum, and one active decode plus
+  one newest replacement. Old frames cannot build a playback queue.
+- Send pacing reserves headroom below the relay cap at 90000 payload bytes/s
+  per guest. Snapshot frequency varies with size, up to 30 Hz; drawing remains
+  independently interpolated. Busy overlapping effects are around 10 updates/s
+  in the tested fixture, not a claimed 30 Hz under every possible load.
+- Wreck outlines use 0.1-world-unit precision and reconstruct their spines and
+  invisible collision strips at the guest. Five small strip-count hints preserve
+  stable collision IDs despite rounding. Host physics is unchanged. Full map,
+  persistent destruction, hot join and round reset remain self-contained.
+  The two-hole fixture fell from roughly 35 KB to 8.2 KB per snapshot.
+- Guest playback resets its clock after a stall and cannot reverse as jitter
+  estimates change. Interpolation avoids copying invisible collision strips and
+  uses indexed matter items. Simulation catch-up is capped at eight fixed steps;
+  its worker permits one outstanding tick instead of accumulating timer messages.
+  Black-hole lens canvases/textures allocate once at 256 px and reuse texture
+  storage. The field, deforming matter and destruction effects are preserved.
+- Connection details now includes transport, queued bytes, received/skipped
+  updates, update gaps and encoding duration. Reports still omit addresses,
+  room codes and credentials. These measurements are local to each browser.
+- Protocol is **25**. Both players must refresh and use a new room after release.
+- Staged real relay checks: one-hole maximum update gap about 96 ms, two-hole
+  116 ms; hot-join collision IDs matched, real guest key controls arrived.
+  Deliberate loss/reordering produced no reverse playback or queued input;
+  recovery after a deliberately blocked 1.2-second guest event loop was within
+  0.21 seconds of host time after 0.6 seconds. Moving fields were also exercised
+  with guest CPU throttled fourfold. Gameplay screenshots were inspected.
+- QA scripts/results are outside Git in `bonk-club-qa/performance-*`.
+  `performance-browser.cjs stress` routes public-origin assets to local port 5197
+  while using the real relay; hooks and injected loss exist only in the harness.
+  This is real WebRTC/TURN evidence on one machine, not a cross-ISP test or proof
+  of the friend's hardware/Wi-Fi environment. Release verification follows below.
+- Final local verification: **481 gameplay/network tests passed**, production
+  build passed, and `git diff --check` passed. New tests cover packet loss,
+  reordering/duplicates, bounded decoding, pacing, negotiation/fallback, invalid
+  controls/ribbons, all 24 arenas with overlapping fields and round reset.
+
 ## Player join and leave notifications — 10 September 2026
 
 Implemented in `bonk-club-notifications`, branch `codex/player-notifications`,

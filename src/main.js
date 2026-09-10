@@ -580,7 +580,7 @@ function connectionDetails(back) {
   showPanel(
     "connection-details",
     heading("Connection details") +
-      "<p>Copy this report from both devices after a failed join. It excludes IP addresses, room codes and credentials.</p>" +
+      "<p>Copy this report from both devices after connection trouble or freezing. It excludes IP addresses, room codes and credentials.</p>" +
       `<textarea id="connection-report" class="connection-report" aria-label="Connection report" readonly rows="14">${esc(report)}</textarea>` +
       '<button id="copy-connection-report" class="button primary">COPY REPORT</button><button id="connection-back" class="button secondary">BACK</button>',
   );
@@ -887,7 +887,7 @@ function interpolated(now) {
 }
 let simulationLast = performance.now();
 function simulate(now) {
-  const dt = Math.max(0, Math.min((now - simulationLast) / 1000, 1));
+  const dt = Math.max(0, Math.min((now - simulationLast) / 1000, STEP * 8));
   simulationLast = now;
   touchInput =
     canUseTouch() && !view && !needsRotation() && !document.hidden
@@ -916,7 +916,10 @@ const simulationClock = new Worker(
   new URL("./clock-worker.js", import.meta.url),
   { type: "module" },
 );
-simulationClock.onmessage = () => simulate(performance.now());
+simulationClock.onmessage = () => {
+  simulate(performance.now());
+  simulationClock.postMessage(null);
+};
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;

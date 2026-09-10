@@ -37,7 +37,7 @@ export function wreckCorners(w) {
 }
 // Collision follows each curved ribbon: five links with at most three strips
 // each. The global 60-fragment cap keeps even overlapping fields bounded.
-export function wreckTiles(w, old = new Map()) {
+export function wreckTiles(w, old = new Map(), counts = null) {
   if (w.hp <= 0) return [];
   if (w.kind === "matter") return matterTiles(w, old);
   if (w.spine) {
@@ -49,7 +49,7 @@ export function wreckTiles(w, old = new Map()) {
         w.outline[w.outline.length - 2 - n],
         w.outline[w.outline.length - 1 - n],
       ];
-      for (const tile of polygonTiles(w, quad, 3, `${w.id}r${n}`)) {
+      for (const tile of polygonTiles(w, quad, 3, `${w.id}r${n}`, new Map(), counts?.[n])) {
         const before = old.get(tile.id);
         tile.dx = before ? tile.x - before.x : 0;
         tile.dy = before ? tile.y - before.y : 0;
@@ -60,12 +60,12 @@ export function wreckTiles(w, old = new Map()) {
   }
   return polygonTiles(w, wreckCorners(w), 12, w.id, old);
 }
-function polygonTiles(w, polygon, cap, prefix, old = new Map()) {
+function polygonTiles(w, polygon, cap, prefix, old = new Map(), countHint = null) {
   const points = polygon,
     left = Math.min(...points.map((p) => p.x)),
     right = Math.max(...points.map((p) => p.x));
-  if (right - left < 0.5) return [];
-  const count = Math.max(1, Math.min(cap, Math.ceil((right - left) / 16))),
+  if (countHint === 0 || (countHint === null && right - left < 0.5)) return [];
+  const count = countHint ?? Math.max(1, Math.min(cap, Math.ceil((right - left) / 16))),
     width = (right - left) / count,
     tiles = [];
   for (let i = 0; i < count; i++) {

@@ -411,6 +411,8 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
     const w = new World();
     for (let round = 1; round <= 30; round++) {
       w.round = round;
+      // Isolate the acknowledgement window from the separate bandwidth pacing.
+      host.connections.get(1).nextFrameAt = 0;
       await host.sendState(w.snapshot());
       await tick();
     }
@@ -418,6 +420,7 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
     const c = host.connections.get(1);
     send({ t: "ack", seq: c.frameSequence });
     await tick();
+    c.nextFrameAt = 0;
     await host.sendState(w.snapshot());
     await tick();
     assert.deepEqual(got, [1, 2, 3, 4, 30]);
@@ -432,6 +435,44 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
     guest.close();
     host.close();
   }
+});
+
+test("bandwidth pacing sends current state at the next opportunity instead of accumulating frames", async t => {
+  const got=[],host=new Room({},FakePeer),guest=new Room({onState:s=>got.push(s.round)},FakePeer);
+  try {
+    await host.create();host.start();await guest.join(host.code);await tick();
+    let now=1000;t.mock.method(performance,"now",()=>now);
+    const w=new World();await host.sendState(w.snapshot());await tick();
+    const c=host.connections.get(1);assert.ok(c.nextFrameAt>now);
+    for(let n=2;n<=100;n++){w.round=n;await host.sendState(w.snapshot());}
+    await tick();assert.deepEqual(got,[1]);
+    now=c.nextFrameAt+1;await host.sendState(w.snapshot());await tick();assert.deepEqual(got,[1,100]);
+  } finally {guest.close();host.close();}
+});
+
+test("negotiated disposable stream carries validated state and sequenced bounded controls, with reliable fallback", async () => {
+  const got=[],host=new Room({},FakePeer),guest=new Room({onState:s=>got.push(s.round)},FakePeer);
+  try {
+    await host.create();host.start();await guest.join(host.code);await tick();
+    const h=host.connections.get(1),g=guest.connection;
+    const channels=[0,1].map(i=>({readyState:"open",bufferedAmount:0,close(){this.readyState="closed";},send(data){
+      const copy=ArrayBuffer.isView(data)?data.slice().buffer:structuredClone(data);
+      queueMicrotask(()=>channels[1-i].onmessage({data:copy}));
+    }}));
+    for(const [i,c] of [h,g].entries())c.peerConnection={createDataChannel(label,options){
+      assert.deepEqual(options,{negotiated:true,id:2,ordered:false,maxRetransmits:0});return channels[i];
+    }};
+    host.compression=guest.compression=true;h.metadata.compression=true;
+    host.setupRealtime(h);guest.setupRealtime(g);channels[0].onopen();channels[1].onopen();await tick();
+    assert.ok(h.realtimeReady&&g.realtimeReady);
+    const w=new World();w.round=20;await host.sendState(w.snapshot());await tick();await g.decoder.done;
+    assert.deepEqual(got,[20]);assert.equal(h.inFlight.length,0);
+    guest.sendInput({right:true,hp:0,x:10000});await tick();assert.equal(host.getInputs()[1].right,true);assert.equal(host.lastInputs[1].hp,undefined);
+    channels[1].send(JSON.stringify({t:"input",seq:1,input:{left:true}}));await tick();assert.equal(host.getInputs()[1].right,true);
+    channels[1].send(JSON.stringify({t:"state",seq:999,state:{hp:0}}));await tick();assert.equal(host.getInputs()[1].right,true);
+    channels[0].close();channels[1].close();h.nextFrameAt=0;w.round=21;await host.sendState(w.snapshot());await tick();await g.decoder.done;
+    assert.deepEqual(got,[20,21]);
+  } finally {guest.close();host.close();}
 });
 
 test("host slot modes reserve bots, skip closed slots and admit hot joins only to player slots", async () => {

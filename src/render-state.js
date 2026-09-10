@@ -45,7 +45,10 @@ function blend(a, b, t) {
       a.swingDuration === b.swingDuration && a.swing > 0 && b.swing <= a.swing)
     out.swing = lerp(a.swing, b.swing, t);
   if (a.matter && b.matter && a.matter.id === b.matter.id) out.matter = blend(a.matter,b.matter,t);
-  if (a.items && b.items) out.items = b.items.map(p=>blend(a.items.find(q=>q.id===p.id),p,t));
+  if (a.items && b.items) {
+    const items = new Map(a.items.map(p => [p.id,p]));
+    out.items = b.items.map(p => blend(items.get(p.id),p,t));
+  }
   for (const key of ["rig", "points", "spine", "outline", "strands"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
       out[key] = b[key].map((p, i) => blend(a[key][i], p, t));
@@ -61,6 +64,8 @@ export function interpolateStates(a, b, t) {
   const platforms = new Map(a.platforms.map(p => [p.id,p]));
   out.platforms = b.platforms.map(p => {
     const old = platforms.get(p.id);
+    // Wreck collision strips have no artwork. Blend the visible ribbons once.
+    if (p.wreckId || (old?.x === p.x && old?.y === p.y)) return p;
     return old && old.w === p.w && old.h === p.h ? blend(old,p,t) : p;
   });
   out.time = lerp(a.time,b.time,t);
@@ -79,11 +84,15 @@ export function interpolateStates(a, b, t) {
 // clock keeps delivery bursts from repeatedly freezing and accelerating motion.
 export class GuestFrames {
   constructor() { this.reset(); }
-  reset() { this.frames = []; this.offset = null; this.interval = 33; this.lastAt = null; }
+  reset() { this.frames = []; this.offset = null; this.interval = 33; this.lastAt = null; this.playhead = null; }
   push(state, now) {
     const last = this.frames.at(-1);
-    if (last && state.time <= last.time) return;
-    if (last && (last.round !== state.round || last.arenaIndex !== state.arenaIndex)) this.frames = [];
+    const changed = last && (last.round !== state.round || last.arenaIndex !== state.arenaIndex);
+    if (last && !changed && state.time <= last.time) return;
+    // Resume at current authoritative state after a delivery/host stall instead
+    // of playing an old queue at catch-up speed. Reset clock estimates too.
+    if (changed || (this.lastAt !== null && (now - this.lastAt > 250 ||
+        Math.abs(now - this.lastAt - (state.time - last.time) * 1000) > 250))) this.reset();
     const offset = now - state.time * 1000;
     this.offset = this.offset === null ? offset : Math.min(offset, this.offset + 1);
     if (this.lastAt !== null) this.interval += (Math.min(200, now - this.lastAt) - this.interval) * 0.08;
@@ -94,7 +103,8 @@ export class GuestFrames {
   sample(now) {
     if (!this.frames.length) return null;
     const delay = Math.max(70, Math.min(180, this.interval * 1.8));
-    const time = (now - this.offset - delay) / 1000;
+    const time = Math.max(this.playhead ?? -Infinity, (now - this.offset - delay) / 1000);
+    this.playhead = Math.min(time, this.frames.at(-1).time);
     while (this.frames.length > 2 && this.frames[1].time <= time) this.frames.shift();
     const [a, b] = this.frames;
     if (!b || time <= a.time) return a;

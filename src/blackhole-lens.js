@@ -76,7 +76,7 @@ function createLens() {
   const canvas = document.createElement("canvas"), source = document.createElement("canvas");
   const gl = canvas.getContext("webgl", {
     alpha: true, premultipliedAlpha: false, antialias: false,
-    depth: false, stencil: false, preserveDrawingBuffer: true,
+    depth: false, stencil: false, preserveDrawingBuffer: false,
   });
   if (!gl) return null;
   const program = gl.createProgram();
@@ -105,6 +105,11 @@ function createLens() {
     sourceContext: source.getContext("2d"),
     time: gl.getUniformLocation(program, "time"),
     strength: gl.getUniformLocation(program, "strength") };
+  // Allocate once while warming. Growing/shrinking holes should not repeatedly
+  // resize two canvases and reallocate a texture during combat.
+  canvas.width = canvas.height = source.width = source.height = 256;
+  gl.viewport(0, 0, 256, 256);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   canvas.addEventListener("webglcontextlost", event => { event.preventDefault(); lens.lost = true; });
   return lens;
 }
@@ -123,18 +128,14 @@ export function drawBlackholeLens(r, f, size, fade, time) {
   const lens = r.blackholeLens;
   if (!lens || lens.lost) return false;
   const c = r.ctx, transform = c.getTransform(), radius = size / .322,
-    pixels = Math.min(384, Math.max(96, Math.ceil(radius * 2 * Math.abs(transform.a) / 32) * 32)),
+    pixels = 256,
     { gl, source, canvas, sourceContext } = lens;
-  if (canvas.width !== pixels) {
-    canvas.width = canvas.height = source.width = source.height = pixels;
-    gl.viewport(0, 0, pixels, pixels);
-  }
   sourceContext.clearRect(0, 0, pixels, pixels);
   sourceContext.drawImage(c.canvas,
     (f.x - radius)*transform.a + transform.e, (f.y - radius)*transform.d + transform.f,
     radius*2*transform.a, radius*2*transform.d, 0, 0, pixels, pixels);
   gl.bindTexture(gl.TEXTURE_2D, lens.texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, source);
   gl.uniform1f(lens.time, time); gl.uniform1f(lens.strength, fade);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
   c.drawImage(canvas, f.x - radius, f.y - radius, radius * 2, radius * 2);
