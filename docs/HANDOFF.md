@@ -9,12 +9,46 @@ repository, fetched from `SamCousinsGB/bonk-club`; it replaces the earlier worki
 location under the dated Codex outputs folder. Do not create a new game or another
 GitHub repository. The display name is **Bonk Club**.
 
-Sam ended the previous chat to establish this constitution and continue in a new
-chat. **The five requests below are authorized but not implemented.** The handoff
-and constitution are documentation, not evidence that those effects have shipped.
+The five effects requests below remain unfinished and are not included in the
+verified mobile release. Their in-progress checkout changes were preserved and
+excluded from this release. The handoff and constitution are documentation, not
+evidence that those effects have shipped.
 
 Suggested next-chat instruction: “Read AGENTS.md and docs/HANDOFF.md, then implement
 the five pending effects requests, test them online, and publish.”
+
+## Latest release — mobile controls, 10 September 2026
+
+- Live revision: `cefb9fc0db43e7f7d6e0c9f91875b35e323a623c`. Mobile changes began
+  in `da9e8fb`; the release also includes the separately committed bot improvements
+  `ff8cf7a` and `8f660c8` from main.
+- Successful Pages run: `https://github.com/SamCousinsGB/bonk-club/actions/runs/34475589220`.
+- Mobile Join/Start/Quick match requests fullscreen immediately from the user tap,
+  then attempts landscape locking. Mobile invite links present a Join room button
+  to supply browser activation. Missing or denied browser APIs do not block joining.
+- Mobile gameplay now requires landscape, with a rotate-phone prompt and game-menu
+  access in portrait. Simulation and networking continue; rotation clears held input.
+  Explicit fullscreen retries are available from the game menu where supported.
+- Larger twin sticks and visible Jump, Throw, Lie down and contextual Parry/Alt fire
+  buttons. Movement/fire can be held together; jump swipes, prone drag and double-tap
+  throws remain available. Buttons show press feedback; Throw disables when unarmed.
+- CI: **300 game tests and 3 server tests passed**, plus production build/deploy.
+  Real Chromium touch events verified movement/fire, both jumps, throw ammo,
+  cancellation, portrait/menu recovery and layouts down to 568 × 320. Separate
+  desktop host/mobile guest browsers verified invite/lobby start, control delivery
+  and release at the host, departure and hot rejoin. The staged build and public
+  site passed browser checks without page errors. Missing/refused fullscreen and
+  orientation APIs were exercised explicitly. This is mobile browser emulation;
+  physical iOS/Android orientation locking remains device-dependent and was not
+  tested on hardware. No new TURN configuration or cross-network claim is involved.
+- All **15 public files matched the release build byte for byte**. JS:
+  `index-CGMXDIi6.js`; CSS: `index-CUMQZt1D.css`. Protocol remains **16**.
+- QA files and screenshots: `%TEMP%\bonk-mobile-20260910`. The source under `release`
+  is an export of the exact committed revision, excluding other unfinished changes.
+  Export with `git -c core.autocrlf=false archive <revision>` for Linux CI parity:
+  Windows automatic CRLF conversion otherwise changes HTML and favicon hashes.
+- New screen API handling is in `src/mobile-screen.js`, with tests in
+  `tests/mobile-screen.test.js`; touch behavior tests remain in `tests/touch.test.js`.
 
 ## Pending effects pass — Sam's latest request
 
@@ -59,7 +93,7 @@ and moving fragments, death-effect combinations, round resets, reduced motion,
 bounded particles/audio, guest interpolation, and hot joining an already damaged
 map. In particular, avoid rebuilding a huge navigation graph in a single tick.
 
-## Last completed gameplay release
+## Previous effects release
 
 - Commit: `86b159ab67bc01fb5ab893942ed3ccfbd0bbbd96`
   (`Add weapon-specific deaths and destructive black holes`).
