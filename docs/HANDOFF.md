@@ -2,11 +2,11 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
-## Death feedback — 10 September 2026
+## Current release: death feedback — 10 September 2026
 
 Implemented in `bonk-club-death-cue`, branch `codex/death-cue`, preserving the
-canonical checkout's concurrent terrain work. Release verification follows below
-when published; the preceding live release is recorded in the next section.
+canonical checkout's concurrent terrain work. Live gameplay revision:
+`6fe14971b2e23cf548f01e47926345908c3c2eb5`.
 
 - Every death has a drawn ivory skull with the fighter's colour around its edge.
   It pops in above the body, follows its motion, rises gently and fades completely
@@ -31,6 +31,19 @@ when published; the preceding live release is recorded in the next section.
 - QA helper and screenshots: `bonk-club-qa/death-cue-browser.cjs`,
   `death-cue-host.png`, `death-cue-guest.png`, `death-cue-expired.png`; audio:
   `death-cue.wav`. Browser hooks exist only in the QA helper.
+- All **467 gameplay/network tests** passed locally. Pages run **34512804095**
+  passed gameplay tests, server tests, production build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34512804095.
+- All **15 public files** matched the exact committed production build byte for
+  byte. JS: `index-ypyCS4FE.js`; CSS: `index-P_ztR8EB.css`. Archive/build:
+  `bonk-club-qa/death-cue-release`; checker: `verify-death-cue-live.cjs`.
+- The unmodified staged production bundle and public game both passed real
+  host/guest lobby, match and ordinary keyboard gameplay checks. Actual deaths
+  rendered skulls and scheduled the new chime on both browsers, without errors.
+  Helper: `death-cue-production.cjs`; screenshots: `death-cue-staged.png` and
+  `death-cue-live.png`. Source checks above forced TURN; production used normal ICE.
+- The task's development server on port 5201 was stopped. Refresh game tabs to
+  load the new visual and sound. No production debug hooks were added.
 
 ## Previous release: phase beam, fire and three new weapons
 
