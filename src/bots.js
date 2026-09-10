@@ -508,19 +508,20 @@ export class BotController {
       i.right = enemy.x > p.x + 34;
     }
 
-    // Remove a marked floor under a target or a breakable ceiling blocking a short route.
+    // Only explosive shots can open terrain. Ordinary guns must find a route.
+    const canBreach = weapon.blast && !grenade && !weapon.singularity;
     const support = choice.floor;
     const breach =
-      support?.destructible &&
-      support.hp > 0 &&
+      canBreach && support &&
+      support.hp !== 0 &&
       support.id !== here?.id &&
       enemy.y < p.y - 55
         ? support
         : null;
     const ceiling = solids.find(
       (s) =>
-        s.destructible &&
-        s.hp > 0 &&
+        canBreach && world.platforms.includes(s) &&
+        s.hp !== 0 &&
         s.y + s.h < p.y - 25 &&
         s.y + s.h > p.y - 200 &&
         p.x > s.x - 90 &&

@@ -707,6 +707,8 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) &&
+        typeof p.id === "string" && p.id.length <= 160 &&
+        (p.sourceId === undefined || (typeof p.sourceId === "string" && p.sourceId.length <= 160)) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
         (!p.destructible ||
           (["wood", "glass"].includes(p.panel) &&
@@ -720,6 +722,7 @@ export function validSnapshot(s) {
         p.h > 0 &&
         p.h < 1000,
     ) &&
+    new Set(s.platforms.map(p => p.id)).size === s.platforms.length &&
     list(s.spikes,512,p => xy(p) && finite(p.w) && p.w > 0 && p.w <= 3000) &&
     list(
       s.cover,

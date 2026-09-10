@@ -84,9 +84,11 @@ Keep this constitution for durable rules and the handoff for current work.
   sites, ice, volcanoes and skyscrapers. Do not turn every arena into a tower.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
-- Support both routes around structural platforms and marked breakable panels.
-  Keep cover useful and destructible. Destruction must update real collision,
-  navigation and guest state, not just hide artwork.
+- Every platform, including walls, stairs, panels and lifts, can be deformed by
+  circular explosion cuts. Successive blasts dig further into the remaining
+  terrain. Bullets do not damage terrain. Keep cover useful and destructible.
+  Destruction must update collision, navigation and guest state, including hot
+  join and spikes. Restore the original terrain at the next round.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
   saw rails and electrical traps. They may cycle unpredictably with readable
   warnings. Do not restore arbitrary randomly appearing hazard zones.

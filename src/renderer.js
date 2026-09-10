@@ -1,7 +1,7 @@
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
 import { drawWreckage, drawRifts } from "./blackhole-art.js";
-import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton } from "./nuclear-art.js";
+import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawHair } from "./identity.js";
@@ -25,6 +25,7 @@ import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
   constructor(canvas) {
+    warmNuclearArt();
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.particles = [];
@@ -945,7 +946,6 @@ export class Renderer {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
     }
-    drawCraters(this, state);
     drawRifts(this,state);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
@@ -962,6 +962,7 @@ export class Renderer {
     c.restore();
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
     drawWreckage(this,state.wreckage,time);
+    drawCraters(this, state);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);

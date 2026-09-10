@@ -5,14 +5,16 @@ export const inBlast = (p, f, radius = f.radius) =>
 
 // Thin horizontal slices follow the circular cut to within 8 units without
 // leaving invisible collision inside the crater. Intact elevators keep moving.
-export function carveRectangle(s, f) {
+export function carveRectangle(s, f, nextId) {
   const nearX = Math.max(s.x, Math.min(s.x + s.w, f.x));
   const nearY = Math.max(s.y, Math.min(s.y + s.h, f.y));
   if (!inBlast({ x: nearX, y: nearY }, f)) return [s];
   const pieces = [];
+  const columns = new Map();
   const add = (x, y, w, h) => {
     if (w < 0.5 || h < 0.5) return;
-    const previous = pieces.at(-1);
+    const key = `${x}:${w}`;
+    const previous = columns.get(key);
     if (
       previous &&
       previous.x === x &&
@@ -22,9 +24,10 @@ export function carveRectangle(s, f) {
       previous.h += h;
       return;
     }
-    pieces.push({
+    const piece = {
       ...s,
-      id: `${s.id}:c${f.id}:${pieces.length}`,
+      id: nextId ? nextId() : `${s.id}:c${f.id}:${pieces.length}`,
+      sourceId: s.sourceId || s.id,
       x,
       y,
       w,
@@ -36,7 +39,9 @@ export function carveRectangle(s, f) {
       move: undefined,
       travel: undefined,
       elevator: false,
-    });
+    };
+    pieces.push(piece);
+    columns.set(key, piece);
   };
   for (let y = s.y; y < s.y + s.h; y += 8) {
     const h = Math.min(8, s.y + s.h - y);
@@ -141,7 +146,7 @@ export function updateNuclear(world, f, dt) {
       .filter(
         (p) => !p.wreckId || world.wreckage.some((w) => w.id === p.wreckId),
       )
-      .flatMap((s) => carveRectangle(s, crater));
+      .flatMap((s) => carveRectangle(s, crater, () => `cut${++world.terrainSerial}`));
     // Props and trap mechanisms are consumed, not launched into a chain of
     // explosions across the rest of the arena.
     world.cover = world.cover.filter((s) => carveRectangle(s, crater)[0] === s);

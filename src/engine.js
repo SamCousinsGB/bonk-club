@@ -21,7 +21,7 @@ import {
   projectileImpact,
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
-import { preparePlatforms } from "./terrain.js";
+import { preparePlatforms, carveExplosion } from "./terrain.js";
 import { firePhaser } from "./phaser.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
@@ -1087,8 +1087,8 @@ export class World {
     }
     const radius = b.radius || 145;
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
-    const cover = this.solids().filter(breakable);
-    const solidWalls = this.platforms.filter((p) => !p.destructible);
+    const cover = this.cover.filter(c => c.hp > 0);
+    const solidWalls = this.platforms.filter((p) => p.hp !== 0);
     for (const p of this.players) {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
@@ -1120,6 +1120,7 @@ export class World {
           -b.force * 0.5,
         );
     }
+    carveExplosion(this, { x: b.x, y: b.y, radius });
     this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }
   updateProjectiles(dt) {
@@ -1159,7 +1160,7 @@ export class World {
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (s) {
-          if (breakable(s) && !b.nuclear) {
+          if (breakable(s) && !this.platforms.includes(s) && !b.nuclear) {
             this.damageCover(
               s,
               b.kind === "rail" ? 180 : b.damage,

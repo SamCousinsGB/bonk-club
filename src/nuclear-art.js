@@ -30,11 +30,11 @@ export function drawScorchedPlatforms(r, platforms, time) {
     c = r.ctx;
   for (const p of platforms) {
     if (p.move || p.travel || p.wreckId) continue;
-    if (typeof p.id !== "string" || !p.id.includes(":c")) {
+    if (!p.sourceId && (typeof p.id !== "string" || !p.id.includes(":c"))) {
       r.platform(p, time);
       continue;
     }
-    const id = p.id.split(":c")[0];
+    const id = p.sourceId || p.id.split(":c")[0];
     if (!groups.has(id)) groups.set(id, []);
     groups.get(id).push(p);
   }
@@ -54,255 +54,165 @@ export function drawScorchedPlatforms(r, platforms, time) {
   }
 }
 
-const falloutSprites = new Map();
-function falloutSprite(kind) {
-  if (falloutSprites.has(kind)) return falloutSprites.get(kind);
+const clamp01 = n => Math.max(0, Math.min(1, n));
+export function falloutOpacity(age) {
+  const t = clamp01((age - 3) / (NUCLEAR.falloutDuration - 3));
+  return 1 - t * t * (3 - 2 * t);
+}
+
+// Small cached volumes, rather than a fixed mushroom-shaped image. Uneven
+// overlapping lobes give the cloud a turbulent edge without per-frame blur.
+const volumes = new Map();
+let warming = false;
+export function warmNuclearArt() {
+  if (warming) return;
+  warming = true;
+  const queue = [["glow",0], ...[0,1,2].flatMap(v=>[["smoke",v],["hot",v]])];
+  const schedule = globalThis.requestIdleCallback
+    ? fn => globalThis.requestIdleCallback(fn, { timeout: 1000 })
+    : fn => globalThis.setTimeout(fn, 30);
+  const next = () => {
+    const args = queue.shift();
+    if (!args) return;
+    volume(...args);
+    if (queue.length) schedule(next);
+  };
+  schedule(next);
+}
+function volume(kind, variant = 0) {
+  const key = `${kind}:${variant}`;
+  if (volumes.has(key)) return volumes.get(key);
   const canvas = document.createElement("canvas");
-  const size = kind === "mist" ? 128 : 512;
-  canvas.width = canvas.height = size;
-  const c = canvas.getContext("2d"),
-    half = size / 2;
-  const g = c.createRadialGradient(half, half, 0, half, half, half);
-  const stops =
-    kind === "desaturate"
-      ? [
-          [0, "#8080809c"],
-          [0.65, "#80808085"],
-          [0.84, "#80808055"],
-          [1, "#80808000"],
-        ]
-      : kind === "mist"
-        ? [
-            [0, "#dfedb887"],
-            [0.28, "#a9c48a44"],
-            [0.65, "#91ae7220"],
-            [1, "#83985a00"],
-          ]
-        : [
-            [0, "#bfd78312"],
-            [0.42, "#b7cc781c"],
-            [0.72, "#8aa74a35"],
-            [0.84, "#b6ca6543"],
-            [0.93, "#72663628"],
-            [1, "#4a4c2200"],
-          ];
-  for (const [at, color] of stops) g.addColorStop(at, color);
-  c.fillStyle = g;
-  c.fillRect(0, 0, size, size);
-  falloutSprites.set(kind, canvas);
+  canvas.width = canvas.height = 192;
+  const c = canvas.getContext("2d");
+  if (kind === "glow") {
+    const g = c.createRadialGradient(96,96,0,96,96,96);
+    for (const [at,color] of [[0,"#ffffee"],[.15,"#fff2cce0"],[.5,"#ffb45c69"],[1,"#ed682000"]]) g.addColorStop(at,color);
+    c.fillStyle=g;c.fillRect(0,0,192,192);
+  } else {
+    const pixels = c.createImageData(192,192), hot = kind === "hot";
+    const hash = (x,y) => {const n=Math.sin(x*127.1+y*311.7+variant*74.7)*43758.5453;return n-Math.floor(n);};
+    const noise = (x,y) => {
+      const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,
+        u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
+      return (hash(ix,iy)*(1-u)+hash(ix+1,iy)*u)*(1-v)+(hash(ix,iy+1)*(1-u)+hash(ix+1,iy+1)*u)*v;
+    };
+    for(let y=0;y<192;y++)for(let x=0;x<192;x++) {
+      const nx=(x-96)/88,ny=(y-96)/88,d=Math.hypot(nx,ny),
+        n=noise(x/37,y/37)*.57+noise(x/16,y/16)*.28+noise(x/7,y/7)*.15,
+        edge=clamp01((1-d+(n-.5)*.2)/.3),
+        alpha=edge*edge*(3-2*edge),
+        light=clamp01(.57-ny*.15-nx*.08+(n-.5)*.7),
+        low=hot?[156,57,17]:[61,67,72],high=hot?[255,227,155]:[173,167,152],
+        i=(y*192+x)*4;
+      for(let k=0;k<3;k++)pixels.data[i+k]=low[k]+(high[k]-low[k])*light;
+      pixels.data[i+3]=alpha*245;
+    }
+    c.putImageData(pixels,0,0);
+  }
+  volumes.set(key, canvas);
   return canvas;
 }
 
-export function falloutOpacity(age) {
-  const t = Math.max(0, Math.min(1, (age - 3) / (NUCLEAR.falloutDuration - 3)));
-  return 1 - t * t * (3 - 2 * t);
-}
-const cloudSprites = new Map();
-function cloudSprite(hot = false) {
-  if (cloudSprites.has(hot)) return cloudSprites.get(hot);
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 128;
-  const c = canvas.getContext("2d");
-  const g = c.createRadialGradient(45, 36, 4, 64, 64, 64);
-  for (const [stop, color] of hot
-    ? [
-        [0, "#fff3d0"],
-        [0.3, "#ffd378"],
-        [0.65, "#c87e48ed"],
-        [0.85, "#8c604978"],
-        [1, "#6c4e3c00"],
-      ]
-    : [
-        [0, "#b1ada4df"],
-        [0.35, "#928e87e8"],
-        [0.7, "#55565cd8"],
-        [0.92, "#4249504a"],
-        [1, "#353f4600"],
-      ])
-    g.addColorStop(stop, color);
-  c.fillStyle = g;
-  c.fillRect(0, 0, 128, 128);
-  cloudSprites.set(hot, canvas);
-  return canvas;
-}
-function mushroomCap(hot = false) {
-  const key = hot ? "cap-hot" : "cap-cold";
-  if (cloudSprites.has(key)) return cloudSprites.get(key);
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 256;
-  const c = canvas.getContext("2d");
-  c.beginPath();
-  c.moveTo(45, 185);
-  c.bezierCurveTo(5, 178, 7, 131, 47, 120);
-  c.bezierCurveTo(24, 79, 68, 49, 109, 73);
-  c.bezierCurveTo(105, 34, 151, 18, 186, 45);
-  c.bezierCurveTo(211, 8, 257, 3, 282, 37);
-  c.bezierCurveTo(320, 16, 353, 34, 365, 63);
-  c.bezierCurveTo(409, 42, 446, 73, 441, 109);
-  c.bezierCurveTo(497, 105, 509, 161, 464, 188);
-  c.bezierCurveTo(381, 225, 134, 230, 45, 185);
-  c.closePath();
-  const g = c.createLinearGradient(0, 10, 0, 230);
-  g.addColorStop(0, hot ? "#fff0b6" : "#b6b1a7");
-  g.addColorStop(0.48, hot ? "#e9a14c" : "#777779");
-  g.addColorStop(1, hot ? "#8d503c" : "#424c55");
-  c.fillStyle = g;
-  c.fill();
-  c.clip();
-  for (let n = 0; n < 30; n++) {
-    const x = 28 + ((n * 83) % 461),
-      y = 20 + ((n * 47) % 181),
-      size = 80 + (n % 4) * 21;
-    c.globalAlpha = 0.45;
-    c.drawImage(cloudSprite(hot), x - size / 2, y - size / 2, size, size);
+// Coordinates are in the side-view arena plane. Buoyancy lifts the initial
+// fireball; its outer lobes roll outward and down around the rising column.
+// Deterministic paths keep hosts, guests and hot joiners on the same animation.
+export function cloudBillows(age, radius) {
+  if (age < .18 || age >= NUCLEAR.falloutDuration) return [];
+  const t = age - .18, lift = radius * .92 * (1 - Math.exp(-t * .62)),
+    spread = radius * (.045 + .52 * (1 - Math.exp(-t * .92))),
+    dissolve = Math.max(0, t - 4), drift = dissolve * 11,
+    fade = falloutOpacity(age), out = [];
+  const add = (x, y, size, alpha, heat, variant) => out.push({
+    x, y, size, alpha: alpha * fade, heat: clamp01(heat), variant,
+  });
+  // Draw the rear stem first, joining the cap continuously to the blast origin.
+  const stem = clamp01((t - .35) / .7);
+  for (let n = 0; n < 21; n++) {
+    const u = n / 20, phase = n * 2.4 + t * 1.3,
+      width = radius * (.038 + .055 * u);
+    add(Math.sin(phase) * width + drift * u,
+      -lift * u + Math.cos(phase) * width * .32,
+      radius * (.19 + .075 * u) + dissolve * 10,
+      .58 * stem * (1 - u * .2), (1 - t / 2.1) * .7, n % 3);
   }
-  cloudSprites.set(key, canvas);
-  return canvas;
+  // A broad crown with separately moving convection lobes. It has no fixed
+  // outline, straight underside, stretched sprite or perspective ellipse.
+  for (let n = 0; n < 24; n++) {
+    const u = (n % 12 - 5.5) / 5.5, front = n >= 12,
+      roll = t * .95 + n * 1.71,
+      curl = radius * (.02 + Math.abs(u) * .035),
+      crown = Math.sqrt(Math.max(0, 1 - u * u)),
+      size = radius * (.31 + .10 * (1 - Math.abs(u)) + Math.sin(n*3.1)*.025) * (1 + dissolve * .055);
+    add(u * spread + Math.sin(roll) * curl + drift + u * dissolve * 7,
+      -lift - crown * spread * .35 + (front ? size * .15 : -size * .1) + Math.cos(roll) * curl,
+      size, front ? .76 : .78,
+      (1 - t / 3.5) * (front ? 1 : .8), n % 3);
+  }
+  // Radial dust from the spherical pressure wave. It spreads from the origin,
+  // then falls and thins instead of becoming a persistent circle around the hole.
+  for (let n = 0; n < 16; n++) {
+    const a = n * 2.39996, d = radius * .72 * (1 - Math.exp(-t * 2)),
+      dustFade = Math.max(0, 1 - t / 5);
+    add(Math.cos(a) * d, Math.sin(a) * d * .7 + t * 14,
+      radius * (.12 + t * .018), .21 * dustFade * clamp01(t * 4), 0, n % 3);
+  }
+  return out;
 }
+
 export function drawCraters(r, state) {
   const c = r.ctx;
   for (const f of (state.craters || []).slice(-6)) {
     const age = state.time - f.born;
-    if (age < NUCLEAR.meltAt || age >= NUCLEAR.falloutDuration) continue;
-    const fade = falloutOpacity(age),
-      radius = f.radius,
-      t = age - 0.24;
+    const puffs = cloudBillows(age, f.radius);
+    if (!puffs.length) continue;
     c.save();
-    c.globalCompositeOperation = "saturation";
-    c.globalAlpha = 0.55 * fade;
-    c.drawImage(
-      falloutSprite("desaturate"),
-      f.x - radius,
-      f.y - radius,
-      radius * 2,
-      radius * 2,
-    );
-    c.globalCompositeOperation = "source-over";
-    c.globalAlpha = 0.45 * fade;
-    c.drawImage(
-      falloutSprite("tint"),
-      f.x - radius,
-      f.y - radius,
-      radius * 2,
-      radius * 2,
-    );
-    const rise = Math.min(radius * 0.85, t * 125),
-      spread = Math.min(1, t / 0.9),
-      drift = r.reduced ? 0 : Math.max(0, t - 3) * 13;
-    const capY = f.y - rise,
-      capWidth = radius * (0.45 + spread * 0.18),
-      billow = 1 + Math.max(0, t - 3) * 0.075;
-    const puff = (x, y, size, alpha, hot = false) => {
-      c.globalAlpha = alpha * fade;
-      c.drawImage(cloudSprite(hot), x - size / 2, y - size / 2, size, size);
-    };
-    // Layered rising stem and a broad cauliflower cap, all drawn in the arena's
-    // 2D plane. Cached puffs drift apart and fully disappear rather than looping.
-    for (let n = 0; n < 13; n++) {
-      const u = n / 12,
-        y = f.y - rise * u,
-        size = radius * (0.22 - 0.045 * u) * billow;
-      puff(
-        f.x +
-          drift * u +
-          Math.sin(n * 2.4 + (r.reduced ? 0 : t * 0.8)) * size * 0.12,
-        y,
-        size,
-        0.45,
-      );
-      if (age < 2.3) puff(f.x, y, size * 0.55, 0.48 * (1 - age / 2.3), true);
+    for (const p of puffs) {
+      const x = f.x + p.x - p.size / 2, y = f.y + p.y - p.size / 2;
+      c.globalAlpha = p.alpha;
+      c.drawImage(volume("smoke", p.variant), x, y, p.size, p.size);
+      if (p.heat > 0) {
+        c.globalAlpha = p.alpha * p.heat;
+        c.drawImage(volume("hot", p.variant), x, y, p.size, p.size);
+      }
     }
-    const capW = capWidth * 2.35 * billow,
-      capH = capW * 0.5;
-    c.globalAlpha = 0.8 * fade * spread;
-    c.drawImage(
-      mushroomCap(),
-      f.x + drift - capW / 2,
-      capY - capH * 0.63,
-      capW,
-      capH,
-    );
-    if (age < 2.7) {
-      c.globalAlpha = 0.75 * fade * spread * (1 - age / 2.7);
-      c.drawImage(
-        mushroomCap(true),
-        f.x + drift - capW / 2,
-        capY - capH * 0.63,
-        capW,
-        capH,
-      );
-    }
-    for (let n = 0; n < 12; n++) {
-      const u = (n - 5.5) / 5.5,
-        x = f.x + u * radius * Math.min(0.95, t * 0.42) + drift * 0.3;
-      puff(
-        x,
-        f.y + Math.sin(n * 2.1) * 15 - Math.max(0, t - 2) * 18,
-        radius * 0.22 * billow,
-        0.24 * spread,
-      );
-    }
-    // Finite fallout trails rise and scatter with the cloud; no modulo recycling.
-    for (let n = 0; n < 32; n++) {
-      const a = n * 2.39996,
-        d = radius * (0.15 + (n % 7) * 0.08),
-        x = f.x + Math.cos(a) * d + drift * (1 + (n % 3) * 0.2),
-        y = f.y + Math.sin(a) * d - t * (12 + (n % 6) * 7);
-      c.globalAlpha = 0.5 * fade * Math.min(1, t);
-      c.fillStyle = n % 5 ? "#c6c2b6" : "#ffc37b";
-      c.fillRect(x, y, 1.5 + (n % 2), 1.5 + (n % 2));
+    // The last embers travel outward from the source and fall. No repeating
+    // particles, green radiation disk, or permanent overlay remains afterwards.
+    for (let n = 0; n < 28 && age < 4; n++) {
+      const a = n * 2.39996, speed = 45 + (n % 7) * 19, t = age - .18;
+      c.globalAlpha = Math.max(0, 1 - t / 3.5) * .65;
+      c.fillStyle = n % 3 ? "#fda75b" : "#fff0bc";
+      c.fillRect(f.x + Math.cos(a) * speed * t, f.y + Math.sin(a) * speed * t + t * t * 24, 2, 2);
     }
     c.restore();
   }
 }
 
 export function drawNuclear(r, f) {
-  const c = r.ctx,
-    age = f.age,
+  const c = r.ctx, age = f.age,
     radius = Math.min(f.radius, age * NUCLEAR.waveSpeed);
-  const fade = Math.min(1, Math.max(0, f.life / 1.2));
+  if (age >= 1.5) return;
   c.save();
-  circle(c, f.x, f.y, radius);
-  c.clip();
-  if (age < 0.72) {
-    // A single circular white exposure, then the flash burns down to the exposed scenery.
-    c.globalAlpha = r.reduced
-      ? Math.max(0, 0.42 * (1 - age / 0.72))
-      : Math.min(1, Math.max(0, (0.72 - age) / 0.42));
-    c.fillStyle = r.reduced ? "#d4a267" : "#fffff2";
-    c.fillRect(f.x - radius, f.y - radius, radius * 2, radius * 2);
+  // A fast circular pressure front reaches the real damage boundary, then
+  // disappears. It never settles into the old glowing crater outline.
+  if (age < .65) {
+    c.globalAlpha = Math.pow(Math.max(0, 1 - age / .65), 2) * (r.reduced ? .3 : 1);
+    for (const [width, color] of [[22,"#ffbc6640"],[7,"#ffdbac9a"],[2,"#fff8dc"]]) {
+      circle(c, f.x, f.y, Math.max(1, radius - width / 2));
+      c.lineWidth = width; c.strokeStyle = color; c.stroke();
+    }
   }
-  c.globalAlpha = fade * Math.exp(-Math.max(0, age - 0.4) * 2.2);
-  for (const [width, color] of [
-    [32, "#ff9e3822"],
-    [12, "#ffc06544"],
-    [2, "#fff0b9"],
-  ]) {
-    circle(c, f.x, f.y, Math.max(1, radius - width / 2));
-    c.strokeStyle = color;
-    c.lineWidth = width;
-    c.stroke();
+  if (age < .42) {
+    c.globalAlpha = Math.max(0, 1 - age / .42) * (r.reduced ? .32 : .95);
+    c.drawImage(volume("glow"), f.x - radius, f.y - radius, radius * 2, radius * 2);
   }
-  // Molten fragments peel inward from the cut. Fixed counts and no blur keep
-  // the effect inexpensive on online guests and phones.
-  for (let n = 0; n < 72; n++) {
-    const angle = n * 2.39996,
-      start = 0.25 + (n % 9) * 0.06,
-      t = Math.max(0, age - start);
-    const edge = f.radius - (n % 5) * 2;
-    const x = f.x + Math.cos(angle) * (edge - t * (12 + (n % 7) * 5));
-    const y = f.y + Math.sin(angle) * edge + t * t * (25 + (n % 4) * 12);
-    c.globalAlpha = fade * Math.min(1, t * 4) * Math.max(0, 1 - t / 2.7);
-    r.line(
-      [
-        [x, y],
-        [x - Math.cos(angle) * 3, y - 8 - t * 12],
-      ],
-      n % 3 ? "#ff9f47" : "#fff2b9",
-      2 + (n % 3),
-    );
-  }
+  // The incandescent sphere is smaller than the pressure wave and becomes
+  // buoyant as it cools, meeting the emerging cloud rather than flashing away.
+  const size = f.radius * (1 - Math.exp(-age * 7)) * 1.04,
+    rise = f.radius * .2 * age,
+    heat = Math.pow(Math.max(0, 1 - age / 1.5), 1.4);
+  c.globalAlpha = heat * .9;
+  c.drawImage(volume("hot"), f.x - size / 2, f.y - rise - size / 2, size, size);
   c.restore();
 }
 

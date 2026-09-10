@@ -10,7 +10,7 @@ export const COVER_KINDS = [
   "barrel",
 ];
 export const breakable = (p) =>
-  p && (p.destructible === true || COVER_KINDS.includes(p.kind));
+  p && ((p.destructible === true && p.wreckId) || COVER_KINDS.includes(p.kind));
 const slab = (x, y, w, material, h = 28, extra = {}) => ({
   x,
   y,

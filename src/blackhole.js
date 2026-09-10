@@ -139,7 +139,7 @@ function tear(world, f) {
     sources = [];
   for (const p of world.platforms) {
     if (p.wreckId) continue;
-    const remains = carveRectangle(p, cut);
+    const remains = carveRectangle(p, cut, () => `cut${++world.terrainSerial}`);
     retained.push(...remains);
     if (remains[0] === p || p.hp === 0) continue;
     const start = Math.max(p.x, f.x - f.radius),

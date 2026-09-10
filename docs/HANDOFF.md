@@ -2,6 +2,43 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Explosion terrain and nuclear visuals - 10 September 2026
+
+Current pass: `codex/terrain-craters` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-terrain`. It was isolated when
+concurrent melee and black-hole-art work appeared in the canonical checkout.
+Those changes and the PHASER cannon were preserved from GitHub main in this release.
+
+- Every platform is carved by circular ordinary explosions as well as nukes.
+  Repeated blasts excavate the remaining material, including structural walls,
+  stairs, wood/glass sections and lifts. Bullets and nonexplosive projectiles do
+  not damage terrain; ordinary furniture keeps its existing breakable behavior.
+- Collision, navigation invalidation, supported fighters, traps and spikes follow
+  destruction. Cut lifts become fixed pieces. Exploded warped wreckage is removed
+  from both its artwork and its collider source so it cannot regenerate next tick.
+- Fragment identities stay short and unique through repeated cuts. The original
+  surface identity groups rendering, avoiding repeated trim on collision strips.
+  Snapshots carry surviving spike geometry. **Protocol 19: refresh all players.**
+- Replaced the fixed mushroom artwork and crater tint with a spherical pressure
+  front, an incandescent rising fireball and separately rolling, textured smoke
+  billows. No persistent glowing rim or radiation disk. The original 480 radius,
+  skeleton/ash deaths and 12-second total clearing time remain unchanged.
+  Seven cached textures warm individually during idle time before combat.
+- Added tests for every platform in all 24 arenas, 160 repeated blasts per arena,
+  bullet immunity, cumulative cuts, lifts/support, trap/spike removal, warped
+  wreckage, wire validation, hot-join geometry, resets and cloud progression.
+  The isolated pass passed 318 gameplay/network tests and a production build.
+- Real Edge host, mobile guest and a third hot joiner received identical surviving
+  geometry after overlapping explosions. All selected WebRTC candidates used the
+  real Pi relay. Nuclear growth and 12-second clearing were checked in rendered
+  gameplay; browser errors: zero. After idle texture preparation, guest drawing
+  cost was 0.4 ms at the 95th percentile and 0.7 ms maximum during this check.
+  These are drawing CPU times on the QA PC, not FPS or physical-phone performance.
+- QA helpers/screenshots: `bonk-club-qa/terrain-visual.cjs`, `terrain-online.cjs`,
+  `terrain-nuke-*.png`, `terrain-online-*.png`, `terrain-craters.png`.
+  Hooks exist only in the external QA scripts. No Pi infrastructure changed.
+- Release revision, CI and public asset parity are recorded below after deployment.
+
 ## Black-hole artwork correction — 10 September 2026
 
 Bent wreckage now reuses the normal platform, furniture and hazard renderers.
