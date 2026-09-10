@@ -2,6 +2,57 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Character customisation — 10 September 2026
+
+Implemented on `codex/character-customisation` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-customisation`. The canonical
+checkout's unfinished explosion edits were preserved. This release includes
+the weighted props, black-hole lens and mouse-button fixes from GitHub main.
+
+- Expanded from 6 to 18 hairstyle choices and from 8 to 24 body colours.
+  Added 16 independent hair colours, 6 facial-hair choices and 8 accessory
+  choices (counts include None). New hairstyles include braids, curls, buns,
+  dreadlocks, pigtails, long hair, a quiff, a side part and shorter cuts.
+- Accessories: glasses, sunglasses, goggles, visor, eyepatch, headband and
+  headphones. Facial hair uses the selected hair colour. Cosmetic choices do
+  not change collision, health, equipment or scores.
+- Larger character preview, labelled colour swatches, randomise without
+  changing the player's name, mobile layout and lobby character portraits.
+  Reserved body colours remain unavailable; hair colours can be shared.
+- Existing saved names, body colours and hairstyles migrate with default new
+  fields. Appearance persists through the lobby, live edits, hot join, death
+  ragdolls and round reset. Guest controls reflect host-accepted profiles.
+- `src/identity.js` owns the bounded choices, profile migration/validation and
+  shared head drawing. The engine copies cosmetics into physical death bodies;
+  the normal and death renderers use the same artwork. No new dependencies.
+- **Protocol 21: all players must refresh their tabs.** New profile fields are
+  `hairColor`, `facialHair` and `accessory`. Both player and ragdoll snapshots
+  reject unsupported cosmetic values. No Pi service configuration changed.
+- Verification: **379 gameplay/network tests passed**, including profile
+  migration, every cosmetic choice, malformed metadata, colour reservations,
+  combat-state preservation and death/round persistence. The production build
+  passed with the published room-service and temporary TURN-credential endpoints.
+- Actual Edge host, mobile guest and late joiner verified appearance through
+  selected TURN relay candidates. Browser checks covered saved-profile reloads,
+  randomise, real touch selection, lobby reservations, live edits, hot join,
+  ragdolls and round reset, without page errors. Artwork/contact sheets and
+  rendered gameplay were visually reviewed. Mobile checks use browser emulation.
+- The exact committed production archive also passed character-editor and
+  host/guest relay checks. QA helpers/screenshots are in `bonk-club-qa`:
+  `character-browser.cjs`, `character-*.png`, `verify-character-live.py`, and
+  `character-release/dist`. Hooks remain outside production source.
+- Gameplay revision: `427a629b339bb14a9aa5d0ca923110797e899344`.
+  Pages run `34482965248` passed gameplay/network tests, server tests,
+  production build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34482965248.
+  All **15 public files** matched the exact committed build byte for byte.
+  JS: `index-CvCzE-OO.js`; CSS: `index-Cr1OqD9M.css`.
+  The public game passed saved-profile migration/reload, randomise, mobile touch
+  selection, reserved colours, online start and in-game appearance editing,
+  with selected TURN relay candidates and no page errors. The task's development
+  server on port 5191 was stopped. The customisation worktree is clean after
+  this release-note commit; the canonical checkout's unrelated edits remain.
+
 ## Stuck mouse buttons - 10 September 2026
 
 Implemented in `bonk-club-mouse` on `codex/mouse-release-fix`, starting from
