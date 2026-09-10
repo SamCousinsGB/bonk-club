@@ -23,7 +23,8 @@ release fix from main is included.
   This fixes a quarry case where a prop-clearing lunge overshot a takeoff and the
   bot tried to return to a ledge it could no longer reach before falling past it.
 - `gaitSpeed` is simulation-only; guests still receive the actual physical rig.
-  No required wire changes or protocol bump; protocol remains **20**. No Pi changes.
+  Movement adds no required wire changes. The integrated character-customisation
+  release from main uses **protocol 21**; both players must refresh. No Pi changes.
 - Twelve new movement regressions cover both running directions and floor levels,
   braking, leg lift/reach, wall stops, jump/landing recovery, lift riders, identical
   poses across floor heights, and recovery after overshooting a takeoff.
