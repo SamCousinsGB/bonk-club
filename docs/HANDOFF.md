@@ -106,6 +106,47 @@ concurrent terrain and melee changes in the canonical checkout.
   `phaser-guest.png`, `phaser-survivor.png`. Hooks exist only in the external QA
   helper. Release verification is recorded below after integration and publishing.
 
+## Sword and bat swings — 10 September 2026
+
+- Swords and bats now use a two-handed overhead wind-up, a 3.2-radian forward
+  sweep and a follow-through. The bat takes 0.44 seconds and the sword 0.34;
+  their existing attack cooldowns, damage and ammunition counts are preserved.
+- `src/melee-pose.js` shares weapon angles and lengths between the procedural
+  arm motors, renderer and authoritative blade contact checks. Contacts sweep
+  between simulation frames, wait for the wind-up, stop during recovery, and
+  respect solid cover. Each opponent and cover object is hit once per swing.
+  Parrying or throwing cancels the remaining held-weapon contacts.
+- The final weapon use stays visible through the animation before returning to
+  fists. Zero remaining uses cannot produce another attack or a thrown weapon.
+  Guest snapshots interpolate an ongoing swing without blending into a new one.
+  The existing wire shape and protocol **17** are unchanged. Refresh both tabs
+  to see the updated animation consistently.
+- All **321 gameplay/network tests passed** on an isolated source export,
+  including 11 new swing tests. Production build passed with the published
+  room and TURN endpoints. Actual rendered frames were inspected for both
+  weapons facing both directions. Two real Edge browsers verified each final
+  weapon swing, its full arc, exactly one hit and eventual removal through the
+  Pi relay; selected relay candidates were checked at both ends, with no errors.
+- Gameplay commit: `842241e57457a1f2817d79543f49f71cca59755b`.
+  Published in combined revision `62fccd27283351e8501c4c7adb1a6bd967bb23cb`,
+  which also contains the separately completed black-hole artwork changes.
+  Pages run `34477944690` passed **323 game tests, 3 server tests**, build and
+  deployment: `https://github.com/SamCousinsGB/bonk-club/actions/runs/34477944690`.
+  All **15 public files matched the tested CI artifact byte for byte**;
+  JavaScript: `index-BY5fGDJW.js`, CSS: `index-CUMQZt1D.css`. Public host/guest
+  gameplay, lobby slots, hot join, leave/rejoin and mobile viewport checks passed
+  through verified relay candidates without browser errors. The CI artifact is
+  in `bonk-club-qa/melee-ci-62fccd2`; the earlier melee-only build was superseded
+  by this combined deployment after its own CI tests and build passed.
+- QA scripts and screenshots are outside Git in `bonk-club-qa`:
+  `melee-visual.cjs`, `melee-online.cjs`, `melee-swing-poses.png`,
+  `melee-online-guest.png` and `verify-melee-live.cjs`. The tested source/build
+  export is `melee-release-20260910`. No production debug hooks were added.
+- Separate explosion/terrain work was in progress in the canonical checkout.
+  Its `src/network.js`, `src/nuclear.js` and `src/terrain.js` edits were preserved
+  and excluded from this gameplay commit. Release notes use the separate
+  `bonk-club-qa/melee-notes` worktree; inspect current Git status before continuing.
+
 ## Start here
 
 The canonical checkout is `C:\Users\SamCo\Documents\ChatGPT\bonk.club`.
