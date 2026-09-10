@@ -29,6 +29,27 @@ the earlier explosion-pass rule that made all terrain immune to bullets.
   `bonk-club-qa`; hooks are external and never enter production.
 - Release verification is recorded below once the Pages deployment completes.
 
+## Random NPC identities — 10 September 2026
+
+- NPCs receive a random first name ending in ` (BOT)` and a random body colour,
+  hairstyle, hair colour, facial hair and accessory from the character editor's
+  supported choices. Active bots have distinct names and colours.
+- Identities belong to the occupant and persist through rounds and roster/profile
+  refreshes. Human arrivals replace the bot; departures and reopened bot slots
+  generate a new identity. A human colour choice only recolours the conflicting
+  bot, preserving its name and remaining cosmetics. Other bots keep their scores.
+- The name itself includes the suffix throughout gameplay; redundant AI labels
+  were removed from the scoreboard and leader line. The existing snapshot profile
+  fields carry all choices to guests and hot joiners, with no protocol change.
+- Implemented on `codex/random-bot-identities` in `bonk-club-bot-identities`, based
+  on current main, preserving the canonical checkout's unfinished terrain work.
+- 396 gameplay/network tests passed. Real Edge host/guest browsers verified solo
+  and online identities, every appearance field, round persistence and surviving
+  bot identity through hot join/departure/rejoin. Selected TURN relay candidates
+  were verified, rendered gameplay inspected, and no browser errors occurred.
+- QA helper and screenshots: `bonk-club-qa/bot-identities-browser.cjs` and
+  `bot-identities-*.png`. Browser hooks exist only in the external QA helper.
+
 ## Movement and animation pass — 10 September 2026
 
 Implemented on `codex/movement-pass` in

@@ -788,13 +788,13 @@ function updateHud(s) {
   setHtml($("#scoreboard"), s.players
     .map(
       (p) =>
-        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${p.bot ? "AI" : (room && p.id === room.id) || (solo && p.id === 0) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div>${equipmentInfo(p)}</div>`,
+        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${!p.bot && ((room && p.id === room.id) || (solo && p.id === 0)) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div>${equipmentInfo(p)}</div>`,
     )
     .join(""));
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
   $("#round-label").textContent = `ROUND ${s.round}`;
   $("#leader-label").textContent = leaders.length
-    ? `${leaders.length > 1 ? "TIED" : "LEADER"}: ${leaders.map((p) => (p.name || NAMES[p.id]) + (p.bot ? " AI" : "")).join(" / ")}`
+    ? `${leaders.length > 1 ? "TIED" : "LEADER"}: ${leaders.map((p) => p.name || NAMES[p.id]).join(" / ")}`
     : "";
   const status = $("#round-status");
   const warning =
