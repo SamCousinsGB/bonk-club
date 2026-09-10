@@ -1,5 +1,8 @@
 # Bonk Club
 
+Development rules: [project constitution](AGENTS.md). Current work and next-chat
+context: [handoff](docs/HANDOFF.md).
+
 A browser physics brawler for 1–4 people. Original stick-figure artwork and arenas, inspired by the feel of party fighting games including Stick Fight: The Game. Not affiliated with Landfall.
 
 ## Play
