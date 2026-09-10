@@ -32,6 +32,7 @@ import { Sound } from "./audio.js";
 import { Room, validCode } from "./network.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
+import { bindMouseControls } from "./mouse.js";
 import { gameViewport, screenToWorld } from "./viewport.js";
 import { SUDDEN_DEATH } from "./scale.js";
 
@@ -173,8 +174,7 @@ function ownInput() {
 }
 function clearInput() {
   keys.clear();
-  mouse.attack = false;
-  mouse.block = false;
+  mouseControls.reset();
   touchControls.reset();
   touchInput = emptyInput();
   if (room && !room.host) room.sendInput(emptyInput());
@@ -937,29 +937,16 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", () => room?.close());
 const canvas = $("#game");
-canvas.addEventListener("pointermove", (e) => {
-  if (e.pointerType === "touch") return;
-  const rect = canvas.getBoundingClientRect();
-  const point = screenToWorld(e.clientX, e.clientY, rect, currentViewport);
-  mouse.x = point.x;
-  mouse.y = point.y;
-  mouse.active = true;
-});
-canvas.addEventListener("pointerdown", (e) => {
-  if (!playing || view || e.pointerType === "touch") return;
-  e.preventDefault();
-  unlock();
-  canvas.setPointerCapture(e.pointerId);
-  if (e.button === 0) mouse.attack = true;
-  if (e.button === 2) mouse.block = true;
-});
-window.addEventListener("pointerup", (e) => {
-  if (e.button === 0) mouse.attack = false;
-  if (e.button === 2) mouse.block = false;
-});
-canvas.addEventListener("pointercancel", () => {
-  mouse.attack = false;
-  mouse.block = false;
+const mouseControls = bindMouseControls(canvas, mouse, {
+  enabled: () => playing && !view && !needsRotation() && !document.hidden,
+  wake: unlock,
+  aim: (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const point = screenToWorld(e.clientX, e.clientY, rect, currentViewport);
+    mouse.x = point.x;
+    mouse.y = point.y;
+    mouse.active = true;
+  },
 });
 canvas.addEventListener("contextmenu", (e) => {
   if (playing) e.preventDefault();
