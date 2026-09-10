@@ -1,57 +1,58 @@
 import { drawHazards } from "./trap-art.js";
 import { drawChunks } from "./prop-art.js";
+import { drawBlackholeLens } from "./blackhole-lens.js";
 
 export function drawBlackhole(r, f, time) {
   const c = r.ctx,
     age = f.age,
     t = r.reduced ? 0 : age,
     fade = Math.min(1, f.life * 1.5),
-    grow = Math.min(1, age / 0.6);
+    grow = Math.min(1, age / 0.65);
+  if (grow <= 0 || fade <= 0) return;
   c.save();
   c.globalAlpha = fade;
-  // Broken spirals show the pull without hiding the altered arena behind a disk.
-  for (let n = 0; n < 9; n++) {
-    const start = n * 0.698 + t * 2.3,
+  // Fine inflow trails keep the full pull radius readable around the lens.
+  for (let n = 0; n < 7; n++) {
+    const start = n * 0.898 + t * .48,
       points = [];
     for (let i = 0; i < 22; i++) {
       const d = f.radius * (1 - i / 23) * grow,
-        a = start + i * 0.14;
+        a = start + i * 0.095;
       points.push([f.x + Math.cos(a) * d, f.y + Math.sin(a) * d]);
     }
-    c.globalAlpha = fade * (0.07 + (n % 3) * 0.025);
-    r.line(points, n % 2 ? "#9caeff" : "#e8a5ff", 4 + (n % 3) * 3);
+    c.globalAlpha = fade * (0.035 + (n % 3) * 0.015);
+    r.line(points, n % 2 ? "#f2bb78" : "#b1c4d0", 1.2 + (n % 3) * .6);
   }
   for (let n = 0; n < 32; n++) {
     const progress = (n / 32 + t * 0.28) % 1,
       radius = f.radius * (1 - progress),
       a = n * 2.39996 + t * 2 + progress * 4;
-    c.globalAlpha = fade * (0.2 + progress * 0.6);
+    c.globalAlpha = fade * (0.1 + progress * 0.45);
     r.line(
       [
         [f.x + Math.cos(a) * radius, f.y + Math.sin(a) * radius],
         [f.x + Math.cos(a - 0.08) * radius, f.y + Math.sin(a - 0.08) * radius],
       ],
-      n % 2 ? "#c4a8ff" : "#ffceec",
-      2,
+      n % 2 ? "#d6c7ad" : "#ffe5b4",
+      1.2,
     );
   }
-  c.globalAlpha = fade;
-  const size = (32 + Math.min(1, age) * 30) * grow;
-  r.circle(f.x, f.y, size + 14, "#956dff28");
-  r.circle(f.x, f.y, size + 5, "#d2a6ff");
-  r.circle(f.x, f.y, size, "#080a16");
-  for (let n = 0; n < 4; n++) {
-    c.strokeStyle = n % 2 ? "#f3ddffbb" : "#a890f077";
-    c.lineWidth = 2 + n;
-    c.beginPath();
-    c.arc(
-      f.x,
-      f.y,
-      size + 12 + n * 12,
-      t * (1.5 + n * 0.15) + n,
-      t * (1.5 + n * 0.15) + n + 1.6,
-    );
-    c.stroke();
+  c.globalAlpha = 1;
+  const size = (38 + Math.min(1, age) * 38) * grow;
+  if (!drawBlackholeLens(r, f, size, fade, t)) {
+    // Canvas-only fallback for devices without WebGL or after context loss.
+    c.globalAlpha = fade;
+    const glow = c.createRadialGradient(f.x, f.y, size, f.x, f.y, size * 1.7);
+    glow.addColorStop(0, "#fff1c6cc"); glow.addColorStop(.18, "#efa44777"); glow.addColorStop(1, "#efa44700");
+    c.fillStyle = glow; c.fillRect(f.x - size*1.7, f.y - size*1.7, size*3.4, size*3.4);
+    for (let n = 0; n < 9; n++) {
+      c.strokeStyle = n < 3 ? "#fff0c9" : "#e7a45755";
+      c.lineWidth = n < 3 ? 1.4 : 2;
+      c.beginPath(); c.arc(f.x, f.y, size + 2 + n*2.8, 0, Math.PI*2); c.stroke();
+    }
+    r.line([[f.x - size*2.8, f.y], [f.x + size*2.8, f.y]], "#edb66f55", 8);
+    r.line([[f.x - size*2.6, f.y], [f.x + size*2.6, f.y]], "#fff0cc", 2);
+    r.circle(f.x, f.y, size, "#000000");
   }
   c.restore();
 }
