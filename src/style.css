@@ -528,6 +528,22 @@ footer i {
   text-shadow: 0 4px 0 #1117;
   transform: rotate(-3deg);
 }
+#announcement .victory-title {
+  display: block;
+  padding: 0 20px;
+  overflow-wrap: anywhere;
+  font-size: clamp(20px, var(--victory-title-size, 7vw), 80px);
+}
+#announcement .victory-detail {
+  display: block;
+  max-width: 720px;
+  margin: 14px auto 0;
+  padding: 0 24px;
+  font: 700 clamp(16px, 2.8vw, 28px)/1.2 "Barlow Condensed", Impact, sans-serif;
+  color: #fff;
+  text-wrap: balance;
+  transform: rotate(3deg);
+}
 #announcement small {
   display: block;
   font:

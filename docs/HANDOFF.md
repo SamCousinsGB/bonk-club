@@ -2,6 +2,33 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Victory messages — 10 September 2026
+
+Implemented in `bonk-club-victory` on `codex/victory-messages`, based on current
+GitHub main while preserving the canonical checkout's unfinished terrain work.
+
+- Results show `SAM WON` with a second line based on the final elimination.
+  Nuclear: `By nuclear apocalypse`. Black hole: `By commanding the forces of
+  space and time`. There are 25 finish messages covering weapons, melee, fire,
+  ice, traps, props, throws, falls and sudden death. This creative copy was
+  explicitly requested; the general ban on unsolicited filler still applies.
+- The authoritative engine records lethal causes independently of expiring
+  events/ragdolls. Later deaths overwrite earlier ones, dangerous special fields
+  still delay scoring, and draws/new rounds clear the result. A departure does
+  not reuse an earlier kill. Weapon identity comes from the hit, including the
+  final round of ammunition; shattering ice takes precedence over the weapon.
+- `src/victory.js` owns the bounded cause identifiers and copy. `victoryCause`
+  is validated in snapshots and survives compression, interpolation and hot join.
+  **Protocol 22: all players must refresh their tabs.** No Pi changes.
+- Added 21 regression tests covering real lethal attacks, nuclear/black-hole
+  sequencing, fall ordering, draws, resets, departures and malformed wire values.
+- Real Edge host/mobile guest and a late joiner received nuclear and black-hole
+  messages through selected TURN relay candidates without browser errors. Actual
+  rendered gameplay was inspected at desktop, 844 × 390 and 568 × 320 sizes.
+  Long names scale down to keep the title readable. QA helper and screenshots:
+  `bonk-club-qa/victory-browser.cjs` and `victory-*.png`, outside production.
+- Release verification is recorded below after publishing.
+
 ## Restore bullet damage to marked panels — 10 September 2026
 
 Sam's latest request restores shooting out destructible platforms. This supersedes
