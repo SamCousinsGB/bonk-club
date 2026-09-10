@@ -28,7 +28,21 @@ Implemented in the existing `bonk-club-bend-art` worktree on
   without page errors; guest drawing CPU time was 2.4 ms at the 95th percentile
   on the QA machine, not a GPU completion or FPS measurement.
 - QA helpers and screenshots are in `bonk-club-qa` with the `lens-` prefix.
-  Release confirmation follows the combined tests and Pages deployment.
+  Combined validation after integrating weighted props: all **361 tests** and
+  the production build passed, followed by repeated real relay, pixel, fallback
+  and body-join checks. In a separate run after the test workload ended, guest
+  drawing CPU time with two holes was 2.3 ms at the 95th percentile. Guest rAF
+  callback intervals were 13.9 ms median / 14 ms p95 with two holes, 13.8 / 13.9 ms
+  with one, and 7 / 14 ms without a hole. These are QA-machine scheduling and CPU
+  measurements, not a guarantee of displayed frame rate on another device.
+  Published gameplay revision: `ea170c08f065c5044ac314592fec669405ff3338`.
+  Pages run `34481478107` passed tests, server tests, build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34481478107.
+  All 15 published files matched `bonk-club-qa/lens-release/dist` from the exact
+  committed source archive. JS: `index-BGZi4lyb.js`; CSS: `index-CUMQZt1D.css`.
+  The public game passed solo start, movement, jumping and menu checks without
+  page errors. The task's development server was stopped. Protocol remains 20;
+  refresh all players to see the same new artwork.
 
 ## Weighted props - 10 September 2026
 
