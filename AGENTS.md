@@ -59,8 +59,12 @@ Keep this constitution for durable rules and the handoff for current work.
   permanent crouch-walking, rigid canned animation and purely cosmetic knockback.
 - Preserve keyboard/mouse, controller and usable mobile touch controls. Left click
   punches/fires, S lies down, F throws. Pickups are automatic. Touch uses movement
-  drags, jump swipes, aim/fire gestures and double-tap to throw; keep simultaneous
-  movement and firing possible. Support portrait and landscape without page drag.
+  drags, jump swipes, aim/fire gestures and double-tap to throw, plus visible Jump,
+  Throw and hold-to-Lie-down buttons. Keep simultaneous movement and firing possible.
+  Mobile play uses landscape. Request fullscreen and landscape locking from Join
+  and Start taps; show a rotate-phone prompt when locking is unavailable. Keep the
+  game menu reachable in portrait and prevent page drag. Browser refusal must never
+  prevent a room connection or pause the simulation.
 - Empty hands alone can parry: one short window, one stopped hit/reflected shot,
   then a cooldown. Holding does not repeat it. Weapons, including melee weapons,
   cannot block. Some weapons may have explicit alternate fire instead.

@@ -94,7 +94,7 @@
               ><i></i
             ></span>
             <span class="touch-label"
-              ><b>MOVE</b><small>Swipe ↑ jump · ↓ lie down</small></span
+              ><b>MOVE</b><small>Swipe ↑ to jump</small></span
             >
           </div>
           <div
@@ -106,10 +106,20 @@
               ><i></i
             ></span>
             <span class="touch-label"
-              ><b>AIM / FIRE</b><small>Double-tap to throw</small></span
+              ><b>AIM / FIRE</b><small>Drag to aim · hold to fire</small></span
             >
           </div>
-          <button id="touch-block" aria-label="Tap to parry one hit">PARRY</button>
+          <button id="touch-jump" class="touch-action" aria-label="Jump; tap again to double jump"><span aria-hidden="true">↑</span>JUMP</button>
+          <button id="touch-throw" class="touch-action" aria-label="Throw weapon">THROW</button>
+          <button id="touch-duck" class="touch-action" aria-label="Hold to lie down">LIE DOWN</button>
+          <button id="touch-block" class="touch-action" aria-label="Tap to parry one hit">PARRY</button>
+        </div>
+        <div id="rotate-screen" class="hidden" role="region" aria-labelledby="rotate-title">
+          <svg viewBox="0 0 80 64" width="80" height="64" aria-hidden="true"><rect x="10" y="14" width="60" height="36" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 29v7m46-7v7M31 5h18m-5-4 5 4-5 4M49 59H31m5-4-5 4 5 4" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+          <h2 id="rotate-title">Rotate your phone</h2>
+          <p>Turn your phone sideways to play.</p>
+          <button id="rotate-fullscreen" class="button primary">FULLSCREEN</button>
+          <button id="rotate-menu" class="button secondary">GAME MENU</button>
         </div>
       </main>
       <footer><span id="footer-hint"></span></footer>

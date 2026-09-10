@@ -150,6 +150,58 @@ test("another finger cannot steal a thumb area", () => {
   assert.equal(t.read(25).right, false);
 });
 
+test("jump button supports two distinct jumps while both sticks remain held", () => {
+  const t = new TouchControls();
+  t.down("move", 1, 80, 300, 0);
+  t.update(1, 130, 300, 10);
+  t.down("aim", 2, 350, 300, 0);
+  t.update(2, 380, 270, 10);
+  t.down("jump", 3, 250, 200, 20);
+  t.up(3, 30);
+  assert.equal(t.read(30).jump, true);
+  assert.equal(t.read(170).jump, false);
+  t.down("jump", 3, 250, 200, 180);
+  assert.equal(t.read(200).jump, true);
+  assert.equal(t.read(200).right, true);
+  assert.equal(t.read(200).attack, true);
+  assert.equal(t.read(500).jump, false, "holding does not auto-jump");
+});
+
+test("throw button suppresses fire and pending taps without losing movement or aim", () => {
+  const t = new TouchControls();
+  t.down("move", 1, 80, 300, 0);
+  t.update(1, 130, 300, 10);
+  t.down("aim", 2, 350, 300, 0);
+  t.update(2, 380, 270, 10);
+  t.down("throw", 3, 250, 200, 20);
+  t.up(3, 30);
+  const input = t.read(30);
+  assert.equal(input.throw, true);
+  assert.equal(input.attack, false);
+  assert.equal(input.right, true);
+  assert.ok(Math.abs(input.aim + Math.PI / 4) < .001);
+  t.up(2, 40);
+  assert.equal(t.read(300).attack, false);
+  t.down("aim", 4, 350, 300, 400);
+  t.up(4, 420);
+  t.down("throw", 5, 250, 200, 450);
+  t.up(5, 460);
+  assert.equal(t.read(900).attack, false);
+});
+
+test("lie-down button releases on cancellation and reset clears all action buttons", () => {
+  const t = new TouchControls();
+  t.down("duck", 1, 200, 300, 0);
+  assert.equal(t.read(10).duck, true);
+  t.up(1, 20, true);
+  assert.equal(t.read(30).duck, false);
+  t.down("duck", 1, 200, 300, 40);
+  t.down("jump", 2, 300, 300, 40);
+  t.down("throw", 3, 300, 400, 40);
+  t.reset();
+  assert.deepEqual(t.read(50), emptyInput());
+});
+
 test("touch inputs drive the real movement, two jumps and weapon throw without consuming ammo", () => {
   const w = new World({ arena: 0, shuffle: false });
   w.phase = "fight";

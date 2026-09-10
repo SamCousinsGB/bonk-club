@@ -31,6 +31,7 @@ import { Renderer } from "./renderer.js";
 import { Sound } from "./audio.js";
 import { Room, validCode } from "./network.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
+import { MobileScreen } from "./mobile-screen.js";
 import { gameViewport, screenToWorld } from "./viewport.js";
 import { SUDDEN_DEATH } from "./scale.js";
 
@@ -53,6 +54,19 @@ const renderer = new Renderer($("#game")),
   touchControls = new TouchControls();
 let touchInput = emptyInput();
 let touchDevice = matchMedia("(pointer: coarse)").matches;
+const mobileScreen = new MobileScreen();
+const portraitScreen = matchMedia("(orientation: portrait)");
+function enterMobileScreen() {
+  if (touchDevice) void mobileScreen.enter();
+}
+async function requestMobileFullscreen() {
+  await mobileScreen.enter();
+  if (!mobileScreen.fullscreen)
+    toast("Fullscreen is unavailable in this browser. The game will use the available screen.");
+}
+function needsRotation() {
+  return playing && touchDevice && portraitScreen.matches;
+}
 document.body.classList.toggle("touch-device", touchDevice);
 let world = null,
   room = null,
@@ -112,7 +126,7 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
-  if (view || document.hidden) return emptyInput();
+  if (view || needsRotation() || document.hidden) return emptyInput();
   if (device === "touch") return { ...touchInput };
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
@@ -215,6 +229,7 @@ function setPlaying(value) {
     : "";
 }
 function home() {
+  mobileScreen.release();
   searchId++;
   room?.close();
   room = null;
@@ -251,6 +266,7 @@ function arenaMenu() {
   $("#arena-close").onclick = hidePanel;
 }
 function startWorld(ids) {
+  enterMobileScreen();
   const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
@@ -521,6 +537,7 @@ function connectionDetails(back) {
   };
 }
 async function quickMatch() {
+  enterMobileScreen();
   solo = false;
   room?.close();
   room = null;
@@ -641,6 +658,7 @@ async function connectRoom(code) {
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
+  enterMobileScreen();
   room?.close();
   const next = new Room(roomCallbacks(), undefined, roomOptions());
   room = next;
@@ -698,7 +716,7 @@ function help(back = hidePanel) {
   showPanel(
     "help",
     heading("Controls") +
-      `<div class="touch-help"><h3>TOUCH</h3><p><b>Left side:</b> drag left or right to move. Release to stop. Swipe up to jump; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Right side:</b> drag in any direction to aim and fire, or hold to fire in the current direction. Double-tap to throw your weapon.</p><p><b>Parry / alternate fire:</b> the button parries one hit with empty hands. With a shotgun or plasma cannon it fires the alternate shot. Other weapons have no secondary button. Weapons are picked up automatically. Landscape shows the full arena; portrait follows your player with an overview of the arena.</p></div>` +
+      `<div class="touch-help"><h3>TOUCH</h3><p><b>Move:</b> drag the left stick left or right. Release to stop. Swipe up to jump while moving; swipe up again for a second jump.</p><p><b>Aim / fire:</b> drag the right stick in the direction you want to shoot. Hold to keep firing; release to stop. You can move and fire at the same time.</p><p><b>Buttons:</b> tap Jump, then tap again to double jump. Tap Throw to release your weapon. Hold Lie down to stay prone. Dragging the left stick down and double-tapping the right stick still work.</p><p><b>Parry / alternate fire:</b> parry one hit with empty hands. Shotgun and plasma cannon show their alternate shot instead. Pickups are automatic.</p><p>Play with your phone sideways. Joining or starting requests fullscreen and landscape where supported. If fullscreen closes, open Game menu and tap Fullscreen. The game continues while you rotate or use menus.</p></div>` +
       `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire</p><p>Right click / <span class="key">G</span> Parry / alternate fire</p><p><span class="key">F</span> Throw weapon</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT parries with fists or uses alternate fire. Y / triangle throws the weapon. Right stick aims. Hold LB or D-pad down to lie down.</p><p>With empty hands, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns, ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a large blast, a map-wide pressure wave and six marked secondary detonations. Breakable floors collapse as the wave arrives. Solid walls reduce nuclear damage but do not stop the pressure wave. The round waits for the 4.8-second sequence to finish. Leaving the arena also triggers detonation. The blast and shockwave can hurt you.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks provide breakable cover. Elevators carry players between floors. Explosions hurt everyone, including you. Marked wooden and glass floor panels can be shot out, dropping anyone above them. Solid supports and lifts stay intact. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
@@ -716,7 +734,14 @@ function gameMenu(forceOpen = false) {
       `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CHARACTER</button><button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
-  $("#resume").onclick = hidePanel;
+  $("#resume").onclick = () => {
+    enterMobileScreen();
+    hidePanel();
+  };
+  if (touchDevice && mobileScreen.supported && !mobileScreen.fullscreen) {
+    $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
+    $("#game-fullscreen").onclick = () => { void requestMobileFullscreen(); hidePanel(); };
+  }
   $("#leave").onclick = home;
   $("#pause-help").onclick = () => help(hidePanel);
   $("#edit-character").onclick = characterMenu;
@@ -781,7 +806,7 @@ function simulate(now) {
   const dt = Math.max(0, Math.min((now - simulationLast) / 1000, 1));
   simulationLast = now;
   touchInput =
-    canUseTouch() && !view && !document.hidden
+    canUseTouch() && !view && !needsRotation() && !document.hidden
       ? touchControls.read(now)
       : emptyInput();
   netClock += dt;
@@ -857,6 +882,10 @@ $("#sound").onclick = () => {
   toast(sound.muted ? "Sound off." : "Sound on.");
 };
 $("#fullscreen").onclick = async () => {
+  if (touchDevice && !mobileScreen.fullscreen) {
+    await requestMobileFullscreen();
+    return;
+  }
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
     else await $("#app").requestFullscreen();
@@ -949,7 +978,9 @@ let touchSecondaryKey = "";
 function syncTouchUi() {
   const active = canUseTouch();
   document.body.classList.toggle("touch-playing", active);
-  $("#touch-controls").classList.toggle("hidden", !active || !!view);
+  $("#touch-controls").classList.toggle("hidden", !active || !!view || needsRotation());
+  $("#rotate-screen").classList.toggle("hidden", !needsRotation() || !!view);
+  $("#rotate-fullscreen").classList.toggle("hidden", !mobileScreen.supported || mobileScreen.fullscreen);
   $("#overview").classList.toggle("hidden", !active || !!view);
 }
 function measureGame() {
@@ -968,6 +999,11 @@ bindTouchButtons(document);
 const resizeGame = new ResizeObserver(measureGame);
 resizeGame.observe(canvas);
 window.addEventListener("orientationchange", clearInput);
+portraitScreen.addEventListener("change", () => { clearInput(); syncTouchUi(); });
+document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); });
+document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); });
+$("#rotate-fullscreen").onclick = () => { void requestMobileFullscreen(); };
+$("#rotate-menu").onclick = gameMenu;
 window.addEventListener(
   "pointerdown",
   (e) => {
@@ -983,11 +1019,16 @@ for (const [id, zone] of [
   ["move-zone", "move"],
   ["aim-zone", "aim"],
   ["touch-block", "block"],
+  ["touch-jump", "jump"],
+  ["touch-throw", "throw"],
+  ["touch-duck", "duck"],
 ]) {
   bindTouchZone($("#" + id), zone, touchControls, {
     enabled: () =>
       canUseTouch() &&
       !view &&
+      !needsRotation() &&
+      (zone !== "throw" || !!ownPlayer()?.weapon) &&
       (zone !== "block" || !!secondaryAction(ownPlayer())),
     wake: unlock,
   });
@@ -995,7 +1036,7 @@ for (const [id, zone] of [
 function updateTouchView(state, dt) {
   const active = canUseTouch(),
     follow = active && matchMedia("(orientation: portrait)").matches;
-  $("#touch-controls").classList.toggle("hidden", !active || !!view);
+  $("#touch-controls").classList.toggle("hidden", !active || !!view || needsRotation());
   if (!active) {
     currentViewport = gameViewport(gameRect.width, gameRect.height);
     canvas.style.objectPosition = "50% 50%";
@@ -1040,6 +1081,11 @@ function updateTouchView(state, dt) {
     }
   }
   const action = secondaryAction(ownPlayer(state));
+  for (const name of ["jump", "throw", "duck"]) {
+    const button = $("#touch-" + name);
+    button.classList.toggle("pressed", !!touchInput[name]);
+    if (name === "throw") button.disabled = !ownPlayer(state)?.weapon;
+  }
   const actionKey =
     (ownPlayer(state)?.weapon || "fists") + ":" + (action?.label || "");
   if (actionKey !== touchSecondaryKey) {
@@ -1106,8 +1152,15 @@ setInterval(() => {
   if (room && !room.host) room.ping();
 }, 2000);
 requestAnimationFrame(frame);
-if (validCode(new URLSearchParams(location.search).get("room")?.toUpperCase()))
-  connectRoom(new URLSearchParams(location.search).get("room").toUpperCase());
+const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase();
+if (validCode(inviteCode)) {
+  if (touchDevice) {
+    // The tap supplies browser activation before any asynchronous room work.
+    showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
+    $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
+    $("#back").onclick = home;
+  } else connectRoom(inviteCode);
+}
 if (import.meta.hot)
   import.meta.hot.dispose(() => {
     room?.close();

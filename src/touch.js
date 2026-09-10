@@ -15,6 +15,7 @@ export class TouchControls {
     this.move = null;
     this.aim = null;
     this.blocks = new Set();
+    this.buttons = new Map();
     this.lastAim = null;
     this.tap = null;
     this.pulses = { jump: [], attack: [], throw: [] };
@@ -34,6 +35,16 @@ export class TouchControls {
   }
   down(zone, id, x, y, now) {
     this.flushTap(now);
+    if (["jump", "throw", "duck"].includes(zone)) {
+      if (this.buttons.has(id)) return false;
+      this.buttons.set(id, zone);
+      if (zone !== "duck") this.pulse(zone, now);
+      if (zone === "throw") {
+        this.tap = null;
+        this.pulses.attack = [];
+      }
+      return true;
+    }
     if (zone === "block") {
       this.tap = null;
       this.pulses.attack = [];
@@ -87,6 +98,7 @@ export class TouchControls {
     }
   }
   up(id, now, cancelled = false) {
+    this.buttons.delete(id);
     this.blocks.delete(id);
     if (this.move?.id === id) {
       this.move = null;
@@ -115,6 +127,7 @@ export class TouchControls {
       out.duck = p.y - p.oy > SWIPE + 8;
     }
     out.aim = this.lastAim;
+    out.duck ||= [...this.buttons.values()].includes("duck");
     out.block = this.blocks.size > 0;
     for (const [action, queue] of Object.entries(this.pulses)) {
       this.pulses[action] = queue.filter((p) => p.end > now);
@@ -174,7 +187,7 @@ export function bindTouchButtons(root, clock = () => performance.now()) {
   const down = (e) => {
     if (e.pointerType !== "touch") return;
     const button = buttonAt(e.target);
-    if (!button || button.disabled || button.id === "touch-block") return;
+    if (!button || button.disabled || button.id?.startsWith("touch-")) return;
     pointers.set(e.pointerId, {
       button,
       x: e.clientX,
