@@ -22,7 +22,8 @@ import {
   projectileImpact,
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
-import { preparePlatforms } from "./terrain.js";
+import { preparePlatforms, carveExplosion } from "./terrain.js";
+import { firePhaser } from "./phaser.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { BotController } from "./bots.js";
@@ -115,6 +116,8 @@ export class World {
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
     this.terrainVersion = 0;
+    this.terrainSerial = 0;
+    this.spikeTerrain = null;
     this.craters = [];
     this.craterSerial = 0;
     this.wreckage=[];this.rifts=[];this.wreckSerial=0;this.riftSerial=0;this.wreckDirty=false;this.warpActive=false;
@@ -670,7 +673,8 @@ export class World {
       p.meleeMove = "weapon";
       p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
-      for (let n = 0; n < count; n++) {
+      if (w.kind === "phaser") firePhaser(this, p, ax, ay);
+      for (let n = 0; n < (w.kind === "phaser" ? 0 : count); n++) {
         const spread =
           count > 1
             ? (n - (count - 1) / 2) *
@@ -771,7 +775,7 @@ export class World {
     if (q.freeze>0 && options.effect !== "ice" && damage>=20) {
       damage*=1.5;q.freeze=0;options={...options,effect:"ice"};
     }
-    if(options.effect==="plasma"||options.effect==="tesla"){q.xray=.32;q.xrayType=options.effect;}
+    if(["plasma","tesla","phaser"].includes(options.effect)){q.xray=.32;q.xrayType=options.effect;}
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
@@ -801,7 +805,7 @@ export class World {
       projectile: !!options.projectile, blast: !!options.blast, effect:options.effect||null,
     });
     if (q.hp <= 0) this.kill(q,{effect:options.execute?"slice":options.effect,
-      ash:["plasma","tesla","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
+      ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
   }
   kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0} = {}) {
     if (!p.alive) return;
@@ -1061,15 +1065,15 @@ export class World {
     }
     const radius = b.radius || 145;
     // Cover present at detonation absorbs this blast, even if the blast breaks it.
-    const cover = [...this.cover.filter(c => c.hp > 0), ...this.chunks.filter(c => c.hp > 0),
-      ...this.platforms.filter(breakable)];
-    const solidWalls = this.platforms.filter((p) => !p.destructible);
+    const cover = [...this.cover, ...this.chunks].filter(c => c.hp > 0);
+    const shielding = this.cover.flatMap(propSolids);
+    const solidWalls = this.platforms.filter(p => p.hp !== 0);
     for (const p of this.players) {
       if (!p.alive) continue;
       const dist = Math.hypot(p.x - b.x, p.y - b.y);
       const walls = solidWalls.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
       if (dist >= radius || walls) continue;
-      const shield = cover.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
+      const shield = shielding.some((s) => segmentBox(b.x, b.y, p.x, p.y, s));
       const scale = (1 - dist / (radius * 1.32)) * (shield ? 0.12 : 1);
       this.hit(
         p,
@@ -1097,6 +1101,7 @@ export class World {
           {x,y},
         );
     }
+    carveExplosion(this, { x: b.x, y: b.y, radius });
     this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }
   updateProjectiles(dt) {
@@ -1136,7 +1141,7 @@ export class World {
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (s) {
-          if (breakable(s) && !b.nuclear) {
+          if (breakable(s) && !this.platforms.includes(s) && !b.nuclear) {
             this.damageCover(
               s,
               b.kind === "rail" ? 180 : b.damage,
@@ -1286,7 +1291,7 @@ export class World {
     this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
   }
   spikes() {
-    let spikes = this.arena.spikes;
+    let spikes = this.spikeTerrain || this.arena.spikes;
     for (const f of [...this.craters.filter(f=>this.time-f.born>=NUCLEAR.meltAt),...this.rifts]) {
       spikes = spikes.flatMap(s => carveRectangle({...s,h:.5},f));
     }
@@ -1296,6 +1301,7 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
+      spikes: this.spikes(),
       cover: this.cover,
       debris: this.debris,
       chunks: this.chunks,

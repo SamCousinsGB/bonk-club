@@ -103,6 +103,12 @@ export class Sound {
     }
     if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
       const kind = detail.kind || type;
+      if (kind === "phaser") {
+        this.tone(520, 85, .42, .35, "sawtooth");
+        this.tone(1040, 210, .35, .18, "sine");
+        this.rumble(.35, .45, 850);
+        return;
+      }
       const heavy = detail.heavy || ["rocket", "rail", "plasma", "pellet"].includes(kind);
       this.tone(kind === "rail" ? 820 : kind === "plasma" ? 360 : 185,
         kind === "rail" ? 60 : 38, heavy ? 0.34 : 0.14, heavy ? 0.5 : 0.25, "triangle");

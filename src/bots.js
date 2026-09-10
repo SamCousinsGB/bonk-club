@@ -30,6 +30,7 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
+  if (w.kind === "phaser") return w.range;
   if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
   if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
   const life = w.life || (w.kind === "rail" ? 0.8 : 4.5);
@@ -283,7 +284,7 @@ export class BotController {
       ? intercept(p, perception.enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
     i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
-    const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
+    const obstacle = p.weapon === "phaser" ? null : firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
     i.attack =
       range < weapon.range &&
       (!obstacle || breakable(obstacle)) &&
@@ -508,19 +509,20 @@ export class BotController {
       i.right = enemy.x > p.x + 34;
     }
 
-    // Remove a marked floor under a target or a breakable ceiling blocking a short route.
+    // Only explosive shots can open terrain. Ordinary guns must find a route.
+    const canBreach = weapon.blast && !grenade && !weapon.singularity;
     const support = choice.floor;
     const breach =
-      support?.destructible &&
-      support.hp > 0 &&
+      canBreach && support &&
+      support.hp !== 0 &&
       support.id !== here?.id &&
       enemy.y < p.y - 55
         ? support
         : null;
     const ceiling = solids.find(
       (s) =>
-        s.destructible &&
-        s.hp > 0 &&
+        canBreach && world.platforms.includes(s) &&
+        s.hp !== 0 &&
         s.y + s.h < p.y - 25 &&
         s.y + s.h > p.y - 200 &&
         p.x > s.x - 90 &&

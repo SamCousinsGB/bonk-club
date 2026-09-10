@@ -2,6 +2,57 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Explosion terrain and nuclear visuals - 10 September 2026
+
+Current pass: `codex/terrain-craters` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-terrain`. It was isolated when
+concurrent melee and black-hole-art work appeared in the canonical checkout.
+Those changes and the PHASER cannon were preserved from GitHub main in this release.
+
+- Every platform is carved by circular ordinary explosions as well as nukes.
+  Repeated blasts excavate the remaining material, including structural walls,
+  stairs, wood/glass sections and lifts. Bullets and nonexplosive projectiles do
+  not damage terrain; ordinary furniture keeps its existing breakable behavior.
+- Collision, navigation invalidation, supported fighters, traps and spikes follow
+  destruction. Cut lifts become fixed pieces. Exploded warped wreckage is removed
+  from both its artwork and its collider source so it cannot regenerate next tick.
+- Fragment identities stay short and unique through repeated cuts. The original
+  surface identity groups rendering, avoiding repeated trim on collision strips.
+  Snapshots carry surviving spike geometry. **Protocol 19: refresh all players.**
+- Replaced the fixed mushroom artwork and crater tint with a spherical pressure
+  front, an incandescent rising fireball and separately rolling, textured smoke
+  billows. No persistent glowing rim or radiation disk. The original 480 radius,
+  skeleton/ash deaths and 12-second total clearing time remain unchanged.
+  Seven cached textures warm individually during idle time before combat.
+- Added tests for every platform in all 24 arenas, 160 repeated blasts per arena,
+  bullet immunity, cumulative cuts, lifts/support, trap/spike removal, warped
+  wreckage, wire validation, hot-join geometry, resets and cloud progression.
+  The isolated pass passed 318 gameplay/network tests and a production build.
+- Real Edge host, mobile guest and a third hot joiner received identical surviving
+  geometry after overlapping explosions. All selected WebRTC candidates used the
+  real Pi relay. Nuclear growth and 12-second clearing were checked in rendered
+  gameplay; browser errors: zero. After idle texture preparation, guest drawing
+  cost was 0.4 ms at the 95th percentile and 0.7 ms maximum during this check.
+  These are drawing CPU times on the QA PC, not FPS or physical-phone performance.
+- QA helpers/screenshots: `bonk-club-qa/terrain-visual.cjs`, `terrain-online.cjs`,
+  `terrain-nuke-*.png`, `terrain-online-*.png`, `terrain-craters.png`.
+  Hooks exist only in the external QA scripts. No Pi infrastructure changed.
+- Published gameplay revision: `25a684a8cf2b01a2b5110e819f29439c23824c16`.
+  Includes the concurrent melee, original-art black-hole and PHASER releases.
+  Final combined validation: **340 gameplay/network tests**, CI server tests,
+  production build and real three-browser relay checks all passed. In the final
+  combined browser run, guest draw CPU time was 0.8 ms at the 95th percentile.
+- Pages run `34478453160` succeeded:
+  `https://github.com/SamCousinsGB/bonk-club/actions/runs/34478453160`.
+  All **15 public files** matched the exact committed build byte for byte.
+  JS: `index-DurcXg25.js`; CSS: `index-CUMQZt1D.css`.
+  Exact source archive/build: `bonk-club-qa/terrain-release-25a684a`.
+- The published game passed host/guest lobby, slot changes, hot join, leave/rejoin,
+  mobile viewport and selected TURN-relay checks without browser errors.
+  `terrain-public.cjs` checks the public bundle without source hooks;
+  `verify-terrain-live.py` verifies all published files. The temporary Vite server
+  for this pass was stopped. The isolated branch is clean after recording this release.
+
 ## Black-hole artwork correction — 10 September 2026
 
 Bent wreckage now reuses the normal platform, furniture and hazard renderers.
@@ -39,6 +90,76 @@ All 15 public files matched the exact committed build in
 passed browser checks for solo start, movement, jumping and the game menu with
 no page errors. The task's local Vite server was stopped. Later main releases
 may supersede these asset names; retain this correction when integrating them.
+
+## PHASER cannon — 10 September 2026
+
+Implemented in `bonk-club-phaser`, branch `codex/phaser-cannon`, to preserve the
+concurrent terrain and melee changes in the canonical checkout.
+
+- New exotic PHASER CANNON pickup, included in the featured weapon rotation.
+  Two shots, 1.8-second cooldown, 144-unit-wide directional beam to the arena edge.
+- Each discharge hits each living opponent once for 38 damage, with a brief
+  skeleton reveal, modest knockback and 45 ms stun. Low-health kills leave an
+  energy skeleton. The 0.42-second visual does not repeatedly damage players.
+  Jumping above the beam avoids it; a hit fighter can air-jump and land below.
+- The beam carves actual platforms at any angle, including structural terrain
+  and elevators, and consumes intersected props, traps, spike teeth, loose
+  weapons, projectiles, corpses and warped wreckage. Remaining terrain is drawn
+  from the same rectangles used by collision; cuts persist until round reset.
+  Distant scenery remains. Bots can fire through obstructing terrain.
+- `src/phaser.js` owns beam geometry and authoritative destruction;
+  `src/phaser-art.js` draws the beam. Spike geometry is included in snapshots.
+  Protocol **19** reserves compatibility separately from the concurrent terrain
+  work's protocol 18. Both players must refresh after this release.
+- Initial verification: 319 gameplay/network tests passed, production build
+  passed, and three real Edge pages connected through selected TURN relay
+  candidates. Actual host mouse fire and guest keyboard jump/landing passed;
+  the guest saw 62 HP, the low-HP death, beam and skeleton effect. A third browser
+  hot joined with identical surviving terrain and spikes. Screenshots inspected.
+- QA helper and captures: `../bonk-club-qa/phaser-online.cjs`, `phaser-host.png`,
+  `phaser-guest.png`, `phaser-survivor.png`. Hooks exist only in the external QA
+  helper. Release verification is recorded below after integration and publishing.
+
+## Sword and bat swings — 10 September 2026
+
+- Swords and bats now use a two-handed overhead wind-up, a 3.2-radian forward
+  sweep and a follow-through. The bat takes 0.44 seconds and the sword 0.34;
+  their existing attack cooldowns, damage and ammunition counts are preserved.
+- `src/melee-pose.js` shares weapon angles and lengths between the procedural
+  arm motors, renderer and authoritative blade contact checks. Contacts sweep
+  between simulation frames, wait for the wind-up, stop during recovery, and
+  respect solid cover. Each opponent and cover object is hit once per swing.
+  Parrying or throwing cancels the remaining held-weapon contacts.
+- The final weapon use stays visible through the animation before returning to
+  fists. Zero remaining uses cannot produce another attack or a thrown weapon.
+  Guest snapshots interpolate an ongoing swing without blending into a new one.
+  The existing wire shape and protocol **17** are unchanged. Refresh both tabs
+  to see the updated animation consistently.
+- All **321 gameplay/network tests passed** on an isolated source export,
+  including 11 new swing tests. Production build passed with the published
+  room and TURN endpoints. Actual rendered frames were inspected for both
+  weapons facing both directions. Two real Edge browsers verified each final
+  weapon swing, its full arc, exactly one hit and eventual removal through the
+  Pi relay; selected relay candidates were checked at both ends, with no errors.
+- Gameplay commit: `842241e57457a1f2817d79543f49f71cca59755b`.
+  Published in combined revision `62fccd27283351e8501c4c7adb1a6bd967bb23cb`,
+  which also contains the separately completed black-hole artwork changes.
+  Pages run `34477944690` passed **323 game tests, 3 server tests**, build and
+  deployment: `https://github.com/SamCousinsGB/bonk-club/actions/runs/34477944690`.
+  All **15 public files matched the tested CI artifact byte for byte**;
+  JavaScript: `index-BY5fGDJW.js`, CSS: `index-CUMQZt1D.css`. Public host/guest
+  gameplay, lobby slots, hot join, leave/rejoin and mobile viewport checks passed
+  through verified relay candidates without browser errors. The CI artifact is
+  in `bonk-club-qa/melee-ci-62fccd2`; the earlier melee-only build was superseded
+  by this combined deployment after its own CI tests and build passed.
+- QA scripts and screenshots are outside Git in `bonk-club-qa`:
+  `melee-visual.cjs`, `melee-online.cjs`, `melee-swing-poses.png`,
+  `melee-online-guest.png` and `verify-melee-live.cjs`. The tested source/build
+  export is `melee-release-20260910`. No production debug hooks were added.
+- Separate explosion/terrain work was in progress in the canonical checkout.
+  Its `src/network.js`, `src/nuclear.js` and `src/terrain.js` edits were preserved
+  and excluded from this gameplay commit. Release notes use the separate
+  `bonk-club-qa/melee-notes` worktree; inspect current Git status before continuing.
 
 ## Start here
 

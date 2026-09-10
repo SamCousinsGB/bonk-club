@@ -98,7 +98,7 @@ test("AI chooses a reachable opponent over one behind an unreachable solid floor
   assert.equal(w.players[0].hp, 100);
   assert.ok(w.players[2].hp < 100);
 });
-test("AI shoots out a fragile platform supporting an opponent", () => {
+test("AI does not waste ordinary ammunition trying to shoot out a floor", () => {
   const w = fixture();
   const panel = floor("panel", 690, 660, 220, {
     destructible: true,
@@ -122,9 +122,9 @@ test("AI shoots out a fragile platform supporting an opponent", () => {
     ammo: 14,
   });
   advance(w, 2);
-  assert.equal(panel.hp, 0);
-  assert.ok(w.players[0].y > 700, "target falls through the destroyed floor");
-  assert.ok(w.terrainVersion > 0);
+  assert.equal(panel.hp, 65);
+  assert.equal(w.terrainVersion, 0);
+  assert.equal(w.players[1].ammo, 14);
 });
 test("AI upgrades a melee weapon to a nearby ranged weapon for a distant opponent", () => {
   const w = fixture();
@@ -198,7 +198,7 @@ test("wide furniture is attacked at its surface instead of trapping an unarmed A
   assert.equal(w.cover[0].hp, 0);
   assert.ok(w.players[1].x > 950);
 });
-test("all arenas have clearly identified destructible panels and permanent supports", () => {
+test("all arenas preserve their wood and glass materials alongside structural surfaces", () => {
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena });
     const panels = w.platforms.filter((p) => p.destructible);
@@ -261,7 +261,7 @@ test("destroying a floor drops its player, furniture and weapon and clears proje
       lock: 5,
     },
   ];
-  w.damageCover(panel, 150);
+  w.explode({x:595,y:511,radius:145,damage:0,force:0});
   w.projectiles = [
     {
       x: 520,
@@ -284,7 +284,7 @@ test("destroying a floor drops its player, furniture and weapon and clears proje
   assert.ok(!w.solids().includes(panel));
   assert.ok(w.projectiles[0]?.y > 700, "shots pass through the opening");
 });
-test("explosions can break floor panels but structural floors remain solid", () => {
+test("explosions carve panels and structural floors while distant terrain remains solid", () => {
   const w = fixture();
   const panel = floor("panel", 600, 600, 180, {
     destructible: true,
@@ -295,16 +295,19 @@ test("explosions can break floor panels but structural floors remain solid", () 
   const concrete = floor("concrete", 200, 900, 1600);
   w.platforms = [panel, concrete];
   w.explode({ x: 690, y: 640, radius: 160, damage: 80, force: 500 });
-  assert.equal(panel.hp, 0);
+  assert.ok(!w.platforms.includes(panel));
   w.damageCover(concrete, 9999);
   assert.ok(w.solids().includes(concrete));
   assert.equal(concrete.hp, undefined);
+  w.explode({x:1000,y:900,radius:160,damage:0,force:0});
+  assert.ok(!w.platforms.includes(concrete));
+  assert.ok(!w.solids().some(s => s.x < 1000 && s.x+s.w > 1000 && s.y === 900));
 });
 test("new rounds restore floor panels after destruction", () => {
   const w = new World({ arena: 18 });
   const panel = w.platforms.find((p) => p.destructible);
-  w.damageCover(panel, 999);
-  assert.equal(panel.hp, 0);
+  w.explode({x:panel.x+panel.w/2,y:panel.y,radius:220,damage:0,force:0});
+  assert.ok(!w.platforms.includes(panel));
   w.startRound();
   assert.ok(
     w.platforms.filter((p) => p.destructible).every((p) => p.hp === p.maxHp),

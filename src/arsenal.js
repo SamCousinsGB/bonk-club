@@ -162,6 +162,21 @@ export const COMBO = [
   },
 ];
 const additions = {
+  phaser: {
+    name: "PHASER CANNON",
+    kind: "phaser",
+    damage: 38,
+    force: 150,
+    cooldown: 1.8,
+    ammo: 2,
+    speed: 12000,
+    range: 3500,
+    radius: 72,
+    life: .42,
+    recoil: 90,
+    rarity: "exotic",
+    color: "#89ffce",
+  },
   nuke: {
     name: "NUCLEAR GRENADE",
     kind: "grenade",

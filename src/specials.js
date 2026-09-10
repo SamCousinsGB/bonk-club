@@ -131,6 +131,7 @@ export function expireSpecial(world, b) {
 export function updateFields(world, dt) {
   for (const f of world.fields) {
     f.life -= dt;
+    if (f.kind === "phaser") f.age += dt;
     if (f.kind === "shockwave") {
       updateNuclear(world, f, dt);
       continue;

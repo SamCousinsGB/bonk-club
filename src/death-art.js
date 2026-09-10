@@ -84,7 +84,7 @@ function ice(r, pts, alpha = 1) {
 export function drawStatus(r, p, time) {
   if (!p.alive || !p.rig) return;
   if (p.xray > 0) {
-    const color = p.xrayType === "plasma" ? "#8bf5ff" : "#cfabff";
+    const color = p.xrayType === "phaser" ? "#89ffce" : p.xrayType === "plasma" ? "#8bf5ff" : "#cfabff";
     energy(r, p.rig, color, r.reduced ? 0 : time);
     drawAshSkeleton(r, { points: p.rig, life: 1, ashAge: 0 });
   }
@@ -96,12 +96,12 @@ export function drawDeath(r, rag, time) {
     pts = rag.points,
     age = rag.deathAge;
   c.save();
-  if (["plasma", "tesla"].includes(rag.effect)) {
+  if (["plasma", "tesla", "phaser"].includes(rag.effect)) {
     c.globalAlpha = Math.min(1, rag.life);
     energy(
       r,
       pts,
-      rag.effect === "plasma" ? "#80f5ff" : "#c1a0ff",
+      rag.effect === "phaser" ? "#89ffce" : rag.effect === "plasma" ? "#80f5ff" : "#c1a0ff",
       r.reduced ? 0 : time,
     );
     drawAshSkeleton(r, rag);
