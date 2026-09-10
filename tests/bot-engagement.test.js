@@ -68,6 +68,14 @@ test("black hole AI does not deploy into a wall immediately in front of its muzz
   assert.ok(!world.events.some(e => e.type === "shoot"));
 });
 
+test("black hole AI does not bypass deployment clearance when trying to clear nearby furniture", () => {
+  const world = islands("blackhole", 850);
+  world.platforms[0].w = 450;
+  world.cover = [{ id: "crate", kind: "crate", x: 220, y: 1140, w: 80, h: 60, hp: 90, maxHp: 90 }];
+  advance(world, 1.5);
+  assert.ok(!world.events.some(e => e.type === "shoot"), "close furniture must not override the orb's clearance check");
+});
+
 for (const weapon of ["flame", "repulsor", "bat"]) {
   test(`${weapon} AI keeps its actual short reach instead of wasting attacks across a gap`, () => {
     const world = islands(weapon, 1200);

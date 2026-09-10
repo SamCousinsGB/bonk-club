@@ -526,7 +526,7 @@ export class BotController {
         goal.y < p.y - 50,
     );
     const panel = breach || (!path || path.cost > 3 ? ceiling : null);
-    if (panel && !b.flight && !grenade && !staleAttack && (!melee || distance(p,center(panel)) < weapon.range)) {
+    if (panel && !b.flight && !grenade && !weapon.singularity && !staleAttack && (!melee || distance(p,center(panel)) < weapon.range)) {
       const point = {
         x: clamp(enemy.x, panel.x + 10, panel.x + panel.w - 10),
         y: panel.y + panel.h / 2,
@@ -561,7 +561,7 @@ export class BotController {
         y: clamp(p.y - 10, cover.y + 2, cover.y + cover.h - 2),
       };
       i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
-      i.attack = distance(p, point) < weapon.range && !weapon.blast;
+      i.attack = distance(p, point) < weapon.range && !weapon.blast && !weapon.singularity;
       // Use the planned jump onto/over furniture; never jump blindly under a ceiling.
       if (weapon.blast) i.throw = true;
     }
