@@ -2,6 +2,44 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Black-hole artwork correction — 10 September 2026
+
+Bent wreckage now reuses the normal platform, furniture and hazard renderers.
+The previous grey/purple fill, pale outline, centre line and bend-point crossbars
+are removed. Cached artwork follows the existing physical ribbon; material
+colours, glass transparency, foliage and lift details remain recognizable.
+Triangle coverage is combined before compositing each piece to avoid visible
+mesh seams. The material cache is capped at 120 entries and one reusable drawing
+buffer at 1024 pixels per side. Physics and collision geometry are unchanged.
+
+Torn props retain their original furniture kind and platforms retain their lift
+flag. These optional, validated snapshot fields preserve compatibility with
+protocol 17. Refresh all players for consistent new artwork.
+
+The correction was isolated in `bonk-club-bend-art`, branch
+`codex/bend-original-art`, after concurrent tasks changed overlapping files and
+the branch in the canonical checkout. Only this correction's files were moved;
+the other tasks' edits were preserved.
+
+Verification: 312 gameplay/network tests passed for the isolated fix, then 323
+passed after integrating the latest melee release from main. Production builds passed.
+Browser pixel comparisons covered nine materials including glass; actual
+gameplay screenshots covered jungle, temple, desert, houses, hospital and volcano
+maps. Real host, mobile guest and late-joining browsers received matching warped
+geometry and furniture/lift identities through the Pi relay with no page errors.
+Guest drawing CPU time was 2.7 ms at the 95th percentile on the QA machine; this
+is not FPS or internet latency. QA helpers and screenshots are in the existing
+`bonk-club-qa` directory with the `bend-` prefix.
+
+Published revision: `62fccd27283351e8501c4c7adb1a6bd967bb23cb`. Pages run
+`34477944690` passed gameplay tests, server tests, build and deployment:
+https://github.com/SamCousinsGB/bonk-club/actions/runs/34477944690.
+All 15 public files matched the exact committed build in
+`bonk-club-qa/bend-release/dist`; JS is `index-BY5fGDJW.js`. The public game
+passed browser checks for solo start, movement, jumping and the game menu with
+no page errors. The task's local Vite server was stopped. Later main releases
+may supersede these asset names; retain this correction when integrating them.
+
 ## Start here
 
 The canonical checkout is `C:\Users\SamCo\Documents\ChatGPT\bonk.club`.

@@ -1,3 +1,4 @@
+import { meleePose } from "./melee-pose.js";
 // An active ragdoll: eleven Verlet particles, ten distance joints and spring motors.
 // Motors suggest a pose; inertia, joints, impacts and ground contacts determine it.
 export const JOINTS = [
@@ -121,9 +122,16 @@ export function updateRig(p, dt, platforms, time) {
     footA = [hip[0] - Math.cos(turn) * 26, hip[1] + 25];
   }
   let handA, handB;
+  const melee = meleePose(p);
   if (p.block) {
     handA = [neck[0] + dx * 29 - dy * 10, neck[1] + dy * 29 + dx * 10];
     handB = [neck[0] + dx * 28 + dy * 8, neck[1] + dy * 28 - dx * 8];
+  } else if (melee) {
+    // Drive both hands around the shoulder; the joints still respond to impacts.
+    handB = [neck[0] + Math.cos(melee.armAngle) * 32,
+      neck[1] + Math.sin(melee.armAngle) * 32];
+    handA = [handB[0] - Math.cos(melee.angle) * 9,
+      handB[1] - Math.sin(melee.angle) * 9];
   } else if (p.weapon) {
     handA = [neck[0] + dx * 29 - dy * 5, neck[1] + dy * 29 + dx * 5];
     handB = [neck[0] + dx * (32 + swing * 4), neck[1] + dy * (32 + swing * 4)];

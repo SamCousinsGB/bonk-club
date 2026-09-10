@@ -20,6 +20,7 @@ import {
 import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
 import { drawChunks } from "./prop-art.js";
+import { meleePose, SWING_START } from "./melee-pose.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -473,12 +474,13 @@ export class Renderer {
     }
     c.restore();
   }
-  weapon(type, x, y, facing = 1, angle = 0, scale = 1) {
+  weapon(type, x, y, facing = 1, angle = 0, scale = 1, lengthScale = 1) {
     const c = this.ctx;
     c.save();
     c.translate(x, y);
     c.scale(facing * scale, scale);
     c.rotate(angle);
+    c.scale(lengthScale, 1);
     c.lineCap = "round";
     drawNewWeapon(this, type);
     if (type === "bat") {
@@ -729,7 +731,22 @@ export class Renderer {
     );
     if (p.weapon) {
       const hand = rig[6];
-      this.weapon(p.weapon, hand.x - p.x, hand.y - p.y, 1, angle);
+      const melee = meleePose(p);
+      if (melee?.active) {
+        const tail = meleePose(p, Math.max(SWING_START, melee.progress - 0.12));
+        c.save();
+        c.strokeStyle = p.weapon === "sword" ? "#e9bcff" : "#e1b77a";
+        c.globalAlpha = 0.32;
+        c.lineWidth = p.weapon === "sword" ? 7 : 10;
+        c.lineCap = "round";
+        c.beginPath();
+        c.arc(hand.x - p.x, hand.y - p.y, melee.length * 0.85,
+          tail.angle, melee.angle, melee.side < 0);
+        c.stroke();
+        c.restore();
+      }
+      this.weapon(p.weapon, hand.x - p.x, hand.y - p.y, 1,
+        melee?.angle ?? angle, 1, melee ? melee.length / melee.artLength : 1);
     }
     if (p.swing > 0 && ["punch", "kick", "spin"].includes(p.meleeMove)) {
       const progress = 1 - p.swing / p.swingDuration;

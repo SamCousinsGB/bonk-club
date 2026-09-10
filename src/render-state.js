@@ -40,6 +40,10 @@ function blend(a, b, t) {
   }
   if (Number.isFinite(a.angle) && Number.isFinite(b.angle))
     out.angle = a.angle + Math.atan2(Math.sin(b.angle-a.angle), Math.cos(b.angle-a.angle)) * t;
+  // Smooth an ongoing swing, but never interpolate backwards across a new attack.
+  if (a.weapon === b.weapon && a.meleeMove === b.meleeMove &&
+      a.swingDuration === b.swingDuration && a.swing > 0 && b.swing <= a.swing)
+    out.swing = lerp(a.swing, b.swing, t);
   for (const key of ["rig", "points", "spine", "outline", "strands"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
       out[key] = b[key].map((p, i) => blend(a[key][i], p, t));

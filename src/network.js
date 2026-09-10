@@ -794,6 +794,8 @@ export function validSnapshot(s) {
     list(s.blood,BLOOD_LIMIT,b=>xy(b)&&[b.vx,b.vy,b.r,b.life].every(finite)&&b.r>0&&b.r<=4&&b.life>=0&&b.life<=7&&typeof b.landed==="boolean") &&
     list(s.wreckage,60,w => xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
       w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
+      (w.sourceKind==null || COVER_KINDS.includes(w.sourceKind)) &&
+      (w.elevator===undefined || typeof w.elevator==="boolean") &&
       (w.spine===undefined||(list(w.spine,6,xy)&&w.spine.length===6&&list(w.outline,12,xy)&&w.outline.length===12))) &&
     list(s.rifts,128,c => xy(c) && integer(c.id,1,1000000) && c.radius===SINGULARITY.radius && finite(c.born)) &&
     list(s.craters,128,c => xy(c) && integer(c.id,1,1000000) &&

@@ -1,7 +1,7 @@
 import { seedOrbit, orbitPoint, limitRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { carryImpulse } from "./impact.js";
-import { bodyInBlast, bodyBounds } from "./props.js";
+import { bodyInBlast } from "./props.js";
 export const SINGULARITY = { radius: 620, duration: 5.5, arm: 0.4, core: 135 };
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 
@@ -118,6 +118,8 @@ function addWreck(world, f, s, kind = "platform") {
     angle: s.angle || 0,
     hp: 120,
     kind,
+    sourceKind: s.kind || null,
+    elevator: !!s.elevator,
     trapType: s.type || null,
     surface: s.surface || null,
     material: s.material || null,

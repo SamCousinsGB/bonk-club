@@ -1,5 +1,5 @@
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
-import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, impulseProp, bodyBounds } from "./props.js";
+import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
@@ -418,12 +418,12 @@ export class World {
       for (let b = a + 1; b < this.players.length; b++)
         this.collidePlayers(this.players[a], this.players[b]);
     for (const p of this.players)
-      if (active && p.alive) updateMelee(this, p);
-    for (const p of this.players)
       if (p.alive) updateRig(p, dt, this.solids(), this.time);
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         collideRigs(this.players[a], this.players[b]);
+    for (const p of this.players)
+      if (active && p.alive) updateMelee(this, p);
     updateFields(this, dt);
     this.updateProjectiles(dt);
     this.updateDrops(dt);
@@ -523,6 +523,7 @@ export class World {
     p.recoilTime = Math.max(0, p.recoilTime - dt);
     p.stun = Math.max(0, p.stun - dt);
     p.swing = Math.max(0, p.swing - dt);
+    if (p.weapon && p.ammo === 0 && p.swing === 0) p.weapon = null;
     p.flash = Math.max(0, p.flash - dt);
     p.impactTime = Math.max(0, (p.impactTime || 0) - dt);
     updateParry(p, i.block, dt);
@@ -652,6 +653,7 @@ export class World {
   }
   attack(p, alternate = false) {
     if(p.freeze>0||p.knockdown>0)return;
+    if (p.weapon && p.ammo <= 0) return;
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
     const w = alternate ? { ...base, ...base.alt } : base;
@@ -741,7 +743,8 @@ export class World {
     if (p.weapon) {
       p.ammo -= w.ammoCost || 1;
       if (p.ammo <= 0) {
-        p.weapon = null;
+        // Keep the final melee use visible and hittable through its follow-through.
+        if (w.kind !== "melee") p.weapon = null;
         p.ammo = 0;
       }
     }
@@ -856,6 +859,7 @@ export class World {
   }
   throwWeapon(p) {
     if (!p.weapon || !p.alive || p.knockdown || p.freeze) return;
+    if (p.ammo <= 0) return;
     if (p.weapon === "nuke") {
       this.attack(p);
       p.pickupCooldown = 0.35;
