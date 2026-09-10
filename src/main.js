@@ -652,6 +652,7 @@ function roomCallbacks() {
       const own = roster.find((p) => p.id === room?.id);
       if (own) saveProfile(own);
       updateLobby();
+      if (view === "character") syncColourOptions();
     },
     onLobby: lobby,
     onStatus: (status) => {
