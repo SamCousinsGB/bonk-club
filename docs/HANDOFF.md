@@ -28,6 +28,18 @@ current main while preserving the canonical checkout's unfinished terrain edits.
 - Actual rendered gameplay inspected at six points through capture and collapse.
   QA helpers/screenshots: `bonk-club-qa/violent-visual.cjs`, `violent-online.cjs`
   and `violent-*.png`. No production hooks, new dependencies or Pi changes.
+- Released gameplay revision: `701aa591a67a5790fb32b28929d733c0074d165b`.
+  All **442 gameplay/network tests**, the production build and `git diff --check`
+  passed locally. Pages run **34490314084** passed game/server tests, build and
+  deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34490314084.
+- All **15 public files** matched the exact committed archive/build byte for
+  byte. JS: `index-Buxs9vaL.js`; CSS: `index-P_ztR8EB.css`. Both staged production
+  and public browsers passed host/guest lobby, slots, hot join, departure/rejoin,
+  mobile layout and selected TURN relay checks without browser errors.
+  Archive/build: `bonk-club-qa/violent-release`; helpers: `violent-production.cjs`
+  and `verify-violent-live.cjs`. Refresh game tabs to load the release.
+- Actual gameplay clip: `bonk-club-qa/violent-orbit.webm`. The task's port 5197
+  development server was stopped; other tasks' servers and work remain intact.
 
 ## Clear mobile controls — 10 September 2026
 
