@@ -20,6 +20,7 @@ import {
 import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
 import { meleePose, SWING_START } from "./melee-pose.js";
+import { drawPhaser } from "./phaser-art.js";
 import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -948,7 +949,7 @@ export class Renderer {
     drawRifts(this,state);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
-    for (const s of ARENAS[state.arenaIndex].spikes) {
+    for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {
         c.beginPath();
@@ -1005,6 +1006,7 @@ export class Renderer {
       );
       c.globalAlpha = 1;
     }
+    for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time);
     for (const p of state.players) {this.fighter(p, time);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);

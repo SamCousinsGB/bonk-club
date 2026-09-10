@@ -24,7 +24,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 17;
+export const PROTOCOL = 19;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const makeCode = () =>
   Array.from(
@@ -720,6 +720,7 @@ export function validSnapshot(s) {
         p.h > 0 &&
         p.h < 1000,
     ) &&
+    list(s.spikes,512,p => xy(p) && finite(p.w) && p.w > 0 && p.w <= 3000) &&
     list(
       s.cover,
       64,
@@ -776,13 +777,16 @@ export function validSnapshot(s) {
       (f) =>
         xy(f) &&
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
-        ["arc", "blackhole", "shockwave"].includes(f.kind) &&
+        ["arc", "blackhole", "shockwave", "phaser"].includes(f.kind) &&
         f.radius >= 0 &&
         f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : f.kind === "blackhole" ? SINGULARITY.radius : 400) &&
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 6)) &&
         (f.kind !== "shockwave" ||
           (integer(f.craterId,1,1000000) && typeof f.melted === "boolean")) &&
         (f.kind!=="blackhole" || (integer(f.riftId,1,1000000) && typeof f.torn === "boolean")) &&
+        (f.kind !== "phaser" || (f.radius === WEAPONS.phaser.radius &&
+          f.life <= WEAPONS.phaser.life && f.age <= WEAPONS.phaser.life &&
+          integer(f.owner,0,3) && Math.abs(Math.hypot(f.ex-f.x,f.ey-f.y)-WEAPONS.phaser.range) < .03)) &&
         f.life >= 0 &&
         f.life <= 6,
     ) &&

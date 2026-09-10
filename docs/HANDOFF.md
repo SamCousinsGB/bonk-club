@@ -40,6 +40,35 @@ passed browser checks for solo start, movement, jumping and the game menu with
 no page errors. The task's local Vite server was stopped. Later main releases
 may supersede these asset names; retain this correction when integrating them.
 
+## PHASER cannon — 10 September 2026
+
+Implemented in `bonk-club-phaser`, branch `codex/phaser-cannon`, to preserve the
+concurrent terrain and melee changes in the canonical checkout.
+
+- New exotic PHASER CANNON pickup, included in the featured weapon rotation.
+  Two shots, 1.8-second cooldown, 144-unit-wide directional beam to the arena edge.
+- Each discharge hits each living opponent once for 38 damage, with a brief
+  skeleton reveal, modest knockback and 45 ms stun. Low-health kills leave an
+  energy skeleton. The 0.42-second visual does not repeatedly damage players.
+  Jumping above the beam avoids it; a hit fighter can air-jump and land below.
+- The beam carves actual platforms at any angle, including structural terrain
+  and elevators, and consumes intersected props, traps, spike teeth, loose
+  weapons, projectiles, corpses and warped wreckage. Remaining terrain is drawn
+  from the same rectangles used by collision; cuts persist until round reset.
+  Distant scenery remains. Bots can fire through obstructing terrain.
+- `src/phaser.js` owns beam geometry and authoritative destruction;
+  `src/phaser-art.js` draws the beam. Spike geometry is included in snapshots.
+  Protocol **19** reserves compatibility separately from the concurrent terrain
+  work's protocol 18. Both players must refresh after this release.
+- Initial verification: 319 gameplay/network tests passed, production build
+  passed, and three real Edge pages connected through selected TURN relay
+  candidates. Actual host mouse fire and guest keyboard jump/landing passed;
+  the guest saw 62 HP, the low-HP death, beam and skeleton effect. A third browser
+  hot joined with identical surviving terrain and spikes. Screenshots inspected.
+- QA helper and captures: `../bonk-club-qa/phaser-online.cjs`, `phaser-host.png`,
+  `phaser-guest.png`, `phaser-survivor.png`. Hooks exist only in the external QA
+  helper. Release verification is recorded below after integration and publishing.
+
 ## Start here
 
 The canonical checkout is `C:\Users\SamCo\Documents\ChatGPT\bonk.club`.

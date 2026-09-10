@@ -6,6 +6,7 @@ export const DEATH_EFFECTS = [
   "gib",
   "impale",
   "plasma",
+  "phaser",
   "tesla",
   "ice",
   "burn",

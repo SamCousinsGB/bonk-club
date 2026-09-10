@@ -30,6 +30,7 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
+  if (w.kind === "phaser") return w.range;
   if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
   if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
   const life = w.life || (w.kind === "rail" ? 0.8 : 4.5);
@@ -282,7 +283,7 @@ export class BotController {
       ? intercept(p, perception.enemy, weapon.speed)
       : { x: enemy.x, y: enemy.y - 10 };
     i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
-    const obstacle = firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
+    const obstacle = p.weapon === "phaser" ? null : firstObstacle(solids, p, { x: enemy.x, y: enemy.y - 10 });
     i.attack =
       range < weapon.range &&
       (!obstacle || breakable(obstacle)) &&

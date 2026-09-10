@@ -23,6 +23,7 @@ export const THROW_MASS = {
   barrage: 3,
   minigun: 3.2,
   blackhole: 3.4,
+  phaser: 3.4,
   machinegun: 3.6,
 };
 export function knockDown(p, type) {

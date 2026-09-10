@@ -22,6 +22,7 @@ import {
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms } from "./terrain.js";
+import { firePhaser } from "./phaser.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { BotController } from "./bots.js";
@@ -114,6 +115,8 @@ export class World {
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
     this.terrainVersion = 0;
+    this.terrainSerial = 0;
+    this.spikeTerrain = null;
     this.craters = [];
     this.craterSerial = 0;
     this.wreckage=[];this.rifts=[];this.wreckSerial=0;this.riftSerial=0;this.wreckDirty=false;this.warpActive=false;
@@ -662,7 +665,8 @@ export class World {
       p.meleeMove = "weapon";
       p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
-      for (let n = 0; n < count; n++) {
+      if (w.kind === "phaser") firePhaser(this, p, ax, ay);
+      for (let n = 0; n < (w.kind === "phaser" ? 0 : count); n++) {
         const spread =
           count > 1
             ? (n - (count - 1) / 2) *
@@ -763,7 +767,7 @@ export class World {
     if (q.freeze>0 && options.effect !== "ice" && damage>=20) {
       damage*=1.5;q.freeze=0;options={...options,effect:"ice"};
     }
-    if(options.effect==="plasma"||options.effect==="tesla"){q.xray=.32;q.xrayType=options.effect;}
+    if(["plasma","tesla","phaser"].includes(options.effect)){q.xray=.32;q.xrayType=options.effect;}
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
@@ -793,7 +797,7 @@ export class World {
       projectile: !!options.projectile, blast: !!options.blast, effect:options.effect||null,
     });
     if (q.hp <= 0) this.kill(q,{effect:options.execute?"slice":options.effect,
-      ash:["plasma","tesla","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
+      ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
   }
   kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0} = {}) {
     if (!p.alive) return;
@@ -1304,7 +1308,7 @@ export class World {
     this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
   }
   spikes() {
-    let spikes = this.arena.spikes;
+    let spikes = this.spikeTerrain || this.arena.spikes;
     for (const f of [...this.craters.filter(f=>this.time-f.born>=NUCLEAR.meltAt),...this.rifts]) {
       spikes = spikes.flatMap(s => carveRectangle({...s,h:.5},f));
     }
@@ -1314,6 +1318,7 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
+      spikes: this.spikes(),
       cover: this.cover,
       debris: this.debris,
       hazards: this.hazards,

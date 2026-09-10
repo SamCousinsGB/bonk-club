@@ -7,6 +7,18 @@ import { WEAPONS } from "./arsenal.js";
 export function drawNewWeapon(r, type) {
   const w = WEAPONS[type],
     c = r.ctx;
+  if (type === "phaser") {
+    c.fillStyle = "#233d43"; c.fillRect(-23, -15, 67, 30);
+    c.fillStyle = "#789f9f"; c.fillRect(-18, -15, 55, 6);
+    c.fillStyle = "#152b32"; c.fillRect(-8, 12, 11, 16);
+    r.circle(-11, 0, 10, "#89ffce"); r.circle(-11, 0, 5, "#eaffee");
+    for (let x = 9; x <= 37; x += 9) {
+      c.fillStyle = "#89ffce"; c.fillRect(x, -12, 4, 24);
+    }
+    c.fillStyle = "#5b7b86"; c.fillRect(39, -19, 13, 38);
+    c.fillStyle = "#c9ffe5"; c.fillRect(50, -15, 4, 30);
+    return;
+  }
   if (type === "nuke") {
     r.circle(8, 0, 17, "#c6b54f");
     r.circle(8, 0, 12, "#ffe486");
