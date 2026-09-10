@@ -1157,7 +1157,7 @@ export class World {
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
         if (s) {
-          if (breakable(s) && !this.platforms.includes(s) && !b.nuclear && b.kind !== "rocket") {
+          if (breakable(s) && !b.nuclear && b.kind !== "rocket") {
             const speed = Math.hypot(b.vx,b.vy) || 1;
             // A grenade bumps furniture on contact; its explosive damage belongs
             // to the fuse. Ordinary shots use their impact force, not tracer speed.

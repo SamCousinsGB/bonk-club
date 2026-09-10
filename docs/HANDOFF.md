@@ -2,6 +2,33 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Restore bullet damage to marked panels — 10 September 2026
+
+Sam's latest request restores shooting out destructible platforms. This supersedes
+the earlier explosion-pass rule that made all terrain immune to bullets.
+
+- Fixed both exclusions: marked wood/glass panels are breakable again, and
+  projectile impacts can damage breakable platforms. Structural supports/lifts
+  still resist bullets. Circular blast carving, physical props and grenade fuses
+  retain their current behavior. Bots can shoot a marked panel under an opponent.
+- Existing damage, collision removal, navigation invalidation, debris and snapshot
+  paths handle the result. Surviving blast-cut panels and warped wreckage can also
+  be shot out. No wire shape or protocol change; protocol remains **21**.
+- Added 13 regressions: pistol hits from all four sides, other projectile weapons,
+  falling fighters/props/pickups, blast remnants, wreck collision, every arena's
+  panels, transport/interpolation and round restoration. The new tests reproduced
+  the regression before the fix. Updated obsolete bullet-immunity expectations.
+- All **404 gameplay/network tests** and the production build passed. Real Edge
+  host/guest browsers used mouse firing to damage and destroy both materials;
+  the guest fell through and a third browser hot joined the destroyed map.
+  All three selected TURN relay candidates; no page errors. Inspected damaged
+  panels and the cleared opening in gameplay screenshots.
+- Worktree: `C:\Users\SamCo\Documents\ChatGPT\bonk-club-panel-fix`, branch
+  `codex/restore-panel-bullets`, based on `d51781d`. The canonical checkout's
+  unfinished edits were preserved. QA helper/screenshots use `panel-` under
+  `bonk-club-qa`; hooks are external and never enter production.
+- Release verification is recorded below once the Pages deployment completes.
+
 ## Movement and animation pass — 10 September 2026
 
 Implemented on `codex/movement-pass` in

@@ -86,7 +86,8 @@ Keep this constitution for durable rules and the handoff for current work.
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by
   circular explosion cuts. Successive blasts dig further into the remaining
-  terrain. Bullets do not damage terrain. Keep cover useful and destructible.
+  terrain. Bullets damage marked wood/glass panels and warped wreckage; structural
+  supports and lifts resist bullets. Keep cover useful and destructible.
   Destruction must update collision, navigation and guest state, including hot
   join and spikes. Restore the original terrain at the next round.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
