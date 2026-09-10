@@ -92,6 +92,15 @@ Keep this constitution for durable rules and the handoff for current work.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
   saw rails and electrical traps. They may cycle unpredictably with readable
   warnings. Do not restore arbitrary randomly appearing hazard zones.
+- Furniture, crates, logs, barrels and rocks are moving physical bodies with
+  mass, friction and rotational inertia. Fighters, shots, throws, explosions,
+  ragdolls and fixtures transfer momentum to them. Keep heavy stone harder to
+  move than light furniture; do not restore fixed prop colliders.
+- Broken props leave physical material pieces with stable identities and matching
+  rotating collision. Keep wood, metal, stone and upholstery recognizable. Rubble
+  can hit fighters and move again, persists until consumed or round reset, and is
+  capped at 96 pieces. Preserve it through guest snapshots and hot join. Nukes
+  and PHASER consume affected pieces; black holes bend their existing artwork.
 - AI defaults to Easy with imperfect aim, reactions and firing discipline. Use
   the same controls, health, ammunition and physics as humans. Improve navigation
   without making bots accurate, tireless terminators.

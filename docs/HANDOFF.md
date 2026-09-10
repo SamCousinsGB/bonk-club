@@ -2,6 +2,50 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Weighted props - 10 September 2026
+
+Implemented on `codex/weighted-props` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-props`. The canonical checkout had
+concurrent terrain, melee and bot edits; they were preserved. This branch includes
+the subsequent melee arcs, original black-hole artwork, blast carving, nuclear
+visuals and PHASER releases from main.
+
+- All eight prop types have mass, friction, restitution and rotational inertia.
+  Tables weigh 28, crates 36, barrels 48, cabinets 58, logs 65, beds 70, sofas 85
+  and stones 180, relative to a 55-unit fighter. These are gameplay masses.
+- Props slide, tumble, tip off ledges, stack, ride lifts, settle and wake after
+  support removal. Collision transfers momentum between props, fighters and
+  ragdolls. Fast heavy objects can damage and knock down living fighters.
+- Melee, shots, thrown weapons, explosions, conveyors, crushers and saws move
+  props. Tracer speed does not determine bullet impulse. Grenades bump furniture
+  before their fuse; rockets apply blast damage with cover still present.
+- Breakage creates recognizable rails, legs, mattress/cushion pieces, wood and
+  stone chunks. Pieces retain their own mass, rotation and collision, can be shot
+  or blasted again, and persist until consumed, culled by the 96-piece budget or
+  round reset. Nukes/PHASER consume them; black holes preserve their material art.
+- `src/props.js` owns the convex contact solver and fracture pieces;
+  `src/prop-art.js` draws the pieces. Small collision strips follow rotated
+  silhouettes for bullets, feet and ragdolls. Host authority is unchanged.
+  New snapshot fields are validated, quantized and interpolated with stable IDs.
+  **Protocol 20: all players must refresh their tabs.** No Pi changes.
+- Bots ignore tiny rubble as melee-clearing targets, finish batched route
+  rebuilding, and use their normal remaining air jump when a prop pushes them off
+  a takeoff. Hazard avoidance retains priority. Difficulty and aim are unchanged.
+- Local verification: 360 gameplay/network tests passed, followed by the 32-test
+  special-weapon/prop suite after the final PHASER and artwork integration. The
+  production build passed. There are 21 new prop tests, including all 24 maps,
+  stacks/lifts, thin walls, impulses, destruction, malformed data and hot join.
+- Real Edge host, guest and third hot joiner connected through selected TURN
+  relay candidates. The guest saw different weighted motion, all four material
+  families, 36 persistent chunks, later blast impulses and black-hole conversion.
+  Hot join received the same chunk IDs and destroyed source props. Gameplay
+  screenshots were inspected; browser errors: zero. Guest drawing CPU p95 was
+  0.5 ms for ordinary rubble and 2.9 ms in the run including bent black-hole art.
+  These are QA-PC drawing times, not internet latency or hardware-phone FPS.
+- QA helper and screenshots: `bonk-club-qa/props-online.cjs` and `props-*.png`.
+  Hooks exist only in the external test helper. Publication verification is
+  recorded below once the exact committed build is deployed.
+
 ## Explosion terrain and nuclear visuals - 10 September 2026
 
 Current pass: `codex/terrain-craters` in
