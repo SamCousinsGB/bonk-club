@@ -27,12 +27,20 @@ const idle = () => ({
   duck: false,
   aim: null,
 });
-// Combat range and damage use the same definitions as actual attacks.
+// Use the projectile's useful travel distance, rather than the old close-range
+// preference, to decide whether a bot can engage across a broken arena.
+function engagementRange(w) {
+  if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
+  if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
+  const life = w.life || (w.kind === "rail" ? 0.8 : 4.5);
+  return Math.min(W, w.speed * life, Math.max(w.range || 1100, w.speed * 2));
+}
 const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type,{
-  range:w.range || (w.kind === "melee" ? 100 : 1100), speed:w.kind === "melee" ? undefined : w.speed,
+  range:engagementRange(w), speed:w.kind === "melee" ? undefined : w.speed,
   value:{common:5,uncommon:7,rare:9,exotic:11}[w.rarity], damage:w.damage,
   recoil:firingRecoil(w,{prone:!!w.proneOnly,ground:true}),
-  blast:["rocket","grenade","plasma","singularity"].includes(w.kind)?w.radius||145:0,
+  blast:["rocket","grenade","plasma"].includes(w.kind)?w.radius||145:0,
+  singularity:w.kind === "singularity",
 }]));
 const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
@@ -260,6 +268,12 @@ export class BotController {
     b.watchedHp = enemy.hp;
     b.progressAt ??= world.time;
     const staleAttack = world.time - b.progressAt > 2.5;
+    if (b.approachTarget !== enemy.id || !staleAttack || range < b.bestRange - 80) {
+      b.approachTarget = enemy.id;
+      b.bestRange = range;
+      b.approachAt = world.time;
+      b.recoveryAttempts = 0;
+    }
     const grenade = WEAPONS[p.weapon]?.kind === "grenade";
     const skill = BOT_DIFFICULTIES[cleanDifficulty(world.difficulty)];
     const perception = combatPerception(b, enemy, p.weapon, world.time, world.random, world.difficulty);
@@ -271,7 +285,8 @@ export class BotController {
     i.attack =
       range < weapon.range &&
       (!obstacle || breakable(obstacle)) &&
-      (!weapon.blast || range > weapon.blast + 90);
+      (!weapon.blast || range > weapon.blast + 90) &&
+      (!weapon.singularity || range > 300);
     let clearing = !!obstacle && breakable(obstacle);
     if (obstacle && breakable(obstacle))
       i.aim = Math.atan2(
@@ -284,7 +299,9 @@ export class BotController {
       distance(p, center(obstacle)) < weapon.blast + 100
     )
       i.attack = false;
-    if (weapon.recoil && footing && p.ground && range > 175) {
+    // Reposition for recoil initially, but never veto the shot indefinitely on
+    // an island too narrow for the preferred firing stance.
+    if (weapon.recoil && footing && p.ground && range > 175 && !staleAttack) {
       const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.38;
       if (recoilX < footing.x + 18 || recoilX > footing.x + footing.w - 18)
         i.attack = false;
@@ -312,6 +329,17 @@ export class BotController {
       }
       i.attack = !!b.grenade.plan;
       if (i.attack) i.aim = b.grenade.plan.angle;
+    }
+    if (weapon.singularity) {
+      // The orb arms a pulling field at impact or expiry. Its field radius is
+      // useful reach, not an instant explosion requiring 710 units of clearance.
+      const definition = WEAPONS[p.weapon];
+      const hit = obstacle && segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, obstacle, 10);
+      const travel = Math.min(range * (hit?.t ?? 1), definition.speed * definition.life);
+      i.attack = travel > 300 && range - travel < definition.radius * 0.75;
+      i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
+      // Retain the normal reaction delay even when deploying against a wall.
+      clearing = false;
     }
 
     let goal = enemy,
@@ -542,6 +570,25 @@ export class BotController {
       b.think = 0;
       b.stuck = 0;
     }
+    // A destroyed map may have no safe path at all. Once attacking and ordinary
+    // routes stop making progress, commit to an exploratory jump/drop. A failed
+    // landing is preferable to two survivors waiting forever on separate islands.
+    if (!b.flight && !ride && p.ground && staleAttack && !b.recovery &&
+        (world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
+      const attempt = b.recoveryAttempts || 0;
+      let direction = Math.sign(enemy.x - p.x) || (p.id % 2 ? 1 : -1);
+      const roof = solids.find(s => s.id !== here?.id && s.y + s.h < p.y - 25 &&
+        s.y + s.h > p.y - 180 && p.x + 20 > s.x && p.x - 20 < s.x + s.w);
+      if (roof) {
+        const left = roof.x - 45, right = roof.x + roof.w + 45;
+        direction = Math.abs(p.x - left) + Math.abs(enemy.x - left) * 0.25 <
+          Math.abs(p.x - right) + Math.abs(enemy.x - right) * 0.25 ? -1 : 1;
+      }
+      if (attempt % 2) direction *= -1;
+      b.recovery = { dir: direction, until: world.time + 2.4, jumpAt: null };
+      b.recoveryAttempts = attempt + 1;
+      if (edge) b.failures.set(edge.key, world.time + 9);
+    }
     if (
       !b.flight &&
       p.ground &&
@@ -699,6 +746,30 @@ export class BotController {
     }
     if (!p.ground && !b.flight && p.jumps === 1 && p.vy > 0 && p.y > H - 180)
       i.jump = true;
+    if (b.recovery) {
+      const recovery = b.recovery;
+      if (world.time >= recovery.until) {
+        b.recovery = null;
+        b.think = 0;
+      } else {
+        b.flight = null;
+        i.left = recovery.dir < 0;
+        i.right = recovery.dir > 0;
+        i.duck = false;
+        i.block = false;
+        const roof = solids.some(s => s.id !== here?.id && s.y + s.h < p.y - 25 &&
+          s.y + s.h > p.y - 150 && p.x + 20 > s.x && p.x - 20 < s.x + s.w);
+        const ledge = footing && (recovery.dir < 0 ? p.x - footing.x : footing.x + footing.w - p.x) < 55;
+        const wall = solids.some(s => s.id !== here?.id &&
+          p.y + 28 > s.y && p.y - 25 < s.y + s.h &&
+          (recovery.dir > 0 ? s.x >= p.x && s.x < p.x + 65 : s.x + s.w <= p.x && s.x + s.w > p.x - 65));
+        if (p.ground && !roof && recovery.jumpAt === null && (ledge || wall || b.stuck > 0.6)) {
+          i.jump = true;
+          recovery.jumpAt = world.time;
+        } else if (!p.ground && p.jumps === 1 && p.vy > -80 && !roof &&
+          (recovery.jumpAt === null || world.time - recovery.jumpAt > 0.3)) i.jump = true;
+      }
+    }
     if (weapon.speed && !clearing && !i.throw && !i.block) {
       i.attack &&= perception.fire;
       // Close-range weapons still connect reliably enough to pressure players.
