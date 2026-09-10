@@ -47,6 +47,10 @@ Keep this constitution for durable rules and the handoff for current work.
 - Rounds continue indefinitely. No best-of-five or winning-score match end.
   Track the current leader. Scores belong to the current occupant and reset when
   that occupant leaves or is replaced, not when an unrelated player joins.
+- Round results show the winner and a message based on the final elimination.
+  Sam explicitly requested creative victory lines, including nuclear apocalypse
+  and commanding the forces of space and time. Keep this exception in the result
+  banner; preserve actual death causes, draws, guest consistency and round reset.
 - Escape opens/closes a menu, never pauses. Focus loss, alt-tab and background
   rendering must not intentionally pause simulation or networking. Clear held
   controls on blur. Do not claim to defeat browser/OS suspension or tab discard.
@@ -86,7 +90,8 @@ Keep this constitution for durable rules and the handoff for current work.
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by
   circular explosion cuts. Successive blasts dig further into the remaining
-  terrain. Bullets do not damage terrain. Keep cover useful and destructible.
+  terrain. Bullets damage marked wood/glass panels and warped wreckage; structural
+  supports and lifts resist bullets. Keep cover useful and destructible.
   Destruction must update collision, navigation and guest state, including hot
   join and spikes. Restore the original terrain at the next round.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
