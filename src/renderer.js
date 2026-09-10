@@ -1,4 +1,4 @@
-import { drawCraters, clipCraters, drawAshSkeleton } from "./nuclear-art.js";
+import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton } from "./nuclear-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawHair } from "./identity.js";
@@ -926,7 +926,7 @@ export class Renderer {
     }
     drawCraters(this, state);
     c.save(); clipCraters(c,state);
-    for (const p of state.platforms) if (!p.move && !p.travel) this.platform(p, time);
+    drawScorchedPlatforms(this,state.platforms,time);
     for (const s of ARENAS[state.arenaIndex].spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {
