@@ -686,6 +686,11 @@ export class Renderer {
   }
   fighter(p, time, scale = 1, showLabel = true) {
     if (!p.alive || !p.rig) return;
+    if (p.strands) {
+      drawDeath(this, { ...p, points:p.rig, effect:"singularity", life:1, deathAge:0 }, time);
+      if (p.weapon) this.weapon(p.weapon,p.rig[6].x,p.rig[6].y,1,p.aimAngle,.8);
+      return;
+    }
     const c = this.ctx,
       col = p.flash > 0 ? "#fff" : p.color || COLORS[p.id],
       rig = p.rig;

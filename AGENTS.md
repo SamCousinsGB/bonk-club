@@ -135,6 +135,11 @@ Keep this constitution for durable rules and the handoff for current work.
   and gradually spiral inward. Do not fake this with CSS-like scale transforms,
   flattened perspective ellipses or rigid prefab spinning. Actual wreckage and
   consumed terrain must agree with collision and remain changed until round reset.
+  Captured living fighters go limp and orbit with colliding, stretched limbs before
+  compression. On closing, collected fighters, weapons, props, traps, projectiles,
+  debris and blood become a persistent dense ball with real collision. Keep the
+  outer twisted platforms and their existing artwork. Captured matter must not
+  simply disappear at the core; bound visual samples while retaining all counts.
 - Do not assume the latest requested effects already exist; use the handoff to
   distinguish implemented behavior from requested changes.
 

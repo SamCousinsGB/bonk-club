@@ -37,7 +37,8 @@ for (const [kind, create] of [["nuke", nuclearField], ["singularity", blackholeF
     const w = fixture(), [winner, victim] = w.players;
     winner.x = 2300; winner.rig = makeRig(winner);
     w.fields.push(create(w, { x: victim.x, y: victim.y, owner: winner.id }));
-    for (let n = 0; n < 80 && victim.alive; n++) updateFields(w, STEP);
+    // Black holes keep the victim alive in orbit until the closing compression.
+    for (let n = 0; n < (kind === "singularity" ? 600 : 80) && victim.alive; n++) updateFields(w, STEP);
     assert.equal(victim.alive, false);
     assert.equal(w.lastDeathCause, kind);
     w.step(STEP);

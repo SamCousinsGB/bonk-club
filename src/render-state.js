@@ -1,5 +1,5 @@
 const simulationOnly = new Set([
-  "spikeY", "ragVx", "ragVy", "bleed", "rest",
+  "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
@@ -32,7 +32,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 function blend(a, b, t) {
   if (!a) return b;
   const out = { ...b };
-  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius"])
+  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));
@@ -44,6 +44,8 @@ function blend(a, b, t) {
   if (a.weapon === b.weapon && a.meleeMove === b.meleeMove &&
       a.swingDuration === b.swingDuration && a.swing > 0 && b.swing <= a.swing)
     out.swing = lerp(a.swing, b.swing, t);
+  if (a.matter && b.matter && a.matter.id === b.matter.id) out.matter = blend(a.matter,b.matter,t);
+  if (a.items && b.items) out.items = b.items.map(p=>blend(a.items.find(q=>q.id===p.id),p,t));
   for (const key of ["rig", "points", "spine", "outline", "strands"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
       out[key] = b[key].map((p, i) => blend(a[key][i], p, t));

@@ -143,7 +143,8 @@ test("a departing human leaves a normal AI identity and knockouts retain hair an
     { id: 0, name: "Sam", color: PALETTE[0].value, hair: "None" },
   ]);
   assert.notEqual(w.players[1].name, "Friend");
-  assert.equal(w.players[1].hair, "None");
+  assert.match(w.players[1].name, / \(BOT\)$/);
+  assert.ok(validProfile(w.players[1]));
 });
 
 test("all hairstyles survive the wire snapshot and unsupported player metadata is rejected", () => {
