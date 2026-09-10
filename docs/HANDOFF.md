@@ -2,6 +2,39 @@
 
 Updated 10 September 2026. Read the root `AGENTS.md` first.
 
+## Movement and animation pass — 10 September 2026
+
+Implemented on `codex/movement-pass` in
+`C:\Users\SamCo\Documents\ChatGPT\bonk-club-movement`, starting from current main
+and preserving the canonical checkout's unfinished terrain edits. The mouse
+release fix from main is included.
+
+- Fixed digital AI steering releasing movement at cruising speed. On a clear
+  floor the old bot repeatedly slowed from 240 to about 46 units/second; it now
+  holds the same 240-unit running speed as a human, on upper and bottom floors.
+- Reworked the procedural gait around actual travel after collision: alternating
+  planted/lifted steps, suitable leg reach, a small body bounce and both unarmed
+  arms swinging. Starts, stops and reversals blend through the physical rig.
+  Blocked movement, passive sliding and lift travel do not advance the run cycle.
+- Airborne legs tuck on ascent and extend on descent. Landing compression,
+  prone/standing recovery, weapon poses, recoil and passive knockdowns remain
+  physical. Moving supports carry the rig along with the gameplay body.
+- Air recovery now considers existing horizontal momentum when choosing a ledge.
+  This fixes a quarry case where a prop-clearing lunge overshot a takeoff and the
+  bot tried to return to a ledge it could no longer reach before falling past it.
+- `gaitSpeed` is simulation-only; guests still receive the actual physical rig.
+  No required wire changes or protocol bump; protocol remains **20**. No Pi changes.
+- Twelve new movement regressions cover both running directions and floor levels,
+  braking, leg lift/reach, wall stops, jump/landing recovery, lift riders, identical
+  poses across floor heights, and recovery after overshooting a takeoff.
+- Real Edge host/guest browsers passed through selected TURN relay candidates.
+  The guest measured a steady 240-unit AI run, saw lifted steps, and controlled
+  reversing, both jumps, landing, prone/recovery and departure without page errors.
+  Rendered pose sequences and normal gameplay in Garden Houses, Hillside Mansion
+  and Volcanic Quarry were inspected. Helpers/screenshots use the `movement-`
+  prefix in `bonk-club-qa`, outside the repository; no production debug hooks.
+- Release confirmation follows the final suite and Pages deployment.
+
 ## Stuck mouse buttons - 10 September 2026
 
 Implemented in `bonk-club-mouse` on `codex/mouse-release-fix`, starting from

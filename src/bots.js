@@ -753,10 +753,14 @@ export class BotController {
     // begins. Spend its ordinary air jump while a nearby ledge is still in reach.
     if (p.ground) b.fallRecovery = null;
     if (!hazard && !p.ground && !b.flight && !b.recovery && p.jumps === 1 && p.vy > 60) {
+      // A lunge or prop impact can carry us past the takeoff. Choose a landing
+      // along that momentum, not the nearest ledge behind us that we cannot reach
+      // again before descending below its edge.
+      const projectedX = p.x + clamp(p.vx * 0.4, -180, 180);
       const landing = world.platforms.filter(s => s.hp !== 0 && s.w >= 55 &&
         s.y > p.y-160 && s.y < p.y+80 && p.x > s.x-270 && p.x < s.x+s.w+270)
-        .map(s => ({x:clamp(p.x,s.x+22,s.x+s.w-22),y:s.y}))
-        .sort((a,b) => Math.abs(a.x-p.x)+Math.abs(a.y-p.y)*.3 - Math.abs(b.x-p.x)-Math.abs(b.y-p.y)*.3)[0];
+        .map(s => ({x:clamp(projectedX,s.x+22,s.x+s.w-22),y:s.y}))
+        .sort((a,b) => Math.abs(a.x-projectedX)+Math.abs(a.y-p.y)*.3 - Math.abs(b.x-projectedX)-Math.abs(b.y-p.y)*.3)[0];
       const roof = solids.some(s=>s.y+s.h<p.y-25 && s.y+s.h>p.y-110 && p.x+16>s.x && p.x-16<s.x+s.w);
       if (landing && !roof) { b.fallRecovery={x:landing.x,until:world.time+1.2};i.jump=true; }
       else if(p.y>H-180) i.jump=true;

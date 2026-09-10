@@ -81,28 +81,38 @@ export function updateRig(p, dt, platforms, time) {
   ];
   const compression = clamp(p.landing || 0, 0, 1) * 9;
   p.landing = Math.max(0, (p.landing || 0) - dt * 5);
-  const hip = rotate([0, -3 + compression]),
-    neck = rotate([0, -26 + compression]),
-    head = rotate([p.facing * 1.5, -44 + compression]);
-  const speed = clamp(Math.abs(p.vx) / 240, 0, 1),
-    stride = Math.sin(p.walk),
-    lift = Math.cos(p.walk);
+  const speed = clamp(p.gaitSpeed || 0, 0, 1),
+    stride = Math.sin(p.walk);
+  // Leave enough leg reach for a full stride while keeping the torso upright.
+  const bounce = p.ground && !prone ? speed * (5 + Math.cos(p.walk * 2) * 2) : 0;
+  const hip = rotate([0, -4 + compression + bounce]),
+    neck = rotate([0, -27 + compression + bounce]),
+    head = rotate([p.facing * 1.5, -45 + compression + bounce]);
   let footA, footB;
   if (prone) {
     footA = rotate([-9, 33]);
     footB = rotate([10, 32]);
   } else if (p.ground) {
-    footA = [
-      p.x - 12 + stride * 18 * speed,
-      p.y + 30 - Math.max(0, lift) * 12 * speed,
-    ];
-    footB = [
-      p.x + 12 - stride * 18 * speed,
-      p.y + 30 - Math.max(0, -lift) * 12 * speed,
-    ];
+    // Half a cycle plants the foot as the hip passes over it; the other half
+    // brings a lifted foot forward. Opposite phases give clear alternating steps.
+    const foot = (phase, rest) => {
+      const t = ((phase / (Math.PI * 2)) % 1 + 1) % 1;
+      const swing = Math.max(0, (t - 0.5) * 2);
+      const ease = swing * swing * (3 - 2 * swing);
+      const x = t < 0.5 ? 25 - t * 100 : -25 + ease * 50;
+      return [p.x + rest * (1 - speed) + x * speed,
+        p.y + 27 - Math.sin(swing * Math.PI) ** 2 * 23 * speed];
+    };
+    footA = foot(p.walk, -9);
+    footB = foot(p.walk + Math.PI, 9);
   } else {
-    footA = rotate([-13 - p.vx * 0.025, 23 + Math.sin(time * 9) * 7]);
-    footB = rotate([12 - p.vx * 0.016, 26 - Math.sin(time * 9) * 6]);
+    // Tuck during ascent, then extend for landing. Vertical motion, rather than
+    // a wall-clock sine, determines the airborne pose.
+    const tuck = clamp(-p.vy / 600, 0, 1);
+    const fall = clamp(p.vy / 750, 0, 1);
+    const drift = clamp(p.vx * 0.022, -16, 16);
+    footA = rotate([-12 - drift, 22 - tuck * 20 + fall * 5]);
+    footB = rotate([13 - drift * 0.6, 25 - tuck * 11 + fall * 3]);
   }
   const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
     dx = Math.cos(angle),
@@ -136,14 +146,16 @@ export function updateRig(p, dt, platforms, time) {
     handA = [neck[0] + dx * 29 - dy * 5, neck[1] + dy * 29 + dx * 5];
     handB = [neck[0] + dx * (32 + swing * 4), neck[1] + dy * (32 + swing * 4)];
   } else {
-    handA = rotate([
-      -p.facing * (13 + stride * 10 * speed),
-      9 + Math.cos(time * 3 + p.id) * 2,
-    ]);
-    handB = [
+    const runningA = rotate([-stride * 22, -5 + Math.abs(stride) * 4]);
+    const runningB = rotate([stride * 22, -5 + Math.abs(stride) * 4]);
+    const restA = rotate([-p.facing * 13, 7 + Math.cos(time * 3 + p.id) * 2]);
+    const restB = [
       neck[0] + dx * (18 + (kick || spin ? 0 : swing * 20)),
       neck[1] + dy * (18 + (kick || spin ? 0 : swing * 20)) + 10 * (1 - swing),
     ];
+    const armRun = p.ground && !prone && p.swing <= 0 ? speed : 0;
+    handA = restA.map((v, i) => v + (runningA[i] - v) * armRun);
+    handB = restB.map((v, i) => v + (runningB[i] - v) * armRun);
   }
   const targets = [
     head,
@@ -175,7 +187,9 @@ export function updateRig(p, dt, platforms, time) {
             ? 0.23
             : i === 4 || i === 6
               ? 0.1
-              : 0.065;
+              : i >= 7 && p.ground
+                ? 0.16
+                : 0.065;
     q.x += (targets[i][0] - q.x) * motor;
     q.y += (targets[i][1] - q.y) * motor;
   }

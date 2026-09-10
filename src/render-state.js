@@ -2,7 +2,7 @@ const simulationOnly = new Set([
   "spikeY", "ragVx", "ragVy", "bleed", "rest",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
-  "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled",
+  "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
 ]);
 const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;

@@ -220,6 +220,7 @@ export class World {
       weapon: null,
       ammo: 0,
       walk: 0,
+      gaitSpeed: 0,
       flash: 0,
       prone: false,
       aimAngle: id % 2 ? Math.PI : 0,
@@ -484,6 +485,12 @@ export class World {
     if (support) {
       p.x += support.dx || 0;
       p.y += support.dy || 0;
+      // Carry the physical pose with its support without adding a walking step
+      // or fighting the platform's motion through the pose motors.
+      for (const q of p.rig || []) {
+        q.x += support.dx || 0; q.px += support.dx || 0;
+        q.y += support.dy || 0; q.py += support.dy || 0;
+      }
     }
     p.pickupCooldown = Math.max(0, p.pickupCooldown - dt);
     p.comboTime = Math.max(0, p.comboTime - dt);
@@ -632,7 +639,13 @@ export class World {
         else {p.y=s.y+s.h+top;p.vy=Math.max(0,p.vy);}
       }
     }
-    p.walk += p.vx * dt * 0.032;
+    // Use actual travel after collision, excluding lifts, blocked motion and
+    // airborne drift. Hits still move the body without making its legs pedal.
+    const running = p.ground && !p.prone && !p.freeze && p.stun <= 0 && dir !== 0;
+    const travel = running ? clamp(p.x - oldX, -RUN_SPEED * dt, RUN_SPEED * dt) : 0;
+    const gait = Math.abs(travel) / Math.max(dt, 0.000001) / RUN_SPEED;
+    p.gaitSpeed += (gait - p.gaitSpeed) * (1 - Math.exp(-dt * 18));
+    p.walk += travel * Math.PI * 2 / 100;
   }
   collidePlayers(a, b) {
     if (

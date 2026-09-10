@@ -5,6 +5,10 @@ export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const steer = (p, x) => {
   const speed = clamp((x - p.x) * 6, -RUN_SPEED, RUN_SPEED);
+  // Digital controls need to stay held at cruise speed. Releasing here applies
+  // ground friction for an entire AI decision interval, causing a repeated shuffle.
+  if (speed === RUN_SPEED && p.vx <= RUN_SPEED + 20) return { left: false, right: true };
+  if (speed === -RUN_SPEED && p.vx >= -RUN_SPEED - 20) return { left: true, right: false };
   return { left: speed < p.vx - 20, right: speed > p.vx + 20 };
 };
 export function predictedSurface(p, time) {
