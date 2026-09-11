@@ -21,23 +21,48 @@ tasks changed the canonical checkout. Preserve those separate changes.
 - Bots predict approaching cargo and curved saw motion, steer toward a safe
   landing, spend their ordinary second jump at intersecting saw passes, brake
   near belt ends and leave warned press lanes. Combat aim/difficulty is unchanged.
+  Escape selection uses current position rather than a cancelled attack's lunge;
+  bots also suppress stationary punches that would lunge into a warned lane.
+  Wide crusher sweeps use the actual plate width and 44-unit height, preventing
+  hits before the visible plate reaches a fighter.
 - The outlet warns before each crate. Backed-up cargo blocks spawning; at most
   14 intact cargo bodies are admitted and broken pieces use the existing 96-piece
   rubble limit. Stable cargo IDs, source artwork, rotation, collision, blast cuts,
   disabled machinery and round reset follow host-authoritative state.
 - Protocol **33** adds loader fixtures, bounded conveyor settings and wide saw
-  rails. Refresh all players and create a new room. Display version is prepared
-  as **0.11.0**, including the published prone, sound and barrel changes.
+  rails. Refresh all players and create a new room. Display version is **0.11.0**,
+  including the published prone, sound and barrel changes.
 - Real Edge host/guest/hot join passed through selected relay/relay connections:
   moving cargo, fracture, a destroyed belt floor, matching late-join terrain and
   shards, guest controls, press/saw state and round resets. No browser errors.
   This was one QA machine, not separate-ISP evidence. Guest drawing CPU p95 was
-  0.6 ms over 2,887 samples; this is not FPS or network latency.
+  0.5 ms over 2,917 samples on the integrated check; this is not FPS or latency.
 - Rendered gameplay was inspected for all three arenas. External helpers/logs/
-  captures are `../bonk-club-qa/survival-*`; no production debug hooks. Ten new
+  captures are `../bonk-club-qa/survival-*`; no production debug hooks. Thirteen new
   regressions cover survival behavior, repeated ordinary-control dodges, scarce
   drops, admission limits, invalid wire settings, destruction/hot join and reset.
-  The full suite and final publication verification are still in progress.
+  The feature branch passed all **626** tests. After integrating main, **170**
+  focused checks passed; the final press corrections passed **68** machinery,
+  collision, AI and arena checks. Fifteen seeded full-AI arena runs completed
+  rounds with valid state. Bots retain normal damage and can lose to machinery.
+- The clean production archive of **`8ec9491420d72fe0515b596c1656086971b94363`**
+  passed real-browser solo, saved Survival selection, host/guest controls, hot
+  join, leaving and small-screen menus through selected relay/relay connections.
+  [Desktop run 34636927927](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927927)
+  passed Windows and Linux build/runtime/package checks on that revision.
+  No new Steam approval or physical Deck verification is claimed.
+- [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882)
+  passed **665 gameplay/network/shared tests**, **3 server tests**, production
+  build and deployment on `8ec9491420d72fe0515b596c1656086971b94363`.
+  All **15 public files** match the tested build byte for byte:
+  JS `index-C0qDhMdc.js`, CSS `index-szAYY0PO.css`.
+  Export with `git -c core.autocrlf=false archive` for exact CI parity: the default
+  Windows archive converts HTML/SVG to CRLF and changes the favicon hash. The
+  verified LF export is `../bonk-club-qa/survival-release-8ec9491-lf`.
+- Public v0.11.0 passed solo, saved Survival selection, host/guest controls, hot
+  join, leave and small menus through selected relay/relay candidates, with no
+  page errors. This task's previews on 5231–5233 are stopped. The canonical
+  checkout's separate dirty work was preserved; this release checkout is clean.
 
 ## Reactive barrels and finite fighter fire — 11 September 2026
 
