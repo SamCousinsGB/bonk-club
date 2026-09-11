@@ -17,7 +17,8 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   guest interpolation and hot join; no required wire shape changed.
 - All **749 local tests** passed before integrating main's separate performance
   update. All **51** affected physics, nuclear, props and interpolation tests passed
-  after integration, along with the production build. Final CI/live proof follows.
+  after integration, along with the production build. A further 50 death, nuclear,
+  bot-chat and network tests passed after integrating the bot-reaction release.
 - Real Edge host/guest tests received moving nuclear, burn, plasma, Tesla, PHASER
   and ice deaths over selected relay/relay candidates. A third browser hot joined
   existing falling remains. Rendered stages and actual nuclear gameplay frames were
@@ -26,6 +27,20 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 - Source edits remain in the canonical checkout alongside unrelated work. The
   integrated release is ../bonk-club-qa/death-physics-release, codex/death-physics.
   No production hooks, dependencies or Pi configuration changes were introduced.
+
+
+- **Published and verified:** v0.17.1, protocol 38, release revision
+  `301ca368cdf28042f841d5c530a43434ed512bbb` (gameplay `0af244a`).
+  [Pages run 34648482097](https://github.com/SamCousinsGB/bonk-club/actions/runs/34648482097)
+  passed **761 game/shared tests and 3 server tests**, build and deployment.
+  All **15 files** in the CI artifact and public site match the exact committed
+  locally tested build. JS `index-uxAQkeVG.js`, CSS `index-DSLPu4j9.css`.
+- Final integrated source browsers verified all six moving death types and late
+  joining existing remains; the late-join fixture holds the snapshot during
+  connection setup, then verifies continuing motion after delivery. The unmodified
+  public build passed solo pickup/throw, host/guest controls, hot join, leave and
+  small-menu checks through three relay-connected browsers with no page errors.
+  Temporary task previews on 5265/5266 are stopped. Refresh all players' tabs.
 
 
 ## Occasional bot reactions — 11 September 2026
