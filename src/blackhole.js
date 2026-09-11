@@ -1,4 +1,5 @@
 import { seedOrbit, orbitPoint, limitRope, springRope, ribbonOutline } from "./orbit.js";
+import { trackKillSource } from "./kill-credit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
 import { collectMatter, packMatter, matterTiles, absorbMatterContacts } from "./accretion.js";
@@ -6,7 +7,7 @@ import { bodyInBlast } from "./props.js";
 export const SINGULARITY = { radius: 465, duration: 5.5, arm: 0.4, core: 101.25 };
 
 export function blackholeField(world, b) {
-  return {
+  return trackKillSource(world, {
     kind: "blackhole",
     x: b.x,
     y: b.y,
@@ -19,7 +20,7 @@ export function blackholeField(world, b) {
     tick: 0,
     riftId: ++world.riftSerial,
     torn: false,
-  };
+  }, b);
 }
 export function wreckCorners(w) {
   if (w.outline) return w.outline;
@@ -232,7 +233,7 @@ export function updateBlackhole(world, f, dt) {
     if (f.life <= .7 || (f.life < 1.1 && d < 85)) {
       collectMatter(world, f, p, "fighter");
       if (p.weapon) collectMatter(world, f, { ...p, type: p.weapon }, "weapon");
-      world.kill(p, { effect: "singularity", sourceX: f.x, sourceY: f.y });
+      world.kill(p, { effect: "singularity", sourceX: f.x, sourceY: f.y, source: f });
       world.ragdolls.pop(); // The same body is now part of the compressed matter.
       delete p.capturedBy; delete p.strands;
     }

@@ -36,7 +36,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 37;
+export const PROTOCOL = 38;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -112,6 +112,7 @@ export class Room {
     this.appliedInputs = [0, 0, 0, 0];
 
     this.chat = new FighterChat();
+    this.chatRoles = new Map();
     this.nextChatAt = -Infinity;
     this.streamStats = { received: 0, skipped: 0, lastBytes: 0, lastGapMs: 0, maxGapMs: 0 };
   }
@@ -391,6 +392,7 @@ export class Room {
         defaultProfile(id),
       );
       this.roster.push({ id, ...profile });
+      this.syncChatRoles();
       c.frameSequence = 0;
       c.frameAck = 0;
       c.frameSentAt = 0;
@@ -526,6 +528,7 @@ export class Room {
           )
             return fail(new Error("Invalid room response."));
           this.slots = [...m.slots];
+          this.syncChatRoles();
           welcomed = settled = true;
           this.clear(t);
           this.joinReject = null;
@@ -549,6 +552,7 @@ export class Room {
         }
         if (m.t === "roster" && validSlots(m.slots) && this.receiveRoster(m.players)) {
           this.slots = [...m.slots];
+          this.syncChatRoles();
           this.profile = cleanProfile(
             this.roster.find((p) => p.id === this.id),
           );
@@ -607,7 +611,7 @@ export class Room {
     )
       return false;
     this.roster = players.map((p) => ({ id: p.id, ...cleanProfile(p) }));
-    this.chat.retain(this.roster.map(p => p.id));
+    this.syncChatRoles();
     return true;
   }
   assignProfile(id, value) {
@@ -631,13 +635,27 @@ export class Room {
   }
   publishRoster() {
     this.roster.sort((a, b) => a.id - b.id);
-    this.chat.retain(this.roster.map(p => p.id));
+    this.syncChatRoles();
     this.broadcast({ t: "roster", players: this.roster, slots: this.slots });
     this.emit("onRoster", this.roster);
   }
+  syncChatRoles() {
+    const active = activeSlots(this.slots, this.roster);
+    this.chat.retain(active.filter(p => !this.chatRoles.has(p.id) || this.chatRoles.get(p.id) === p.bot).map(p => p.id));
+    this.chatRoles = new Map(active.map(p => [p.id, p.bot]));
+  }
   receiveChat(message) {
-    if (!this.roster.some(p => p.id === message?.id)) return false;
+    if (!activeSlots(this.slots, this.roster).some(p => p.id === message?.id)) return false;
     return this.chat.receive(message);
+  }
+  sendBotChat(id, text) {
+    if (!this.host || !this.running || this.closed ||
+      !activeSlots(this.slots, this.roster).some(p => p.id === id && p.bot) ||
+      !this.latestState?.players.some(p => p.id === id && p.bot && p.alive)) return false;
+    const message = this.chat.publish(id, text);
+    if (!message) return false;
+    this.broadcast({ t: "chat", ...message });
+    return true;
   }
   acceptChat(id, text) {
     if (!this.host || !this.running || this.closed || !this.roster.some(p => p.id === id) ||

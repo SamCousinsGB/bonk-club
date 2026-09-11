@@ -67,12 +67,35 @@ test("invalid guest chat cannot inject payloads or unbounded speech", async () =
     await host.sendState(new World().snapshot()); await tick();
     for (const text of [null, {}, "x".repeat(121), "\u0000\u202e"]) guest.send(guest.connection, { t: "chat", text });
     await tick(); assert.deepEqual(host.chat.snapshot(), []);
+    host.slots[3] = "closed";
     assert.equal(host.receiveChat({ id: 3, text: "unoccupied", life: 4000, round: 1 }), false);
     guest.sendChat("<b>hello</b>"); await tick();
     assert.equal(host.chat.snapshot()[0].text, "<b>hello</b>");
     assert.equal(guest.chat.snapshot()[0].text, "<b>hello</b>");
   } finally { guest.close(); host.close(); }
 });
+test("bot speech reaches guests and hot joins without inheriting a replaced occupant's bubble", async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), hot = new Room({}, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); host.start();
+    const world = new World({ players: [0, 1, 2, 3], bots: [2, 3] });
+    await host.sendState(world.snapshot()); await tick();
+    assert.equal(guest.sendBotChat(2, "forged"), false);
+    assert.equal(host.sendBotChat(1, "not a bot"), false);
+    assert.equal(host.sendBotChat(2, "lol"), true); await tick();
+    assert.equal(guest.chat.snapshot().find(m => m.id === 2)?.text, "lol");
+    assert.equal(host.sendBotChat(3, "gone"), true); await tick();
+    await hot.join(host.code); await tick();
+    for (const room of [host, guest, hot]) {
+      assert.ok(!room.chat.snapshot().some(m => m.id === 2), "replaced bot message clears");
+      assert.equal(room.chat.snapshot().find(m => m.id === 3)?.text, "gone", "unchanged bot survives unrelated join");
+    }
+    guest.send(guest.connection, { t: "chat", id: 3, text: "forged bot" }); await tick();
+    assert.equal(host.chat.snapshot().find(m => m.id === 3)?.text, "gone");
+    assert.equal(host.chat.snapshot().find(m => m.id === 1)?.text, "forged bot");
+  } finally { hot.close(); guest.close(); host.close(); }
+});
+
 class Connection extends EventEmitter {
   constructor() {
     super();

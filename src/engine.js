@@ -1,5 +1,6 @@
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
+import { trackKillSource } from "./kill-credit.js";
 import { explosiveBarrel } from "./barrels.js";
 import { resetReactions, updateReactions, propReactionDamage, inheritReaction, surfaceReaction,
   reactionContacts, contactReaction, explosionReaction } from "./reactions.js";
@@ -8,6 +9,7 @@ import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gor
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { updateTransformedDeath } from "./transmutation.js";
+import { passiveBody } from "./body-physics.js";
 import { advanceFlight, projectileInArena, canSpawnProjectiles } from "./projectile-flight.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
@@ -756,7 +758,7 @@ export class World {
             ? (n - (count - 1) / 2) *
               (w.spread || (w.kind === "rocket" ? 0.18 : 0.12))
             : (this.random() - 0.5) * (w.spread || 0);
-        this.projectiles.push({
+        this.projectiles.push(trackKillSource(this, {
           x: muzzle.x,
           y: muzzle.y,
           vx: w.speed * Math.cos(angle + spread),
@@ -794,7 +796,7 @@ export class World {
                     : w.kind === "grenade"
                       ? 7
                       : 4),
-        });
+        }));
       }
       const recoil = firingRecoil(w, p);
       if (recoil >= 60)
@@ -883,14 +885,15 @@ export class World {
       projectile: !!options.projectile, blast: !!options.blast, effect:options.effect||null,
     });
     if (q.hp <= 0) this.kill(q,{cause:hitCause(options),effect:options.execute?"slice":options.effect,
-      ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y});
+      ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y,source:options.source || p});
   }
-  kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null} = {}) {
+  kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null, source = null} = {}) {
     if (!p.alive) return;
     if (p.carryId) releaseObject(this, p);
     if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
     p.hp = 0;
+    if (this.phase === "fight") this.onKill?.({ victim: p, source, cause: this.lastDeathCause });
     if (p.weapon && !ash && effect!=="singularity")
       this.drops.push({
         x: p.x,
@@ -902,7 +905,6 @@ export class World {
         life: 10,
       });
     const points = (p.rig || makeRig(p)).map((q) => ({ ...q }));
-    if (ash) for (const q of points) {q.px = q.x; q.py = q.y;}
     this.ragdolls.push({
       points,
       color: p.color,
@@ -1192,7 +1194,7 @@ export class World {
         b.force * scale,
         Math.sign(p.x - b.x) || 1,
         -0.7,
-        { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon,
+        { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon, source: b,
           cause: ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
       );
     }
@@ -1310,6 +1312,7 @@ export class World {
         if (canParry(p, source)) {
           consumeParry(p);
           b.owner = p.id;
+          trackKillSource(this, b, null, true);
           b.vx *= -1;
           b.vy *= -1;
           b.hitIds = [];
@@ -1328,7 +1331,7 @@ export class World {
           Math.sign(b.vx) || 0.1,
           Math.sin(Math.atan2(b.vy, b.vx)) * 0.5 - 0.3,
           {
-            projectile: true, weapon: b.weapon, effect:projectileEffect(b),execute:["rail","saw"].includes(b.kind),angle:Math.atan2(b.vy,b.vx),
+            projectile: true, weapon: b.weapon, effect:projectileEffect(b),execute:["rail","saw"].includes(b.kind),angle:Math.atan2(b.vy,b.vx),source:b,
             stun: ["flame", "frost"].includes(b.kind)
               ? 0.015
               : (WEAPONS[b.weapon]?.cooldown || 1) < 0.2
@@ -1380,44 +1383,10 @@ export class World {
       if(updateDeath(rag,dt))continue;
       if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
-      if (rag.ash) {
-        rag.ashAge += dt;
-        if (rag.ashAge < .6) continue;
-      }
-      for (const p of rag.points) {
-        const vx = (p.x - p.px) * 0.993,
-          vy = (p.y - p.py) * 0.993;
-        p.px = p.x;
-        p.py = p.y;
-        p.x += vx;
-        p.y += vy + (rag.ash ? 150 : rag.effect === "ice" ? 320 : 1800) * dt * dt;
-      }
-      for (let k = 0; k < 4; k++)
-        for (const [a, b, len] of deathJoints(rag)) {
-          const p = rag.points[a],
-            q = rag.points[b],
-            dx = q.x - p.x,
-            dy = q.y - p.y,
-            d = Math.hypot(dx, dy) || 1,
-            f = ((d - len) / d) * (rag.ash ? Math.max(0, 1.1 - rag.ashAge) * .3 : .5);
-          p.x += dx * f;
-          p.y += dy * f;
-          q.x -= dx * f;
-          q.y -= dy * f;
-        }
-      for (const p of rag.points)
-        for (const s of this.platforms.filter((p) => p.hp !== 0))
-          if (
-            p.x > s.x &&
-            p.x < s.x + s.w &&
-            p.py <= s.y + 5 &&
-            p.y >= s.y - 4 &&
-            p.y < s.y + s.h
-          ) {
-            p.y = s.y - 4;
-            p.py = p.y + (p.y - p.py) * 0.35;
-            p.px = p.x - (p.x - p.px) * 0.7;
-          }
+      if (rag.ash) rag.ashAge += dt;
+      passiveBody(rag.points, deathJoints(rag), this.solids(), dt, {
+        restitution: rag.effect === "ice" ? .3 : .15,
+      });
     }
     this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
   }

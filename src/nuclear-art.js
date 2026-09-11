@@ -1,5 +1,5 @@
 import { NUCLEAR } from "./impact.js";
-import { JOINTS } from "./puppet.js";
+import { crumbledBone, deathSegments } from "./death-effects.js";
 import { W, H } from "./scale.js";
 const TAU = Math.PI * 2;
 const circle = (c, x, y, radius) => {
@@ -218,30 +218,31 @@ export function drawNuclear(r, f) {
 
 export function drawAshSkeleton(r, rag) {
   const c = r.ctx,
-    age = rag.ashAge,
+    age = rag.ashAge || 0,
     pts = rag.points;
+  const segments = deathSegments(rag);
   const crumble = Math.max(0, Math.min(1, (age - 0.65) / 1.05));
   c.save();
   c.globalAlpha = Math.min(1, rag.life) * Math.max(0, 1 - crumble);
-  for (const [a, b] of JOINTS) {
-    if (a === 0) continue;
+  for (const [i, [a, b]] of segments.entries()) {
+    if (i === 0) continue;
     r.line(
       [
-        [pts[a].x, pts[a].y],
-        [pts[b].x, pts[b].y],
+        [a.x, a.y],
+        [b.x, b.y],
       ],
       "#121418",
       8,
     );
     r.line(
       [
-        [pts[a].x, pts[a].y],
-        [pts[b].x, pts[b].y],
+        [a.x, a.y],
+        [b.x, b.y],
       ],
       "#eee5cb",
       3.5,
     );
-    r.circle(pts[b].x, pts[b].y, 2.7, "#fff4d8");
+    r.circle(b.x, b.y, 2.7, "#fff4d8");
   }
   const neck = pts[1],
     hip = pts[2],
@@ -250,7 +251,7 @@ export function drawAshSkeleton(r, rag) {
     len = Math.hypot(dx, dy) || 1;
   const nx = -dy / len,
     ny = dx / len;
-  for (let n = 1; n <= 4; n++) {
+  for (let n = 1; n <= (crumbledBone(rag, 1) ? 0 : 4); n++) {
     const t = n / 5,
       x = neck.x + dx * t,
       y = neck.y + dy * t,
@@ -268,7 +269,7 @@ export function drawAshSkeleton(r, rag) {
   r.line(
     [
       [hip.x + nx * 6, hip.y + ny * 6],
-      [hip.x + dx * 0.16, hip.y + dy * 0.16],
+      [hip.x + dx / len * 4, hip.y + dy / len * 4],
       [hip.x - nx * 6, hip.y - ny * 6],
     ],
     "#eee5cb",
@@ -306,10 +307,10 @@ export function drawAshSkeleton(r, rag) {
   const t = Math.max(0, age - 0.6),
     dir = rag.ashDirection || 1;
   for (let n = 0; n < 66; n++) {
-    const [a, b] = JOINTS[n % JOINTS.length],
+    const [a, b] = segments[n % segments.length],
       along = ((n * 17) % 31) / 31;
-    const x = pts[a].x + (pts[b].x - pts[a].x) * along;
-    const y = pts[a].y + (pts[b].y - pts[a].y) * along;
+    const x = a.x + (b.x - a.x) * along;
+    const y = a.y + (b.y - a.y) * along;
     c.globalAlpha =
       Math.min(1, t * 3) *
       Math.min(1, rag.life / 0.65) *

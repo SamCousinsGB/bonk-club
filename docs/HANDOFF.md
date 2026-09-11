@@ -2,6 +2,59 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Death physics continuity - 11 September 2026
+
+- Release **v0.17.1**, protocol **38**. Death effects preserve the incoming
+  Verlet motion and immediately use the shared passive-body solver, with gravity,
+  swept wall/floor contacts, moving surfaces and momentum transfer to props.
+- Nuclear/energy skeletons fall immediately and progressively release their joints
+  from 0.65 seconds. Burned bodies crumble from 0.85 seconds. Detached bone art
+  becomes short chips at physical particles rather than stretched connecting lines.
+  Ice deaths retain a moving rigid pose for 0.4 seconds, then release physical shards.
+  Existing lifetimes, four-body cap, round reset, spike anchors and capture remain.
+- Nuclear conversion of earlier charred, frozen or severed remains also preserves
+  their motion. Rendering and breakup use existing validated ages/points, including
+  guest interpolation and hot join; no required wire shape changed.
+- All **749 local tests** passed before integrating main's separate performance
+  update. All **51** affected physics, nuclear, props and interpolation tests passed
+  after integration, along with the production build. Final CI/live proof follows.
+- Real Edge host/guest tests received moving nuclear, burn, plasma, Tesla, PHASER
+  and ice deaths over selected relay/relay candidates. A third browser hot joined
+  existing falling remains. Rendered stages and actual nuclear gameplay frames were
+  visually inspected. This is one-machine external-relay QA, not a cross-network
+  latency measurement. External scripts/images/logs use ../bonk-club-qa/death-physics-*.
+- Source edits remain in the canonical checkout alongside unrelated work. The
+  integrated release is ../bonk-club-qa/death-physics-release, codex/death-physics.
+  No production hooks, dependencies or Pi configuration changes were introduced.
+
+
+## Occasional bot reactions — 11 September 2026
+
+- Bots occasionally use the existing four-second head bubbles after their own
+  spectacular kills: black holes, nuclear blasts, phase beams and other heavy
+  weapon finishes. Ordinary kills, environmental deaths and suicides stay quiet.
+- Reactions wait 0.7–1.4 seconds, share a 45–75 second cooldown across bots and
+  rounds, and occur at most once per round. Multikills roll once per spectacle.
+  Dead, captured, frozen, knocked-down or replaced speakers cancel pending speech.
+- The 66 short authored lines are retired in the host browser's local storage
+  (bonk-bot-chat-used), including across reloads. Nearby phrase families are
+  avoided; exhausted eligible pools stay quiet. Unavailable storage falls back
+  to session history. Dialogue randomness does not alter the simulation RNG.
+- Host-only kill credit follows projectile ownership, parries, deployed fields
+  and completed singularities, including slot occupant generations. Reliable
+  chat shares the same bot bubble with guests and hot joins. Replacing a bot
+  clears its bubble; guest text cannot impersonate a bot.
+- Display version **0.17.0**, protocol **38**: refresh all players and create a
+  new room. Release work is in ../bonk-club-qa/bot-chat-release on
+  codex/bot-chat; canonical changes coexist with unrelated task edits.
+  Browser fixture scripts and screenshots stay outside the repository.
+- Focused chat/kill-credit/network checks passed (62 tests). Real Edge host,
+  guest and hot join saw identical bot reactions after actual black-hole and
+  nuclear kills, with selected relay/relay candidates. Bubbles expired and human
+  chat continued to work. Replacing the speaking bot cleared its bubble.
+  All 753 local tests passed before integration with the concurrent performance
+  update. Production release verification is in progress.
+
 ## Physics and guest performance pass — 11 September 2026
 
 - Published **v0.16.2**, protocol **37** unchanged, from main `030bbba` in

@@ -35,6 +35,9 @@ Keep this constitution for durable rules and the handoff for current work.
   and “Reconsider your friendships”. Do not replace them with similar filler.
 - Use direct labels such as Single player, Online multiplayer, Start match,
   Character, Settings and Leave room. Express personality through play and art.
+- Bots may occasionally use terse trash talk after spectacular kills, as Sam
+  explicitly requested. Keep it lowercase, sparse and tied to the actual killer.
+  Retire spoken lines and avoid nearby synonymous phrases.
 - Review new user-visible strings before delivery. An explicit creative-writing
   request is the exception; a request for polish or a fun game is not.
 - Sam explicitly requested a latest-update line on the main menu. Display
@@ -166,6 +169,10 @@ Keep this constitution for durable rules and the handoff for current work.
   with more impulse and recovery time for heavier weapons.
 - Powerful and strange weapons should be rare but actually appear during short
   rounds. Preserve featured weapon rotation and regular nuclear pickups.
+- Death effects retain body momentum, gravity and solid contacts from the first
+  tick. Nuclear and energy skeletons fall and then crumble into physical pieces;
+  charred bodies and ice shards keep moving too. Never hold an airborne death
+  pose in place. Preserve intentional spike anchors and black-hole capture.
 - Nuclear destruction is localized to at most half the map's width (current
   radius 480, reduced 25% from 640). Keep the background, remove affected physical
   terrain/props and use a circular flash, a rising mushroom cloud and skeleton-to-ash

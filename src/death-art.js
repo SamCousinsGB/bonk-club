@@ -2,7 +2,7 @@ import { drawFrozenBody } from "./frozen-art.js";
 import { JOINTS } from "./puppet.js";
 import { TRANSMUTATIONS } from "./transmutation.js";
 import { drawTransformedBody } from "./transmutation-art.js";
-import { deathJoints } from "./death-effects.js";
+import { deathJoints, deathSegments } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawAppearance } from "./identity.js";
 import { drawSingularityBody } from "./singularity-art.js";
@@ -62,7 +62,7 @@ export function drawDeath(r, rag, time) {
     drawTransformedBody(r,pts,rag.effect,age,time,pieces);
   } else if (["plasma", "tesla", "phaser"].includes(rag.effect)) {
     c.globalAlpha = Math.min(1, rag.life);
-    energy(
+    if (age < .65) energy(
       r,
       pts,
       rag.effect === "phaser" ? "#89ffce" : rag.effect === "plasma" ? "#80f5ff" : "#c1a0ff",
@@ -71,11 +71,11 @@ export function drawDeath(r, rag, time) {
     drawAshSkeleton(r, rag);
   } else if (rag.effect === "burn") {
     c.globalAlpha = Math.min(1, rag.life) * Math.max(0, 1 - age / 1.8);
-    for (const [a, b] of JOINTS)
+    for (const [a, b] of deathSegments(rag))
       r.line(
         [
-          [pts[a].x, pts[a].y],
-          [pts[b].x, pts[b].y],
+          [a.x, a.y],
+          [b.x, b.y],
         ],
         "#251d1b",
         6,
@@ -92,25 +92,26 @@ export function drawDeath(r, rag, time) {
       );
     }
   } else if (rag.effect === "ice") {
-    const fade = Math.max(0, 1 - Math.max(0, age - 0.4) * 3);
-    c.globalAlpha = fade;
-    for (const [a, b] of JOINTS)
-      r.line(
-        [
-          [pts[a].x, pts[a].y],
-          [pts[b].x, pts[b].y],
-        ],
-        "#bfefff",
-        5,
-      );
-    r.circle(pts[0].x, pts[0].y, 10, "#e4fcff");
-    drawFrozenBody(r, pts, 1);
+    if (age < .4) {
+      c.globalAlpha = Math.min(1, rag.life);
+      for (const [a, b] of JOINTS)
+        r.line(
+          [
+            [pts[a].x, pts[a].y],
+            [pts[b].x, pts[b].y],
+          ],
+          "#bfefff",
+          5,
+        );
+      r.circle(pts[0].x, pts[0].y, 10, "#e4fcff");
+      drawFrozenBody(r, pts, 1);
+    }
     const t = Math.max(0, age - 0.4);
     for (let n = 0; n < 38; n++) {
       const p = pts[n % 11],
-        a = n * 2.39996,
-        x = p.x + Math.cos(a) * t * (45 + (n % 6) * 25),
-        y = p.y + Math.sin(a) * t * 90 + t * t * 160;
+        a = n * 2.39996 + t * (n % 2 ? 4 : -3),
+        x = p.x + Math.cos(a) * 4,
+        y = p.y + Math.sin(a) * 4;
       c.globalAlpha = Math.min(1, t * 9) * Math.min(1, rag.life);
       c.fillStyle = n % 3 ? "#a0eaff" : "#e7ffff";
       c.beginPath();
