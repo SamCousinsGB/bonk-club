@@ -2,6 +2,36 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Reactive barrels and finite fighter fire — 11 September 2026
+
+Display version **0.10.0**, protocol **32**. All players must refresh and create
+a new room. This supersedes the older permanent fighter-burning behavior.
+
+- TNT and gas cylinders flash and swell through their own casing, with a countdown
+  painted on the label. The surrounding flashing rectangle is removed. TNT has
+  a three-second fuse; gas retains its existing leaking/tumbling pressure behavior.
+- Oil, glue and tar barrels have separate colours, labels, weights and finite
+  contents. Oil slides and burns for up to seven seconds; glue slows grounded
+  movement and can be jumped out of; heavy tar slows and burns for up to eleven
+  seconds. Fire consumes the spilled volume. Water extinguishes fires and washes
+  away glue; cold temporarily seals containers. Spills flow according to viscosity,
+  respect walls, fall through destroyed floors and clear after a bounded lifetime.
+- Fighter burning lasts three seconds after the last exposure, at 18 HP/second.
+  Repeated exposure refreshes rather than stacks duration. Damage and flames stop
+  when the timer ends, including during physical knockdowns or black-hole capture.
+  Water/ice still extinguish, and lethal burning still produces charred remains.
+- New spill state is capped at 96 parcels with stable IDs, validated finite values,
+  guest interpolation, hot join, reset, nuclear/PHASER removal and black-hole
+  collection. Liquid blocked by the admission limit stays in its container.
+- Eighteen new regressions cover the interactions, conservation, movement, expiry,
+  transport, malformed state and destruction. Actual Edge host/guest/hot-join QA
+  passed with selected relay/relay candidates: casing animation/explosion, gas
+  ignition, spills, destroyed floors, finite fire and real guest mouse fire.
+  Rendered artwork and gameplay were inspected. This is one-machine browser QA.
+- QA helpers, logs and captures are outside Git in `../bonk-club-qa/barrels-*`;
+  no production debug hooks, new dependencies or Pi configuration changes.
+  Full-suite and published-release verification is recorded below when complete.
+
 ## Prone floor collision fix - 11 September 2026
 
 Display version **0.9.3**; protocol **31** and wire shape are unchanged.

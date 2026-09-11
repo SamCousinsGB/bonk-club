@@ -211,9 +211,10 @@ export function updateBlackhole(world, f, dt) {
   if (!f.torn) tear(world, f);
   // Liquid and vapour become coloured samples in the existing planar orbit;
   // totals retain every parcel even when the visible sample budget is full.
-  for (const key of ["water", "gas"]) world[key] = (world[key] || []).filter(q => {
+  for (const key of ["water", "gas", "spills"]) world[key] = (world[key] || []).filter(q => {
     if (q.frozen || !inBlast(q, f)) return true;
-    collectMatter(world, f, { ...q, color:key === "water" ? "#69c5ee" : "#b0c99f" }, "debris");
+    collectMatter(world, f, { ...q, color:key === "water" ? "#69c5ee" : key === "gas" ? "#b0c99f" :
+      q.kind === "oil" ? "#827757" : q.kind === "glue" ? "#d3dba0" : "#6e497e" }, "debris");
     return false;
   });
   // Loose fragments and props can enter an already active field. Convert them

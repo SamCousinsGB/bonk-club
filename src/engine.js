@@ -1,4 +1,5 @@
 import { hitCause } from "./victory.js";
+import { explosiveBarrel } from "./barrels.js";
 import { resetReactions, updateReactions, propReactionDamage, inheritReaction, surfaceReaction,
   reactionContacts, contactReaction, explosionReaction } from "./reactions.js";
 import { cryoBurst } from "./expanded-weapons.js";
@@ -479,7 +480,7 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      const pendingBlast = this.cover.some(b=>b.hp>0&&b.kind==="canister"&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
+      const pendingBlast = this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
         this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
@@ -543,7 +544,8 @@ export class World {
     p.xray=Math.max(0,(p.xray||0)-dt);
     if(p.freeze>0){i=emptyInput();i.duck=p.prone;p.stun=Math.max(p.stun,p.freeze);p.block=false;}
     if (p.burn > 0) {
-      p.hp = Math.max(0, p.hp - BURN_DAMAGE * dt);
+      p.hp = Math.max(0, p.hp - BURN_DAMAGE * Math.min(dt, p.burn));
+      p.burn = Math.max(0, p.burn - dt);
       if (!p.hp) { this.kill(p,{effect:"burn",ash:true}); return; }
     }
     if(p.knockdown>0){
@@ -585,23 +587,26 @@ export class World {
     // Walking off a ledge uses the ground jump once the grace period expires.
     if (!p.ground && p.coyote <= 0 && p.jumps === 0) p.jumps = 1;
     const dir = Number(i.right) - Number(i.left);
+    const sticky = p.ground && (p.glued > 0 || p.tarred > 0);
+    const slippery = p.ground && p.oiled > 0;
+    if (sticky) p.vx *= Math.exp(-dt * (p.glued > 0 ? 11 : 5));
     if (dir && p.stun <= 0) {
       p.facing = dir;
       const max =
         (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
-        (p.chill > 0 ? 0.58 : 1);
+        (p.chill > 0 ? 0.58 : 1) * (sticky ? p.glued > 0 ? .25 : .5 : 1);
       const acceleration =
-        (p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1);
+        (p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1) * (slippery ? .24 : 1);
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
       // but holding a direction must never add more speed above that limit.
       if (p.vx * dir < max)
         p.vx += dir * Math.min(acceleration * dt, max - p.vx * dir);
       else
         p.vx +=
-          (dir * max - p.vx) * Math.min(1, dt * (momentum ? 0.4 : 3));
+          (dir * max - p.vx) * Math.min(1, dt * (momentum ? 0.4 : slippery ? .3 : 3));
     } else if (p.ground)
       p.vx *= Math.pow(
-        momentum ? 0.994 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
+        momentum ? 0.994 : slippery ? 0.998 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
         dt * 120,
       );
     else p.vx *= Math.pow(0.996, dt * 120);
@@ -1409,6 +1414,7 @@ export class World {
       hazards: this.hazards,
       water: this.water,
       gas: this.gas,
+      spills: this.spills,
       projectiles: this.projectiles.filter(projectileInArena),
       fields: this.fields,
       craters: this.craters,

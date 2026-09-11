@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.3",
-  "releaseNotes": "Fixed falling through floors after prone hits",
+  "version": "0.10.0",
+  "releaseNotes": "Flashing explosive barrels, oil, glue and tar spills, and fire that burns out",
   "private": true,
   "type": "module",
   "scripts": {
