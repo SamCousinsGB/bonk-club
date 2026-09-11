@@ -172,7 +172,8 @@ on `codex/hud-alignment`, preserving unrelated work in progress.
 
 ## Customised heads and lethal singularities — 11 September 2026
 
-Display version **0.14.0**, protocol **35**. All players must refresh and create
+Introduced in display version **0.14.0**, protocol **35**; published verification
+below covers **0.16.1**, protocol **37**. All players must refresh and create
 a new room. Implementation was edited in the canonical checkout, then integrated
 with the fuel-ignition and object-pickup releases in `../bonk-club-singularity-release`
 on `codex/singularity-core-release`. Preserve unrelated canonical edits.
@@ -192,8 +193,8 @@ on `codex/singularity-core-release`. Preserve unrelated canonical edits.
 - Eleven new regressions cover cosmetics, corpses, bounded samples, wire rejection,
   contact directions, physical limbs, single counting, destruction and resets.
   All **676** pre-integration tests passed; **116** focused tests passed after the
-  fuel and pickup integration. Production build passed. Published CI verification
-  follows below when complete.
+  fuel and pickup integration, then **73** after the hazard integration.
+  Production build passed.
 - Three real Edge browsers verified capture, collapse, matching transported
   collision, hot join after a slot replacement, real guest movement into the core,
   contact death, added contents and reset through selected relay/relay candidates.
@@ -202,6 +203,15 @@ on `codex/singularity-core-release`. Preserve unrelated canonical edits.
   the complete run and the unmodified production room check passed.
 - External helpers, logs and screenshots: `../bonk-club-qa/singularity-*`.
   Test hooks remain outside production. No dependencies or Pi configuration changes.
+- **Published and verified:** **v0.16.1**, protocol **37**, gameplay revision
+  `c06dd6a8b6fa62b6dcb013dda512f827e70787b8` includes the singularity implementation
+  unchanged. [Pages run 34644756415](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644756415)
+  passed all **742 game/shared tests and 3 server tests**, built and deployed.
+  All **15 public files** matched SHA-256 hashes from its Pages artifact.
+- The actual public game passed solo, host/guest start, guest controls, hot join,
+  leaving and the small menu through selected relay/relay candidates on three
+  real Edge browsers, with no page errors. Public gameplay and menu captures
+  were visually inspected. Browsers and this task's preview servers are stopped.
 
 
 ## Hazard breakup and complete clearing — 11 September 2026
