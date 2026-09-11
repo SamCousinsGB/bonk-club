@@ -73,7 +73,7 @@ test("magnetic scanner pulls armed fighters and loose metal, with walls shieldin
   const wood=prepareProp({id:"wood",kind:"pallet",x:530,y:531,w:104,h:34,hp:55,maxHp:55});
   w.cover=[metal,wood];w.drops=[{x:580,y:535,vx:0,vy:0,type:"shotgun",ammo:5,life:60}];
   Object.assign(w.players[1],{x:610,y:535,vx:0,weapon:null});advance(w,1.2);
-  assert.ok(p.vx<0);assert.equal(p.hp,100);assert.equal(w.players[1].vx,0);
+  assert.ok(p.vx<0);assert.equal(p.hp,99);assert.equal(w.players[1].vx,0);
   assert.ok(w.drops[0].vx>0);assert.ok(metal.vx<0);assert.equal(wood.vx,0);
   p.vx=0;w.platforms.push({id:"wall",x:665,y:370,w:12,h:195,baseX:665,baseY:370,dx:0,dy:0});advance(w,.1);assert.equal(p.vx,0);
   assert.ok(validSnapshot(w.snapshot()));

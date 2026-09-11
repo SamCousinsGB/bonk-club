@@ -917,6 +917,7 @@ export class Renderer {
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);
+    drawHazards(c, state.hazards, time, arena.theme, "back");
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -964,7 +965,7 @@ export class Renderer {
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
-    drawHazards(c, state.hazards, time, arena.theme);
+    drawHazards(c, state.hazards, time, arena.theme, "front");
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);

@@ -1,3 +1,4 @@
+import { isScanner } from "./scanner.js";
 const line=(c,points,color,width=3)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=color;c.fill();};
 function wheel(c,x,y,r,time,spikes=false){
@@ -6,9 +7,33 @@ function wheel(c,x,y,r,time,spikes=false){
   c.closePath();c.fillStyle=spikes?"#b5c0c1":"#e2e7d8";c.fill();c.strokeStyle="#1c2832";c.lineWidth=3;c.stroke();
   circle(c,0,0,r*.64,spikes?"#394853":"#78949d");circle(c,0,0,7,"#efab55");c.restore();
 }
-export function drawHazards(c,hazards,time,theme){
+function scannerPost(c,h,x) {
+  const top=h.y-h.h;
+  c.fillStyle="#d3ded5";c.fillRect(x,top+10,18,h.h-20);
+  c.fillStyle="#719696";c.fillRect(x+3,top+25,12,h.h-65);
+}
+function scannerCoil(c,h,x) {
+  const top=h.y-h.h;
+  line(c,[[x,top+35],[x,h.y-24]],"#293e59",10);
+  for(let y=top+40;y<h.y-20;y+=12)line(c,[[x-7,y],[x+7,y]],"#97bbd3",3);
+}
+function scannerFront(c,h) {
+  const right=h.x+h.w/2;
+  scannerPost(c,h,right-18);
+  c.fillStyle="#497577";c.fillRect(right+3,h.y-46,18,30);
+  c.fillStyle=h.active?(h.type==="magnet"?"#8acbff":"#b4ffe2"):"#376268";
+  c.fillRect(right+6,h.y-42,12,9);
+  if(h.type==="magnet")scannerCoil(c,h,right-25);
+}
+// Default draws the complete fixture for destruction artwork. Gameplay splits
+// scanners around the fighters: left/rear post first, right/front post last.
+export function drawHazards(c,hazards,time,theme,layer="all"){
   for(const h of hazards||[]){
     if(h.done)continue;
+    if(layer==="back"&&!isScanner(h))continue;
+    if(layer==="front"&&isScanner(h)){
+      c.save();scannerFront(c,h);c.restore();continue;
+    }
     const left=h.x-h.w/2,top=h.y-h.h;
     c.save();
     const alert=h.warning>0&&Math.sin(time*18)>0;
@@ -33,20 +58,12 @@ export function drawHazards(c,hazards,time,theme){
       // The scanner opening is passable. Solid-looking shells sit at its sides;
       // the floor footprint and illuminated field mark the actual affected area.
       c.fillStyle="#15313a";c.fillRect(left-9,h.y-12,h.w+18,12);
-      for(const x of [left,left+h.w-18]){
-        c.fillStyle="#d3ded5";c.fillRect(x,top+10,18,h.h-20);
-        c.fillStyle="#719696";c.fillRect(x+3,top+25,12,h.h-65);
-      }
+      scannerPost(c,h,left);
       c.fillStyle="#b5cbc8";c.fillRect(left-4,top,h.w+8,22);
       c.fillStyle="#15313a";c.fillRect(h.x-28,top+4,56,14);
       circle(c,h.x+19,top+11,4,h.active?color:alert?"#ffc75c":"#4d7677");
-      c.fillStyle="#497577";c.fillRect(left+h.w+3,h.y-46,18,30);
-      c.fillStyle=h.active?color:"#376268";c.fillRect(left+h.w+6,h.y-42,12,9);
       if(magnetic){
-        for(const x of [left+25,left+h.w-25]){
-          line(c,[[x,top+35],[x,h.y-24]],"#293e59",10);
-          for(let y=top+40;y<h.y-20;y+=12)line(c,[[x-7,y],[x+7,y]],"#97bbd3",3);
-        }
+        scannerCoil(c,h,left+25);
         if(h.active)for(let i=0;i<5;i++){
           const inset=((time*60+i*27)%(h.w/2-28));
           c.strokeStyle="#8acbff88";c.lineWidth=2;c.beginPath();
@@ -65,6 +82,7 @@ export function drawHazards(c,hazards,time,theme){
         // Trefoil warning symbol; no decorative prose on the playfield.
         circle(c,h.x-18,top+11,6,"#f1c85c");circle(c,h.x-18,top+11,2,"#34464b");
       }
+      if(layer==="all")scannerFront(c,h);
     }else if(["steam","frost","spores"].includes(h.type)){
       const cold=h.type==="frost",organic=h.type==="spores";
       const color=cold?"#b6f3ff":organic?"#c6e582":"#efdfb5";

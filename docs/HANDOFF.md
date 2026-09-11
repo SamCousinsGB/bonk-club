@@ -2,6 +2,33 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Scanner layering and skeleton flicker — 11 September 2026
+
+Implemented in the canonical checkout and integrated with current main in
+`../bonk-club-qa/scanner-release` / `codex/scanner-pass`, preserving the
+canonical checkout's unrelated edits. Display version **0.15.0**, protocol **35**
+unchanged; refresh players' tabs for consistent artwork.
+
+- X-ray and magnetic scanners draw the left/rear post behind fighters and the
+  right/front post over them. The default complete drawing remains available
+  for destroyed casing fragments. Destroyed fixtures draw neither post.
+- Active scanners expose pose-following skeletons in brief double flickers.
+  Scanning costs only 1 HP per existing 0.8-second damage interval, with no
+  stun, hitstop or knockback. Magnetic pull, activation warnings, shielding and
+  mounting destruction remain. Exposure clears within 0.12 seconds after leaving.
+  Reduced effects uses a steady faint skeleton; electrical weapons retain their
+  own stronger exposure. Existing xray/xrayType fields carry status; no new wire
+  shape, dependencies, desktop-shell or Pi changes.
+- Eight regression tests cover bounded damage, movement, shielding, destruction,
+  exit/re-entry, fatal exposure, reset, encoded snapshots, interpolation, post
+  layers and flicker frames. Real Edge host/guest checks passed walking through
+  both types (98 HP remaining), exposure clearing, a late-joining browser,
+  destroyed scanner clearing and reset, with selected relay/relay candidates and
+  no page errors. Actual gameplay and enlarged animation frames were inspected.
+  This is one-machine browser QA. Helpers and captures: `../bonk-club-qa/scanner-*`.
+- Full suite, exact production build and public release verification follow below
+  once completed. QA hooks stay in the external helpers, never the game bundle.
+
 ## Arena-aligned HUD — 11 September 2026
 
 Display version **0.14.1**, protocol **35** unchanged. CSS was edited in the
