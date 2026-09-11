@@ -83,7 +83,21 @@ events, multiple completed rounds and at least eight weapons per run. Fixed-step
 reduced-motion and world-isolation checks pass. Real Edge source checks confirm
 continuous fighting, responsive framing, Character/Settings, solo start/return,
 no menu simulation during play and a pixel-identical reduced-motion frame.
-QA helpers/screenshots: `bonk-club-qa/menu-fight-*`. Release verification follows.
+QA helpers/screenshots: `bonk-club-qa/menu-fight-*`.
+
+Published as **0.5.1**, revision `af53323eaba23723a430d3f8969dd85d2e1994a8`.
+Pages run `34614831482` passed its build job (**536 gameplay/network tests**,
+**3 server tests** and production build), then successfully completed the Publish
+step. The overall run was cancelled after publication when the concurrent arena
+release began. All **15 public files matched byte for byte** against an exact
+LF checkout/build of this revision. Live Edge checks passed at 1440×900, 390×844,
+568×320 and 320×568: visible controls/release note, menu actions, solo start/return
+and no browser errors. Actual rendered live fighting was visually inspected.
+Three real Edge contexts also passed host/guest/hot-join, departure, mute and
+disconnect checks over selected TURN relay candidates. These ran on one QA
+machine, not separate ISPs or physical mobile devices. An initial menu sizing
+race found during production QA was fixed before release. The subsequent arena
+integration at `2395bdd` includes this correction and advances the game to 0.6.0.
 
 ## Weapon audio and nuclear siren — 11 September 2026
 
