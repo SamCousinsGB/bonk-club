@@ -38,7 +38,26 @@ hot joined terrain cut by a firework; platform IDs matched. Real guest mouse
 input fired a harpoon at the authoritative host. Gameplay and weapon silhouettes
 were visually inspected without browser errors. Hooks are confined to the QA
 helper at `bonk-club-qa/arsenal-browser.cjs`; screenshots use `arsenal-*.png`.
-Release verification will be recorded here after publishing.
+
+Published gameplay revision: `77852da22cd396930c9579666f3175f0c8a6c274`.
+Pages run `34547505565` passed **506 gameplay/network tests**, **3 server
+tests**, production build and deployment:
+https://github.com/SamCousinsGB/bonk-club/actions/runs/34547505565.
+The local complete run passed 495 tests; the subsequent additional bot and
+hammer cases passed in the focused 36-test run, then all 506 passed together
+in CI. No Pi settings or services changed.
+
+All **15 public files** matched the exact committed production build byte for
+byte. JS: `index-CZTnBftX.js`; CSS: `index-Cn7ksyh0.css`;
+worker: `clock-worker-CSNsw-OA.js`. Archive/build:
+`bonk-club-qa/arsenal-release-77852da`, exported with `git archive` for LF parity.
+Checker: `bonk-club-qa/verify-arsenal-live.cjs`.
+The unmodified production bundle and public game both passed three-browser
+lobby, start, hot join, departure/rejoin, sound, small-viewport and disconnect
+checks through selected TURN relay candidates, without browser errors. This is
+real WebRTC/TURN on one QA machine, not a cross-ISP test. Gameplay screenshots
+were inspected. Reusable production check: `presence-browser.cjs`, setting
+`BONK_PRESENCE_DIST` to the exact build for staging, then running with `--live`.
 
 ## Guest freezes and black-hole bandwidth — 10 September 2026
 
