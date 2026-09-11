@@ -56,6 +56,35 @@ button:hover {
 .hidden {
   display: none !important;
 }
+button:focus, input:focus, select:focus, summary:focus {
+  outline: 3px solid var(--lime);
+  outline-offset: 3px;
+}
+#controller-keyboard {
+  position: fixed;
+  z-index: 30;
+  inset: auto 5% 5%;
+  max-width: 880px;
+  margin: auto;
+  padding: 20px;
+  border: 2px solid #d5fa43;
+  border-radius: 12px;
+  background: #15191b;
+  box-shadow: 0 0 0 100vmax #0009;
+}
+#controller-keyboard output {
+  display: block;
+  min-height: 40px;
+  font-size: 22px;
+  padding-bottom: 12px;
+}
+.controller-keys { display: grid; grid-template-columns: repeat(10, 1fr); gap: 8px; }
+.controller-keys button { min-height: 40px; border: 1px solid #ffffff55; border-radius: 5px; background: #293338; font-size: 16px; }
+.desktop-app #menu { scrollbar-width: thin; scrollbar-color: #778c8066 transparent; }
+@media (min-height: 601px) {
+  .desktop-app #menu h1 { font-size: clamp(64px, min(8vw, 13dvh), 140px); margin: 18px 0 22px; }
+  .desktop-app #menu .button { padding-top: 14px; padding-bottom: 14px; }
+}
 #stage:has(.dialog:not(.hidden)) #menu,
 #stage:has(.dialog:not(.hidden)) #scene-label {
   pointer-events: none;

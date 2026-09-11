@@ -1,5 +1,13 @@
 node_modules/
 dist/
+dist-desktop/
+desktop/build-config.json
+desktop/.stage/
+desktop/.stage-*/
+desktop/test-results/
+release/
+steam-build/
+steam_appid.txt
 *.log
 .env*
 !.env.example

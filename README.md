@@ -3,6 +3,11 @@
 Development rules: [project constitution](AGENTS.md). Current work and next-chat
 context: [handoff](docs/HANDOFF.md).
 
+Desktop builds and Steam release work: [Steam production guide](docs/STEAM.md).
+Windows and Linux packaging is available; Steam account setup, native Steam
+features and Steam Deck hardware validation are still required before a Steam
+release. The browser game remains supported.
+
 A browser physics brawler for 1–4 people. Original stick-figure artwork and arenas, inspired by the feel of party fighting games including Stick Fight: The Game. Not affiliated with Landfall.
 
 ## Play
