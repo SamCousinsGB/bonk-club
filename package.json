@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.5.0",
-  "releaseNotes": "Layered weapon audio and nuclear fuse siren",
+  "version": "0.5.1",
+  "releaseNotes": "Live fights restored to the menu",
   "private": true,
   "type": "module",
   "scripts": {
