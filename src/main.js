@@ -39,6 +39,7 @@ import { Renderer } from "./renderer.js";
 import { Sound } from "./audio.js";
 import { RoomPresence } from "./room-presence.js";
 import { Room, validCode } from "./network.js";
+import { FighterChat, ChatComposer } from "./chat.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
 import { bindMouseControls } from "./mouse.js";
@@ -116,6 +117,7 @@ let world = null,
   toastTimer,
   returnFocus = null;
 const guestFrames = new GuestFrames();
+const soloChat = new FighterChat();
 const roomPresence = new RoomPresence();
 const roomNoticeTimers = new Map();
 let difficulty = preferences.value.difficulty;
@@ -150,7 +152,7 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
-  if (view || needsRotation() || document.hidden || !document.hasFocus()) return emptyInput();
+  if (view || chatComposer.isOpen || needsRotation() || document.hidden || !document.hasFocus()) return emptyInput();
   if (device === "touch") return { ...touchInput };
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
@@ -189,6 +191,7 @@ function readInput(device) {
   return i;
 }
 function ownInput() {
+  if (chatComposer.isOpen) return emptyInput();
   const i = readInput("keyboard1"),
     pad = gamepads()[0] ? readInput("gamepad0") : emptyInput();
   for (const k in i) if (k !== "aim") i[k] ||= pad[k] || touchInput[k];
@@ -203,6 +206,15 @@ function clearInput() {
   touchInput = emptyInput();
   if (room && !room.host) room.sendInput(emptyInput());
 }
+const chatComposer = new ChatComposer($("#chat-form"), {
+  enabled: () => playing && !view,
+  clearInput,
+  send: text => {
+    const sent = room ? room.sendChat(text) : !!soloChat.publish(0, text);
+    if (!sent) toast("Wait a moment before sending another message.");
+    return sent;
+  },
+});
 function toast(message) {
   $("#toast").textContent = message;
   $("#toast").classList.remove("hidden");
@@ -247,6 +259,7 @@ function unlock() {
   }
 }
 function showPanel(name, html) {
+  if (chatComposer.isOpen) chatComposer.close();
   if ($("#panel").classList.contains("hidden"))
     returnFocus = document.activeElement;
   view = name;
@@ -274,6 +287,7 @@ const heading = (title) =>
   `<div class="dialog-head"><div><h2 id="panel-title">${title}</h2></div><button id="back" class="icon-button" aria-label="Back">×</button></div>`;
 function setPlaying(value) {
   playing = value;
+  if (!value) { chatComposer.close(); soloChat.reset(); }
   document.body.classList.toggle("playing", value);
   $("#hud").classList.toggle("hidden", !value);
   $("#invite").classList.toggle("hidden", !value || !room);
@@ -807,7 +821,7 @@ function help(back = hidePanel) {
     "help",
     heading("Controls") +
       `<div class="touch-help"><h3>TOUCH</h3><p><b>Move:</b> drag the left side left or right. Release to stop. Swipe up to jump while moving; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Aim / fire:</b> drag the right side in the direction you want to shoot. Hold to keep firing; release to stop. You can move and fire at the same time. The joystick guides hide while held and return when you lift your fingers.</p><p><b>Jump:</b> tap Jump, then tap again to double jump.</p><p><b>Throw:</b> double-tap the right side to throw your weapon or carried object.</p><p><b>Pick up / drop:</b> the action button picks up a nearby physical object or drops the object you hold. Aim and fire to throw it. Otherwise the button parries with empty hands or uses alternate fire. Weapon pickups are automatic.</p><p>Play with your phone sideways. Joining or starting requests fullscreen and landscape where supported. If fullscreen closes, open Game menu and tap Fullscreen. The game continues while you rotate or use menus.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire / throw object</p><p>Right click / <span class="key">G</span> Pick up / drop / parry / alternate fire</p><p><span class="key">F</span> Throw weapon / object</p><p><span class="key">S</span> Hold to lie down</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT picks up or drops an object, otherwise parries with fists or uses alternate fire. Y / triangle throws the weapon or object. Right stick aims. Hold LB or D-pad down to lie down.</p><p><b>Physical objects:</b> right-click or press G to pick up the nearest object in front of you. Your weapon is set down with its ammunition. Right-click again to drop the object; left-click or F throws it towards your aim. Heavy objects slow movement and travel less far. Walls block pickup. Objects keep their collisions, damage, fire and fuses while held. You cannot punch, fire or parry while carrying.</p><p>With empty hands and no reachable object, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns for three seconds after the last exposure. Water and ice extinguish it immediately. Bubble shots lift opponents for a short time; a heavy hit pops the bubble. Boomerangs return and can hit again on the way back. Rubber ducks bounce and explode on contact or when their fuse ends. Ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a circular blast that removes nearby terrain and kills anyone inside, including you. Walls do not shield the nuclear flash. The mushroom cloud clears within 12 seconds; the hole remains until the next round. Leaving the arena also triggers detonation.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks have weight. Push them, hit them or blast them apart; loose pieces can hit fighters. TNT barrels count down and explode. Gas cylinders leak flammable gas. Oil spills are slippery and flammable. Glue grips your feet; jump to escape. Tar slows movement and burns longer than oil. Water washes off glue and extinguishes fire. Shoot containers to release their contents. Bullets have a 30% chance to ignite gas, oil or tar on contact, including at the container. Elevators carry players between floors. Explosions hurt everyone, including you. Explosions carve holes in every platform, wall and lift. Repeated blasts dig further through terrain. Marked wood and glass panels can also be shot out; structural supports and lifts resist bullets. Destroyed floors drop players and loose objects. Cut lifts stop moving. Terrain resets each round. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
+      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire / throw object</p><p>Right click / <span class="key">G</span> Pick up / drop / parry / alternate fire</p><p><span class="key">F</span> Throw weapon / object</p><p><span class="key">S</span> Hold to lie down</p><p><span class="key">Enter</span> Chat · Enter to send · Esc to cancel</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT picks up or drops an object, otherwise parries with fists or uses alternate fire. Y / triangle throws the weapon or object. Right stick aims. Hold LB or D-pad down to lie down.</p><p><b>Physical objects:</b> right-click or press G to pick up the nearest object in front of you. Your weapon is set down with its ammunition. Right-click again to drop the object; left-click or F throws it towards your aim. Heavy objects slow movement and travel less far. Walls block pickup. Objects keep their collisions, damage, fire and fuses while held. You cannot punch, fire or parry while carrying.</p><p>With empty hands and no reachable object, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns for three seconds after the last exposure. Water and ice extinguish it immediately. Bubble shots lift opponents for a short time; a heavy hit pops the bubble. Boomerangs return and can hit again on the way back. Rubber ducks bounce and explode on contact or when their fuse ends. Ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a circular blast that removes nearby terrain and kills anyone inside, including you. Walls do not shield the nuclear flash. The mushroom cloud clears within 12 seconds; the hole remains until the next round. Leaving the arena also triggers detonation.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks have weight. Push them, hit them or blast them apart; loose pieces can hit fighters. TNT barrels count down and explode. Gas cylinders leak flammable gas. Oil spills are slippery and flammable. Glue grips your feet; jump to escape. Tar slows movement and burns longer than oil. Water washes off glue and extinguishes fire. Shoot containers to release their contents. Bullets have a 30% chance to ignite gas, oil or tar on contact, including at the container. Elevators carry players between floors. Explosions hurt everyone, including you. Explosions carve holes in every platform, wall and lift. Repeated blasts dig further through terrain. Marked wood and glass panels can also be shot out; structural supports and lifts resist bullets. Destroyed floors drop players and loose objects. Cut lifts stop moving. Terrain resets each round. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
   );
   $("#back").onclick = back;
   $("#got-it").onclick = back;
@@ -904,7 +918,7 @@ function simulate(now) {
   const dt = Math.max(0, Math.min((now - simulationLast) / 1000, STEP * 8));
   simulationLast = now;
   touchInput =
-    canUseTouch() && !view && !needsRotation() && !document.hidden
+    canUseTouch() && !view && !chatComposer.isOpen && !needsRotation() && !document.hidden
       ? touchControls.read(now)
       : emptyInput();
   netClock += dt;
@@ -941,6 +955,10 @@ function frame(now) {
   last = now;
   hudClock += dt;
   const state = world ? world.snapshot() : interpolated(now);
+  const chat = room?.chat || soloChat;
+  if (state) chat.setRound(state.round);
+  renderer.chatMessages = playing ? chat.snapshot() : [];
+
   sound.update(playing ? state : null);
   renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
@@ -994,6 +1012,7 @@ if (desktop) {
 syncFullscreenUi();
 window.addEventListener("keydown", (e) => {
   if (sound.context?.state === "suspended") unlock();
+  if (chatComposer.handleKey(e)) return;
   if (e.code === "Escape") {
     if ($("#controller-keyboard")) { e.preventDefault(); controllerMenu.closeKeyboard(); return; }
     if (view === "connection-details") {
@@ -1041,7 +1060,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => room?.close());
 const canvas = $("#game");
 const mouseControls = bindMouseControls(canvas, mouse, {
-  enabled: () => playing && !view && !needsRotation() && !document.hidden,
+  enabled: () => playing && !view && !chatComposer.isOpen && !needsRotation() && !document.hidden,
   wake: unlock,
   aim: (e) => {
     const rect = canvas.getBoundingClientRect();

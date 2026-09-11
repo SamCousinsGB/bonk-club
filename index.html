@@ -54,6 +54,12 @@
           <div id="round-status" class="hidden" role="status"></div>
         </div>
         <div id="announcement" role="status" aria-live="polite"></div>
+        <form id="chat-form" class="hidden" autocomplete="off">
+          <label for="chat-input">Chat</label>
+          <input id="chat-input" type="text" maxlength="120" placeholder="Type a message" aria-describedby="chat-help" enterkeyhint="send" />
+          <span id="chat-help">Enter to send · Esc to cancel</span>
+        </form>
+        <span id="chat-hint">Enter to chat</span>
         <section id="menu" class="menu-panel">
           <h1>BONK<br /><span>CLUB</span></h1>
           <div class="menu-buttons">

@@ -10,6 +10,7 @@ import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from
 import { RenderSnapshots } from "./render-state.js";
 import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from "./realtime.js";
 import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
+import { FighterChat, cleanChat, CHAT_LIMIT, CHAT_COOLDOWN } from "./chat.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { validExpandedProjectile } from "./expanded-weapons.js";
 import { validTransmutation, validTransmutationProjectile } from "./transmutation.js";
@@ -34,7 +35,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 35;
+export const PROTOCOL = 36;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -107,6 +108,8 @@ export class Room {
     this.sequence = 0;
     this.reconnectAttempts = 0;
     this.inputSequence = 0;
+    this.chat = new FighterChat();
+    this.nextChatAt = -Infinity;
     this.streamStats = { received: 0, skipped: 0, lastBytes: 0, lastGapMs: 0, maxGapMs: 0 };
   }
   emit(name, ...args) {
@@ -188,6 +191,7 @@ export class Room {
           }
           this.lastFrameAt = now; stats.received++;
           stats.lastBytes = m.bytes?.byteLength || 0;
+          this.chat.setRound(state.round);
           this.emit("onState", state);
         }
       } catch {
@@ -395,6 +399,8 @@ export class Room {
         running: this.running,
         players: this.roster,
         slots: this.slots,
+        chatRound: this.chat.round,
+        chat: this.chat.snapshot(),
       });
       this.publishRoster();
       if (this.latestState) this.sendState(this.latestState);
@@ -413,6 +419,7 @@ export class Room {
         this.inputTimes[id] = performance.now();
       }
       if (m.t === "profile") this.assignProfile(id, m.profile);
+      if (m.t === "chat") this.acceptChat(id, m.text);
       if (m.t === "ack" && Number.isInteger(m.seq) && m.seq > c.frameAck && m.seq <= c.frameSequence) {
         c.frameAck = m.seq;
         c.inFlight = c.inFlight.filter(seq => seq > m.seq);
@@ -518,6 +525,9 @@ export class Room {
           this.joinReject = null;
           this.id = m.id;
           this.running = m.running === true;
+          this.chat.setRound(m.chatRound);
+          if (Array.isArray(m.chat) && m.chat.length <= 4)
+            for (const message of m.chat) this.receiveChat(message);
           this.profile = cleanProfile(
             this.roster.find((p) => p.id === this.id),
           );
@@ -526,6 +536,7 @@ export class Room {
           resolve();
         }
         if (!welcomed) return;
+        if (m.t === "chat" && this.running) this.receiveChat(m);
         if (m.t === "removed") {
           this.emit("onError", typeof m.reason === "string" ? m.reason.slice(0, 120) : "The host removed your slot.");
           return;
@@ -590,6 +601,7 @@ export class Room {
     )
       return false;
     this.roster = players.map((p) => ({ id: p.id, ...cleanProfile(p) }));
+    this.chat.retain(this.roster.map(p => p.id));
     return true;
   }
   assignProfile(id, value) {
@@ -613,8 +625,30 @@ export class Room {
   }
   publishRoster() {
     this.roster.sort((a, b) => a.id - b.id);
+    this.chat.retain(this.roster.map(p => p.id));
     this.broadcast({ t: "roster", players: this.roster, slots: this.slots });
     this.emit("onRoster", this.roster);
+  }
+  receiveChat(message) {
+    if (!this.roster.some(p => p.id === message?.id)) return false;
+    return this.chat.receive(message);
+  }
+  acceptChat(id, text) {
+    if (!this.host || !this.running || this.closed || !this.roster.some(p => p.id === id) ||
+      typeof text !== "string" || text.length > CHAT_LIMIT) return false;
+    const message = this.chat.publish(id, text);
+    if (!message) return false;
+    this.broadcast({ t: "chat", ...message });
+    return true;
+  }
+  sendChat(value) {
+    const text = cleanChat(value), now = performance.now();
+    if (!this.running || this.closed || !text || now < this.nextChatAt) return false;
+    if (this.host) return this.acceptChat(this.id, text);
+    if (!this.connection?.open) return false;
+    this.nextChatAt = now + CHAT_COOLDOWN;
+    this.send(this.connection, { t: "chat", text });
+    return true;
   }
   sendInput(input) {
     if (!this.running) return;
@@ -636,6 +670,7 @@ export class Room {
   async sendState(state) {
     if (!this.host || !this.running || this.closed) return;
     this.latestState = state;
+    this.chat.setRound(state.round);
     if (this.encoding) return;
     const now = performance.now();
     const ready = [...this.connections.values()].filter(
@@ -723,6 +758,7 @@ export class Room {
     if (this.closed) return;
     this.roomServiceAtClose = this.roomServiceState();
     this.closed = true;
+    this.chat.reset();
     this.diagnostics.close();
     this.joinReject?.(new Error("Connection cancelled."));
     this.joinReject = null;

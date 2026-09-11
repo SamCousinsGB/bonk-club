@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "releaseNotes": "Scanner skeleton flicker, light damage and corrected post layering",
   "private": true,
   "type": "module",

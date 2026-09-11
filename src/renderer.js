@@ -8,6 +8,7 @@ import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmN
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawAppearance } from "./identity.js";
+import { drawChat } from "./chat-art.js";
 import { HazardBreaks, drawHazardBreaks } from "./hazard-break-art.js";
 import {
   drawNewWeapon,
@@ -1087,6 +1088,7 @@ export class Renderer {
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
     if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
+    if (!menuArena) drawChat(c, state, this.chatMessages || []);
     c.restore();
     if (menuArena) {
       const { width, height } = this.menuSize;
