@@ -116,7 +116,7 @@ export function firePhaser(world, player, ax, ay) {
     // One hit per discharge. Short stun and a small impulse leave the air jump
     // available; the fading visual never damages a fighter a second time.
     world.hit(p, { x, y, vx: 0, vy: 0 }, weapon.damage, weapon.force, ax,
-      Math.min(-.15, ay * .6), { blast: true, effect: "phaser", stun: .045, hitstop: .018 });
+      Math.min(-.15, ay * .6), { blast: true, effect: "phaser", stun: .045, hitstop: .018, source: player });
     if (p.alive) p.xray = .4;
   }
   world.fields.push(beam);

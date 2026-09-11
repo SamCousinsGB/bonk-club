@@ -35,6 +35,9 @@ Keep this constitution for durable rules and the handoff for current work.
   and “Reconsider your friendships”. Do not replace them with similar filler.
 - Use direct labels such as Single player, Online multiplayer, Start match,
   Character, Settings and Leave room. Express personality through play and art.
+- Bots may occasionally use terse trash talk after spectacular kills, as Sam
+  explicitly requested. Keep it lowercase, sparse and tied to the actual killer.
+  Retire spoken lines and avoid nearby synonymous phrases.
 - Review new user-visible strings before delivery. An explicit creative-writing
   request is the exception; a request for polish or a fun game is not.
 - Sam explicitly requested a latest-update line on the main menu. Display

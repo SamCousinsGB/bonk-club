@@ -2,6 +2,32 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+
+## Occasional bot reactions — 11 September 2026
+
+- Bots occasionally use the existing four-second head bubbles after their own
+  spectacular kills: black holes, nuclear blasts, phase beams and other heavy
+  weapon finishes. Ordinary kills, environmental deaths and suicides stay quiet.
+- Reactions wait 0.7–1.4 seconds, share a 45–75 second cooldown across bots and
+  rounds, and occur at most once per round. Multikills roll once per spectacle.
+  Dead, captured, frozen, knocked-down or replaced speakers cancel pending speech.
+- The 66 short authored lines are retired in the host browser's local storage
+  (bonk-bot-chat-used), including across reloads. Nearby phrase families are
+  avoided; exhausted eligible pools stay quiet. Unavailable storage falls back
+  to session history. Dialogue randomness does not alter the simulation RNG.
+- Host-only kill credit follows projectile ownership, parries, deployed fields
+  and completed singularities, including slot occupant generations. Reliable
+  chat shares the same bot bubble with guests and hot joins. Replacing a bot
+  clears its bubble; guest text cannot impersonate a bot.
+- Display version **0.17.0**, protocol **38**: refresh all players and create a
+  new room. Release work is in ../bonk-club-qa/bot-chat-release on
+  codex/bot-chat; canonical changes coexist with unrelated task edits.
+  Browser fixture scripts and screenshots stay outside the repository.
+- Focused chat/kill-credit/network checks passed (62 tests). Real Edge host,
+  guest and hot join saw identical bot reactions after actual black-hole and
+  nuclear kills, with selected relay/relay candidates. Bubbles expired and human
+  chat continued to work. Full release validation is in progress.
+
 ## Guest control response — 11 September 2026
 
 - Local control prediction is implemented in `src/guest-prediction.js`, sharing

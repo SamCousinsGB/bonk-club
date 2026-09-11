@@ -1,4 +1,5 @@
 import { NUCLEAR } from "./impact.js";
+import { trackKillSource } from "./kill-credit.js";
 import { consumeReactionArea } from "./reactions.js";
 import { bodyInBlast } from "./props.js";
 
@@ -70,7 +71,7 @@ export function nuclearField(world, b) {
     born: world.time,
   };
   world.craters.push(crater);
-  return {
+  return trackKillSource(world, {
     kind: "shockwave",
     x: b.x,
     y: b.y,
@@ -83,7 +84,7 @@ export function nuclearField(world, b) {
     craterId: crater.id,
     melted: false,
     hitIds: [],
-  };
+  }, b);
 }
 
 export function updateNuclear(world, f, dt) {
@@ -97,7 +98,7 @@ export function updateNuclear(world, f, dt) {
       if (!p.alive || f.hitIds.includes(p.id) || !inBlast(p, f, radius))
         continue;
       f.hitIds.push(p.id);
-      world.kill(p, { ash: true, sourceX: f.x, cause: "nuke" });
+      world.kill(p, { ash: true, sourceX: f.x, cause: "nuke", source: f });
     }
     for (const rag of world.ragdolls) {
       if (rag.ash || !inBlast(rag.points[2], f, radius)) continue;

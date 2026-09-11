@@ -41,6 +41,7 @@ import { Sound } from "./audio.js";
 import { RoomPresence } from "./room-presence.js";
 import { Room, validCode } from "./network.js";
 import { FighterChat, ChatComposer } from "./chat.js";
+import { BotChat } from "./bot-chat.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
 import { bindMouseControls } from "./mouse.js";
@@ -122,6 +123,7 @@ const guestPrediction = new GuestPrediction();
 let guestInputClock = 0;
 
 const soloChat = new FighterChat();
+const botChat = new BotChat();
 const roomPresence = new RoomPresence();
 const roomNoticeTimers = new Map();
 let difficulty = preferences.value.difficulty;
@@ -356,6 +358,7 @@ function startWorld(ids) {
     arenaPool: pool,
   });
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
+  botChat.attach(world);
   remote = null;
   guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   renderer.lastEvent = 0;
@@ -946,6 +949,10 @@ function simulate(now) {
       world.step(STEP, inputs);
       accumulator -= STEP;
     }
+  }
+  if (world && playing) {
+    (room?.chat || soloChat).setRound(world.round);
+    botChat.update(world, (id, text) => room ? room.sendBotChat(id, text) : !!soloChat.publish(id, text));
   }
   if (room && playing && !room.host) {
     guestInputClock += dt;

@@ -1,4 +1,5 @@
 import { orbitPoint, seedOrbit } from "./orbit.js";
+import { trackKillSource } from "./kill-credit.js";
 import { cleanProfile } from "./identity.js";
 import { segmentBox } from "./collision.js";
 import { JOINTS } from "./puppet.js";
@@ -8,11 +9,11 @@ export const MATTER_KINDS = ["platform", "prop", "trap", "fighter", "weapon", "p
 export const MATTER_LIMIT = 96;
 const colors = ["#87919b", "#9f795b", "#958baf", "#ecbf8b", "#d4d9dc", "#ffcb79", "#a8937d", "#943345"];
 export function collectMatter(world, f, source, kind) {
-  const core = (f.matter ||= {
+  const core = (f.matter ||= trackKillSource(world, {
     id: ++world.wreckSerial, kind: "matter", x: f.x, y: f.y,
     w: 48, h: 48, angle: 0, hp: 120, packing: 0,
     mass: 0, totals: MATTER_KINDS.map(() => 0), items: [],
-  });
+  }, f));
   if (source.kind === "matter") {
     core.mass += source.mass;
     core.totals = core.totals.map((n, i) => n + source.totals[i]);
@@ -95,7 +96,7 @@ export function absorbMatterContacts(world) {
       collectMatter(world, field, p, "fighter");
       if (p.weapon) collectMatter(world, field, { ...p, type: p.weapon }, "weapon");
       packMatter(field, 0);
-      world.kill(p, { effect: "singularity", sourceX: core.x, sourceY: core.y });
+      world.kill(p, { effect: "singularity", sourceX: core.x, sourceY: core.y, source: core });
       world.ragdolls.pop();
       delete p.capturedBy; delete p.strands;
       world.wreckDirty = true;

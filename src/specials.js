@@ -112,7 +112,7 @@ export function impactSpecial(world, b, target, hurt) {
       b.force,
       Math.sign(next.x - from.x) || 1,
       -0.2,
-      { projectile: true, stun: 0.09, effect:"tesla" },
+      { projectile: true, stun: 0.09, effect:"tesla", source: b },
     );
     hit.add(next.id);
     from = next;

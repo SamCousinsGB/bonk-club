@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.16.1",
-  "releaseNotes": "Faster online controls with local prediction and host reconciliation",
+  "version": "0.17.0",
+  "releaseNotes": "Bots occasionally react to spectacular kills",
   "private": true,
   "type": "module",
   "scripts": {

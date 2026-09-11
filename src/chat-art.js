@@ -21,7 +21,7 @@ export function chatLines(context, text, width) {
 export function drawChat(context, state, messages) {
   for (const message of messages) {
     const player = state.players.find(p => p.id === message.id);
-    if (!player || player.bot || message.round !== state.round) continue;
+    if (!player || message.round !== state.round) continue;
     const rag = !player.alive && state.ragdolls?.findLast(r => r.color === player.color && r.points?.length);
     const head = rag?.points?.[0] || player.rig?.[0] || { x: player.x, y: player.y - 40 };
     if (!Number.isFinite(head.x) || !Number.isFinite(head.y) || head.y > H + 80) continue;
