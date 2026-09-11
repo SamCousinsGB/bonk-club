@@ -1,6 +1,6 @@
 // Original procedural recordings. Render layered pressure transients, turbulent
 // air and damped material resonances once, then reuse them as short PCM samples.
-// No downloaded assets, per-shot DSP graph, or pitched arcade sweeps.
+// No downloaded assets or per-shot DSP graph.
 export const SOUND_RATE = 24000;
 export const NUKE_FUSE = 2.8;
 const TAU = Math.PI * 2;
@@ -33,7 +33,7 @@ export const WEAPON_SOUNDS = Object.freeze({
 export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
   'burn', 'explosion', 'nuclear', 'siren', 'debris', 'cover', 'parry',
-  'jump', 'pickup', 'fight', 'round', 'death', 'footstep', 'landing',
+  'jump', 'pickup', 'fight', 'round', 'death', 'landing',
 ])]);
 
 export function weaponSound(detail = {}) {
@@ -53,7 +53,7 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
   };
   const duration = name === 'siren' ? NUKE_FUSE : name === 'nuclear' ? 4.6 :
     name === 'explosion' ? 1.65 : name === 'singularity' ? 1.4 :
-    name === 'phaser' ? .9 : name === 'footstep' ? .24 : name === 'landing' ? .38 :
+    name === 'phaser' ? .9 : name === 'jump' ? .42 : name === 'death' ? .65 : name === 'landing' ? .38 :
     guns[name] ? guns[name][0] + .22 : .8;
   const samples = new Float32Array(Math.ceil(duration * rate));
   // Each layer is bounded and fades to zero; high-pass differences remove DC.
@@ -161,16 +161,32 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
     }
     if (name === 'slice' || name === 'cover') noise(.003, .16, 1.1, 700, 80);
   } else if (name === 'death') {
-    noise(0, .07, .65, 2800, 230, .003);
-    noise(.006, .55, 1.75, 390, 35, .009);
-    modes(.004, .65, .5, [58, 92, 143]);
-    noise(.025, .55, .36, 1800, 160, .035);
-    noise(.09, .25, .12, 3100, 800, .018);
-  } else if (name === 'footstep' || name === 'landing') {
-    const heavy = name === 'landing';
-    noise(0, .035, heavy ? .28 : .16, 2300, 400, .002);
-    noise(.004, heavy ? .23 : .14, heavy ? 1.9 : 1.1, 420, 45, .004);
-    modes(.003, heavy ? .26 : .17, heavy ? .42 : .27, [heavy ? 66 : 88, 147, 231]);
+    // A compact body impact followed by a falling, breathy vocal resonance.
+    noise(0, .04, .9, 3400, 600, .0015);
+    noise(.003, .25, 2.3, 440, 38, .003);
+    modes(.003, .28, .58, [64, 109, 173]);
+    let phase = 0;
+    const pitch = 1 + (random() - .5) * .14;
+    for (let i = Math.round(.025 * rate); i < Math.round(.56 * rate); i++) {
+      const t = i / rate - .025, q = t / .535;
+      const fundamental = (148 - 79 * smooth(q)) * pitch * (1 + .025 * Math.sin(TAU * 31 * t));
+      phase += TAU * fundamental / rate;
+      const mouth = 690 - 300 * q, throat = 1230 - 380 * q;
+      let voice = 0;
+      for (let h = 1; h <= 18; h++) {
+        const frequency = fundamental * h;
+        const weight = .65 * Math.exp(-(((frequency - mouth) / 210) ** 2)) +
+          .32 * Math.exp(-(((frequency - throat) / 290) ** 2)) + .22 / h;
+        voice += Math.sin(phase * h) * weight;
+      }
+      const envelope = Math.min(1, t / .018) * Math.exp(-q * 3.8) * (1 - smooth(q));
+      samples[i] += voice * .33 * envelope;
+    }
+    noise(.035, .51, .28, 2100, 240, .035, 43);
+  } else if (name === 'landing') {
+    noise(0, .035, .28, 2300, 400, .002);
+    noise(.004, .23, 1.9, 420, 45, .004);
+    modes(.003, .26, .42, [66, 147, 231]);
     noise(.025, .09, .12, 1800, 300, .008);
   } else if (name === 'impact' || name === 'heavy-impact') {
     const heavy = name === 'heavy-impact';
@@ -178,8 +194,21 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
     noise(.002, heavy ? .3 : .19, heavy ? 3.5 : 2.4, heavy ? 520 : 900, 55, .001);
     modes(.003, .18, heavy ? .3 : .2, [83, 137, 219]);
     noise(.014, .18, .23, 3300, 800);
-  } else if (['whoosh', 'heavy-swing', 'blade', 'jump'].includes(name)) {
-    noise(0, name === 'heavy-swing' ? .38 : .22, name === 'jump' ? .32 : .8,
+  } else if (name === 'jump') {
+    // An elastic pitch overshoot and decaying wobble make a short spring boing.
+    let phase = 0;
+    const pitch = 1 + (random() - .5) * .08;
+    for (let i = 0; i < samples.length; i++) {
+      const t = i / rate;
+      const frequency = (145 + 285 * (1 - Math.exp(-t / .015)) * Math.exp(-t / .10) +
+        70 * Math.exp(-t / .14) * Math.sin(TAU * 13 * t)) * pitch;
+      phase += TAU * frequency / rate;
+      const envelope = Math.min(1, t / .004) * Math.exp(-t / .095) * Math.min(1, (duration - t) / .025);
+      samples[i] += (Math.sin(phase) + .22 * Math.sin(phase * 2) + .10 * Math.sin(phase * 3)) * .48 * envelope;
+    }
+    noise(0, .025, .09, 2800, 600, .001);
+  } else if (['whoosh', 'heavy-swing', 'blade'].includes(name)) {
+    noise(0, name === 'heavy-swing' ? .38 : .22, .8,
       name === 'blade' ? 6000 : 2200, 200, .026, 0);
     if (name === 'blade') modes(.012, .16, .035, [1381, 2389]);
   } else if (name === 'saw') {
