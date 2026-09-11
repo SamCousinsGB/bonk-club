@@ -51,9 +51,13 @@ export function resetReactions(world) {
       if (used.has(f.id)) continue;
       for (const fraction of [.25, .75, .5]) {
         const b = { x: f.x + f.w * fraction - size[0] / 2, y: f.y - size[1], w: size[0], h: size[1] };
-        if (world.arena.spawns.some(([x, y]) => Math.abs(x - centre(b).x) < 115 && Math.abs(y - centre(b).y) < 110) ||
+        if (b.x < f.x+65 || b.x+b.w > f.x+f.w-65 ||
+          world.platforms.some(p => (p.travel || p.move) && overlap(b, {
+            x:p.baseX-Math.abs(p.move||0)-18, y:Math.min(p.baseY,p.baseY+(p.travel||0))-95,
+            w:p.w+Math.abs(p.move||0)*2+36, h:Math.abs(p.travel||0)+p.h+105 })) ||
+          world.arena.spawns.some(([x, y]) => Math.abs(x - centre(b).x) < 115 && Math.abs(y - centre(b).y) < 110) ||
           world.cover.some(c => overlap(b, bodyBounds(c), 18)) ||
-          world.platforms.some(p => p !== f && p.hp !== 0 && overlap(b, p, 2)) ||
+          world.platforms.some(p => p !== f && p.hp !== 0 && overlap({...b,y:b.y-140,h:b.h+140}, p, 2)) ||
           world.hazards.some(h => overlap(b, hazardZone(h), 28))) continue;
         world.cover.push(prepareProp({ ...b, id: `reaction-prop${index}`, kind, hp: 85, maxHp: 85,
           ...(kind === "waterTank" ? { waterLeft: 210 } : {}) }));

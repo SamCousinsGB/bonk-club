@@ -40,6 +40,10 @@ test("arenas get physical containers without obstructing spawns or intersecting 
       tanks+=b.kind==="waterTank";cylinders+=b.kind==="canister";
       assert.ok(!w.arena.spawns.some(([x,y])=>Math.abs(x-b.x-b.w/2)<110&&Math.abs(y-b.y-b.h/2)<100));
       assert.ok(!w.platforms.some(p=>p.hp!==0&&p.x<b.x+b.w&&p.x+p.w>b.x&&p.y<b.y+b.h-.1&&p.y+p.h>b.y));
+      for(const p of w.platforms.filter(p=>p.travel)) {
+        const top=Math.min(p.baseY,p.baseY+p.travel)-95,bottom=Math.max(p.baseY,p.baseY+p.travel)+p.h+10;
+        assert.ok(!(b.x<p.x+p.w+18&&b.x+b.w>p.x-18&&b.y<bottom&&b.y+b.h>top),"container obstructs lift travel");
+      }
     }
     assert.ok(validSnapshot(w.snapshot()),ARENAS[arena].name);
   }

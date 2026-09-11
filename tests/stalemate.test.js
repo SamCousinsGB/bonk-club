@@ -16,6 +16,11 @@ function quarry(offset = 0, grenades = true) {
   });
   w.phase = "fight";
   w.drops = [];
+  // Isolate the original navigation regression. A canister can now resolve this
+  // fixture before the three-second route observation has even finished; the
+  // full-arena bot tests separately retain all environmental reactions.
+  w.cover = w.cover.filter(c => !["canister", "waterTank"].includes(c.kind));
+  w.water = []; w.gas = [];
   w.weaponTimer = w.hazardTimer = 999;
   Object.assign(w.players[0], {
     x: 2340 + offset,
