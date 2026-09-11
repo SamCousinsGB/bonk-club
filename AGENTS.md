@@ -176,7 +176,11 @@ Keep this constitution for durable rules and the handoff for current work.
   Captured living fighters go limp and orbit with colliding, stretched limbs before
   compression. The field radius is 465 units (25% down from 620), with the lens
   reduced to match. Compressed fighters show only their coloured head in the final
-  ball, never a miniature stick body. On closing, collected fighters, weapons,
+  ball, never a miniature stick body. Preserve their hair, hair colour, facial
+  hair and accessories so each head remains recognisable. The completed mass
+  is a shiny circular singularity with visible objects inside; touching it kills
+  living fighters and adds their heads and held weapons to its contents.
+  On closing, collected fighters, weapons,
   props, traps, projectiles, debris and blood become a persistent dense ball with real collision. Keep the
   outer twisted platforms and their existing artwork. Captured matter must not
   simply disappear at the core; bound visual samples while retaining all counts.

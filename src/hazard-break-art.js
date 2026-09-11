@@ -60,7 +60,7 @@ function inside(x, y, poly) {
 function fracture(burst, theme) {
   const {h} = burst, {bounds, shards} = hazardShardMesh(h);
   const canvas = document.createElement("canvas"); canvas.width = bounds.w; canvas.height = bounds.h;
-  const c = canvas.getContext("2d"); c.translate(-bounds.x, -bounds.y);
+  const c = canvas.getContext("2d", {willReadFrequently: true}); c.translate(-bounds.x, -bounds.y);
   // Powered fields and warning overlays are not pieces of the broken machine.
   drawHazards(c, [{...h, done: false, active: false, warning: 0}], burst.at, theme);
   const pixels = c.getImageData(0, 0, bounds.w, bounds.h).data;

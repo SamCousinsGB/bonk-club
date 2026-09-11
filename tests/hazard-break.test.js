@@ -8,6 +8,7 @@ import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { validSnapshot } from "../src/network.js";
 import { combatFloor } from "./helpers.js";
 import { carveExplosion } from "../src/terrain.js";
+import { blackholeField, updateBlackhole } from "../src/blackhole.js";
 
 function lab(type = "crusher") {
   const w = new World({random: () => .5, shuffle: false}); combatFloor(w); w.phase = "fight";
@@ -77,6 +78,16 @@ test("captured or vaporised fixtures keep their existing weapon effects without 
   const {w} = lab(), tracker = new HazardBreaks(); tracker.update(w.snapshot());
   w.hazards = []; w.time += STEP;
   assert.equal(tracker.update(w.snapshot()).length, 0);
+});
+
+test("a later black hole cannot recreate a cleared fixture as physical wreckage", () => {
+  for (const done of [false, true]) {
+    const {w, h} = lab(); h.done = done;
+    w.players = []; w.platforms = []; w.cover = []; w.chunks = [];
+    const f = blackholeField(w, {x: h.bodyX, y: h.bodyY, owner: 0}); f.age = .5;
+    updateBlackhole(w, f, STEP);
+    assert.equal(w.wreckage.some(q => q.kind === "trap"), !done);
+  }
 });
 
 test("all eight simultaneous breaks clear fully within the bounded lifetime", () => {

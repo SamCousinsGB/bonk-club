@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.13.1",
-  "releaseNotes": "Broken environmental hazards shatter into dust and clear completely",
+  "version": "0.14.1",
+  "releaseNotes": "Aligned player scores and round details with the arena",
   "private": true,
   "type": "module",
   "scripts": {

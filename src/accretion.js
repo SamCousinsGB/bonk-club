@@ -1,4 +1,7 @@
 import { orbitPoint, seedOrbit } from "./orbit.js";
+import { cleanProfile } from "./identity.js";
+import { segmentBox } from "./collision.js";
+import { JOINTS } from "./puppet.js";
 // Samples retain the source appearance; totals include every object even when
 // many bullets or splinters share a bounded visual sample.
 export const MATTER_KINDS = ["platform", "prop", "trap", "fighter", "weapon", "projectile", "debris", "blood"];
@@ -18,10 +21,12 @@ export function collectMatter(world, f, source, kind) {
     const index = MATTER_KINDS.indexOf(kind);
     core.totals[index]++;
     core.mass += kind === "fighter" ? 70 : Math.max(1, Math.min(300, (source.w || 8) * (source.h || 8) / 30));
+    const { name, ...appearance } = cleanProfile(source);
     addSample(core, {
       kind, x: source.x ?? f.x, y: source.y ?? f.y, angle: source.angle || 0,
       size: kind === "fighter" ? 12 : Math.max(3, Math.min(16, Math.sqrt((source.w || 10) * (source.h || 10)) * .2)),
       color: /^#[0-9a-f]{6}$/i.test(source.color) ? source.color : colors[index],
+      ...(kind === "fighter" ? { ...appearance, facing: source.facing === -1 ? -1 : 1 } : {}),
       type: kind === "weapon" ? (source.type || source.weapon) : null,
       sourceKind: source.sourceKind || (kind === "prop" && source.kind !== "prop" ? source.kind : null) || null,
       vx: source.vx || 0, vy: source.vy || 0,
@@ -49,9 +54,12 @@ export function packMatter(f, dt) {
   const core = f.matter;
   if (!core) return;
   core.packing = Math.max(0, Math.min(1, 1 - f.life / 1.1));
+  const heads = core.items.filter(q => q.kind === "fighter");
   for (let i = 0; i < core.items.length; i++) {
-    const q = core.items[i], a = i * 2.399963,
-      d = Math.sqrt((i + .5) / core.items.length) * (core.w / 2 - 6),
+    const q = core.items[i], head = q.kind === "fighter",
+      a = head ? heads.indexOf(q) * Math.PI * 2 / heads.length - Math.PI / 2 : i * 2.399963,
+      d = head ? (heads.length === 1 ? 0 : Math.max(0, Math.min(core.w * .25, core.w / 2 - 24))) :
+        Math.sqrt((i + .5) / core.items.length) * Math.max(0, core.w / 2 - q.size - 3),
       x = core.x + Math.cos(a) * d, y = core.y + Math.sin(a) * d;
     if (f.life > 1.1) {
       orbitPoint(q, f, dt, .8, 155);
@@ -61,7 +69,38 @@ export function packMatter(f, dt) {
     }
     const response = f.life <= 0 ? 1 : Math.min(1, dt * (core.packing ? 12 : 3));
     q.x += (x - q.x) * response; q.y += (y - q.y) * response;
-    q.angle += (a - q.angle) * response;
+    // Settle heads mostly upright so hair, facial hair and eyewear remain legible.
+    q.angle += ((head ? Math.sin(a) * .22 : a) - q.angle) * response;
+  }
+}
+
+// Use the same strips as solid collision, including the solver's tiny separation
+// epsilon. A living ragdoll touches with its actual limbs, never its empty bounds.
+export function absorbMatterContacts(world) {
+  if (world.phase !== "fight") return;
+  for (const core of world.wreckage) {
+    if (core.kind !== "matter" || core.hp <= 0 || core.packing < 1) continue;
+    for (const p of world.players) {
+      if (!p.alive) continue;
+      const tiles = matterTiles(core);
+      const rx = p.prone ? 34 : 15, top = p.prone ? 10 : 28, bottom = p.prone ? 10 : 30;
+      const bodyTouch = !p.knockdown && tiles.some(s =>
+        p.x + rx >= s.x - .15 && p.x - rx <= s.x + s.w + .15 &&
+        p.y + bottom >= s.y - .15 && p.y - top <= s.y + s.h + .15);
+      const limbTouch = p.rig && tiles.some(s =>
+        p.rig.some((q, i) => segmentBox(q.px ?? q.x, q.py ?? q.y, q.x, q.y, s, i === 0 ? 10.15 : 3.15)) ||
+        JOINTS.some(([a,b]) => segmentBox(p.rig[a].x,p.rig[a].y,p.rig[b].x,p.rig[b].y,s,3.15)));
+      if (!bodyTouch && !limbTouch) continue;
+      const field = { x: core.x, y: core.y, life: 0, matter: core };
+      collectMatter(world, field, p, "fighter");
+      if (p.weapon) collectMatter(world, field, { ...p, type: p.weapon }, "weapon");
+      packMatter(field, 0);
+      world.kill(p, { effect: "singularity", sourceX: core.x, sourceY: core.y });
+      world.ragdolls.pop();
+      delete p.capturedBy; delete p.strands;
+      world.wreckDirty = true;
+      world.terrainVersion++;
+    }
   }
 }
 export function matterTiles(core, old = new Map()) {

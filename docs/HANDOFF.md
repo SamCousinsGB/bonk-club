@@ -2,6 +2,59 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Arena-aligned HUD — 11 September 2026
+
+Display version **0.14.1**, protocol **35** unchanged. CSS was edited in the
+canonical checkout and integrated on current main in `../bonk-club-qa/hud-release`
+on `codex/hud-alignment`, preserving unrelated work in progress.
+
+- The HUD uses the fitted 16:9 arena bounds, including side/top letterboxing.
+  Round details are centred independently of the scoreboard and menu button.
+- Player names, scores and health bars share consistent rows. Long names use
+  ellipses; leader markers no longer affect row alignment. Text has a light shadow.
+- A container query uses the actual arena width for compact layouts, placing
+  round details below the scores and reserving space for menu/invite controls.
+  Touch retains its existing safe-area spacing and buttons.
+- Browser gameplay was visually inspected at 2048 x 978, 1280 x 720,
+  568 x 320 and 1920 x 540, including long names, tied leaders, elimination,
+  resize and menu access. DOM measurements confirmed aligned health bars and
+  no horizontal overflow. Production build and diff checks passed.
+- No gameplay, network, desktop-shell, dependencies or Pi configuration changed.
+  Pages completion and final test results are recorded after deployment.
+
+## Customised heads and lethal singularities — 11 September 2026
+
+Display version **0.14.0**, protocol **35**. All players must refresh and create
+a new room. Implementation was edited in the canonical checkout, then integrated
+with the fuel-ignition and object-pickup releases in `../bonk-club-singularity-release`
+on `codex/singularity-core-release`. Preserve unrelated canonical edits.
+
+- Captured living fighters and existing corpses retain hair, hair colour, facial
+  hair, accessories, colour and facing in their collected heads. The same character
+  artwork draws them larger and mostly upright, above the rubble. The original
+  appearance survives occupant replacement, another black hole and hot join.
+- Completed cores are glossy circular spheres with bright reflections and visible
+  contents. Heads sit inside the rim, and the shell clips the final contents to
+  its circular boundary. Active capture still uses the existing planar orbits,
+  differential limb stretching and warped outer platforms.
+- Contact with an intact completed core kills living fighters, including prone
+  and recovering physical bodies, and adds their head and held weapon. Contact
+  uses the existing solid strips and actual ragdoll limbs. Incomplete/destroyed
+  cores are harmless; terrain destruction and round-reset behavior are preserved.
+- Eleven new regressions cover cosmetics, corpses, bounded samples, wire rejection,
+  contact directions, physical limbs, single counting, destruction and resets.
+  All **676** pre-integration tests passed; **116** focused tests passed after the
+  fuel and pickup integration. Production build passed. Published CI verification
+  follows below when complete.
+- Three real Edge browsers verified capture, collapse, matching transported
+  collision, hot join after a slot replacement, real guest movement into the core,
+  contact death, added contents and reset through selected relay/relay candidates.
+  Rendered gameplay and one/four-head closeups were inspected. This is one-machine
+  browser QA. A few repeated harness attempts hit temporary late-join retries;
+  the complete run and the unmodified production room check passed.
+- External helpers, logs and screenshots: `../bonk-club-qa/singularity-*`.
+  Test hooks remain outside production. No dependencies or Pi configuration changes.
+
 
 ## Hazard breakup and complete clearing — 11 September 2026
 

@@ -1,7 +1,7 @@
 import { seedOrbit, orbitPoint, limitRope, springRope, ribbonOutline } from "./orbit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
-import { collectMatter, packMatter, matterTiles } from "./accretion.js";
+import { collectMatter, packMatter, matterTiles, absorbMatterContacts } from "./accretion.js";
 import { bodyInBlast } from "./props.js";
 export const SINGULARITY = { radius: 465, duration: 5.5, arm: 0.4, core: 101.25 };
 
@@ -175,6 +175,7 @@ function tear(world, f) {
     return false;
   });
   world.hazards = world.hazards.filter((h) => {
+    if (h.done) return true; // A cleared fixture cannot become new physical wreckage.
     if (!inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f)) return true;
     addWreck(
       world,
@@ -270,6 +271,7 @@ export function updateBlackhole(world, f, dt) {
   }
 }
 export function updateWreckage(world, dt = 1 / 120) {
+  absorbMatterContacts(world);
   const old = new Map(
     world.platforms.filter((p) => p.wreckId).map((p) => [p.id, p]),
   );
