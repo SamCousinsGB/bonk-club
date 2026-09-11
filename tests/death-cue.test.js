@@ -113,18 +113,22 @@ function soundFixture() {
   const sound = new Sound(), notes = [];
   sound.context = { state: "running", currentTime: 10 };
   sound.master = {};
-  sound.tone = (...args) => { notes.push(args); sound.active++; };
-  sound.sample = () => { sound.active++; };
+  sound.tone = () => { throw new Error('Deaths must not play the old pitched chime'); };
+  sound.sample = (name, detail, options) => {
+    if (sound.active >= 45) return;
+    notes.push({name,priority:options?.priority}); sound.active++;
+  };
   return { sound, notes };
 }
 
-test("all death causes share a two-note cue, including under busy combat audio", () => {
+test("all death causes share one physical impact without stacked weapon noise, even in busy combat", () => {
   const baseline = soundFixture(); baseline.sound.play("ko");
   for (const effect of [null, "ice", "slice", "tesla", "plasma", "singularity", "burn", "phaser"]) {
     const { sound, notes } = soundFixture(); sound.active = 30;
     sound.play("ko", { effect });
     assert.deepEqual(notes.slice(0, baseline.notes.length), baseline.notes);
-    assert.ok(sound.active <= 36);
+    assert.deepEqual(notes, [{name:'death',priority:true}]);
+    assert.equal(sound.active,31);
   }
 });
 

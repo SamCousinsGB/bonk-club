@@ -40,7 +40,7 @@ export function drawBlackhole(r, f, time) {
     );
   }
   c.globalAlpha = 1;
-  const size = (38 + Math.min(1, age) * 38) * grow * Math.min(1, Math.max(.03, f.life / 1.1));
+  const size = (38 + Math.min(1, age) * 38) * (f.radius / 620) * grow * Math.min(1, Math.max(.03, f.life / 1.1));
   if (!drawBlackholeLens(r, f, size, fade, t)) {
     // Canvas-only fallback for devices without WebGL or after context loss.
     c.globalAlpha = fade;

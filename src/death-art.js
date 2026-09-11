@@ -1,3 +1,4 @@
+import { drawFrozenBody } from "./frozen-art.js";
 import { JOINTS } from "./puppet.js";
 import { TRANSMUTATIONS } from "./transmutation.js";
 import { drawTransformedBody } from "./transmutation-art.js";
@@ -35,55 +36,6 @@ function energy(r, points, color, time) {
   }
   c.restore();
 }
-function ice(r, pts, alpha = 1) {
-  const c = r.ctx,
-    x = Math.min(...pts.map((p) => p.x)) - 10,
-    y = Math.min(...pts.map((p) => p.y)) - 14;
-  const w = Math.max(...pts.map((p) => p.x)) - x + 10,
-    h = Math.max(...pts.map((p) => p.y)) - y + 13;
-  c.save();
-  c.globalAlpha = alpha;
-  c.beginPath();
-  c.moveTo(x + 7, y);
-  c.lineTo(x + w - 10, y + 3);
-  c.lineTo(x + w, y + h * 0.4);
-  c.lineTo(x + w - 5, y + h);
-  c.lineTo(x + 5, y + h - 2);
-  c.lineTo(x, y + h * 0.3);
-  c.closePath();
-  c.fillStyle = "#98e8ff66";
-  c.fill();
-  c.strokeStyle = "#d7fbff";
-  c.lineWidth = 2;
-  c.stroke();
-  r.line(
-    [
-      [x + 7, y + 5],
-      [x + w * 0.56, y + h * 0.36],
-      [x + w - 8, y + h - 4],
-    ],
-    "#e3fdff88",
-    2,
-  );
-  r.line(
-    [
-      [x + w - 10, y + 3],
-      [x + w * 0.56, y + h * 0.36],
-      [x + 4, y + h * 0.72],
-    ],
-    "#66beeaaa",
-    2,
-  );
-  r.line(
-    [
-      [x + 7, y + 4],
-      [x + 3, y + h * 0.3],
-    ],
-    "#ffffff",
-    3,
-  );
-  c.restore();
-}
 export function drawStatus(r, p, time) {
   if (!p.alive || !p.rig) return;
   if (p.morphTime > 0) drawTransformedBody(r,p.rig,p.morph,p.morphAge,time);
@@ -92,7 +44,7 @@ export function drawStatus(r, p, time) {
     energy(r, p.rig, color, r.reduced ? 0 : time);
     drawAshSkeleton(r, { points: p.rig, life: 1, ashAge: 0 });
   }
-  if (p.freeze > 0) ice(r, p.rig, Math.min(1, p.freeze * 4));
+  if (p.freeze > 0) drawFrozenBody(r, p.rig, Math.min(1, p.freeze * 4));
 }
 export function drawDeath(r, rag, time) {
   if (!rag.effect) return false;
@@ -148,7 +100,7 @@ export function drawDeath(r, rag, time) {
         5,
       );
     r.circle(pts[0].x, pts[0].y, 10, "#e4fcff");
-    ice(r, pts, fade);
+    drawFrozenBody(r, pts, 1);
     const t = Math.max(0, age - 0.4);
     for (let n = 0; n < 38; n++) {
       const p = pts[n % 11],

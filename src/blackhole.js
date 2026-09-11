@@ -3,7 +3,7 @@ import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
 import { collectMatter, packMatter, matterTiles } from "./accretion.js";
 import { bodyInBlast } from "./props.js";
-export const SINGULARITY = { radius: 620, duration: 5.5, arm: 0.4, core: 135 };
+export const SINGULARITY = { radius: 465, duration: 5.5, arm: 0.4, core: 101.25 };
 
 export function blackholeField(world, b) {
   return {

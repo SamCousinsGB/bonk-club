@@ -33,7 +33,7 @@ export const WEAPON_SOUNDS = Object.freeze({
 export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
   'burn', 'explosion', 'nuclear', 'siren', 'debris', 'cover', 'parry',
-  'jump', 'pickup', 'fight', 'round',
+  'jump', 'pickup', 'fight', 'round', 'death', 'footstep', 'landing',
 ])]);
 
 export function weaponSound(detail = {}) {
@@ -53,7 +53,8 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
   };
   const duration = name === 'siren' ? NUKE_FUSE : name === 'nuclear' ? 4.6 :
     name === 'explosion' ? 1.65 : name === 'singularity' ? 1.4 :
-    name === 'phaser' ? .9 : guns[name] ? guns[name][0] + .22 : .8;
+    name === 'phaser' ? .9 : name === 'footstep' ? .24 : name === 'landing' ? .38 :
+    guns[name] ? guns[name][0] + .22 : .8;
   const samples = new Float32Array(Math.ceil(duration * rate));
   // Each layer is bounded and fades to zero; high-pass differences remove DC.
   function noise(at, length, gain, low = 7000, high = 50, attack = .0008, texture = 0) {
@@ -98,23 +99,27 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
 
   if (guns[name]) {
     const [tail, body, gain, action] = guns[name];
-    noise(0, .026, 1.25 * gain, 10000, 1800, .0002);
+    noise(0, .026, (name === 'smg' ? 1.25 : 1.05) * gain, name === 'smg' ? 10000 : 7500, 1800, .0002);
     noise(.001, tail, 2.8 * gain, body * 7, 65, .0007);
     modes(.002, tail * .8, .22 * gain, [body, body * 1.63, body * 2.71]);
     noise(.012, tail * .75, .5 * gain, 3400, 750);
     for (const [delay, level] of [[.047, .2], [.091, .12], [.157, .07]])
       noise(delay, tail * .75, gain * level, 2300, 160, .002);
     mechanics(action, name === 'shotgun' ? .35 : .18);
+    // Add weight below the report while retaining the SMG's attack and cadence.
+    modes(.003, name === 'smg' ? .16 : tail, name === 'smg' ? .14 : .36 * gain,
+      [name === 'smg' ? 94 : Math.max(56, body * .53), 123, 187]);
+    if (name !== 'smg') noise(.004, tail * .8, .7 * gain, 240, 35, .004);
   } else if (name === 'siren') {
     let rotor = 0, second = 0, air = 0;
     for (let i = 0; i < samples.length; i++) {
       const t = i / rate, cycle = sirenCycle(t), frequency = 285 + cycle * 360;
       rotor += TAU * frequency / rate; second += TAU * frequency * 1.013 / rate;
       air += .12 * (random() * 2 - 1 - air);
-      const horn = Math.sin(rotor) + .32 * Math.sin(rotor * 2) + .14 * Math.sin(rotor * 3) +
-        .055 * Math.sin(rotor * 5) + .17 * Math.sin(second);
+      const horn = Math.sin(rotor) + .22 * Math.sin(rotor * 2) + .07 * Math.sin(rotor * 3) + .14 * Math.sin(second);
+      const lowRotor = .65 * Math.sin(rotor * .5) + .38 * Math.sin(rotor * .25) + .16 * Math.sin(second * .5);
       const envelope = Math.min(1, t / .06) * Math.min(1, (NUKE_FUSE - t) / .015);
-      samples[i] = (.36 * horn + air * .06) * (.65 + cycle * .35) * envelope;
+      samples[i] = (.3 * horn + .3 * lowRotor + air * .025) * (.65 + cycle * .35) * envelope;
     }
   } else if (name === 'nuclear') {
     blast(4.5, 1.4);
@@ -155,6 +160,18 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
       noise(at, .013 + random() * .04, .12, glass ? 9500 : 4300, glass ? 3100 : 400);
     }
     if (name === 'slice' || name === 'cover') noise(.003, .16, 1.1, 700, 80);
+  } else if (name === 'death') {
+    noise(0, .07, .65, 2800, 230, .003);
+    noise(.006, .55, 1.75, 390, 35, .009);
+    modes(.004, .65, .5, [58, 92, 143]);
+    noise(.025, .55, .36, 1800, 160, .035);
+    noise(.09, .25, .12, 3100, 800, .018);
+  } else if (name === 'footstep' || name === 'landing') {
+    const heavy = name === 'landing';
+    noise(0, .035, heavy ? .28 : .16, 2300, 400, .002);
+    noise(.004, heavy ? .23 : .14, heavy ? 1.9 : 1.1, 420, 45, .004);
+    modes(.003, heavy ? .26 : .17, heavy ? .42 : .27, [heavy ? 66 : 88, 147, 231]);
+    noise(.025, .09, .12, 1800, 300, .008);
   } else if (name === 'impact' || name === 'heavy-impact') {
     const heavy = name === 'heavy-impact';
     noise(0, .03, .75, 5100, 1100);

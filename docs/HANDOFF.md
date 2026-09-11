@@ -38,8 +38,8 @@ in the existing planar matter flow. All transient state resets each round.
 Rendering is in `src/reaction-art.js`. Water is capped at 192 parcels, gas at 24;
 simulation runs at 20 Hz alongside the existing physics clock. Render snapshots
 interpolate stable parcel identities and validate numeric bounds and duplicates.
-Protocol **29** requires both players to refresh and create a new room. Display
-release: **v0.7.0**. No dependencies or Pi infrastructure changes.
+Protocol **30** requires both players to refresh and create a new room. Display
+release: **v0.8.0**. No dependencies or Pi infrastructure changes.
 
 Focused verification: 31 reaction regressions passed; all 64 combined reaction,
 terrain-fixture and arena checks passed after integrating the new arenas.
@@ -52,6 +52,72 @@ under `bonk-club-qa/systems-*`. All hooks are confined to that external harness.
 Before the arena merge, all 563 gameplay/network tests and the production build
 passed. The production bundle passed the three-browser room lifecycle check.
 The newly published arena release is now integrated; final verification follows.
+
+## Second audio pass — 11 September 2026
+
+Sam requested a better death sound, less crackle, thudding footsteps, more bass
+in gunshots and the nuclear siren, while retaining the SMG's character.
+
+- Death now uses one deep physical impact with a soft air/cloth tail. Removed the
+  four pitched oscillator notes and duplicate weapon discharge on lethal hits.
+  Every death cause still has the same recognizable cue and burst coalescing.
+- Grounded stride crossings produce quiet alternating footstep thuds; landings
+  produce a heavier contact. Existing validated gait/ground/occupant state drives
+  them locally on hosts and guests. No footsteps while idle, prone, airborne,
+  frozen, knocked down or carried by a lift. New rooms, rounds, occupants and
+  stalled snapshots reset tracking without playing a backlog. No wire change.
+- Added low body resonance to guns and lower rotor layers to the timed siren.
+  Kept the SMG attack/cadence and approximately its prior loudness. Softened the
+  upper crack on other ballistic weapons. Siren phase and glow timing are intact.
+- Replaced the always-distorting output curve with a transparent normal range,
+  a wider safety range and oversampling. Source endings fade to zero. A real
+  OfflineAudioContext comparison reduced added harmonics on a clean test tone
+  from 1.13% to below 0.001%, without a material level change. That isolates a
+  distortion source; it is not a measurement of Sam's speakers or hardware.
+- Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
+  arena and other work. Release version is **0.7.0**, incorporating the concurrent
+  v0.6.0 arena update, restored live menu fights and v0.6.1 frozen-body/black-hole
+  changes. Protocol remains 29 from v0.6.1; refresh all tabs and start a new room.
+- Source checks rendered all 49 audio profiles and a 48-voice stress mix in real
+  Web Audio. Peak was 0.898, with all voices released and silent tails. The SMG
+  stays within 2% of its previous RMS level; the 180 Hz low-pass energy proportion
+  rises from 4.6% to 7.6%. The siren rises from 1.9% to 9.1% on that same measure.
+  These are signal measurements, not a subjective listening test or perceived
+  loudness claims. Real host/guest mouse firing covered twelve weapon families.
+  Guest running produced five footfalls in 1.3 seconds; prone/jump stayed silent,
+  landing produced one heavier thud and a death produced one new impact.
+- Three real Edge browsers connected through selected TURN relay candidates.
+  Mid-fuse hot join, remaining-fuse correction during network stalls, mute/resume,
+  early removal and detonation passed without browser errors. No new Pi setup.
+  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`. Final combined
+  test count, exact build and public verification record follows after deployment.
+
+## Frozen bodies and smaller black holes — 11 September 2026
+
+Gameplay **v0.6.1**. Protocol **29** because field and retained-rift validation
+now use the smaller radius. Refresh every player's tab and create a new room.
+
+- `src/frozen-art.js` replaces the bounding polygon with translucent, bevelled
+  crystals following the actual head and each bone. Bright edges, shaded facets,
+  branching cracks and small crystal tips remain readable in standing, prone and
+  airborne poses. Living freeze and ice deaths share the artwork; existing thaw,
+  cooldown, frozen-pose physics and timed shattering are preserved.
+- Black-hole pull/destruction radius is **465**, exactly 25% below 620. Weapon
+  targeting metadata agrees, and the lens scales down by the same proportion.
+  Captured fighters retain their stretched physical bodies during orbit. On final
+  compression each shows only a coloured head, drawn after rubble to stay visible.
+  Matter counts, the persistent collidable ball, outer wreckage and resets remain.
+- A regression covers players, pickups and terrain on either side of the new
+  boundary, validated transport, invalid radii, collapse counts and round reset.
+  Real Edge source host/guest and a third hot joiner verified frost-shot freezing,
+  thaw, ice death, live orbital strands, collapsed matter and matching collision.
+  Selected connections for that completed check were direct on the QA machine;
+  this is not a cross-ISP or new TURN-infrastructure test. No browser errors.
+- Rendered gameplay and enlarged standing/prone/airborne/shatter/head frames were
+  inspected. External helpers/captures: `bonk-club-qa/frozen-visual.cjs`,
+  `frozen-online.cjs`, `frozen-release.cjs`, and `frozen-*.png`. Test hooks stay
+  outside production. No dependencies or Pi changes. Release verification follows.
+
 
 ## Arena, scenery and fairness pass — 11 September 2026
 
@@ -97,12 +163,32 @@ the restored live menu fights, 36 weapons, persistent shots and v0.5.0 audio rel
   selected TURN relay candidates and reported no errors. This is one QA machine,
   not cross-ISP or physical mobile verification. No Pi infrastructure changes.
 - QA scripts, logs, gallery and screenshots live outside Git at `bonk-club-qa/arena-*`.
-  No debug hooks ship. Release/deployment verification is recorded below once
-  the Pages run completes.
+  No debug hooks ship. Published revision:
+  `2395bdd4819c4c21dccca8564e0a69fe7f656932`. Pages run **34615250256** passed
+  **557 gameplay/network tests**, **3 server tests**, build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34615250256.
+  All **15 public files** match the exact committed LF-source production build
+  byte for byte. JS: `index-C2XiE5D6.js`; CSS: `index-DB2pWx_1.css`. Exact build:
+  `bonk-club-qa/arena-release-2395bdd`; checker: `verify-arena-live.cjs`.
+  The clean release copy separately passes all 557 tests. Final source host/guest
+  checks, fixture closeups and all 27 rendered arenas passed after integrating
+  the restored menu fight. The production bundle passes the three-browser room
+  lifecycle and selected TURN relay checks. Public v0.6.0 menu, Controls, solo
+  start/return and update-line visibility pass at 1440x900, 390x844, 568x320 and
+  320x568, with no browser errors or clipping.
+  The public game also passes real three-browser lobby/start/hot join/departure,
+  mute, small viewport and host-disconnect checks through selected TURN relay
+  candidates (`arena-live-browser.cjs`, pinned to `?release=2395bdd`). One source
+  hot-join attempt and one public rejoin attempt timed out; repeat runs passed
+  without game changes. These are observed successful runs, not a connection
+  reliability or cross-ISP benchmark.
 - The stale canonical checkout was fast-forwarded before this work. Its three
   pre-existing modified files were saved in the stash named `Preserved pre-existing
   canonical edits before arena pass`; the two substantive validator lines were
   already present upstream. Keep that backup; do not reapply it over current code.
+  A separate frozen-body/black-hole task subsequently began editing the canonical
+  checkout; it is outside this release. Final release evidence is recorded from
+  a small isolated documentation worktree to preserve that task's in-progress work.
 
 ## Actual menu fights restored — 11 September 2026
 
@@ -134,7 +220,21 @@ events, multiple completed rounds and at least eight weapons per run. Fixed-step
 reduced-motion and world-isolation checks pass. Real Edge source checks confirm
 continuous fighting, responsive framing, Character/Settings, solo start/return,
 no menu simulation during play and a pixel-identical reduced-motion frame.
-QA helpers/screenshots: `bonk-club-qa/menu-fight-*`. Release verification follows.
+QA helpers/screenshots: `bonk-club-qa/menu-fight-*`.
+
+Published as **0.5.1**, revision `af53323eaba23723a430d3f8969dd85d2e1994a8`.
+Pages run `34614831482` passed its build job (**536 gameplay/network tests**,
+**3 server tests** and production build), then successfully completed the Publish
+step. The overall run was cancelled after publication when the concurrent arena
+release began. All **15 public files matched byte for byte** against an exact
+LF checkout/build of this revision. Live Edge checks passed at 1440×900, 390×844,
+568×320 and 320×568: visible controls/release note, menu actions, solo start/return
+and no browser errors. Actual rendered live fighting was visually inspected.
+Three real Edge contexts also passed host/guest/hot-join, departure, mute and
+disconnect checks over selected TURN relay candidates. These ran on one QA
+machine, not separate ISPs or physical mobile devices. An initial menu sizing
+race found during production QA was fixed before release. The subsequent arena
+integration at `2395bdd` includes this correction and advances the game to 0.6.0.
 
 ## Weapon audio and nuclear siren — 11 September 2026
 
