@@ -119,3 +119,14 @@ test("jagged meshes cover the original artwork without gaps and stay within 48 s
     }
   }
 });
+
+test("extreme finite remote poses cannot allocate huge or zero-sized source canvases", () => {
+  const h = lab("pendulum").h;
+  for (const patch of [{bodyX: 1e300}, {bodyY: -1e300}, {x: 1e300, bodyX: 1e300},
+    {x: -1e300, y: 1e300, bodyX: 1e300, bodyY: -1e300}]) {
+    const {bounds, shards} = hazardShardMesh({...h, ...patch});
+    assert.ok(bounds.w >= 1 && bounds.w <= 880);
+    assert.ok(bounds.h >= 1 && bounds.h <= 440);
+    assert.ok(shards.length <= 48);
+  }
+});

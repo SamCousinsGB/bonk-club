@@ -35,7 +35,11 @@ export function hazardArtBounds(h) {
     left = Math.min(left, h.bodyX - 40); right = Math.max(right, h.bodyX + 40);
     top = Math.min(top, h.bodyY - 40); bottom = Math.max(bottom, h.bodyY + 40);
   }
-  return {x: Math.floor(left), y: Math.floor(top), w: Math.ceil(right-left), h: Math.ceil(bottom-top)};
+  // Finite wire coordinates can still be enormous. Never let a remote pose
+  // allocate an unbounded canvas (or a zero-sized one after precision loss).
+  return {x: Math.floor(left), y: Math.floor(top),
+    w: Math.max(1, Math.min(880, Math.ceil(right-left))),
+    h: Math.max(1, Math.min(440, Math.ceil(bottom-top)))};
 }
 
 // A shared jittered mesh partitions the actual casing artwork. Neighbouring
