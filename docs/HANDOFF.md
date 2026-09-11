@@ -88,7 +88,7 @@ from the integrated fighter-chat release; refresh all tabs and create a new room
 
 ## Fighter chat — 11 September 2026
 
-Display version **0.15.0**, protocol **36**. Refresh all players' tabs and create
+Prepared as **v0.15.0**, shipped in **v0.16.0**, protocol **36**. Refresh all players' tabs and create
 a new room after updating.
 
 - Enter opens the chat field during play; Enter sends and Escape cancels. Held
@@ -111,6 +111,17 @@ a new room after updating.
   browser errors. This is one-machine browser QA. The final release includes
   the current main HUD layout. QA scripts and screenshots: ../bonk-club-qa/chat-*.
   No production debug hooks, dependencies, desktop-shell or Pi changes.
+
+- Published in **v0.16.0** at **d592f7de1f883d68fed1af4d661678be7a210286**.
+  [Pages run 34644311143](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644311143)
+  passed **731 game/network/shared tests**, **3 server tests**, build and deployment.
+  All **15 public files** match the tested CI artifact byte for byte
+  (JS index-CjkugI-9.js, CSS index-DSLPu4j9.css).
+- The public v0.16.0 passed solo/reduced-motion expiry, Enter/Escape input, host
+  and guest speech, hot join, leaving and the narrow menu, with selected
+  relay/relay candidates and no browser errors. Public gameplay was visually
+  inspected. Task servers 5251/5252 are stopped. No desktop packages were rebuilt.
+
 
 ## Arena-aligned HUD — 11 September 2026
 
