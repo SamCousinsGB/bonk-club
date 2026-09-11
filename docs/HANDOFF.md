@@ -2,6 +2,57 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Connected elemental reactions — 11 September 2026
+
+Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. The canonical
+checkout's unfinished arena work is preserved. This branch includes the newer
+real menu fights and textured weapon audio from main.
+
+The five additions share host-authoritative rules in `src/reactions.js`:
+
+- Finite water from damaged blue tanks lands on surviving floors, spreads and
+  drains through actual destruction. It extinguishes fighters and burning props,
+  including recovering knockdowns. Wet fighters temporarily resist re-ignition.
+- Tesla shots, damaged generators and active electrical fixtures energise connected
+  water and metal.
+  Rotated prop contacts use their physical polygons. Removing a connection or
+  switching off the source removes downstream power. Shock intervals are bounded;
+  wet fighters take more damage. Electrical arcs can ignite nearby leaked gas.
+- Fire spreads through wooden/upholstered props and their physical fragments;
+  fuel expires and water or cryo extinguishes it. Burning debris can melt ice and
+  ignite cylinders or gas. Wood panels also burn down under sustained heat.
+- Flame/sparks cut local ice using the actual circular terrain geometry and leave
+  meltwater. Frost/cryo freezes settled water into slippery collision for seven
+  seconds; flame thaws it. Destroyed ice cannot recreate terrain or duplicate water.
+- Red cylinders rupture on hits, retain a short fuse, and tumble under off-centre
+  thrust while leaving gas. Ignition accelerates the fuse; cold temporarily seals
+  leaks and pauses the countdown. Gas chains have finite volume and delayed bursts.
+  Hissing, pressure gauges, jets and a final flashing outline provide warning.
+
+Containers are placed on suitable existing landings away from spawn bodies and
+trap machinery. Bots use normal controls to escape nearby electrical/fire/cylinder
+danger. Last-elimination scoring waits for armed cylinders and ignited gas.
+Nukes and PHASER consume liquids; black holes retain fluid/vapour samples and counts
+in the existing planar matter flow. All transient state resets each round.
+
+Rendering is in `src/reaction-art.js`. Water is capped at 192 parcels, gas at 24;
+simulation runs at 20 Hz alongside the existing physics clock. Render snapshots
+interpolate stable parcel identities and validate numeric bounds and duplicates.
+Protocol **30** requires both players to refresh and create a new room. Display
+release: **v0.8.0**. No dependencies or Pi infrastructure changes.
+
+Focused verification: 31 reaction regressions passed; all 64 combined reaction,
+terrain-fixture and arena checks passed after integrating the new arenas.
+Real Edge host/guest and a third hot joiner received all five systems through
+selected TURN relay candidates. Real guest mouse fire ruptured a host-authoritative
+cylinder. Hot join matched melted platform IDs and frozen water. Actual gameplay
+screenshots were inspected, with no page errors. These browsers ran on the QA
+machine; this is not a new cross-ISP test. Helpers/logs/screenshots are outside Git
+under `bonk-club-qa/systems-*`. All hooks are confined to that external harness.
+Before the arena merge, all 563 gameplay/network tests and the production build
+passed. The production bundle passed the three-browser room lifecycle check.
+The newly published arena release is now integrated; final verification follows.
+
 ## Second audio pass — 11 September 2026
 
 Sam requested a better death sound, less crackle, thudding footsteps, more bass

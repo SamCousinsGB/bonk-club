@@ -1,5 +1,7 @@
 // Only these identifiers cross the wire; clients render the same local copy.
 export const VICTORY_MESSAGES = Object.freeze({
+  gas: "By ignoring the hissing canister",
+  electrified: "By completing the circuit",
   gold: "By turning the opposition into gold",
   jelly: "By turning the opposition into jelly",
   tangle: "By tying the opposition in knots",

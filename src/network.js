@@ -1,4 +1,5 @@
 import { validVictoryCause } from "./victory.js";
+import { validReactions, validReactionObject } from "./reactions.js";
 import {BLOOD_LIMIT} from "./gore.js";
 import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
@@ -33,7 +34,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 29;
+export const PROTOCOL = 30;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -766,7 +767,7 @@ const propShape = shape => {
   }
   return Math.abs(area)>.12;
 };
-const physicalProp = c => xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
+const physicalProp = c => validReactionObject(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
@@ -776,6 +777,7 @@ export function validSnapshot(s) {
   return (
     !!s &&
     typeof s === "object" &&
+    validReactions(s) &&
     ["countdown", "fight", "result"].includes(s.phase) &&
     integer(s.arenaIndex, 0, ARENAS.length - 1) &&
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
@@ -788,6 +790,7 @@ export function validSnapshot(s) {
       (p) =>
         integer(p.id, 0, 3) &&
         validProfile(p) &&
+        validReactionObject(p) &&
         typeof p.bot === "boolean" &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&
@@ -831,7 +834,8 @@ export function validSnapshot(s) {
       s.platforms,
       1536,
       (p) =>
-        xy(p) &&
+        xy(p) && validReactionObject(p) &&
+        (p.waterId === undefined || (integer(p.waterId, 1, 10000000) && p.ice === true && p.material === "ice")) &&
         typeof p.id === "string" && p.id.length <= 160 &&
         (p.sourceId === undefined || (typeof p.sourceId === "string" && p.sourceId.length <= 160)) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&

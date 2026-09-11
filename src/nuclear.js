@@ -1,4 +1,5 @@
 import { NUCLEAR } from "./impact.js";
+import { consumeReactionArea } from "./reactions.js";
 import { bodyInBlast } from "./props.js";
 
 export const inBlast = (p, f, radius = f.radius) =>
@@ -121,6 +122,7 @@ export function updateNuclear(world, f, dt) {
     }
   }
   if (!f.melted && f.age >= NUCLEAR.meltAt) {
+    consumeReactionArea(world, { x:f.x, y:f.y, radius:NUCLEAR.coreRadius });
     f.melted = true;
     const crater = world.craters.find((c) => c.id === f.craterId);
     world.wreckage = world.wreckage.filter((w) => {

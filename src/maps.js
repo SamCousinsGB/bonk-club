@@ -8,6 +8,9 @@ export const COVER_KINDS = [
   "bed",
   "cabinet",
   "barrel",
+  "canister",
+  "waterTank",
+
   "trolley",
   "generator",
   "planter",

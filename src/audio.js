@@ -193,6 +193,11 @@ export class Sound {
     if (type === 'explosion') {
       this.sample(detail.weapon === 'cryo' ? 'ice' : 'explosion', detail); return;
     }
+    if(type==='hazard'&&detail.kind==='leak') {
+      this.sample('frost',detail,{duration:.22});
+      if(detail.urgent)this.tone(940,1250,.08,.12,'triangle');
+      return;
+    }
     const swing = ['bat', 'sword', 'hammer'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
     const name = { hazard: 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];

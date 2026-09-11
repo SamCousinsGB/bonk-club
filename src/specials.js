@@ -60,12 +60,13 @@ export function impactSpecial(world, b, target, hurt) {
     if (b.kind === "gold") target.morphPose = rigidPose(target.rig);
   }
   if (b.kind === "harpoon") harpoonImpact(world, b, target);
-  if (b.burn && target.alive) target.burn = 1;
+  if (b.burn && target.alive && !(target.soaked > 0)) target.burn = 1;
   if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
     target.bubble = BUBBLE_TIME; target.ground = false; target.support = null;
     target.vy = Math.min(target.vy, -110);
   }
   if (b.chill) {
+    target.burn = 0;
     target.chill = Math.max(target.chill || 0, b.chill);
     if(target.alive && !(target.freezeCooldown>0)) {
       if (target.morphTime > 0) {

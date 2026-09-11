@@ -1,4 +1,6 @@
 import { hitCause } from "./victory.js";
+import { resetReactions, updateReactions, propReactionDamage, inheritReaction, surfaceReaction,
+  reactionContacts, contactReaction, explosionReaction } from "./reactions.js";
 import { cryoBurst } from "./expanded-weapons.js";
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
@@ -180,6 +182,7 @@ export class World {
     for (const d of this.drops) Object.assign(d, this.pickupPosition(d));
     this.debris = [];
     this.hazards = createHazards(this);
+    resetReactions(this);
     this.ragdolls = [];
     this.blood = [];
     this.phase = "countdown";
@@ -384,6 +387,7 @@ export class World {
     }
     this.movePlatforms();
     this.updateCover(dt);
+    updateReactions(this, dt);
     this.updateDebris(dt);
     updateBlood(this,dt);
     if (this.phase === "result") {
@@ -475,7 +479,8 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      const pendingBlast = this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
+      const pendingBlast = this.cover.some(b=>b.hp>0&&b.kind==="canister"&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
+        this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
@@ -1104,6 +1109,8 @@ export class World {
       });
     this.debris = this.debris.slice(-90);
   }
+  reactPropDamage(b, damage) { return propReactionDamage(this, b, damage); }
+  inheritPropReaction(parent, child) { inheritReaction(parent, child); }
   updateCover(dt) {
     updateProps(this, dt);
   }
@@ -1126,6 +1133,7 @@ export class World {
     this.debris = this.debris.filter((d) => d.life > 0 && d.y < H + 100);
   }
   explode(b) {
+    explosionReaction(this, b);
     if (b.weapon === "cryo") {
       cryoBurst(this, b, impactSpecial);
       return;
@@ -1153,7 +1161,8 @@ export class World {
         b.force * scale,
         Math.sign(p.x - b.x) || 1,
         -0.7,
-        { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon },
+        { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon,
+          cause: ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
       );
     }
     for (const c of cover) {
@@ -1198,6 +1207,7 @@ export class World {
         s,
         hit: segmentBox(x, y, endX, endY, s, b.r),
       }));
+      collisions.push(...reactionContacts(this, b, x, y, endX, endY));
       if (b.kind !== "grenade")
         for (const p of this.players) {
           if (!p.alive || p.id === b.owner || b.hitIds?.includes(p.id))
@@ -1218,7 +1228,12 @@ export class World {
         if (breakable(s) && s.hp <= 0) continue;
         b.x = x + (endX - x) * hit.t + hit.nx * 0.2;
         b.y = y + (endY - y) * hit.t + hit.ny * 0.2;
+        if (collision.reaction) {
+          if (contactReaction(this, b, collision)) { impact = true; break; }
+          continue;
+        }
         if (s) {
+          surfaceReaction(this, b, s);
           if (breakable(s) && !b.nuclear && b.kind !== "rocket") {
             const speed = Math.hypot(b.vx,b.vy) || 1;
             // A grenade bumps furniture on contact; its explosive damage belongs
@@ -1391,6 +1406,8 @@ export class World {
       debris: this.debris,
       chunks: this.chunks,
       hazards: this.hazards,
+      water: this.water,
+      gas: this.gas,
       projectiles: this.projectiles.filter(projectileInArena),
       fields: this.fields,
       craters: this.craters,
