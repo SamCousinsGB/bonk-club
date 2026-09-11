@@ -7,7 +7,8 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
 canonical checkout's existing work. Protocol **34** requires all players to
-refresh and create a new room. Final display version and release evidence follow.
+refresh and create a new room. Display version **0.13.0** integrates the separate
+bullet-ignition release (v0.12.0).
 
 - Right-click/G or controller secondary action picks up the nearest reachable
   prop or physical fragment in front. It sets down an equipped weapon with its
@@ -30,6 +31,10 @@ refresh and create a new room. Final display version and release evidence follow
   drop, left-click throw, held TNT detonation and hot join. Actual CDP touch events
   verified pickup/drop. All selected candidates were relay/relay; no page errors.
   This is one-machine browser QA. The holding pose and touch gameplay were viewed.
+- After integrating bullet ignition, all **147 focused regression tests** passed,
+  including carrying, fuel ignition, barrel reactions, physical props, networking,
+  parry and touch. The production build and complete three-browser carry/touch/
+  hot-join/held-explosive test passed again with relay/relay and no page errors.
 - External harness, logs and captures are `../bonk-club-qa/carry-*`. No test hooks,
   dependencies or Pi configuration changes were added to production.
 
