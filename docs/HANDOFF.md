@@ -49,6 +49,11 @@ new room after this release. Publication verification follows below when complet
   Actual artwork sheets and moving/settled gameplay were visually inspected.
 - External helpers and captures: `../bonk-club-qa/jagged-*`. Test hooks stay in
   these helpers. No dependencies, desktop-shell or Pi configuration changes.
+- All **605 gameplay/network/shared tests** passed on both the working checkout
+  and the clean release export. The production build and real-browser room checks
+  passed. Desktop CI exposed a smoke-test assertion hard-coded to v0.9.0; it now
+  reads the root package version. All six desktop tests and the Windows runtime
+  smoke passed locally after that test-only fix.
 
 ## Steam desktop production — 11 September 2026
 
