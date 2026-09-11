@@ -6,7 +6,7 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
 a new room. Implemented on `codex/arena-pass` in the canonical checkout, including
-the latest menu montage, 36 weapons, persistent shots and v0.5.0 audio release.
+the restored live menu fights, 36 weapons, persistent shots and v0.5.0 audio release.
 
 - Refreshed all 24 existing arenas and added **Radiology**, **Production Hall**
   and **Geothermal Terraces**, bringing the rotation to **27**. Cached scenery
@@ -52,6 +52,38 @@ the latest menu montage, 36 weapons, persistent shots and v0.5.0 audio release.
   pre-existing modified files were saved in the stash named `Preserved pre-existing
   canonical edits before arena pass`; the two substantive validator lines were
   already present upstream. Keep that backup; do not reapply it over current code.
+
+## Actual menu fights restored — 11 September 2026
+
+Sam rejected the scripted effects montage and requested the earlier fighting
+demo with more variety and different weapons. The montage module and its tests
+are removed. `src/menu-fight.js` now runs three real Easy bots in a small physical
+arena, using the same World, controls, ammunition, pickups, knockback, melee,
+destruction and death effects as gameplay. There are no staged deaths, effect
+slides, fades between scenes or camera cuts. Natural round results leave a short
+aftermath before the next fight; weapon bags and spawn order vary across rounds.
+
+Seventeen ranged weapons and four melee/unarmed choices rotate through opening
+loadouts and falling pickups. Broad side supports retain real recoil inside the
+visible arena; the central wooden platform and furniture can be destroyed.
+Each new round restores the arena. Off-screen projectile history expires after
+15 seconds in menu play only, pickups are capped at eight, and the fixed-step
+clock allows at most six ticks per render. Reduced motion holds the initial
+fight still. The menu simulation stops advancing during actual gameplay.
+
+`Renderer` uses a separate effects instance for the menu, while sharing the
+normal fighter/projectile/status/death drawing code. Menu effects and event IDs
+cannot leak into a started match. There is no room or sound output from the demo.
+The responsive control layouts remain, with the live fight beside/above them.
+Worktree: `bonk-club-menu`, branch `codex/menu-live-fight`; the canonical checkout
+contains separate arena work and was left untouched.
+
+Three seeded 50-second behavior runs verify real hit/shoot/melee/jump/pickup/KO
+events, multiple completed rounds and at least eight weapons per run. Fixed-step,
+reduced-motion and world-isolation checks pass. Real Edge source checks confirm
+continuous fighting, responsive framing, Character/Settings, solo start/return,
+no menu simulation during play and a pixel-identical reduced-motion frame.
+QA helpers/screenshots: `bonk-club-qa/menu-fight-*`. Release verification follows.
 
 ## Weapon audio and nuclear siren — 11 September 2026
 

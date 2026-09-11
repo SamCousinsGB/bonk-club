@@ -18,6 +18,10 @@ Keep this constitution for durable rules and the handoff for current work.
 - Put the effort into responsive combat, physical consequences, readable action,
   varied maps and good online play. Do not build a marketing page around the game.
 
+- The menu background shows sticks actually fighting with physics and varied
+  weapons. Keep autonomous combat, movement and pickups; do not replace it with
+  scripted weapon-effect vignettes or a slideshow.
+
 ## Interface and writing: no AI filler
 
 - Never add unsolicited slogans, taglines, quips, forced banter, faux-edgy humour,
