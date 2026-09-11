@@ -20,6 +20,26 @@ a new room after updating.
   at ../bonk-club-qa/chat-release to preserve other ongoing gameplay work.
   Browser checks and release verification are recorded below when complete.
 
+## Arena-aligned HUD — 11 September 2026
+
+Display version **0.14.1**, protocol **35** unchanged. CSS was edited in the
+canonical checkout and integrated on current main in `../bonk-club-qa/hud-release`
+on `codex/hud-alignment`, preserving unrelated work in progress.
+
+- The HUD uses the fitted 16:9 arena bounds, including side/top letterboxing.
+  Round details are centred independently of the scoreboard and menu button.
+- Player names, scores and health bars share consistent rows. Long names use
+  ellipses; leader markers no longer affect row alignment. Text has a light shadow.
+- A container query uses the actual arena width for compact layouts, placing
+  round details below the scores and reserving space for menu/invite controls.
+  Touch retains its existing safe-area spacing and buttons.
+- Browser gameplay was visually inspected at 2048 x 978, 1280 x 720,
+  568 x 320 and 1920 x 540, including long names, tied leaders, elimination,
+  resize and menu access. DOM measurements confirmed aligned health bars and
+  no horizontal overflow. Production build and diff checks passed.
+- No gameplay, network, desktop-shell, dependencies or Pi configuration changed.
+  Pages completion and final test results are recorded after deployment.
+
 ## Customised heads and lethal singularities — 11 September 2026
 
 Display version **0.14.0**, protocol **35**. All players must refresh and create
