@@ -48,15 +48,27 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   versus v0.17.2 (28% less). Missing-baseline,
   600 ms outage, blocked-renderer and four-times CPU-throttle recovery passed.
   These are controlled one-PC relay tests, not cross-ISP or all-device guarantees.
-- All **788 tests** passed, followed by focused final checks and an additional
-  worker/round-transition race regression plus two confirmation-continuity cases.
-  The production build and unmodified
+- All **791 tests** passed on the final patch, including the worker/round-transition
+  race and confirmation-continuity regressions. The production build and unmodified
   production-bundle solo, real host/guest controls, third-player hot join, leave
   and narrow-menu smoke checks passed. Screenshots were inspected; no page errors.
+- The fixes are also merged into the canonical checkout, preserving unrelated
+  edits; **73 focused tests** pass there. The existing main-branch guard against
+  firing while carrying an object was included when reconciling the older engine.
 - No dependencies, Pi services or desktop shell code changed. External QA scripts,
   logs, metrics and screenshots are `../bonk-club-qa/client-combat-*`; the moving
-  replay run is `guest-fluidity-moving-client-combat.*`. No debug hooks are built.
-- Publication and exact public asset verification are pending below.
+  replay run is `guest-fluidity-moving-client-combat-final.*`. No debug hooks are built.
+- **Published and verified:** v0.18.1, protocol 40, gameplay revision
+  `068446a3f1d4bb40bcfeb3fc90bb0760e4b8d499`. Pages run `34658022578`
+  passed gameplay/server tests and deployment; desktop run `34658022566`
+  passed the Windows and Linux jobs. The preceding v0.18.0 release was `3ebcac9`.
+- All **16 public files** match the exact CI artifact and tested local production
+  build by SHA-256. JS is `index-DheW2mAl.js`, worker
+  `state-codec-worker-SEYzkwM5.js`, CSS `index-DSLPu4j9.css`. Local build HTML and
+  favicon used committed LF bytes for Linux parity, then the checkout was restored.
+- The public v0.18.1 game passed solo, real relay host/guest start, guest controls,
+  a third-player hot join, leave and the narrow menu without page errors.
+  Only this task's development/preview servers (5391/5392/5393) were stopped.
 
 ## Guest fluidity and transport repair - 11 September 2026
 
