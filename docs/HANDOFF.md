@@ -18,7 +18,15 @@ a new room after updating.
   hot joiners, and clears on round change, departure and room closure.
 - Implementation was made in the canonical checkout and integrated separately
   at ../bonk-club-qa/chat-release to preserve other ongoing gameplay work.
-  Browser checks and release verification are recorded below when complete.
+- All **722 automated tests** passed, including nine new chat tests; production
+  build and diff checks passed. Actual Edge host/guest/hot join checked controls
+  while typing, continued simulation, expiry, round reset and departure through
+  selected relay/relay candidates. Wrapped bubbles and input were visually inspected.
+- The unmodified production build passed solo chat with reduced motion, expiry,
+  cancellation, host/guest speech, hot join, leaving and the narrow menu, with no
+  browser errors. This is one-machine browser QA. The final release includes
+  the current main HUD layout. QA scripts and screenshots: ../bonk-club-qa/chat-*.
+  No production debug hooks, dependencies, desktop-shell or Pi changes.
 
 ## Arena-aligned HUD — 11 September 2026
 
