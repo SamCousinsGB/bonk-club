@@ -8,6 +8,7 @@ import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmN
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawAppearance } from "./identity.js";
+import { HazardBreaks, drawHazardBreaks } from "./hazard-break-art.js";
 import {
   drawNewWeapon,
   drawSpecialProjectile,
@@ -41,6 +42,7 @@ export class Renderer {
     this.shake = 0;
     this.lastEvent = 0;
     this.deathCues = new DeathCues();
+    this.hazardBreaks = new HazardBreaks();
     this.scenery = new Map();
     this.pickupArt = new Map();
     this.localId = null;
@@ -830,6 +832,7 @@ export class Renderer {
   }
   draw(state, dt, time, menuArena = null) {
     const deathCues = this.deathCues.update(state);
+    const hazardBreaks = this.hazardBreaks.update(state);
     const c = this.ctx;
     c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
@@ -962,6 +965,7 @@ export class Renderer {
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme);
+    drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
     drawReactions(c, state, time);

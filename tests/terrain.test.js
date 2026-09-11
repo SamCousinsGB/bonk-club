@@ -44,7 +44,7 @@ test("bullets, rail shots, saws and elemental projectiles cannot damage structur
   }
 });
 
-test("blasts cut lifts, remove nearby trap bodies and spikes, and release supported fighters",()=>{
+test("blasts cut lifts, break nearby trap bodies, remove spikes and release supported fighters",()=>{
   const w=fixture();w.arena={...w.arena,spikes:[{x:100,y:730,w:1500}]};
   const lift=floor("lift",500,700,700,30,{travel:200,speed:1,elevator:true});
   const safe=floor("safe",1800,700,200,30,{travel:200,speed:1,elevator:true});
@@ -55,7 +55,9 @@ test("blasts cut lifts, remove nearby trap bodies and spikes, and release suppor
   assert.equal(w.players[0].ground,false);assert.equal(w.players[0].support,null);
   assert.ok(w.platforms.filter(p=>p!==safe).every(p=>!p.elevator&&!p.travel&&!p.move));
   assert.equal(w.platforms.find(p=>p.id==="safe"),safe);
-  assert.equal(w.hazards.length,1);assert.equal(w.hazards[0].bodyX,1900);
+  assert.equal(w.hazards.length,2);assert.equal(w.hazards[0].done,true);
+  assert.equal(w.hazards[0].active,false);assert.equal(w.hazards[0].warning,0);
+  assert.equal(w.hazards[1].bodyX,1900);assert.ok(!w.hazards[1].done);
   assert.ok(!w.spikes().some(s=>800>s.x&&800<s.x+s.w));
   assert.ok(w.spikes().some(s=>110>s.x&&110<s.x+s.w));
 });
