@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const { version } = JSON.parse(await fs.readFile(path.join(desktop, '../package.json'), 'utf8'));
 const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'bonk-desktop-smoke-'));
 const results = path.join(desktop, 'test-results');
 await fs.mkdir(results, { recursive: true });
@@ -14,7 +15,7 @@ async function launch() {
   app = await electron.launch({ args: [desktop, '--profile-dir=' + profile], timeout: 30000 });
   const page = await app.firstWindow();
   page.on('pageerror', error => errors.push(error.message));
-  await page.locator('#release-version').filter({ hasText: 'v0.9.0' }).waitFor();
+  await page.waitForFunction(expected => document.querySelector('#release-version')?.textContent === expected, `v${version}`);
   return page;
 }
 try {

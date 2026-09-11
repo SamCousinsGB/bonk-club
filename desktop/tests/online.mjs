@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const { version } = JSON.parse(await fs.readFile(path.join(desktop, '../package.json'), 'utf8'));
 const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'bonk-online-'));
 const app = await electron.launch({ args: [desktop, '--profile-dir=' + profile] });
 let browser;
@@ -43,7 +44,7 @@ try {
     };
   });
   host.on('console', message => { if (message.type() === 'error') console.log('Renderer:', message.text().replace(/https?:\/\/[^\s]+/g, '[URL]')); });
-  await host.locator('#release-version').filter({ hasText: 'v0.9.0' }).waitFor();
+  await host.waitForFunction(expected => document.querySelector('#release-version')?.textContent === expected, `v${version}`);
   await host.addInitScript(trackRelay); await host.reload();
   await host.locator('#solo').waitFor();
   await host.locator('#online').click();
