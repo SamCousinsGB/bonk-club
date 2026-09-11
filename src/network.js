@@ -384,6 +384,7 @@ export class Room {
       if (available === undefined) return reject("room-full", "No player slots are open in this room.");
       id = available;
       this.connections.set(id, c);
+      this.appliedInputs[id] = 0;
       const profile = availableProfile(
         c.metadata?.profile,
         this.roster,

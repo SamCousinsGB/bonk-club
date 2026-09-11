@@ -27,6 +27,11 @@ test("host acknowledges applied inputs, rejects stale sequences and never accept
     await host.sendState(new World().snapshot()); await tick(); await tick();
     assert.equal(states.at(-1).inputAcks[1], seq);
     assert.equal(typeof states.at(-1).players[1].motion.jumpHeld, "boolean");
+    host.appliedInputs[1] = 5000;
+    guest.close(); await tick();
+    const replacement = new Room({}, FakePeer);
+    try { await replacement.join(host.code); assert.equal(host.appliedInputs[1], 0); }
+    finally { replacement.close(); }
   } finally { guest.close(); host.close(); }
 });
 test("host and guest chat is attributed by the host and shared with late arrivals", async () => {
