@@ -1,4 +1,6 @@
 import { victoryMessage } from "./victory.js";
+import { loadPreferences } from "./preferences.js";
+import { ControllerMenu } from "./controller-menu.js";
 import { version, releaseNotes } from "../package.json";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
@@ -10,7 +12,6 @@ import {
   FACIAL_HAIR,
   ACCESSORIES,
   randomProfile,
-  defaultProfile,
   cleanProfile,
   drawAppearance,
 } from "./identity.js";
@@ -43,6 +44,11 @@ import { bindMouseControls } from "./mouse.js";
 import { gameViewport, screenToWorld } from "./viewport.js";
 import { SUDDEN_DEATH } from "./scale.js";
 
+const preferences = await loadPreferences();
+const desktop = globalThis.bonkDesktop;
+document.body.classList.toggle('desktop-app', !!desktop);
+const persist = patch => preferences.save(patch).catch(() => toast("Settings could not be saved. Check available disk space and folder permissions."));
+
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
     String(v).replace(
@@ -62,28 +68,33 @@ const renderer = new Renderer($("#game")),
   sound = new Sound(),
   keys = new Set(),
   touchControls = new TouchControls();
+sound.muted = preferences.value.muted;
+if (typeof preferences.value.reducedMotion === 'boolean') renderer.reduced = preferences.value.reducedMotion;
 let touchInput = emptyInput();
 let touchDevice = matchMedia("(pointer: coarse)").matches;
 const mobileScreen = new MobileScreen();
 const portraitScreen = matchMedia("(orientation: portrait)");
 function enterGameScreen() {
+  if (desktop) return;
   void mobileScreen.enter({ landscape: touchDevice });
 }
 async function requestGameFullscreen() {
+  if (desktop) { await desktop.fullscreen(true); await syncFullscreenUi(); return; }
   await mobileScreen.enter({ landscape: touchDevice });
   if (!mobileScreen.fullscreen)
     toast("Fullscreen is unavailable in this browser. The game will use the available screen.");
 }
 async function toggleFullscreen() {
   try {
+    if (desktop) { await desktop.fullscreen(!(await desktop.fullscreen())); await syncFullscreenUi(); return; }
     if (mobileScreen.fullscreen) await mobileScreen.exit();
     else await requestGameFullscreen();
   } catch {
     toast("Fullscreen is unavailable in this browser.");
   }
 }
-function syncFullscreenUi() {
-  const active = mobileScreen.fullscreen;
+async function syncFullscreenUi(value) {
+  const active = typeof value === 'boolean' ? value : desktop ? await desktop.fullscreen() : mobileScreen.fullscreen;
   $("#fullscreen").setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
   $("#fullscreen").setAttribute("aria-pressed", String(active));
   if ($("#game-fullscreen")) $("#game-fullscreen").textContent = active ? "EXIT FULLSCREEN" : "FULLSCREEN";
@@ -106,31 +117,17 @@ let world = null,
 const guestFrames = new GuestFrames();
 const roomPresence = new RoomPresence();
 const roomNoticeTimers = new Map();
-let difficulty = "easy";
-try { difficulty = cleanDifficulty(localStorage.getItem("bonk-difficulty")); } catch { /* Private browsing. */ }
+let difficulty = preferences.value.difficulty;
 let solo = false;
 let lastDiagnosticRoom = null;
-let profile;
-try {
-  profile = cleanProfile(JSON.parse(localStorage.getItem("bonk-profile")), {
-    name: "Player",
-    color: COLORS[0],
-    hair: "None",
-  });
-} catch {
-  profile = { ...defaultProfile(), name: "Player" };
-}
+let profile = preferences.value.profile;
 function saveProfile(value) {
   profile = cleanProfile(value, profile);
-  try {
-    localStorage.setItem("bonk-profile", JSON.stringify(profile));
-  } catch {
-    /* Storage can be unavailable in private browsing. */
-  }
+  void persist({ profile });
 }
 const roomOptions = () => ({ profile });
 
-let selectedArena = "random",
+let selectedArena = ["city", "random"].includes(preferences.value.arena) || Number(preferences.value.arena) < ARENAS.length ? preferences.value.arena : "random",
   ping = 0;
 let searchId = 0;
 const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
@@ -152,10 +149,11 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
-  if (view || needsRotation() || document.hidden) return emptyInput();
+  if (view || needsRotation() || document.hidden || !document.hasFocus()) return emptyInput();
   if (device === "touch") return { ...touchInput };
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
+    if (controllerMenu.suppressGameplay) return i;
     const pad = gamepads()[Number(device.slice(7))];
     if (!pad) return i;
     i.left = pad.axes[0] < -0.25 || pad.buttons[14]?.pressed === true;
@@ -262,6 +260,7 @@ function showPanel(name, html) {
   syncTouchUi();
 }
 function hidePanel() {
+  controllerMenu.closeKeyboard();
   view = "";
   $("#panel").classList.add("hidden");
   $("#panel").innerHTML = "";
@@ -300,12 +299,12 @@ function settingsHtml() {
 function wireSettings() {
   $("#difficulty")?.addEventListener("change", e => {
     difficulty = cleanDifficulty(e.target.value);
-    try { localStorage.setItem("bonk-difficulty", difficulty); } catch { /* Private browsing. */ }
+    void persist({ difficulty });
     if (world) world.difficulty = difficulty;
   });
   $("#arena")?.addEventListener(
     "change",
-    (e) => (selectedArena = e.target.value),
+    (e) => { selectedArena = e.target.value; void persist({ arena: selectedArena }); },
   );
 }
 function arenaMenu() {
@@ -313,9 +312,13 @@ function arenaMenu() {
     "arenas",
     heading("Settings") +
       settingsHtml() +
+      `<div class="settings"><label>SOUND<select id="settings-sound"><option value="on" ${!sound.muted ? "selected" : ""}>On</option><option value="off" ${sound.muted ? "selected" : ""}>Off</option></select></label><label>REDUCED MOTION<select id="settings-motion"><option value="off" ${!renderer.reduced ? "selected" : ""}>Off</option><option value="on" ${renderer.reduced ? "selected" : ""}>On</option></select></label></div><button id="settings-fullscreen" class="button secondary">FULLSCREEN</button>` +
       '<button id="arena-close" class="button primary">CLOSE</button>',
   );
   wireSettings();
+  $("#settings-sound").onchange = e => { if ((e.target.value === "off") !== sound.muted) $("#sound").click(); };
+  $("#settings-motion").onchange = e => { renderer.reduced = e.target.value === "on"; void persist({ reducedMotion: renderer.reduced }); };
+  $("#settings-fullscreen").onclick = toggleFullscreen;
   $("#back").onclick = hidePanel;
   $("#arena-close").onclick = hidePanel;
 }
@@ -824,7 +827,7 @@ function gameMenu(forceOpen = false) {
     if (touchDevice) enterGameScreen();
     hidePanel();
   };
-  if (mobileScreen.supported) {
+  if (desktop || mobileScreen.supported) {
     $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
     $("#game-fullscreen").onclick = toggleFullscreen;
   }
@@ -926,6 +929,7 @@ simulationClock.onmessage = () => {
   simulationClock.postMessage(null);
 };
 function frame(now) {
+  controllerMenu.update(document.hasFocus() ? gamepads()[0] : null, now);
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
   hudClock += dt;
@@ -960,6 +964,7 @@ $("#invite").onclick = copyInvite;
 $("#sound").onclick = () => {
   unlock();
   sound.muted = !sound.muted;
+  void persist({ muted: sound.muted });
   $("#sound").textContent = sound.muted ? "♩" : "♪";
   $("#sound").setAttribute(
     "aria-label",
@@ -970,10 +975,20 @@ $("#sound").onclick = () => {
   toast(sound.muted ? "Sound off." : "Sound on.");
 };
 $("#fullscreen").onclick = toggleFullscreen;
+$("#sound").textContent = sound.muted ? "♩" : "♪";
+$("#sound").setAttribute("aria-label", sound.muted ? "Unmute sound" : "Mute sound");
+$("#sound").setAttribute("aria-pressed", String(sound.muted));
+if (desktop) {
+  desktop.onFullscreenChange(syncFullscreenUi);
+  $("#menu-controls").insertAdjacentHTML("afterend", '<button id="quit-game" class="button secondary">QUIT GAME</button>');
+  $("#quit-game").onclick = () => { home(); void desktop.quit(); };
+  $(".brand").onclick = event => { event.preventDefault(); home(); };
+}
 syncFullscreenUi();
 window.addEventListener("keydown", (e) => {
   if (sound.context?.state === "suspended") unlock();
   if (e.code === "Escape") {
+    if ($("#controller-keyboard")) { e.preventDefault(); controllerMenu.closeKeyboard(); return; }
     if (view === "connection-details") {
       e.preventDefault();
       $("#back").click();
@@ -1196,6 +1211,13 @@ function updateTouchView(state, dt) {
 setInterval(() => {
   if (room && !room.host) room.ping();
 }, 2000);
+const controllerMenu = new ControllerMenu({
+  root: () => view ? $("#panel") : playing ? null : $("#menu"),
+  back: () => $("#back")?.click(),
+  menu: () => playing ? gameMenu() : $("#back")?.click(),
+  wake: unlock,
+});
+if (preferences.warning) toast(preferences.warning);
 requestAnimationFrame(frame);
 const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase();
 if (validCode(inviteCode)) {

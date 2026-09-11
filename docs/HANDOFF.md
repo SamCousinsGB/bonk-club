@@ -2,6 +2,48 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Steam desktop production — 11 September 2026
+
+Sam requested a Steam game and specified **Windows and Linux/Steam Deck**. No
+Steamworks account or App ID exists yet. The browser game remains supported.
+Start with `docs/STEAM.md` for implementation, exact commands and honest remaining
+release gates; `docs/STEAM-STORE.md` contains the factual store brief.
+
+- Gameplay/display version **0.9.0**, protocol **30** unchanged. Desktop builds
+  bundle the same Vite/Canvas game with Electron 44.3.0. Offline solo requires no
+  web server. Desktop tools/dependencies have a separate `desktop/package-lock.json`.
+- Sandboxed renderer, context isolation, no Node integration, narrow validated
+  IPC, CSP, blocked navigation/popups/downloads, atomic bounded save files with
+  corruption recovery, window/fullscreen controls, Quit and renderer recovery.
+  Game files use an app-private session at the existing publisher HTTPS origin;
+  allowed service requests explicitly retain that Origin (Electron's intercepted
+  Request omits it). No CORS/TLS bypass or Pi infrastructure change.
+- Shared controller menu navigation, Start/B/A actions, on-screen name/code
+  entry, browser preference migration and persisted character/difficulty/arena/
+  mute/reduced motion. Menu activation cannot become held gameplay jump/parry.
+- Windows/Linux CI builds, licence notices, executable icons exported from the
+  existing SVG, hardened Electron fuses, exact source/asset freshness checks and
+  SHA-256 package manifests. SteamPipe preparation requires real distinct IDs,
+  both matching clean depots and valid file hashes. Default is preview; the tool
+  never authenticates, uploads or makes a Steam branch live.
+- Initial verification: all 595 pre-existing gameplay/network checks passed,
+  plus six new shared preference/controller checks and six desktop/save/security/
+  SteamPipe checks. Windows desktop runtime smoke passed offline solo, save/relaunch,
+  renderer isolation, controller menus and on-screen keyboard. Controller input
+  is emulated in this harness; physical gamepads/Deck remain unverified.
+- A real desktop host and two real browser clients, including hot join during
+  play, passed through selected relay/relay candidates using the public service.
+  Invite copying, start, guest input and leaving passed with no page errors. This
+  used one QA machine, not new separate-ISP evidence. Harnesses and ignored
+  screenshots/results are in `desktop/tests` and `desktop/test-results`.
+- Steam identity/friend invites, account-specific Cloud, overlay, private Steam
+  installation, physical Deck QA, store artwork/trailer and commercial service
+  operations are still open. Never label these implemented or Steam-approved.
+  Automatic approval review blocked launching the packaged Windows executable
+  with the reason "blocked by policy". Its manual launch check is unverified;
+  the development Electron runtime smoke is a separate successful check.
+  CI and final deployed verification follow below after release.
+
 ## Connected elemental reactions — 11 September 2026
 
 Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. Canonical checkout

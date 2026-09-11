@@ -1,0 +1,72 @@
+name: Build desktop game
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+          - os: ubuntu-22.04
+            platform: linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      VITE_ROOM_SERVICE_URL: ${{ vars.ROOM_SERVICE_URL }}
+      VITE_TURN_CREDENTIALS_URL: ${{ vars.TURN_CREDENTIALS_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix desktop
+      # The Pages pipeline gates publication on the full gameplay/server suite.
+      # Keep each OS job focused on the shared desktop inputs and runtime.
+      - run: node --test tests/preferences.test.js
+      - run: npm test --prefix desktop
+      - run: npm run desktop:build
+      - name: Desktop smoke (Windows)
+        if: runner.os == 'Windows'
+        run: npm run smoke --prefix desktop
+      - name: Install Linux browser libraries
+        if: runner.os == 'Linux'
+        run: npx --prefix desktop playwright install-deps chromium
+      - name: Desktop smoke (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke --prefix desktop
+      - run: npm run desktop:package -- --platform=${{ matrix.platform }}
+      - name: Archive Windows depot
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path release/BonkClub-win32-x64 -DestinationPath release/BonkClub-win32-x64.zip
+      - name: Archive Linux depot (preserve execute bits)
+        if: runner.os == 'Linux'
+        run: tar -C release -czf release/BonkClub-linux-x64.tar.gz BonkClub-linux-x64
+      - uses: actions/upload-artifact@v7
+        with:
+          name: BonkClub-${{ matrix.platform }}-x64-${{ github.sha }}
+          path: |
+            release/*.zip
+            release/*.tar.gz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: desktop-qa-${{ matrix.platform }}
+          path: desktop/test-results/
+          if-no-files-found: ignore

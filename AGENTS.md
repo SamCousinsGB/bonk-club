@@ -13,7 +13,8 @@ Keep this constitution for durable rules and the handoff for current work.
 - Public game: `https://samcousinsgb.github.io/bonk-club/`.
 - Current working checkout: `C:\Users\SamCo\Documents\ChatGPT\bonk.club`.
   Use this checkout; the earlier dated Codex output directory is historical.
-- Build an original, entirely browser-based, two-dimensional physics brawler,
+- Build an original two-dimensional physics brawler for browsers and installed
+  Windows/Linux Steam releases,
   inspired by the feel of Stick Fight: The Game. Keep its own artwork and name.
 - Put the effort into responsive combat, physical consequences, readable action,
   varied maps and good online play. Do not build a marketing page around the game.
@@ -191,6 +192,18 @@ Keep this constitution for durable rules and the handoff for current work.
   boundary. Never print or commit credentials or ask for passwords in chat.
 
 ## Working and release discipline
+
+- Steam targets are Windows x64 and Linux x64, including planned Steam Deck
+  support. Keep the Vite/Canvas game shared with the browser build. Follow
+  `docs/STEAM.md` for desktop packaging and remaining release gates. No Steamworks
+  account/App ID existed at the start of this work; never use placeholder IDs or
+  imply Steam features, approval or Deck compatibility have been verified.
+- Keep the Electron renderer sandboxed and isolated, with no Node integration or
+  raw IPC exposure. Bundle game assets, preserve offline solo play, and let Steam
+  manage desktop updates. Keep desktop dependencies separate from browser builds.
+- Run desktop unit and executable smoke tests for desktop changes. Build each
+  target on its own OS, keep exact revision/hash manifests and licence notices,
+  and preserve Linux execute bits. Never package credentials or steam_appid.txt.
 
 - Inspect the current branch, dirty changes, code and relevant tests first.
   Preserve user changes. Use GitHub `main` as the shared source of truth.
