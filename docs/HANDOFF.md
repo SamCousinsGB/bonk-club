@@ -112,12 +112,32 @@ the restored live menu fights, 36 weapons, persistent shots and v0.5.0 audio rel
   selected TURN relay candidates and reported no errors. This is one QA machine,
   not cross-ISP or physical mobile verification. No Pi infrastructure changes.
 - QA scripts, logs, gallery and screenshots live outside Git at `bonk-club-qa/arena-*`.
-  No debug hooks ship. Release/deployment verification is recorded below once
-  the Pages run completes.
+  No debug hooks ship. Published revision:
+  `2395bdd4819c4c21dccca8564e0a69fe7f656932`. Pages run **34615250256** passed
+  **557 gameplay/network tests**, **3 server tests**, build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34615250256.
+  All **15 public files** match the exact committed LF-source production build
+  byte for byte. JS: `index-C2XiE5D6.js`; CSS: `index-DB2pWx_1.css`. Exact build:
+  `bonk-club-qa/arena-release-2395bdd`; checker: `verify-arena-live.cjs`.
+  The clean release copy separately passes all 557 tests. Final source host/guest
+  checks, fixture closeups and all 27 rendered arenas passed after integrating
+  the restored menu fight. The production bundle passes the three-browser room
+  lifecycle and selected TURN relay checks. Public v0.6.0 menu, Controls, solo
+  start/return and update-line visibility pass at 1440x900, 390x844, 568x320 and
+  320x568, with no browser errors or clipping.
+  The public game also passes real three-browser lobby/start/hot join/departure,
+  mute, small viewport and host-disconnect checks through selected TURN relay
+  candidates (`arena-live-browser.cjs`, pinned to `?release=2395bdd`). One source
+  hot-join attempt and one public rejoin attempt timed out; repeat runs passed
+  without game changes. These are observed successful runs, not a connection
+  reliability or cross-ISP benchmark.
 - The stale canonical checkout was fast-forwarded before this work. Its three
   pre-existing modified files were saved in the stash named `Preserved pre-existing
   canonical edits before arena pass`; the two substantive validator lines were
   already present upstream. Keep that backup; do not reapply it over current code.
+  A separate frozen-body/black-hole task subsequently began editing the canonical
+  checkout; it is outside this release. Final release evidence is recorded from
+  a small isolated documentation worktree to preserve that task's in-progress work.
 
 ## Actual menu fights restored — 11 September 2026
 
