@@ -2,6 +2,38 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Guest control response — 11 September 2026
+
+- Local control prediction is implemented in `src/guest-prediction.js`, sharing
+  the host's movement, collision, recoil and procedural pose code. Guests display
+  their own movement, jumping, aim and attack motion immediately; other fighters
+  retain the existing interpolation buffer. Damage, projectiles, terrain,
+  inventory, scores, pickups and throws remain host authoritative.
+- Host snapshots carry bounded movement state and four applied-input sequence
+  acknowledgements. Guests reconcile to authority and replay only pending input,
+  with at most 30 commands and a 250 ms stale-state cutoff. Round/occupant changes,
+  death, knockdown, freezing and transformations reset or disable prediction.
+  Small visual corrections cannot interpolate through solid terrain.
+- Guest controls send at 60 Hz, up from 30 Hz. Both disposable and reliable
+  input transport reject stale/invalid sequences. The game menu shows Direct or
+  Relay plus round-trip delay. Browser WebRTC continues to allow direct ICE and
+  TURN fallback; no UPnP API or Steamworks transport was introduced.
+- Real Edge host/guest tests through selected relay/relay candidates added 80 ms
+  each way and 10 ms jitter. Visible movement response measured 273 ms with the
+  old buffered local display and 43 ms with prediction in the paired trial.
+  This is controlled one-machine QA, not a measurement of Sam's friend's route.
+- The same run passed actual keyboard jump/landing, wall collision, destruction,
+  approximately 3 percent dropped packets, bounded replay/convergence, hot join
+  into the changed map, route UI and immediate authoritative knockdown/death.
+  Gameplay and menu captures were visually inspected; no page errors.
+- Work is integrated in `../bonk-club-qa/guest-latency/release` on
+  `codex/guest-prediction`; source edits also remain in the shared canonical
+  checkout alongside unrelated concurrent work. External QA files live in
+  `../bonk-club-qa/guest-latency`. There are no production debug hooks.
+- Display version is prepared as **0.14.2**, protocol **36**. Both players must
+  refresh and create a new room after publishing. Final release verification
+  follows below once complete.
+
 ## Arena-aligned HUD — 11 September 2026
 
 Display version **0.14.1**, protocol **35** unchanged. CSS was edited in the

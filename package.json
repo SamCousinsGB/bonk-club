@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.14.1",
-  "releaseNotes": "Aligned player scores and round details with the arena",
+  "version": "0.14.2",
+  "releaseNotes": "Faster online controls with local prediction and host reconciliation",
   "private": true,
   "type": "module",
   "scripts": {

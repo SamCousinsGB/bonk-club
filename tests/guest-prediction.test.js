@@ -5,6 +5,7 @@ import { RenderSnapshots, GuestFrames } from "../src/render-state.js";
 import { GuestPrediction } from "../src/guest-prediction.js";
 import { validSnapshot, encodeState, decodeState } from "../src/network.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
+import { prepareProp } from "../src/props.js";
 
 function fixture() {
   const w = new World({ players: [0, 1], random: () => .5 });
@@ -19,6 +20,31 @@ function fixture() {
   return { w, snapshot, prediction, s };
 }
 const advance = (p, input, seq, now = 1000 + seq * 1000 / 60) => p.advance(cleanInput(input), seq, now);
+
+test("prediction carries a fighter on a moving lift using the same support motion", () => {
+  const { w, snapshot, prediction } = fixture();
+  Object.assign(w.platforms[0], { baseX: 0, baseY: 500, travel: 100, speed: 1 });
+  w.movePlatforms(); w.players[1].y = w.platforms[0].y - 30;
+  w.time += 1 / 30; prediction.receive(snapshot(), 1, 1001);
+  for (let i = 1; i <= 8; i++) {
+    advance(prediction, {}, i);
+    for (let tick = 0; tick < 2; tick++) { w.time += STEP; w.movePlatforms(); w.move(w.players[1], cleanInput({}), STEP); }
+  }
+  assert.ok(Math.abs(prediction.player.y - w.players[1].y) < .5);
+  assert.equal(prediction.player.ground, true);
+});
+
+test("held prop artwork follows predicted movement without changing ownership or the received world", () => {
+  const { w, snapshot, prediction } = fixture();
+  w.cover = [prepareProp({ id: "held", kind: "crate", x: 425, y: 420, w: 40, h: 40, hp: 80, maxHp: 80 })];
+  Object.assign(w.players[1], { carryId: "held", carryPoint: { x: 440, y: 440 } });
+  w.time += 1 / 30; const s = snapshot(), saved = structuredClone(s); prediction.receive(s, 1, 1001);
+  for (let seq = 1; seq <= 8; seq++) advance(prediction, { right: true, attack: true }, seq);
+  const view = prediction.sample(s, 1140), dx = view.players[1].x - s.players[1].x;
+  assert.ok(dx > 0); assert.ok(Math.abs(view.cover[0].x - s.cover[0].x - dx) < .001);
+  assert.equal(view.players[1].carryId, "held"); assert.equal(view.players[1].swing, 0);
+  assert.deepEqual(s, saved);
+});
 
 test("guest movement, jump and aim respond before a host round trip without changing received state", () => {
   const { s, prediction } = fixture(), saved = structuredClone(s);

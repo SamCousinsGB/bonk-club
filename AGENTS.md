@@ -196,6 +196,10 @@ Keep this constitution for durable rules and the handoff for current work.
   not run the room service or relay. Preserve relative asset paths for `/bonk-club/`.
 - The host browser is authoritative. Guests send bounded controls, not trusted
   health, position, inventory, damage, score or destruction. Validate snapshots.
+- Guests predict their own movement, aim and attack motion with the shared host
+  physics, then reconcile using host movement state and applied-input sequences.
+  Keep other fighters interpolated, pending input bounded, and authoritative
+  death/knockdown/reset immediate. Prediction must never apply damage or world edits.
 - The Raspberry Pi provides PeerJS signaling and authenticated TURN fallback.
   Prefer direct WebRTC where possible. Same-LAN success or failed ICE checks alone
   do not prove a TURN problem: inspect both ends and compare the last working code.

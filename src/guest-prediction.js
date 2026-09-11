@@ -5,7 +5,7 @@ import { validMotion, validInputSequence } from "./prediction-state.js";
 const INPUT_STEP = 1 / 60, MAX_PENDING = 30, STALE_MS = 250;
 const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "facing", "aimAngle",
   "walk", "gaitSpeed", "rig", "bodyAngle", "angularVelocity", "landing", "swing",
-  "swingDuration", "meleeMove", "comboStep", "comboTime", "recoilTime", "block", "blockTime"];
+  "swingDuration", "meleeMove", "comboStep", "comboTime", "recoilTime", "block", "blockTime", "carryPoint"];
 const controllable = p => p?.alive && !p.knockdown && !p.freeze && !p.strands && !p.morph;
 
 // Simulate only our own fighter. The shared movement/attack code has an explicit
@@ -57,13 +57,15 @@ export class GuestPrediction {
     for (let n = 0; n < 2; n++) {
       w.time += STEP;
       World.prototype.movePlatforms.call(w);
+      const x = p.x, y = p.y;
       World.prototype.move.call(w, p, input, STEP);
+      if (p.carryPoint) p.carryPoint = { x: p.carryPoint.x + p.x - x, y: p.carryPoint.y + p.y - y };
       if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
         if (input.block && p.weapon) World.prototype.attack.call(w, p, true);
         else if (input.attack) World.prototype.attack.call(w, p);
       }
       // The throw, inventory change and flying weapon await host confirmation.
-      updateRig(p, STEP, w.solids(), w.time);
+      updateRig(p, STEP, w.solids(p), w.time);
     }
   }
   advance(input, seq, now) {
@@ -87,12 +89,22 @@ export class GuestPrediction {
       for (const key of motionKeys) local[key] = this.player[key];
       let { x: dx, y: dy } = this.correction;
       const radius = local.prone ? 34 : 15, top = local.prone ? 10 : 28, bottom = local.prone ? 10 : 30;
-      if (this.context.solids().some(s => local.x + dx + radius > s.x &&
+      if (this.context.solids(this.player).some(s => local.x + dx + radius > s.x &&
           local.x + dx - radius < s.x + s.w && local.y + dy + bottom > s.y + .1 &&
           local.y + dy - top < s.y + s.h)) dx = dy = 0;
       local.x += dx; local.y += dy;
+      if (local.carryPoint) local.carryPoint = { x: local.carryPoint.x + dx, y: local.carryPoint.y + dy };
       local.rig = local.rig?.map(q => ({ ...q, x: q.x + dx, y: q.y + dy }));
     }
-    return { ...state, players: state.players.map(p => p.id === this.id ? local : p) };
+    const out = { ...state, players: state.players.map(p => p.id === this.id ? local : p) };
+    // A held object's artwork travels with its local carrier. Ownership, shape,
+    // collisions, contents and the actual pickup/drop still come from the host.
+    if (local.carryId) for (const list of ["cover", "chunks"]) {
+      const held = this.latest[list].find(b => b.id === local.carryId);
+      if (held) out[list] = state[list].map(b => b.id === held.id ? {
+        ...held, x: held.x + local.x - authoritative.x, y: held.y + local.y - authoritative.y,
+      } : b);
+    }
+    return out;
   }
 }
