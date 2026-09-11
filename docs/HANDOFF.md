@@ -2,6 +2,22 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Main-menu release note — 11 September 2026
+
+The menu displays **v0.2.0 — 6 new weapons added**. The version and short release
+summary come from `package.json` (`version` and `releaseNotes`), with the root
+lockfile version kept in sync. `AGENTS.md` now records Sam's explicit request
+and the major/minor/patch convention for future releases. The multiplayer
+protocol remains **26**; its number is separate from the displayed version.
+
+The note sits below the menu buttons on desktop/portrait and beneath the title
+in the other column on short landscape screens. It hides with the menu during
+play and returns on leaving a match. The production build and staged real Edge
+checks passed at 1440×900, 390×844, 568×320 and 320×568, including visible bounds,
+no overlap, Controls, solo start/return and no browser errors. Screenshots were
+inspected. Helper: `bonk-club-qa/menu-release-browser.cjs`.
+Release verification follows after publishing.
+
 ## Six more weapons — 11 September 2026
 
 Worktree: `bonk-club-arsenal`, branch `codex/arsenal-expansion`, based on

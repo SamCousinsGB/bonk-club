@@ -1,4 +1,5 @@
 import { victoryMessage } from "./victory.js";
+import { version, releaseNotes } from "../package.json";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
@@ -55,6 +56,8 @@ const $ = (s) => document.querySelector(s),
           "'": "&#39;",
         })[c],
     );
+$("#release-version").textContent = `v${version}`;
+$("#release-summary").textContent = `— ${releaseNotes}`;
 const renderer = new Renderer($("#game")),
   sound = new Sound(),
   keys = new Set(),

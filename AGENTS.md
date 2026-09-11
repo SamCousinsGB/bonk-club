@@ -32,6 +32,12 @@ Keep this constitution for durable rules and the handoff for current work.
   Character, Settings and Leave room. Express personality through play and art.
 - Review new user-visible strings before delivery. An explicit creative-writing
   request is the exception; a request for polish or a fun game is not.
+- Sam explicitly requested a latest-update line on the main menu. Display
+  `vMAJOR.MINOR.PATCH` and a concise description of the latest release. Read both
+  from `package.json` (`version` and `releaseNotes`); keep `package-lock.json` in
+  sync. Update these for each gameplay release: minor for added features, patch
+  for fixes, major for breaking changes. This display version is separate from
+  the multiplayer wire protocol. Do not replace the real release note with filler.
 
 ## Modes, rooms and continuity
 

@@ -214,6 +214,21 @@ h1 > span {
   gap: 10px;
   width: 100%;
 }
+.latest-update {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
+  margin: 16px 0 0;
+  padding: 4px 0;
+  color: #c0cbc5;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.latest-update b {
+  color: var(--lime);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .button {
   border: 0;
   border-radius: 5px;
@@ -869,6 +884,10 @@ body.playing #scene-label {
     font-size: 8px;
   }
 }
+@media (max-height: 650px) and (orientation: portrait) {
+  .menu-panel h1 { margin: 12px 0 18px; }
+  .latest-update { margin-top: 12px; }
+}
 @media (max-height: 600px) and (orientation: landscape) {
   header {
     right: auto;
@@ -881,6 +900,7 @@ body.playing #scene-label {
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
     align-items: center;
     gap: clamp(20px, 5vw, 64px);
+    row-gap: 8px;
     padding: 4px 8px;
   }
   .menu-panel h1 {
@@ -893,6 +913,14 @@ body.playing #scene-label {
   }
   .menu-buttons {
     gap: 6px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .latest-update {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    margin: 0;
   }
   .button {
     min-height: 44px;
