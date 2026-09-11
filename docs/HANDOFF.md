@@ -66,8 +66,9 @@ tasks changed the canonical checkout. Preserve those separate changes.
 
 ## Reactive barrels and finite fighter fire — 11 September 2026
 
-Display version **0.10.0**, protocol **32**. All players must refresh and create
-a new room. This supersedes the older permanent fighter-burning behavior.
+Prepared as **v0.10.0**, protocol **32**; shipped in the combined **v0.11.0**
+release, protocol **33**. All players must refresh and create a new room. This
+supersedes the older permanent fighter-burning behavior.
 
 - TNT and gas cylinders flash and swell through their own casing, with a countdown
   painted on the label. The surrounding flashing rectangle is removed. TNT has
@@ -92,11 +93,32 @@ a new room. This supersedes the older permanent fighter-burning behavior.
   Rendered artwork and gameplay were inspected. This is one-machine browser QA.
 - QA helpers, logs and captures are outside Git in `../bonk-club-qa/barrels-*`;
   no production debug hooks, new dependencies or Pi configuration changes.
-  Full-suite and published-release verification is recorded below when complete.
+  The clean barrel-only export passed all **630 tests**; the combined release
+  passed **665 gameplay/network/shared tests** and **3 server tests**, production
+  build and deployment in [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882).
+- Published gameplay: **`8ec9491420d72fe0515b596c1656086971b94363`**, retaining
+  barrel implementation `74f646d`, the prone-floor fix, sound update and survival
+  arenas. All **15 public files** match the clean LF archive build byte for byte:
+  JS `index-C0qDhMdc.js`, CSS `index-szAYY0PO.css`. The unmodified public v0.11.0
+  passed solo, host/guest start and input, hot join, leave and small-menu checks
+  with selected relay/relay candidates and no browser errors. Its rendered
+  gameplay shows the new containers. The detailed barrel/expiry/changed-floor
+  scenario also passed on the integrated source before the arena-only fixes.
+- [Desktop run 34636927927](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927927)
+  passed native Windows/Linux builds and runtime smoke on that same revision.
+  No new Steam approval or physical-device compatibility claim is made.
+- Maximum-spill QA retained the 96-parcel cap with valid guest snapshots.
+  On this machine the reaction step measured 0.4 ms at p95 and guest drawing
+  measured 0.7 ms at p95; these are CPU timings, not FPS or network latency.
+  Exact release source/build: `../bonk-club-qa/barrels-live`. Task preview
+  servers on 5228, 5229 and 5230 are stopped. Concurrent canonical-checkout
+  edits were preserved; final integration used `barrels-integration`.
 
 ## Jump and death sounds — 11 September 2026
 
-Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds.
+Prepared as **v0.9.4** and included in the combined **v0.11.0** release.
+The audio change adds no wire fields; the integrated arena release uses protocol
+**33**. Refresh all players and create a new room after the combined update.
 
 - Removed walking footsteps and their sample/cache entries. `src/landings.js`
   observes only actual landings; it preserves the existing landing thud, mute,
@@ -105,7 +127,8 @@ Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds
   a heavier body impact and a brief falling, breathy vocal resonance. Both have
   three bounded procedural variants and reuse cached PCM buffers. Existing death
   priority, duplicate suppression, voice limits and weapon effects are preserved.
-- Focused sound/landing/death regressions pass. Real Edge host/guest gameplay
+- All **612 tests** passed on the isolated audio revision; **27** focused sound,
+  landing and death checks passed again on the combined source. Real Edge host/guest gameplay
   verified silent walking, both jumps from guest keyboard input, one landing
   and one death cue per browser through selected relay/relay connections.
   Actual Web Audio rendering verified audible clips, silent tails, source cleanup
@@ -114,14 +137,25 @@ Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds
   `../bonk-club-qa/jump-death-*`. Hooks exist only in that harness. No dependencies,
   desktop shell, wire fields or Pi configuration changed. This was one-machine
   browser QA, not separate-ISP or physical-device evidence.
-- Implementation used the canonical checkout. A clean release worktree at
-  `../bonk-club-qa/jump-death-release` / `codex/jump-death-audio` excludes the
-  concurrent barrel, fluid and arena changes in that checkout. The integrated
-  release includes the separately committed prone floor fix from main.
+- Implementation used the canonical checkout. The clean release worktree at
+  `../bonk-club-qa/jump-death-release` / `codex/jump-death-audio` initially isolated
+  the audio edits, then incorporated the independently committed prone, barrel
+  and arena changes from main. Audio commit: **`f7e037d20cdc160b6f07b939b5eec2dcdae9ba95`**.
+- The combined **`8ec9491420d72fe0515b596c1656086971b94363`** revision passed native
+  Windows/Linux builds and desktop smoke in
+  [desktop run 34636927927](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927927).
+- Published in that same combined revision. [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882)
+  passed **665 gameplay/network/shared tests**, **3 server tests**, build and
+  deployment. All **15 public files** match its tested CI artifact byte for byte:
+  `index-C0qDhMdc.js` / `index-szAYY0PO.css`. Public **v0.11.0** passed solo start,
+  keyboard movement/jump, actual boing PCM playback and menu return without page
+  errors. The public gameplay frame was inspected. The task preview on 5234 is stopped.
 
 ## Prone floor collision fix - 11 September 2026
 
-Display version **0.9.3**; protocol **31** and wire shape are unchanged.
+Shipped in combined **v0.11.0**, protocol **33**: all players must refresh and
+create a new room. The collision fix itself adds no wire fields. Its original
+standalone release was prepared as v0.9.3/protocol 31.
 
 - Reproduced intact-floor penetration when a hit clears grounded state while
   prone and S is then released. The standing box previously grew 20 units into
@@ -130,20 +164,31 @@ Display version **0.9.3**; protocol **31** and wire shape are unchanged.
   for the complete new body. Low ceilings keep the fighter prone; nearby walls
   must leave enough space to lie down. Hit velocity and recovery remain physical.
 - Landing checks detect crossed thin floors even at the maximum step/fall speed
-  and account for a rising platform catching an upward-moving fighter.
-  Actual gaps and destroyed terrain still permit falls.
-- Added 18 regressions covering hit strength/release timing, holding S, low
-  ceilings, prone width, moving floors, fast falls, knockdown recovery and gaps.
-  The 45 focused collision/movement/impact/physical-effects checks passed.
-- Six real Edge host/guest scenarios passed with guest keyboard S input, hits,
-  releases and landing. Both ends selected relay/relay candidates; the guest
-  received matching health and floor positions, with no page errors. Prone,
-  airborne-hit and landed gameplay screenshots were inspected. This is browser
-  QA on one machine, not new separate-network evidence.
-- Release work uses an export of main plus only this fix, preserving concurrent
-  barrel/fire/audio changes in the canonical checkout. External helpers and
-  captures: ../bonk-club-qa/prone-floor-*. No production debug hooks or Pi changes.
-  Full-suite, deployment and public-asset verification are recorded after release.
+  and account for a rising platform catching an upward-moving fighter. Actual
+  gaps and destroyed terrain still permit falls.
+- Added 18 regressions for hit strength/release timing, holding S, low ceilings,
+  prone width, moving floors, fast falls, knockdown recovery and real gaps.
+  All 630 standalone game/network/shared checks passed; after barrel/audio
+  integration all 63 focused collision/movement/impact/physical-effects/barrel
+  checks passed. Production builds passed on clean source exports.
+- Six real Edge host/guest scenarios passed on both standalone and combined
+  barrel/audio code with guest keyboard S input, hits, releases and landing.
+  Both ends selected relay/relay candidates; the guest received matching health
+  and floor state without page errors. Rendered prone, hit and landed gameplay
+  was inspected. This is one-machine browser QA, not separate-network evidence.
+- Implementation: **d6f046d542bb140b85c3d13f6a7d5e0658fd6d68**. Published integration:
+  **8ec9491420d72fe0515b596c1656086971b94363**, including later sound/barrel/arena work.
+  [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882)
+  passed **665 gameplay/network/shared tests**, **3 server tests**, build and
+  deployment. All **15 public files** matched its tested CI artifact byte for
+  byte: JS **index-C0qDhMdc.js**, CSS **index-szAYY0PO.css**.
+- The unmodified public v0.11.0 passed solo start/return, host/guest start, guest
+  controls, hot join, leaving and small-screen menu checks through selected relay
+  candidates, with no browser errors. Gameplay/menu screenshots were inspected.
+- External helpers, captures, builds and CI artifact: ../bonk-club-qa/prone-floor-*.
+  The canonical checkout's other tasks were preserved. Task previews on 5237/5238
+  are stopped. No production debug hooks, dependencies or Pi changes were added.
+
 
 ## Falling water and living electrical arcs — 11 September 2026
 
