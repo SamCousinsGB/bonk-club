@@ -126,6 +126,14 @@ Keep this constitution for durable rules and the handoff for current work.
   can hit fighters and move again, persists until consumed or round reset, and is
   capped at 96 pieces. Preserve it through guest snapshots and hot join. Nukes
   and PHASER consume affected pieces; black holes bend their existing artwork.
+- Explosive barrels warn through their own flashing/swelling casing and a countdown
+  on the label, never a surrounding warning box. TNT explodes after a short fuse;
+  gas cylinders leak flammable gas. Oil spills are slippery and flammable, glue
+  grips briefly, and tar slows movement and burns longer. Preserve finite contents,
+  distinct artwork, physical casing fragments, floor drainage and guest/hot-join state.
+- Living fighters burn for three seconds after their last exposure, including while
+  knocked down or captured. Repeated exposure refreshes this bounded timer; water
+  and ice extinguish immediately. Never restore fire that lasts until death.
 - AI defaults to Easy with imperfect aim, reactions and firing discipline. Use
   the same controls, health, ammunition and physics as humans. Improve navigation
   without making bots accurate, tireless terminators.

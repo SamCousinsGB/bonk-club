@@ -2,7 +2,7 @@ import { blackholeField, updateBlackhole, updateWreckage } from "./blackhole.js"
 import { nuclearField, updateNuclear } from "./nuclear.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
-import { BUBBLE_TIME, steerBoomerang } from "./weird-weapons.js";
+import { BUBBLE_TIME, steerBoomerang, igniteFighter } from "./weird-weapons.js";
 import { harpoonImpact, fireworkBurst } from "./expanded-weapons.js";
 import { TRANSMUTATIONS, rigidPose } from "./transmutation.js";
 import { knockDown } from "./knockdown.js";
@@ -60,7 +60,7 @@ export function impactSpecial(world, b, target, hurt) {
     if (b.kind === "gold") target.morphPose = rigidPose(target.rig);
   }
   if (b.kind === "harpoon") harpoonImpact(world, b, target);
-  if (b.burn && target.alive && !(target.soaked > 0)) target.burn = 1;
+  if (b.burn) igniteFighter(target);
   if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
     target.bubble = BUBBLE_TIME; target.ground = false; target.support = null;
     target.vy = Math.min(target.vy, -110);

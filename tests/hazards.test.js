@@ -82,7 +82,7 @@ test("railgun rounds break cover or rupture a pressure cylinder", () => {
     p.aimAngle = 0;
     w.attack(p);
     for (let i = 0; i < 8; i++) w.updateProjectiles(STEP);
-    if (kind === "canister") { assert.equal(c.hp,1);assert.equal(c.leak,1);assert.ok(c.fuse>0); }
+    if (["canister","barrel"].includes(kind)) { assert.equal(c.hp,1);assert.equal(c.leak,1);assert.ok(c.fuse>0); }
     else assert.equal(c.hp, 0, kind);
   }
 });

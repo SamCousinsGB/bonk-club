@@ -98,7 +98,7 @@ test("water extinguishes burning fighters, including physical knockdowns",()=>{
   Object.assign(p,{x:816,y:970,burn:1,knockdown:.8});advance(w,.05);
   assert.equal(p.burn,0);assert.ok(p.soaked>0);
   impactSpecial(w,{burn:1,kind:"flame"},p,true);assert.equal(p.burn,0);
-  p.soaked=0;impactSpecial(w,{burn:1,kind:"flame"},p,true);assert.equal(p.burn,1);
+  p.soaked=0;impactSpecial(w,{burn:1,kind:"flame"},p,true);assert.equal(p.burn,3);
 });
 
 test("water catches a flame before it can ignite a fighter behind it",()=>{

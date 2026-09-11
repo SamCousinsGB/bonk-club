@@ -6,7 +6,7 @@ const simulationOnly = new Set([
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
 ]);
-const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas"];
+const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas", "spills"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
 function copy(value) {
   if (typeof value === "number") return quantize(value);
@@ -48,6 +48,7 @@ function blend(a, b, t) {
   if (a.weapon === b.weapon && a.meleeMove === b.meleeMove &&
       a.swingDuration === b.swingDuration && a.swing > 0 && b.swing <= a.swing)
     out.swing = lerp(a.swing, b.swing, t);
+  if (a.fuse > 0 && b.fuse > 0 && b.fuse <= a.fuse) out.fuse = lerp(a.fuse,b.fuse,t);
   if (a.matter && b.matter && a.matter.id === b.matter.id) out.matter = blend(a.matter,b.matter,t);
   if (a.items && b.items) {
     const items = new Map(a.items.map(p => [p.id,p]));
@@ -83,7 +84,7 @@ export function interpolateStates(a, b, t) {
       const previous=old.get(p.netId);
       // Do not display a flat, grounded pool halfway down its last fall, or
       // interpolate an ice surface away from its authoritative collision.
-      if(key === "water" && previous) {
+      if((key === "water" || key === "spills") && previous) {
         if(previous.grounded !== p.grounded || !!previous.frozen !== !!p.frozen) return p;
         const q=blend(previous,p,t);
         q.h=lerp(previous.h,p.h,t);q.vy=lerp(previous.vy,p.vy,t);
