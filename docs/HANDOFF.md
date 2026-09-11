@@ -66,7 +66,21 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   controls, third-player hot join, leave and narrow-menu smoke checks with no
   browser errors. Local geometry and final gameplay screenshots were inspected.
 - External scripts, logs, metrics, profile and screenshots are
-  `../bonk-club-qa/guest-fluidity-*`; production publication verification follows.
+  `../bonk-club-qa/guest-fluidity-*`.
+- **Published and verified:** v0.17.2, protocol 39, gameplay revision
+  `e9fc349a79e63e6e9b404a282ee24a8e9ee09b9c`. Pages run `34654294919`
+  passed gameplay/server tests and deployment. Desktop run `34654294929` passed
+  both Windows and Linux unit tests, executable smoke tests and packaging.
+- All **16 public files** match both the exact CI artifact and local production
+  build by SHA-256. For byte parity with Linux, the local HTML and favicon were
+  restored to their committed LF bytes; Windows checkout line endings otherwise
+  alter those two asset hashes. No source revision changed for that normalization.
+  Public JS is `index-CSmcDWKT.js`, worker `state-codec-worker-B4M86Md8.js` and
+  CSS `index-DSLPu4j9.css`.
+- The public v0.17.2 game passed solo, real host/guest start, guest movement/jump/
+  attack, third-player hot join, leave and narrow-menu checks. All three browsers
+  selected relay/relay candidates, with no page errors. The actual public game
+  screenshot was inspected. Refresh all players and create a new room.
 
 ## Death physics continuity - 11 September 2026
 
