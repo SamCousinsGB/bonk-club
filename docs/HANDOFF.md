@@ -4,7 +4,7 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 ## Physics and guest performance pass — 11 September 2026
 
-- Prepared **v0.16.2**, protocol **37** unchanged, from main `030bbba` in
+- Published **v0.16.2**, protocol **37** unchanged, from main `030bbba` in
   `../bonk-club-qa/performance-pass`, branch `codex/performance-pass`. Preserve
   the shared canonical checkout's unrelated dirty work; integrate from main.
 - CPU profiling identified repeated whole-terrain scans in `updateRig` and
@@ -35,7 +35,21 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   Added coverage checks cache refresh on movement, resizing, shape replacement,
   moving support and destruction, plus allocation-free end-of-history sampling.
   All **743 local game/shared tests passed** in 256 seconds, and the production
-  build passed. Published release evidence follows once deployment completes.
+  build passed.
+- Release revision **`d8c7e6d977a561fbdd09ba4d16839782a6216f7d`** is live.
+  [Pages run 34647836297](https://github.com/SamCousinsGB/bonk-club/actions/runs/34647836297)
+  passed **743 game/shared tests, 3 server tests**, build and deployment. All
+  **15 public files** matched that run's Pages artifact hashes, including
+  `index-8PgA0ppP.js` and `index-DSLPu4j9.css`. Actual public v0.16.2 passed solo,
+  host/guest controls, hot join, leave and small-menu checks with three real Edge
+  browsers selecting relay/relay connections and no page errors. Public gameplay
+  and menu screenshots were inspected. These are one-PC external-relay checks.
+- [Desktop run 34647836245](https://github.com/SamCousinsGB/bonk-club/actions/runs/34647836245)
+  passed Windows and Linux desktop unit tests, builds, executable smoke tests and
+  packaging. This is not Steam approval or Steam Deck verification.
+- Test browsers and task-only servers on 5383/5384/5385 were stopped. The release
+  checkout is clean; the canonical checkout's handoff records this release while
+  preserving its unrelated code edits. Refresh both browser tabs for the update.
 - External scripts, baseline sources, CPU profile, JSON metrics, logs and captures
   are `../bonk-club-qa/perf-pass-*`. No debug hooks, dependencies, wire changes,
   desktop-shell changes or Pi changes were introduced.
