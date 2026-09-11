@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.2.0",
-  "releaseNotes": "6 new weapons added",
+  "version": "0.3.0",
+  "releaseNotes": "New main-menu effects montage",
   "private": true,
   "type": "module",
   "scripts": {
