@@ -175,6 +175,7 @@ function tear(world, f) {
     return false;
   });
   world.hazards = world.hazards.filter((h) => {
+    if (h.done) return true; // A cleared fixture cannot become new physical wreckage.
     if (!inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f)) return true;
     addWreck(
       world,
