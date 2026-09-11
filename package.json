@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.5.0",
-  "releaseNotes": "Layered weapon audio and nuclear fuse siren",
+  "version": "0.6.0",
+  "releaseNotes": "Footstep thuds, deeper audio and a new death sound",
   "private": true,
   "type": "module",
   "scripts": {

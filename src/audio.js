@@ -1,5 +1,6 @@
 import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
 import { W } from './scale.js';
+import { Footsteps } from './footsteps.js';
 
 export class Sound {
   constructor() {
@@ -12,6 +13,7 @@ export class Sound {
     this.nukeIds = new WeakMap();
     this.nextNukeId = 0;
     this.alarm = null;
+    this.footsteps = new Footsteps();
   }
   get muted() { return this._muted; }
   set muted(value) {
@@ -30,10 +32,19 @@ export class Sound {
     this.limiter.attack.value = .003;
     this.limiter.release.value = .22;
     this.saturator = c.createWaveShaper();
-    this.saturator.curve = Float32Array.from({ length: 8193 }, (_, i) =>
-      .9 * Math.tanh(1.2 * (i / 4096 - 1)) / Math.tanh(1.2));
+    // Transparent at normal levels. The old tanh distorted the entire mix and
+    // clamped at +/-1 before the curve, adding grit to overlapping bass/voices.
+    // Expand the represented input range and oversample the safety knee.
+    this.safetyInput = c.createGain();
+    this.safetyInput.gain.value = 1.25 / 8;
+    this.saturator.curve = Float32Array.from({ length: 16385 }, (_, i) => {
+      const x = (i / 8192 - 1) * 8, a = Math.abs(x);
+      return a <= .6 ? x : Math.sign(x) * (.6 + .22 * Math.tanh((a - .6) / .22));
+    });
+    this.saturator.oversample = '4x';
     this.master.connect(this.limiter);
-    this.limiter.connect(this.saturator);
+    this.limiter.connect(this.safetyInput);
+    this.safetyInput.connect(this.saturator);
     this.saturator.connect(c.destination);
   }
   unlock() {
@@ -86,13 +97,17 @@ export class Sound {
     if (offset > 0) gain.gain.linearRampToValueAtTime(level, now + .008);
     source.connect(gain); gain.connect(pan); pan.connect(this.master);
     const length = Math.min(duration ?? source.buffer.duration - offset, source.buffer.duration - offset);
+    // Every source stops at zero, including a siren seek with a shortened tail.
+    const end = now + Math.max(.001, length);
+    gain.gain.setValueAtTime(level, Math.max(now + .008, end - .012));
+    gain.gain.linearRampToValueAtTime(0, end);
     source.start(now, offset, Math.max(.001, length));
     this.active++;
     const voice = { source, gain, end: now + length, stopped: false };
     source.onended = () => { voice.stopped = true; source.disconnect(); gain.disconnect(); pan.disconnect(); this.active--; };
     return voice;
   }
-  // Preserve the previously requested death and room-arrival interface chimes.
+  // The short room-arrival interface chimes remain separate from combat.
   tone(freq, end, length, gain, wave = 'sine', delay = 0) {
     const c = this.context, start = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
@@ -119,6 +134,7 @@ export class Sound {
     this.alarm = null;
   }
   update(state) {
+    for (const contact of this.footsteps.update(state)) this.sample(contact.name, contact);
     const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
       .reduce((first, b) => !first || b.life < first.life ? b : first, null);
     if (!projectile || !this.ready()) { this.stopAlarm(); return; }
@@ -155,12 +171,10 @@ export class Sound {
     if (c.currentTime - (this.last.get(key) ?? -10) < (type === 'ko' ? .12 : shooting ? .04 : .025)) return;
     this.last.set(key, c.currentTime);
     if (type === 'ko') {
-      if (this.active > 40) return;
-      this.tone(145, 62, .12, .35, 'triangle');
-      this.tone(784, 740, .18, .25, 'sine', .015);
-      this.tone(1568, 1480, .12, .07, 'sine', .015);
-      this.tone(523, 392, .43, .3, 'triangle', .13);
-      if (!detail.effect) return;
+      // A shared physical death impact stays identifiable across every cause.
+      // Do not stack another full weapon discharge on top of the lethal hit.
+      this.sample('death', detail, { priority: true });
+      return;
     }
     if (detail.nuclear && type === 'explosion') {
       this.stopAlarm();

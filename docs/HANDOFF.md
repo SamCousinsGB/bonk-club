@@ -2,6 +2,30 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Second audio pass — 11 September 2026
+
+Sam requested a better death sound, less crackle, thudding footsteps, more bass
+in gunshots and the nuclear siren, while retaining the SMG's character.
+
+- Death now uses one deep physical impact with a soft air/cloth tail. Removed the
+  four pitched oscillator notes and duplicate weapon discharge on lethal hits.
+  Every death cause still has the same recognizable cue and burst coalescing.
+- Grounded stride crossings produce quiet alternating footstep thuds; landings
+  produce a heavier contact. Existing validated gait/ground/occupant state drives
+  them locally on hosts and guests. No footsteps while idle, prone, airborne,
+  frozen, knocked down or carried by a lift. New rooms, rounds, occupants and
+  stalled snapshots reset tracking without playing a backlog. No wire change.
+- Added low body resonance to guns and lower rotor layers to the timed siren.
+  Kept the SMG attack/cadence and approximately its prior loudness. Softened the
+  upper crack on other ballistic weapons. Siren phase and glow timing are intact.
+- Replaced the always-distorting output curve with a transparent normal range,
+  a wider safety range and oversampling. Source endings fade to zero. A real
+  OfflineAudioContext comparison reduced added harmonics on a clean test tone
+  from 1.13% to below 0.001%, without a material level change. That isolates a
+  distortion source; it is not a measurement of Sam's speakers or hardware.
+- Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
+  arena and other work. Final combined verification and release record follows.
+
 ## Weapon audio and nuclear siren — 11 September 2026
 
 Implemented in `bonk-club-audio`, branch `codex/weapon-audio`, while the canonical
