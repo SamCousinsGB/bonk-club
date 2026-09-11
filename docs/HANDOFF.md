@@ -262,10 +262,10 @@ and create a new room. The hazard change itself uses the existing validated
 
 ## Physical object pickup and carrying — 11 September 2026
 
-Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
-canonical checkout's existing work. Protocol **34** requires all players to
-refresh and create a new room. Display version **0.13.0** integrates the separate
-bullet-ignition release (v0.12.0).
+Implemented in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
+canonical checkout's existing work. Initially integrated as display **0.13.0**
+and protocol **34**; the verified combined public release is now **0.16.1**,
+protocol **37**. All players must refresh and create a new room.
 
 - Right-click/G or controller secondary action picks up the nearest reachable
   prop or physical fragment in front. It sets down an equipped weapon with its
@@ -292,6 +292,23 @@ bullet-ignition release (v0.12.0).
   including carrying, fuel ignition, barrel reactions, physical props, networking,
   parry and touch. The production build and complete three-browser carry/touch/
   hot-join/held-explosive test passed again with relay/relay and no page errors.
+- **Published and verified:** gameplay revision
+  `c06dd6a8b6fa62b6dcb013dda512f827e70787b8` includes the pickup implementation
+  (`e4f9dc7`) and subsequent shared-main integrations. [Pages run 34644756415](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644756415)
+  passed **742 game/shared tests and 3 server tests**, built and deployed.
+  All **15 public files** matched the SHA-256 hashes of that run's artifact,
+  including `index-Bqp12hF8.js` and `index-DSLPu4j9.css`.
+- The actual unmodified public game passed right-click pickup and F throw,
+  solo play, host/guest start, guest controls, hot join, leaving and a 568 x 320
+  menu check. All three real Edge browsers selected relay/relay candidates;
+  no page errors. Public holding, online gameplay and menu captures were viewed.
+  One earlier staged hot-join attempt timed out; a complete repeat and the final
+  public check passed. These are one-PC checks using the external relay, not
+  evidence of reliability across separate household connections.
+- Pages concurrency now lets an active tested release finish while newer commits
+  replace the pending run (`cancel-in-progress: false`, commit `d592f7d`). This
+  resolved repeated release cancellations during concurrent gameplay work.
+  This task's development and preview servers on ports 5244/5245 were stopped.
 - External harness, logs and captures are `../bonk-club-qa/carry-*`. No test hooks,
   dependencies or Pi configuration changes were added to production.
 
