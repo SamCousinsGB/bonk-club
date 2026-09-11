@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.1",
-  "releaseNotes": "Props break into jagged pieces of their original artwork",
+  "version": "0.9.2",
+  "releaseNotes": "Flowing water, impact splashes and branching electrical arcs",
   "private": true,
   "type": "module",
   "scripts": {

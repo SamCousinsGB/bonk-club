@@ -79,7 +79,18 @@ export function interpolateStates(a, b, t) {
   });
   for (const key of movingLists) {
     const old = new Map((a[key] || []).filter(p => p.netId != null).map(p => [p.netId, p]));
-    out[key] = (b[key] || []).map(p => blend(old.get(p.netId), p, t));
+    out[key] = (b[key] || []).map(p => {
+      const previous=old.get(p.netId);
+      // Do not display a flat, grounded pool halfway down its last fall, or
+      // interpolate an ice surface away from its authoritative collision.
+      if(key === "water" && previous) {
+        if(previous.grounded !== p.grounded || !!previous.frozen !== !!p.frozen) return p;
+        const q=blend(previous,p,t);
+        q.h=lerp(previous.h,p.h,t);q.vy=lerp(previous.vy,p.vy,t);
+        return q;
+      }
+      return blend(previous,p,t);
+    });
   }
   return out;
 }

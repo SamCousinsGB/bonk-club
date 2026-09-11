@@ -1,3 +1,6 @@
+import { drawWater } from "./water-art.js";
+import { drawElectricity } from "./electricity-art.js";
+
 const TAU=Math.PI*2;
 const line=(c,points,color,width=2)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
@@ -58,34 +61,11 @@ function flame(c,x,y,height,phase) {
   c.beginPath();c.moveTo(x-3,y);c.quadraticCurveTo(x-5,y-height*.3,x+sway*.6,y-height*.58);
   c.quadraticCurveTo(x+8,y-height*.2,x+3,y);c.fillStyle="#ffe794";c.fill();
 }
-function electricity(c,b,time) {
-  const w=b.w,h=b.h;
-  c.save();c.translate(b.x+w/2,b.y+h/2);c.rotate(b.angle||0);
-  c.strokeStyle="#a1f6f988";c.lineWidth=3;c.strokeRect(-w/2-1,-h/2-1,w+2,h+2);
-  const count=Math.min(12,Math.max(3,Math.ceil(w/18))),points=[];
-  for(let i=0;i<=count;i++)points.push([-w/2+i*w/count,-h/2-5+Math.sin(i*4.7+Math.floor(time*16))*4]);
-  line(c,points,"#e9ffff",2);c.restore();
-}
-
 export function drawReactions(c,state,time) {
   c.save();
-  for(const q of state.water||[]) {
-    if(q.frozen)continue;
-    const alpha=q.grounded?.55:.4;
-    c.fillStyle=q.charge?`rgba(69,207,230,${alpha})`:`rgba(57,157,204,${alpha})`;
-    c.fillRect(q.x,q.y,q.w,q.h);
-    const points=[];
-    for(let i=0;i<=4;i++){const x=q.x+i*q.w/4;points.push([x,q.y+Math.sin(x*.08+time*4)*1.3]);}
-    line(c,points,q.charge?"#d6ffff":"#9ee4f7bb",q.charge?2.5:1.5);
-    if(q.charge) {
-      const x=q.x+q.w*.5;
-      line(c,[[x-9,q.y-1],[x-2,q.y-8],[x+1,q.y-2],[x+8,q.y-10]],"#dfffff",1.8);
-    }
-    if(!q.grounded){line(c,[[q.x+q.w/2,q.y],[q.x+q.w/2-3,q.y-Math.min(24,q.vy*.025)]],"#9ce0fa88",2);}
-  }
+  drawWater(c,state,time);
   for(const b of [...(state.cover||[]),...(state.chunks||[]),...state.platforms.filter(p=>p.fire||p.charge)]) {
     if(b.hp===0)continue;
-    if(b.charge)electricity(c,b,time);
     if(b.fire) {
       const count=b.chunk?1:Math.min(6,Math.max(2,Math.floor(b.w/18)));
       const cos=Math.cos(b.angle||0),sin=Math.sin(b.angle||0);
@@ -118,5 +98,6 @@ export function drawReactions(c,state,time) {
     const age=(time*2.6+i*.31)%1;
     line(c,[[p.x-12+i*12,p.y+7+age*30],[p.x-12+i*12,p.y+10+age*30]],"#7ed9efaa",2);
   }
+  drawElectricity(c,state,time);
   c.restore();
 }

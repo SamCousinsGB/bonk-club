@@ -2,6 +2,31 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Falling water and living electrical arcs — 11 September 2026
+
+Implemented in `bonk-club-water` / `codex/water-arcs-release`, preserving the
+canonical checkout's concurrent prop-fracture work. Display version **0.9.2**.
+
+- Falling water uses velocity-stretched, tapered streams and detached droplets.
+  Settled pools share a continuous ripple; observed landings emit bounded splashes.
+  Guest interpolation no longer draws flat pools in midair just before landing,
+  and interpolates pool depth together with its surface height.
+- Electrical discharges chain through actual connected water and metal, branch
+  continuously, crawl around rotating silhouettes and trace shocked fighter limbs.
+  `src/conductors.js` shares the existing polygon/wall contact rules between
+  authority and artwork. Disconnecting, freezing or depowering removes the arcs.
+  Damage, water volume, source duration and the wire shape are preserved.
+- Art is in `src/water-art.js` and `src/electricity-art.js`. Water impacts cap at
+  32 bursts, circuits at 320 visual nodes / 256 links; no production debug hooks.
+  Seven regressions cover geometry, real contacts, power expiry, reset/hot-join
+  behavior, limits and guest landing/freezing interpolation.
+- Actual Edge host/guest and hot join passed through selected TURN relay candidates:
+  draining destroyed floors, shocks, power expiry, fire/ice/gas and guest mouse fire.
+  Animated gameplay frames were inspected. This is one-machine browser QA, not
+  separate-ISP evidence. The maximum water/rubble art stress took 6 ms at p95 on
+  this machine; that measures drawing CPU cost, not FPS or internet latency.
+  External harnesses, captures and logs: `../bonk-club-qa/waterarc-*`.
+- Final integrated test/build/publication results are recorded after release.
 ## Jagged prop fragments — 11 September 2026
 
 Prepared as **v0.9.1**, protocol **31**. All players must refresh and create a
