@@ -34,7 +34,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 30;
+export const PROTOCOL = 31;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -756,7 +756,7 @@ const matter = c => c && c.kind === "matter" && xy(c) && integer(c.id,1,1000000)
   new Set(c.items.map(q=>q.id)).size===c.items.length;
 const propShape = shape => {
   if (shape === undefined) return true;
-  if (!Array.isArray(shape) || shape.length < 3 || shape.length > 6 ||
+  if (!Array.isArray(shape) || shape.length < 3 || shape.length > 9 ||
     !shape.every(p => Array.isArray(p) && p.length === 2 && p.every(n=>finite(n)&&Math.abs(n)<=.5))) return false;
   let sign=0, area=0;
   for(let i=0;i<shape.length;i++) {
@@ -767,7 +767,14 @@ const propShape = shape => {
   }
   return Math.abs(area)>.12;
 };
-const physicalProp = c => validReactionObject(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
+const propSourceArt = b => {
+  if(b.sourceArt === undefined) return true;
+  const a=b.sourceArt;
+  return (b.chunk || b.sourceChunk) && Array.isArray(b.shape) && Array.isArray(a) && a.length===6 && a.every(finite) &&
+    a[0]>=0 && a[1]>=0 && a[2]>0 && a[3]>0 && a[4]>0 && a[4]<=250 && a[5]>0 && a[5]<=200 &&
+    a[0]+a[2]<=a[4]+.02 && a[1]+a[3]<=a[5]+.02;
+};
+const physicalProp = c => validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
@@ -933,7 +940,7 @@ export function validSnapshot(s) {
       w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
       (w.sourceKind==null || COVER_KINDS.includes(w.sourceKind)) &&
       (w.sourceChunk===undefined || typeof w.sourceChunk==="boolean") &&
-      (!w.sourceChunk || (w.kind==="prop" && typeof w.material==="string" && Object.hasOwn(PROP_MATERIALS,w.material))) && propShape(w.shape) &&
+      (!w.sourceChunk || (w.kind==="prop" && typeof w.material==="string" && Object.hasOwn(PROP_MATERIALS,w.material))) && propShape(w.shape) && propSourceArt(w) &&
       (w.elevator===undefined || typeof w.elevator==="boolean") &&
       (w.spine===undefined||(list(w.spine,6,xy)&&w.spine.length===6&&list(w.outline,12,xy)&&w.outline.length===12))) &&
     list(s.rifts,128,c => xy(c) && integer(c.id,1,1000000) && c.radius===SINGULARITY.radius && finite(c.born)) &&

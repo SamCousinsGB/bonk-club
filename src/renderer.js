@@ -963,7 +963,7 @@ export class Renderer {
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme);
     this.fragments(state.debris);
-    drawChunks(this.ctx, state.chunks);
+    drawChunks(this, state.chunks);
     drawReactions(c, state, time);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);

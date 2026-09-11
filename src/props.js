@@ -2,6 +2,7 @@ import { H, W } from "./scale.js";
 import { playerBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { knockDown } from "./knockdown.js";
+import { propFragments } from "./prop-fracture.js";
 
 // Mass is relative to a 55 kg fighter. Surface friction and inertia, rather than
 // a movement clamp, determine how far a hit moves furniture and loose rubble.
@@ -203,46 +204,21 @@ export function damageProp(world, b, damage, vx = 0, vy = 0, point) {
   }
 }
 
-function parts(b) {
-  // Fractions of the original silhouette: recognizable legs, rails, mattress,
-  // cushions, doors and rock chunks instead of identical brown particle squares.
-  if (b.kind === "bed") return [
-    [0, .12, .28, .38, "fabric"], [.29, .12, .35, .38, "fabric"], [.65, .12, .35, .38, "fabric"],
-    [0, .54, .48, .14, "metal"], [.5, .54, .5, .14, "metal"],
-    [.02, .7, .08, .3, "metal"], [.9, .7, .08, .3, "metal"],
-    [0, 0, .05, .53, "metal"], [.94, 0, .06, .53, "metal"],
-  ];
-  if (b.kind === "table") return [
-    [0, 0, .32, .18, "wood"], [.34, 0, .32, .18, "wood"], [.68, 0, .32, .18, "wood"],
-    [.05, .2, .09, .8, "wood"], [.85, .2, .09, .8, "wood"],
-    [.2, .22, .29, .27, "wood"], [.51, .22, .28, .27, "wood"],
-    [.2, .51, .29, .25, "wood"], [.51, .51, .28, .25, "wood"],
-  ];
-  const rows = b.kind === "log" ? 2 : 3;
-  return Array.from({ length: rows * 3 }, (_, n) => [
-    (n % 3) / 3, Math.floor(n / 3) / rows, .31, 1 / rows - .025,
-    b.kind === "sofa" ? (n < 6 ? "fabric" : "wood") : b.material,
-  ]);
-}
-
 export function fractureProp(world, b) {
-  const spec = parts(b), area = spec.reduce((sum, p) => sum + p[2] * p[3], 0);
+  const spec = propFragments(b, () => world.random()), area = spec.reduce((sum, p) => sum + p.area, 0);
   const origin = center(b), cos = Math.cos(b.angle), sin = Math.sin(b.angle);
-  for (const [x, y, w, h, material] of spec) {
-    const rx = (x + w / 2 - .5) * b.w, ry = (y + h / 2 - .5) * b.h;
+  for (const {x, y, w, h, material, shape, sourceArt, area: shardArea} of spec) {
+    const rx = x + w / 2 - b.w / 2, ry = y + h / 2 - b.h / 2;
     const dx = rx * cos - ry * sin, dy = rx * sin + ry * cos;
-    const width = Math.max(4, w * b.w), height = Math.max(4, h * b.h);
+    const width = w, height = h;
     const chunk = { id: `chunk${++world.chunkSerial}`, chunk: true, kind: b.kind, material,
       x: origin.x + dx - width / 2, y: origin.y + dy - height / 2, w: width, h: height,
-      mass: b.mass * w * h / area, hp: 24, maxHp: 24,
+      mass: b.mass * shardArea / area, hp: 24, maxHp: 24, shape, sourceArt,
       vx: clamp(b.vx - b.spin * dy + dx * 1.3, -MAX_SPEED, MAX_SPEED),
       vy: clamp(b.vy + b.spin * dx + dy * 1.3 - 35, -MAX_SPEED, MAX_SPEED),
       angle: b.angle, spin: clamp(b.spin + (world.random() - .5) * 6, -MAX_SPIN, MAX_SPIN),
       dx: 0, dy: 0,
     };
-    if (["stone", "glass"].includes(material)) chunk.shape = [
-      [-.5, -.21], [-.27, -.5], [.34, -.46], [.5, .14], [.21, .5], [-.41, .35],
-    ];
     world.inheritPropReaction?.(b, chunk);
     world.chunks.push(chunk);
   }

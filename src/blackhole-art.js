@@ -63,7 +63,7 @@ export function drawBlackhole(r, f, time) {
 function wreckArtwork(r, w) {
   const key = JSON.stringify([
     w.kind, w.sourceKind, w.trapType, w.material, w.surface, w.panel,
-    w.ice, w.elevator, w.w, w.h, w.sourceChunk, w.shape,
+    w.ice, w.elevator, w.w, w.h, w.sourceChunk, w.shape, w.sourceArt,
   ]);
   const cache = (r.wreckArt ||= new Map());
   if (cache.has(key)) return cache.get(key);
@@ -82,7 +82,7 @@ function wreckArtwork(r, w) {
     if (w.kind === "platform") {
       r.platform({ ...source, destructible: !!w.panel }, 0);
     } else if (w.kind === "prop") {
-      if (w.sourceChunk) drawChunks(c,[{...source,kind:w.sourceKind}]);
+      if (w.sourceChunk) drawChunks(r,[{...source,kind:w.sourceKind}]);
       else r.table({ ...source, kind: w.sourceKind || "crate" });
     } else {
       drawHazards(c, [{

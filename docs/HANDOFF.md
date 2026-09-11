@@ -27,6 +27,28 @@ canonical checkout's concurrent prop-fracture work. Display version **0.9.2**.
   this machine; that measures drawing CPU cost, not FPS or internet latency.
   External harnesses, captures and logs: `../bonk-club-qa/waterarc-*`.
 - Final integrated test/build/publication results are recorded after release.
+## Jagged prop fragments — 11 September 2026
+
+Prepared as **v0.9.1**, protocol **31**. All players must refresh and create a
+new room after this release. Publication verification follows below when complete.
+
+- Props fracture along varied oblique cuts into 8–10 physical shards. Each piece
+  samples its own region of the original artwork, retaining crate braces, cabinet
+  doors, upholstery, painted casing and rock facets. Beds and tables separate
+  frames/legs from their main surfaces. Convex outlines drive rotating collision;
+  source pixels stay transparent around rounded objects and open frames.
+- Source and shard artwork have bounded renderer caches. Mass, inherited momentum,
+  elemental reactions, the 96-piece rubble cap and round resets are preserved.
+  Black-hole wreckage retains the same source crop and shape. Validated crop
+  metadata and up to nine convex vertices survive transport and hot join.
+- New regressions exercise every arena's prop sizes across varied crack seeds,
+  mass conservation, convex wire geometry, invalid source crops, black-hole
+  transport and resets. Three real Edge browsers on the QA machine passed matching
+  hot-join artwork/geometry, persistent rubble, another explosion and black-hole
+  capture through selected relay/relay connections, with no browser errors.
+  Actual artwork sheets and moving/settled gameplay were visually inspected.
+- External helpers and captures: `../bonk-club-qa/jagged-*`. Test hooks stay in
+  these helpers. No dependencies, desktop-shell or Pi configuration changes.
 
 ## Steam desktop production — 11 September 2026
 
