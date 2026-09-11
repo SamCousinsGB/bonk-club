@@ -108,16 +108,17 @@ test("shrapnel fans out, ricochets twice, uses one shell and propels a downward 
   fire(other, "shrapnel"); assert.ok(other.players[0].vy < -400);
 });
 
-test("fireworks burst once into ten damaging sparks, carve terrain, then clear", () => {
+test("fireworks burst on impact into ten persistent damaging sparks and carve terrain once", () => {
   const w = fixture(), q = w.players[1]; q.x = 900; q.y = 495;
-  const b = fire(w, "firework"); Object.assign(b, {x: 800,y: 525,vx: 0,vy: 0,life: STEP/2});
+  const b = fire(w, "firework"); Object.assign(b, {x: 800,y: 551,vx: 0,vy: 1000});
   const before = JSON.stringify(w.platforms); shots(w, STEP);
   assert.equal(w.projectiles.length, 10); assert.ok(w.projectiles.every(b => b.kind === "spark"));
   assert.equal(w.events.filter(e => e.type === "explosion").length, 1);
   assert.notEqual(JSON.stringify(w.platforms), before);
   shots(w, .3); assert.ok(q.hp < 100, "radial sparks hit beyond the initial blast");
   shots(w, .8); updateFields(w, 1);
-  assert.equal(w.projectiles.length, 0); assert.equal(w.fields.length, 0);
+  assert.ok(w.projectiles.length > 0); assert.ok(w.projectiles.every(b=>b.kind === "spark"));
+  assert.equal(w.fields.length, 0);
   assert.equal(w.events.filter(e => e.type === "explosion").length, 1);
 });
 

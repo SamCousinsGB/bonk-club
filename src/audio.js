@@ -130,6 +130,9 @@ export class Sound {
     }
     if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
       const kind = detail.kind || type;
+      if (kind === "jelly") { this.tone(120,620,.16,.28,"sine"); this.tone(540,95,.27,.2,"sine"); return; }
+      if (kind === "gold") { this.tone(1320,880,.32,.24,"triangle"); this.tone(1980,1320,.24,.12,"sine"); return; }
+      if (kind === "tangle") { this.tone(330,105,.22,.2,"triangle"); this.rumble(.08,.12,1700); return; }
       if (kind === "bolt") { this.tone(360, 85, .18, .25, "triangle"); this.rumble(.07, .15, 2700); return; }
       if (kind === "harpoon") { this.tone(190, 55, .25, .3, "sawtooth"); this.rumble(.16, .24, 1300); return; }
       if (detail.weapon === "firework") { this.tone(380, 1500, .42, .22, "sine"); this.rumble(.18, .18, 2500); return; }

@@ -30,12 +30,9 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
-  if (["harpoon", "bolt"].includes(w.kind) || w === WEAPONS.shrapnel || w === WEAPONS.firework) return w.range;
   if (["phaser", "boomerang", "duck"].includes(w.kind)) return w.range;
-  if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
-  if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
-  const life = w.life || (w.kind === "rail" ? 0.8 : 4.5);
-  return Math.min(W, w.speed * life, Math.max(w.range || 1100, w.speed * 2));
+  if (["melee", "grenade"].includes(w.kind)) return w.range;
+  return W;
 }
 const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type,{
   range:engagementRange(w), speed:w.kind === "melee" ? undefined : w.speed,
@@ -335,11 +332,11 @@ export class BotController {
       if (i.attack) i.aim = b.grenade.plan.angle;
     }
     if (weapon.singularity) {
-      // The orb arms a pulling field at impact or expiry. Its field radius is
+      // The orb arms a pulling field at impact. Its field radius is
       // useful reach, not an instant explosion requiring 710 units of clearance.
       const definition = WEAPONS[p.weapon];
       const hit = obstacle && segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, obstacle, 10);
-      const travel = Math.min(range * (hit?.t ?? 1), definition.speed * definition.life);
+      const travel = range * (hit?.t ?? 1);
       i.attack = travel > 300 && range - travel < definition.radius * 0.75;
       i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
       // Retain the normal reaction delay even when deploying against a wall.

@@ -26,7 +26,8 @@ function advance(world, seconds, observe = () => {}) {
   }
 }
 
-for (const [weapon, separation] of [["barrage", 1250], ["saw", 1400], ["railgun", 2100], ["blaster", 1700]]) {
+for (const [weapon, separation] of [["barrage", 1250], ["saw", 1400], ["railgun", 2100], ["blaster", 1700],
+  ["flame",1200],["repulsor",1200],["jelly",1200],["midas",1200],["tangle",1200]]) {
   test(`${weapon} AI fires across a destroyed gap without waiting for a safe recoil stance`, () => {
     const world = islands(weapon, separation);
     const ammo = world.players[1].ammo;
@@ -76,7 +77,7 @@ test("black hole AI does not bypass deployment clearance when trying to clear ne
   assert.ok(!world.events.some(e => e.type === "shoot"), "close furniture must not override the orb's clearance check");
 });
 
-for (const weapon of ["flame", "repulsor", "bat"]) {
+for (const weapon of ["bat"]) {
   test(`${weapon} AI keeps its actual short reach instead of wasting attacks across a gap`, () => {
     const world = islands(weapon, 1200);
     advance(world, 2);

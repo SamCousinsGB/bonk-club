@@ -3,6 +3,8 @@ import { cryoBurst } from "./expanded-weapons.js";
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
+import { updateTransformedDeath } from "./transmutation.js";
+import { advanceFlight, projectileInArena, canSpawnProjectiles } from "./projectile-flight.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
@@ -234,6 +236,7 @@ export class World {
       rush: 0,
       burn: 0,
       bubble: 0,
+      morph: null, morphTime: 0, morphAge: 0,
       chill: 0,
       freeze:0, freezeCooldown:0, xray:0, xrayType:null, knockdown:0,
       weapon: null,
@@ -465,7 +468,7 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      const pendingBlast = this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0) ||
+      const pendingBlast = this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
@@ -518,6 +521,11 @@ export class World {
     p.rush = Math.max(0, p.rush - dt);
     p.chill = Math.max(0, p.chill - dt);
     p.bubble = Math.max(0, (p.bubble || 0) - dt);
+    if (p.morphTime > 0) {
+      p.morphTime = Math.max(0, p.morphTime - dt);
+      p.morphAge += dt;
+      if (!p.morphTime) { p.morph = null; p.morphAge = 0; delete p.morphPose; }
+    }
     p.freeze=Math.max(0,(p.freeze||0)-dt);
     p.freezeCooldown=Math.max(0,(p.freezeCooldown||0)-dt);
     p.xray=Math.max(0,(p.xray||0)-dt);
@@ -697,6 +705,8 @@ export class World {
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
     const w = alternate ? { ...base, ...base.alt } : base;
+    if (w.kind !== "melee" && w.kind !== "phaser" &&
+        !canSpawnProjectiles(this, w.count || (w.kind === "pellet" ? 5 : 1))) return;
     if (w.proneOnly && (!p.prone || !p.ground)) return;
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
       ax = Math.cos(angle),
@@ -738,7 +748,8 @@ export class World {
           force: w.force,
           life:
             w.life ||
-            (w.kind === "grenade" ? 1.5 : w.kind === "rail" ? 0.8 : 4.5),
+            (w.kind === "grenade" ? 1.5 : 1),
+          age: 0,
           radius: w.radius || 145,
           bounces: w.bounces || (w.kind === "plasma" ? 2 : 0),
           hitIds: [],
@@ -1155,13 +1166,18 @@ export class World {
   updateProjectiles(dt) {
     for (const b of [...this.projectiles]) {
       if (b.life <= 0) continue;
-      b.life -= dt;
+      advanceFlight(b, dt);
       steerSpecial(this, b, dt);
       if (b.life <= 0 && b.kind === "boomerang") continue;
       const x = b.x,
         y = b.y;
       b.px = x;
       b.py = y;
+      if (!projectileInArena(b) && !b.homing && !["grenade","duck","boomerang"].includes(b.kind)) {
+        b.x += b.vx * dt; b.y += b.vy * dt;
+        b.travelled = (b.travelled || 0) + Math.hypot(b.vx,b.vy) * dt;
+        continue;
+      }
       if (b.kind === "grenade") b.vy += 1100 * dt;
       if (b.kind === "duck") b.vy += 380 * dt;
       const endX = x + b.vx * dt,
@@ -1277,8 +1293,6 @@ export class World {
         b.y = endY;
       }
       b.travelled = (b.travelled || 0) + Math.hypot(b.x-x,b.y-y);
-      if (b.kind === "grenade" && (b.x < -80 || b.x > W + 80 || b.y > H + 80))
-        b.life = 0;
       if (
         (impact || b.life <= 0) &&
         ["rocket", "grenade", "plasma", "duck"].includes(b.kind)
@@ -1287,16 +1301,7 @@ export class World {
       if (impact || b.life <= 0) expireSpecial(this, b);
       if (impact) b.life = 0;
     }
-    this.projectiles = this.projectiles
-      .filter(
-        (b) =>
-          b.life > 0 &&
-          b.x > -200 &&
-          b.x < W + 200 &&
-          b.y > (b.kind === "grenade" ? -3600 : -300) &&
-          b.y < H + 200,
-      )
-      .slice(-160);
+    this.projectiles = this.projectiles.filter(b => b.life > 0);
   }
   updateRagdolls(dt) {
     for (const rag of this.ragdolls) {
@@ -1315,6 +1320,7 @@ export class World {
         delete rag.capturedBy;
       }
       if(updateDeath(rag,dt))continue;
+      if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
       if (rag.ash) {
         rag.ashAge += dt;
@@ -1373,7 +1379,7 @@ export class World {
       debris: this.debris,
       chunks: this.chunks,
       hazards: this.hazards,
-      projectiles: this.projectiles,
+      projectiles: this.projectiles.filter(projectileInArena),
       fields: this.fields,
       craters: this.craters,
       wreckage:this.wreckage, rifts:this.rifts, blood:this.blood,

@@ -1,6 +1,7 @@
 import { segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { impulseRig } from "./puppet.js";
+import { canSpawnProjectiles } from "./projectile-flight.js";
 
 export const EXPANDED_WEAPONS = {
   hammer: { name: "SLEDGEHAMMER", kind: "melee", damage: 68, force: 1500,
@@ -62,6 +63,7 @@ export function cryoBurst(world, b, freeze) {
 export function fireworkBurst(world, b) {
   // The child kind cannot create another burst. Both projectiles and art are bounded.
   for (let n = 0; n < 10; n++) {
+    if (!canSpawnProjectiles(world)) break;
     const angle = n * Math.PI * 2 / 10;
     world.projectiles.push({ x: b.x, y: b.y, vx: Math.cos(angle) * 620,
       vy: Math.sin(angle) * 620, owner: b.owner, weapon: "firework", kind: "spark",

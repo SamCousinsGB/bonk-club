@@ -1,5 +1,6 @@
 import { NUCLEAR } from "./impact.js";
 import { EXPANDED_WEAPONS } from "./expanded-weapons.js";
+import { TRANSMUTATION_WEAPONS } from "./transmutation.js";
 const original = {
   bat: {
     name: "BAT",
@@ -400,7 +401,7 @@ const rarity = {
   barrage: "exotic",
 };
 export const WEAPONS = Object.fromEntries(
-  Object.entries({ ...original, ...additions, ...EXPANDED_WEAPONS }).map(([key, w]) => [
+  Object.entries({ ...original, ...additions, ...EXPANDED_WEAPONS, ...TRANSMUTATION_WEAPONS }).map(([key, w]) => [
     key,
     { rarity: rarity[key] || w.rarity, dismember: ["minigun","machinegun","shotgun"].includes(key), ...w, ...(w.kind === "melee" ? { boost: 260 } : {}) },
   ]),
