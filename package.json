@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.0",
-  "releaseNotes": "Desktop builds, controller menus and saved settings",
+  "version": "0.9.1",
+  "releaseNotes": "Props break into jagged pieces of their original artwork",
   "private": true,
   "type": "module",
   "scripts": {

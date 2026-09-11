@@ -122,6 +122,7 @@ function addWreck(world, f, s, kind = "platform") {
     sourceKind: s.kind || null,
     sourceChunk: !!s.chunk,
     shape: s.shape,
+    sourceArt: s.sourceArt,
     elevator: !!s.elevator,
     trapType: s.type || null,
     surface: s.surface || null,
