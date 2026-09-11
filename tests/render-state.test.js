@@ -46,6 +46,8 @@ test("guest history handles delivery jitter, duplicate frames, stalls and round 
   const latest=frames.frames.at(-1);
   frames.push(latest,1400);
   assert.equal(frames.sample(2000).players[0].x,70);
+  assert.equal(frames.sample(2000), latest);
+  assert.equal(frames.sample(2016), latest);
   w.round++;w.time=1;w.players[0].x=900;
   frames.push(encoder.make(w.snapshot()),2100);
   assert.equal(frames.sample(2100).players[0].x,900);

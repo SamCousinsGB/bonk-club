@@ -2,6 +2,44 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Physics and guest performance pass — 11 September 2026
+
+- Prepared **v0.16.2**, protocol **37** unchanged, from main `030bbba` in
+  `../bonk-club-qa/performance-pass`, branch `codex/performance-pass`. Preserve
+  the shared canonical checkout's unrelated dirty work; integrate from main.
+- CPU profiling identified repeated whole-terrain scans in `updateRig` and
+  allocation in `World.solids`/`propSolids`. Each of the seven pose solver passes
+  now selects exact horizontal candidates after its joint corrections. Contact
+  order, all solver passes, movement and visual effects remain intact.
+- Collision-list construction no longer creates intermediate filtered/flattened
+  arrays. Prop collision caching compares fields directly instead of creating a
+  string on every lookup, including dimensions and replacement shape in cache
+  invalidation. Guest history returns its final snapshot directly while waiting
+  for another update rather than cloning/interpolating its entities each frame.
+- Two paired deterministic runs each simulated 1,800 ticks in three scenes.
+  Simulation CPU totals fell about **45 percent** in the ordinary arena,
+  **20–24 percent** with four bots, and **61 percent** in the black-hole scene.
+  Black-hole guest prediction p95 fell from **2.66–2.68 ms to 0.88–0.95 ms** with
+  six pending commands. Hashes of all 450 snapshots per scene matched the
+  original implementation exactly. A further 8,000 solver updates across 200
+  seeded extreme-pose/impulse fixtures matched the original solver exactly.
+  These are one-PC CPU benchmarks, not FPS or ping.
+- Real Edge host/guest tests selected relay/relay connections in ordinary,
+  one-black-hole and two-black-hole scenes (up to 635 collision strips). Frame,
+  drawing and delivery timings were recorded separately; noisy live delivery
+  and drawing measurements do not establish a consistent FPS improvement.
+  Heavy-scene artwork was visually inspected. The unmodified production bundle
+  passed solo, guest controls, hot join, leaving and a small-menu check through
+  three relay-connected browsers, with no page errors.
+- Focused physics, prop, carry, interpolation and prediction tests passed (60).
+  Added coverage checks cache refresh on movement, resizing, shape replacement,
+  moving support and destruction, plus allocation-free end-of-history sampling.
+  All **743 local game/shared tests passed** in 256 seconds, and the production
+  build passed. Published release evidence follows once deployment completes.
+- External scripts, baseline sources, CPU profile, JSON metrics, logs and captures
+  are `../bonk-club-qa/perf-pass-*`. No debug hooks, dependencies, wire changes,
+  desktop-shell changes or Pi changes were introduced.
+
 ## Guest control response — 11 September 2026
 
 - Local control prediction is implemented in `src/guest-prediction.js`, sharing
