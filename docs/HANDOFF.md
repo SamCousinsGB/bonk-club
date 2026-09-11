@@ -29,16 +29,28 @@ checkout is used by the arena task. Preserve that task's changes.
   timestamp, so hot join does not replay historic gunfire/explosions. Protocol
   is **27** after incorporating the concurrent weapon release; this audio pass
   adds no required wire state or Pi configuration change.
-- Source QA: all 43 profiles rendered in real OfflineAudioContext, fade fully and
+- Source QA: all 46 profiles rendered in real OfflineAudioContext, fade fully and
   release voices. A 48-voice stress mix stayed below 0.9 peak. Real Edge host,
   guest and hot join used selected TURN relay candidates. Mouse firing delivered
-  nine weapon families; the normal siren ended at host detonation and within 70 ms
-  on guests. Hot join sought 1.03 seconds into the countdown. Mute, resume and early
+  twelve weapon families; the normal siren ended at host detonation and within 70 ms
+  on guests. Hot join sought 0.87–1.03 seconds into the countdown. Mute, resume and early
   removal passed. Actual gameplay screenshots were inspected; no browser errors.
   This is a single QA machine using real TURN, not a cross-ISP or physical mobile
   test. Samples/reports/scripts are outside Git at `bonk-club-qa/audio-*`.
 - Gameplay version **0.5.0**, following the concurrent v0.4.0 weapon release.
-  Final combined tests and publication record follow.
+  Published revision: `e8d55b66dc1af7dab5927579ace4c57ff755dce9`.
+  Pages run `34613386463` passed **536 gameplay/network tests**, **3 server tests**,
+  production build and deployment:
+  https://github.com/SamCousinsGB/bonk-club/actions/runs/34613386463.
+- All **15 public files** matched the exact committed production build byte for
+  byte. JS: `index-C6_cHeVO.js`; CSS: `index-DB2pWx_1.css`. Exact LF archive/build:
+  `bonk-club-qa/audio-release-e8d55b6`; checker: `verify-audio-live.cjs`.
+  The unmodified production bundle and public game both passed three-browser
+  lobby, start, hot join, departure, mute, small viewport and disconnect checks
+  through selected TURN relay candidates, without browser errors. Audio-specific
+  source checks are in `audio-browser.cjs`; rendering/mix checks and WAV previews
+  are in `audio-render.cjs` and `audio-*.wav`. Complete warmed PCM cache: about
+  11 MiB, with one normal playback source per sound. No debug hooks ship.
 ## Jelly, Midas, Tangle and persistent shots — 11 September 2026
 
 Worktree: `bonk-club-quirky`, branch `codex/quirky-weapons`, started from `755ede5`
