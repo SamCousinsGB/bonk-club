@@ -2,6 +2,35 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Main-menu effects montage — 11 September 2026
+
+The menu now runs six Canvas vignettes: Tesla electrocution, acid melting,
+freeze/shatter, plasma skeleton-to-ash, incineration and railgun dismemberment.
+Each lasts roughly seven to eight seconds, with a shuffled rotation, no adjacent
+repeat, varied colours and scenery, and short fades through a dark background.
+This replaces the repeating three-fighter demo World. It does not run physics,
+bots, audio or networking, and it stops advancing while a match is being drawn.
+The acid sequence is menu artwork, not a new gameplay weapon or hazard.
+Reduced-motion preference uses a fixed, visible electrocution/skeleton frame.
+
+The montage and scheduling live in `src/menu-montage.js`. `Renderer.resize`
+records the display dimensions so the menu fills the screen without distorting
+the figures; gameplay retains its existing arena aspect ratio. Phone portrait
+puts the montage above the controls; short landscape keeps compact controls on
+the left and the scene on the right. The requested release note is now
+**v0.3.0 — New main-menu effects montage**. Wire protocol stays **26**.
+
+Worktree: `bonk-club-menu`, branch `codex/menu-montage`, based on `755ede5`.
+The canonical checkout's unfinished network/nuclear/terrain edits were preserved.
+All **509 tests passed**, including montage rotation, bounded clock and reduced
+motion; production build passed. Real Edge source and production checks cover
+all six scenes, intermediate transformations, responsive bounds, menu actions
+and solo start/return. Staged host/guest/hot-join checks passed through selected
+TURN relay candidates without browser errors. No Pi configuration changed.
+QA helpers and screenshots are in `bonk-club-qa`: `montage-visual.cjs`,
+`montage-lifecycle.cjs`, `montage-smoke.cjs` and `presence-browser.cjs`.
+Publishing verification is recorded below after deployment.
+
 ## Main-menu release note — 11 September 2026
 
 The menu displays **v0.2.0 — 6 new weapons added**. The version and short release
