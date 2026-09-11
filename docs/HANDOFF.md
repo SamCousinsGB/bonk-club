@@ -47,8 +47,8 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 Implemented in the canonical checkout and integrated with current main in
 `../bonk-club-qa/scanner-release` / `codex/scanner-pass`, preserving the
-canonical checkout's unrelated edits. Display version **0.15.0**, protocol **35**
-unchanged; refresh players' tabs for consistent artwork.
+canonical checkout's unrelated edits. Display version **0.16.0**, protocol **36**
+from the integrated fighter-chat release; refresh all tabs and create a new room.
 
 - X-ray and magnetic scanners draw the left/rear post behind fighters and the
   right/front post over them. The default complete drawing remains available
@@ -67,8 +67,24 @@ unchanged; refresh players' tabs for consistent artwork.
   destroyed scanner clearing and reset, with selected relay/relay candidates and
   no page errors. Actual gameplay and enlarged animation frames were inspected.
   This is one-machine browser QA. Helpers and captures: `../bonk-club-qa/scanner-*`.
-- Full suite, exact production build and public release verification follow below
-  once completed. QA hooks stay in the external helpers, never the game bundle.
+- Local full-suite run passed 715 checks but reported a generic failure for the
+  long bot-test process. Its isolated rerun passed all six checks, including all
+  arenas, in 312 seconds. After current-main chat integration, all 49 focused
+  scanner/chat/network/render/hazard checks passed. The exact LF archive build of
+  `6f677cc66cf1ff4c06e70864f7a00d66e5b0e04f` passed real browser solo/online,
+  guest controls, hot join, leaving and a narrow menu through relay/relay candidates.
+  QA hooks stay outside the game bundle.
+- Published gameplay revision: **`d592f7de1f883d68fed1af4d661678be7a210286`**.
+  [Pages run 34644311143](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644311143)
+  passed **731 gameplay/network/shared tests**, **3 server tests**, production
+  build and deployment. All **15 public files** match its tested LF archive
+  build byte for byte (JS `index-CjkugI-9.js`, CSS `index-DSLPu4j9.css`).
+- Public v0.16.0 passed solo, host/guest start, real guest controls, hot join,
+  leaving and the narrow menu through selected relay/relay candidates with no
+  browser errors. Actual public gameplay was visually inspected. Task preview
+  servers 5263–5265 are stopped. Later guest-prediction commits on main preserve
+  this scanner release; their deployment is a separate verification.
+
 
 ## Fighter chat — 11 September 2026
 
