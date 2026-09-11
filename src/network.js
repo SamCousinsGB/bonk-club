@@ -34,7 +34,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 33;
+export const PROTOCOL = 34;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -752,6 +752,7 @@ const matter = c => c && c.kind === "matter" && xy(c) && integer(c.id,1,1000000)
   Array.isArray(c.totals) && c.totals.length===MATTER_KINDS.length && c.totals.every(n=>integer(n,0,1000000)) &&
   list(c.items,MATTER_LIMIT,q=>xy(q) && integer(q.id,1,1000000) && MATTER_KINDS.includes(q.kind) && [q.angle,q.size].every(finite) && q.size>0 && q.size<=16 &&
     typeof q.color==="string" && /^#[0-9a-f]{6}$/i.test(q.color) &&
+    (q.kind!=="fighter" || (validAppearance(q) && [1,-1].includes(q.facing))) &&
     (q.type===null || weaponTypes.includes(q.type)) && (q.sourceKind===null || COVER_KINDS.includes(q.sourceKind))) &&
   new Set(c.items.map(q=>q.id)).size===c.items.length;
 const propShape = shape => {
