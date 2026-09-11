@@ -85,9 +85,12 @@ const overlaps = (a, b, margin = 0) => a.x + a.w + margin > b.x && a.x - margin 
 export function propSolids(b) {
   if (b.hp <= 0) return [];
   prepareProp(b);
-  const key = [b.x, b.y, b.angle, b.dx, b.dy, b.hp].join(":");
   const old = cache.get(b);
-  if (old?.key === key) return old.tiles;
+  if (old && old.x === b.x && old.y === b.y && old.angle === b.angle &&
+      old.dx === b.dx && old.dy === b.dy && old.hp === b.hp &&
+      old.w === b.w && old.h === b.h && old.shape === b.shape &&
+      old.id === b.id && old.kind === b.kind && old.material === b.material &&
+      old.chunk === b.chunk && old.maxHp === b.maxHp) return old.tiles;
   let tiles;
   if (!b.shape && Math.abs(b.angle) < .001) tiles = [b];
   else {
@@ -113,7 +116,9 @@ export function propSolids(b) {
   }
   for (const tile of tiles) Object.defineProperty(tile, "onContact", { configurable: true, enumerable: false,
     value: (x,y,jx,jy) => impulseProp(b,jx,jy,x,y) });
-  cache.set(b, { key, tiles });
+  cache.set(b, { x:b.x, y:b.y, angle:b.angle, dx:b.dx, dy:b.dy, hp:b.hp,
+    w:b.w, h:b.h, shape:b.shape, id:b.id, kind:b.kind, material:b.material,
+    chunk:b.chunk, maxHp:b.maxHp, tiles });
   return tiles;
 }
 export function propFor(world, s) {

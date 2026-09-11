@@ -128,6 +128,9 @@ export class GuestFrames {
     const [a, b] = this.frames;
     if (!b || time <= a.time) return a;
     const t = Math.max(0, Math.min(1, (time - a.time) / (b.time - a.time)));
+    // A quiet or stalled stream already has its final frame. Do not rebuild
+    // every entity at the render rate while waiting for another snapshot.
+    if (t === 1) return b;
     return interpolateStates(a, b, t);
   }
 }

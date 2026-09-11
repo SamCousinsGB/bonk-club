@@ -11,6 +11,30 @@ import { firePhaser } from "../src/phaser.js";
 
 const floor = (id,x,y,w,h=24) => ({id,x,y,w,h,baseX:x,baseY:y,dx:0,dy:0});
 const prop = (kind="crate", extra={}) => prepareProp({id:"prop0",kind,x:500,y:950,w:90,h:50,hp:110,maxHp:110,...extra});
+
+test("collision tiles follow prop movement, resizing, replacement shape and destruction", () => {
+  const b = prop("crate", { angle: .4 });
+  const tiles = propSolids(b);
+  assert.equal(propSolids(b), tiles);
+  const before = tiles.map(t => ({x:t.x,y:t.y,w:t.w,h:t.h}));
+  b.x += 20; b.y -= 30;
+  const moved = propSolids(b);
+  moved.forEach((t,i) => {
+    assert.ok(Math.abs(t.x-before[i].x-20)<1e-8);
+    assert.ok(Math.abs(t.y-before[i].y+30)<1e-8);
+  });
+  b.w *= 1.5; b.h *= .8;
+  const resized = propSolids(b), bounds = bodyBounds(b);
+  assert.notEqual(resized, moved);
+  assert.ok(Math.abs(resized.at(-1).x+resized.at(-1).w-bounds.x-bounds.w)<1e-8);
+  b.shape = [[-.5,-.5],[.5,0],[-.5,.5]];
+  const shaped = propSolids(b);
+  assert.notDeepEqual(shaped.map(t=>t.h), resized.map(t=>t.h));
+  b.dx = 12; b.dy = -8;
+  assert.ok(propSolids(b).every(t=>t.dx===12&&t.dy===-8));
+  b.hp = 0; assert.deepEqual(propSolids(b), []);
+  b.hp = 45; assert.ok(propSolids(b).every(t=>t.hp===45));
+});
 function lab(kind="crate", extra={}) {
   const w = new World({players:[0,1],shuffle:false,random:()=>.43});
   w.phase="fight"; w.cover=[prop(kind,extra)]; w.chunks=[]; w.hazards=[]; w.drops=[];

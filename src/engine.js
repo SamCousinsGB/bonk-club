@@ -504,12 +504,13 @@ export class World {
     cleanCarriedObjects(this);
   }
   solids(carrier = null) {
-    return [
-      ...this.platforms.filter((p) => p.hp !== 0),
-      ...this.cover.filter(b => b.id !== carrier?.carryId).flatMap(propSolids),
-      ...this.chunks.filter(b => b.id !== carrier?.carryId).flatMap(propSolids),
-      ...this.spikes().map(spikeBase),
-    ];
+    const solids = [], carryId = carrier?.carryId;
+    for (const p of this.platforms) if (p.hp !== 0) solids.push(p);
+    for (const bodies of [this.cover, this.chunks])
+      for (const b of bodies) if (b.id !== carryId)
+        for (const tile of propSolids(b)) solids.push(tile);
+    for (const s of this.spikes()) solids.push(spikeBase(s));
+    return solids;
   }
   movePlatforms() {
     for (const p of this.platforms) {

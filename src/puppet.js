@@ -198,6 +198,7 @@ export function updateRig(p, dt, platforms, time) {
     q.x += (targets[i][0] - q.x) * motor;
     q.y += (targets[i][1] - q.y) * motor;
   }
+  const nearby = [];
   for (let n = 0; n < 7; n++) {
     for (const [ai, bi, len] of JOINTS) {
       const a = rig[ai],
@@ -213,10 +214,16 @@ export function updateRig(p, dt, platforms, time) {
     }
     rig[2].x += (hip[0] - rig[2].x) * 0.65;
     rig[2].y += (hip[1] - rig[2].y) * 0.65;
+    // Contacts only change y. Select the exact horizontal candidates again
+    // after each joint pass, retaining platform order and every solver pass.
+    let left = Infinity, right = -Infinity;
+    for (const q of rig) { left = Math.min(left, q.x); right = Math.max(right, q.x); }
+    nearby.length = 0;
+    for (const s of platforms) if (s.x <= right && s.x + s.w >= left) nearby.push(s);
     for (let i = 0; i < rig.length; i++) {
       const q = rig[i],
         radius = i === 0 ? 10 : 3;
-      for (const s of platforms) {
+      for (const s of nearby) {
         if (q.x < s.x || q.x > s.x + s.w) continue;
         if (
           q.py + radius <= s.y + 12 &&
