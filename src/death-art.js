@@ -1,4 +1,6 @@
 import { JOINTS } from "./puppet.js";
+import { TRANSMUTATIONS } from "./transmutation.js";
+import { drawTransformedBody } from "./transmutation-art.js";
 import { deathJoints } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawAppearance } from "./identity.js";
@@ -84,6 +86,7 @@ function ice(r, pts, alpha = 1) {
 }
 export function drawStatus(r, p, time) {
   if (!p.alive || !p.rig) return;
+  if (p.morphTime > 0) drawTransformedBody(r,p.rig,p.morph,p.morphAge,time);
   if (p.xray > 0) {
     const color = p.xrayType === "phaser" ? "#89ffce" : p.xrayType === "plasma" ? "#8bf5ff" : "#cfabff";
     energy(r, p.rig, color, r.reduced ? 0 : time);
@@ -97,7 +100,11 @@ export function drawDeath(r, rag, time) {
     pts = rag.points,
     age = rag.deathAge;
   c.save();
-  if (["plasma", "tesla", "phaser"].includes(rag.effect)) {
+  if (TRANSMUTATIONS.includes(rag.effect)) {
+    c.globalAlpha = Math.min(1,rag.life);
+    const pieces = age >= (rag.effect === "gold" ? 1.15 : rag.effect === "jelly" ? .65 : .9);
+    drawTransformedBody(r,pts,rag.effect,age,time,pieces);
+  } else if (["plasma", "tesla", "phaser"].includes(rag.effect)) {
     c.globalAlpha = Math.min(1, rag.life);
     energy(
       r,

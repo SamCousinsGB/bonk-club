@@ -1,7 +1,9 @@
 import { JOINTS, makeRig } from "./puppet.js";
 import { passiveBody } from "./body-physics.js";
+import { moveTransformed } from "./transmutation.js";
 
 export const THROW_MASS = {
+  jelly: 1.6, midas: 3.3, tangle: 1.4,
   hammer: 3, crossbow: 1.2, harpoon: 2.1, shrapnel: 2.8, firework: 1.7, cryo: .9,
   blaster: 0.7,
   smg: 0.85,
@@ -64,7 +66,8 @@ export function moveKnocked(p, solids, dt) {
     q.px -= dx;
     q.py -= dy;
   }
-  passiveBody(p.rig, JOINTS, solids, dt);
+  if (p.morphTime > 0) moveTransformed(p.rig, p.morph, p.morphAge, solids, dt, p.morphPose);
+  else passiveBody(p.rig, JOINTS, solids, dt);
   p.x = p.rig[2].x;
   p.y = p.rig[2].y + 3;
   p.vx = p.ragVx = Math.max(-1800, Math.min(1800, (p.x - oldX) / dt));

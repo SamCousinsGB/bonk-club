@@ -1,4 +1,5 @@
 const simulationOnly = new Set([
+  "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
@@ -40,6 +41,8 @@ function blend(a, b, t) {
   }
   if (Number.isFinite(a.angle) && Number.isFinite(b.angle))
     out.angle = a.angle + Math.atan2(Math.sin(b.angle-a.angle), Math.cos(b.angle-a.angle)) * t;
+  if (a.morph === b.morph && a.morph && Number.isFinite(a.morphAge))
+    out.morphAge = lerp(a.morphAge,b.morphAge,t);
   // Smooth an ongoing swing, but never interpolate backwards across a new attack.
   if (a.weapon === b.weapon && a.meleeMove === b.meleeMove &&
       a.swingDuration === b.swingDuration && a.swing > 0 && b.swing <= a.swing)

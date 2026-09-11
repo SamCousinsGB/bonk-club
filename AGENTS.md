@@ -90,6 +90,12 @@ Keep this constitution for durable rules and the handoff for current work.
 - Grenades must be controllable: roughly half an arena maximum unassisted throw,
   not the earlier extremely fast full-map launch. Current normal/nuclear baseline
   is 450 horizontal speed, upward toss and a 2.8-second fuse.
+- Fired projectiles have no travel-distance or flight-time expiry. Keep shots
+  moving until collision, capture, a boomerang catch or round reset. Grenades
+  retain their deliberate fuses. Fireworks, ducks and black-hole seeds activate
+  on contact; preserve their bounce behavior. Distant shots may be omitted from
+  rendering/transport while their host-side flight continues. Bound concurrent
+  nearby shots at admission without deleting shots that are already flying.
 
 ## Maps, AI and weapon effects
 

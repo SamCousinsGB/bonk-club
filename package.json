@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "releaseNotes": "3 new levels, themed hazards and fairer weapon starts",
   "private": true,
   "type": "module",

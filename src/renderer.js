@@ -1,3 +1,4 @@
+import { drawMenuMontage } from "./menu-montage.js";
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
 import { DeathCues, drawDeathCue, DEATH_CUE_DURATION } from "./death-cue.js";
@@ -25,7 +26,7 @@ import { drawChunks } from "./prop-art.js";
 import { meleePose, SWING_START } from "./melee-pose.js";
 import { drawPhaser } from "./phaser-art.js";
 import { drawBurning, drawBubble } from "./weird-art.js";
-import { World, STEP, W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
+import { W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
   constructor(canvas) {
@@ -48,6 +49,7 @@ export class Renderer {
     ).matches;
   }
   resize(width, height, follow = false) {
+    this.menuSize = { width: Math.max(1, width), height: Math.max(1, height) };
     const fit = follow ? Math.max(width / W, height / H) : Math.min(width / W, height / H);
     const pixels = Math.round(Math.max(960, Math.min(W, W * fit * Math.min(1.5, devicePixelRatio || 1))));
     if (this.canvas.width === pixels) return;
@@ -102,6 +104,7 @@ export class Renderer {
       this.lastEvent = e.id;
       if (e.type === "ko" && Number.isFinite(time) && Number.isFinite(e.at) &&
           time - e.at >= DEATH_CUE_DURATION) continue;
+      if (e.type !== "ko" && Number.isFinite(time) && Number.isFinite(e.at) && time - e.at > .4) continue;
       sound?.play(
         e.type === "shoot" &&
           ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
@@ -132,7 +135,8 @@ export class Renderer {
           "break",
         ].includes(e.type)
       ) {
-        const count = e.ash ? 0 : e.nuclear
+        const firearm = e.type === "shoot" && ["bullet", "pellet", "ricochet"].includes(e.kind);
+        const count = e.ash ? 0 : firearm ? 5 : e.type === "shoot" ? 6 : e.nuclear
           ? 24
           : e.type === "explosion"
             ? 38
@@ -140,6 +144,7 @@ export class Renderer {
               ? 28
               : 12;
         for (let i = 0; i < count && this.particles.length < 240; i++) {
+          const smoke = firearm && i > 1;
           const a = Math.random() * TAU,
             v =
               70 +
@@ -148,13 +153,15 @@ export class Renderer {
           this.particles.push({
             x: e.x,
             y: e.y,
-            vx: Math.cos(a) * v,
-            vy: Math.sin(a) * v,
-            color: e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
+            vx: Math.cos(a) * v * (smoke ? .12 : 1),
+            vy: smoke ? -35 - Math.random() * 35 : Math.sin(a) * v,
+            smoke,
+            color: smoke ? "#9caaa9" : firearm ? "#ffcf87" : e.kind === "tesla" || e.kind === "plasma" ? "#b8b0ff" : e.kind === "frost" ? "#b9f3ff" :
+              e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
               e.type === "explosion" ? "#ffb867" : e.color || "#e6f8c7",
-            life: 0.2 + Math.random() * 0.6,
+            life: firearm ? (smoke ? .32 + Math.random() * .2 : .045 + Math.random() * .06) : 0.2 + Math.random() * 0.6,
             max: 0.8,
-            size: 2 + Math.random() * 5,
+            size: smoke ? 6 + Math.random() * 5 : 2 + Math.random() * 5,
           });
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
@@ -819,118 +826,13 @@ export class Renderer {
     }
     c.restore();
   }
-  demo(time, dt = 1 / 60) {
-    const c = this.ctx;
-    if (!this.demoWorld || this.demoWorld.phase === "countdown") {
-      const w = (this.demoWorld = new World({
-        players: [0, 1, 2],
-        arena: 0,
-        shuffle: false,
-      }));
-      w.phase = "fight";
-      w.weaponTimer = 999;
-      w.hazardTimer = 999;
-      w.drops = [];
-      w.platforms = [
-        { x: 635, y: 570, w: 390, h: 35 },
-        { x: 1055, y: 430, w: 220, h: 30 },
-        { x: 815, y: 305, w: 155, h: 25 },
-      ].map((s, i) => ({
-        ...s,
-        id: "floor" + i,
-        baseX: s.x,
-        baseY: s.y,
-        dx: 0,
-        dy: 0,
-      }));
-      w.players.forEach((p, i) =>
-        Object.assign(p, { x: [720, 940, 1150][i], y: [400, 400, 325][i] }),
-      );
-      w.players[1].weapon = "bat";
-      w.players[1].ammo = 99;
-      w.cover = [
-        {
-          id: "cover0",
-          x: 820,
-          y: 520,
-          w: 90,
-          h: 50,
-          hp: 75,
-          maxHp: 75,
-          kind: "table",
-        },
-      ];
-      w.players[2].weapon = "plasma";
-      w.players[2].ammo = 99;
-    }
-    const w = this.demoWorld;
-    for (let n = 0; n < Math.max(1, Math.round(dt / STEP)); n++) {
-      const [a, b] = w.players,
-        t = w.time;
-      w.step(STEP, {
-        0: {
-          right: a.x < b.x - 49,
-          left: a.x > b.x + 49,
-          attack: true,
-          jump: Math.sin(t * 1.4) > 0.95,
-          block: Math.sin(t * 3.5) > 0.65,
-          duck: Math.sin(t * 1.7) > 0.92,
-        },
-        1: {
-          right: b.x < a.x - 49,
-          left: b.x > a.x + 49,
-          attack: Math.sin(t * 4) > 0.25,
-          jump: Math.sin(t * 1.8) > 0.96,
-        },
-        2: {
-          attack: Math.sin(t * 2) > 0.8,
-          aim: Math.atan2(a.y - 325, a.x - 1150),
-        },
-      });
-    }
-    this.background("#283b35", time, true);
-    this.city(
-      { city: true, towers: [{ x: 635, y: 130, w: 640, h: 650 }] },
-      w.platforms,
-    );
-    for (const p of w.platforms) this.platform(p, time);
-    for (const p of w.players) this.fighter(p, time, 1.2, false);
-    for (const c of w.cover) this.table(c);
-    this.fragments(w.debris);
-    drawChunks(this.ctx, w.chunks);
-    for (const r of w.ragdolls) {
-      for (const [a, b] of JOINTS)
-        this.line(
-          [
-            [r.points[a].x, r.points[a].y],
-            [r.points[b].x, r.points[b].y],
-          ],
-          r.color,
-          5.5,
-        );
-      this.circle(r.points[0].x, r.points[0].y, 10.5, r.color);
-    }
-    for (const b of w.projectiles)
-      this.line(
-        [
-          [b.x - b.vx * 0.014, b.y - b.vy * 0.014],
-          [b.x, b.y],
-        ],
-        "#f9ed96",
-        3,
-      );
-    this.weapon("rocket", 890, 289, 1, Math.sin(time) * 0.04);
-  }
   draw(state, dt, time) {
     const deathCues = this.deathCues.update(state);
     const c = this.ctx;
     c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
     if (!state) {
-      c.save();
-      c.scale(2, 2);
-      this.demo(time, dt);
-      c.restore();
+      drawMenuMontage(this, dt);
       return;
     }
     const arena = ARENAS[state.arenaIndex];
@@ -1130,10 +1032,11 @@ export class Renderer {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 550 * dt;
-      c.globalAlpha = Math.max(0, p.life / p.max);
+      p.vy += (p.smoke ? -12 : 550) * dt;
+      c.globalAlpha = Math.max(0, p.life / p.max) * (p.smoke ? .3 : 1);
       c.fillStyle = p.color;
-      c.fillRect(p.x, p.y, p.size, p.size);
+      if (p.smoke) { p.size += 18 * dt; this.circle(p.x, p.y, p.size, p.color); }
+      else c.fillRect(p.x, p.y, p.size, p.size);
     }
     c.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.life > 0);

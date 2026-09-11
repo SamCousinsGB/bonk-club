@@ -281,6 +281,7 @@ function setPlaying(value) {
   syncTouchUi();
 }
 function home() {
+  sound.stopAlarm();
   clearRoomNotices();
   mobileScreen.release();
   searchId++;
@@ -913,6 +914,7 @@ function simulate(now) {
     else if (!room.host)
       room.sendInput(view || document.hidden ? emptyInput() : ownInput());
   }
+  if (document.hidden) sound.update(playing ? world || remote : null);
 }
 // Simulation and WebRTC sends have their own clock; rendering may stop in a hidden tab.
 const simulationClock = new Worker(
@@ -928,6 +930,7 @@ function frame(now) {
   last = now;
   hudClock += dt;
   const state = world ? world.snapshot() : interpolated(now);
+  sound.update(playing ? state : null);
   renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
     renderer.events(state.events, sound, state.time);
