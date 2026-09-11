@@ -26,14 +26,15 @@ release gates; `docs/STEAM-STORE.md` contains the factual store brief.
   SHA-256 package manifests. SteamPipe preparation requires real distinct IDs,
   both matching clean depots and valid file hashes. Default is preview; the tool
   never authenticates, uploads or makes a Steam branch live.
-- Initial verification: all 595 pre-existing gameplay/network checks passed,
-  plus six new shared preference/controller checks and six desktop/save/security/
-  SteamPipe checks. Windows desktop runtime smoke passed offline solo, save/relaunch,
-  renderer isolation, controller menus and on-screen keyboard. Controller input
-  is emulated in this harness; physical gamepads/Deck remain unverified.
+- Final release verification: all **601 gameplay/network/shared tests**, **3
+  server tests**, and **6 desktop/save/security/SteamPipe tests** passed. Windows
+  and Linux CI runtime smoke passed offline solo, save/relaunch, renderer isolation,
+  native fullscreen transitions, controller menus and on-screen keyboard. Controller
+  input is emulated in this harness; physical gamepads/Deck remain unverified.
 - A real desktop host and two real browser clients, including hot join during
   play, passed through selected relay/relay candidates using the public service.
-  Invite copying, start, guest input and leaving passed with no page errors. This
+  Invite copying, start and leaving passed; guest controls were exercised, with no
+  page errors. The check was repeated against the final public v0.9.0 release. This
   used one QA machine, not new separate-ISP evidence. Harnesses and ignored
   screenshots/results are in `desktop/tests` and `desktop/test-results`.
 - Steam identity/friend invites, account-specific Cloud, overlay, private Steam
@@ -42,7 +43,23 @@ release gates; `docs/STEAM-STORE.md` contains the factual store brief.
   Automatic approval review blocked launching the packaged Windows executable
   with the reason "blocked by policy". Its manual launch check is unverified;
   the development Electron runtime smoke is a separate successful check.
-  CI and final deployed verification follow below after release.
+
+Shipped source: **`0107ee63ed3fe4beb900df15d90780c7704dd0e4`**, merged in
+[PR #1](https://github.com/SamCousinsGB/bonk-club/pull/1).
+[Pages run 34620260695](https://github.com/SamCousinsGB/bonk-club/actions/runs/34620260695)
+and [desktop run 34620260998](https://github.com/SamCousinsGB/bonk-club/actions/runs/34620260998)
+both succeeded. The public HTML and all **14 built assets** match the tested
+release byte-for-byte. Browser solo, saved mute, menu return, desktop-only Quit
+visibility and small-screen menu layout passed without page errors. Linux rendered
+menu, solo gameplay and controller keyboard screenshots were visually inspected.
+
+Matching CI downloads are in ignored `release/BonkClub-win32-x64.zip` and
+`release/BonkClub-linux-x64.tar.gz`. Every downloaded package file matched its
+SHA-256 manifest (**74 Windows**, **73 Linux**); both manifests report the clean
+source revision above. Linux executable permissions survived the tar archive.
+Distribute the complete archive/folder. These packages are not yet Steam-installed
+or hardware-certified. Additional final QA scripts and screenshots are outside
+the repository in `../bonk-club-qa/steam-*`; no production test hooks were added.
 
 ## Connected elemental reactions — 11 September 2026
 

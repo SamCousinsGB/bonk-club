@@ -178,11 +178,11 @@ exist. No UI pretends they already work.
 
 | Gate | Required evidence before release | Present status |
 | --- | --- | --- |
-| Windows distribution | Clean install under standard user, Steam install/update/uninstall, signature/reputation decision, executable smoke | Package built; runtime smoke passes; packaged EXE launch was blocked by automatic approval review; Steam installation untested |
-| Linux distribution | Native package smoke, actual Linux desktop, Steam Linux Runtime compatibility, clean permissions and sandbox | CI target implemented; actual Steam runtime validation pending |
+| Windows distribution | Clean install under standard user, Steam install/update/uninstall, signature/reputation decision, executable smoke | CI archive built and all 74 file hashes verified; runtime smoke passes; packaged EXE launch was blocked by automatic approval review; Steam installation untested |
+| Linux distribution | Native package smoke, actual Linux desktop, Steam Linux Runtime compatibility, clean permissions and sandbox | Linux CI runtime smoke and packaging pass; all 73 file hashes and archive executable permissions verified; packaged Steam runtime and physical desktop validation pending |
 | Steam Deck | Real device at 1280×800/720, all menus/gameplay with controls alone, text entry, suspend/resume/reconnect, audio and readable HUD | No hardware test; do not claim Verified or full controller support yet |
 | Performance | Host and guests measured separately; frame-time percentiles, input feel, network bandwidth and 60-minute four-player soak across arenas and extreme effects | Existing regressions are useful, but not retail hardware certification |
-| Networking | Two accounts on separate ISPs; direct and selected relay routes, hot join, packet loss/jitter, host loss, full/version-mismatch rooms and service outage recovery | Live check harness exists; broader launch test matrix pending |
+| Networking | Two accounts on separate ISPs; direct and selected relay routes, hot join, packet loss/jitter, host loss, full/version-mismatch rooms and service outage recovery | Desktop host, browser guest and hot join pass through selected public TURN relay candidates on one QA machine; broader launch test matrix pending |
 | Operations | Owned durable endpoint, certificate renewal, service uptime/alerting, relay load/bandwidth budget, abuse limits, backups and rollback runbook | Current Pi service retained; household services unchanged |
 | Controls/accessibility | Physical Xbox/PlayStation/Deck controllers, disconnect/reconnect, remapping plan, reduced motion, colour/readability and keyboard-only flow | Standard mapping and menu support implemented; device QA pending |
 | Rights/content | Ownership/licences for every asset and library, content survey, age ratings, appropriate support/privacy wording | Bundled notices generated; publisher sign-off pending |
