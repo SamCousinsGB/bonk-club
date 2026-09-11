@@ -1,6 +1,7 @@
 import { W, H } from "./scale.js";
 import { segmentBox, playerBox } from "./collision.js";
-import { bodyBounds, bodyPoints, bodyInBlast, impulseProp, prepareProp, fractureProp } from "./props.js";
+import { bodyBounds, bodyInBlast, impulseProp, prepareProp, fractureProp } from "./props.js";
+import { conductive, conductorNodes, conductorBounds, conductorsTouch } from "./conductors.js";
 import { carveRectangle } from "./nuclear.js";
 import { hazardZone } from "./hazards.js";
 
@@ -12,28 +13,12 @@ const centre = b => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 const overlap = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w > b.x - pad &&
   a.y < b.y + b.h + pad && a.y + a.h > b.y - pad;
 const flammable = b => ["wood", "fabric"].includes(b.material) || b.panel === "wood";
-const conductive = b => b.material === "metal" || b.kind === "canister" || b.kind === "waterTank";
 const ice = p => p.ice || p.material === "ice";
 const walls = world => world.platforms.filter(p => p.hp !== 0 && !p.waterId);
 const clear = (world, a, b) => !walls(world).some(s => segmentBox(a.x, a.y, b.x, b.y, s));
 const bodies = world => [...world.cover, ...world.chunks].filter(b => b.hp > 0);
-const bounds = b => b.mass ? bodyBounds(b) : b;
 const near = (b, x, y, radius) => b.mass ? bodyInBlast(b, { x, y, radius }) :
   Math.hypot(x - clamp(x, b.x, b.x + b.w), y - clamp(y, b.y, b.y + b.h)) <= radius;
-function touching(a,b) {
-  // Bounds are only the broad phase. A rotated cabinet's empty corners must
-  // not complete a circuit through a visible air gap.
-  const polygon=b=>b.mass?bodyPoints(b):[
-    {x:b.x,y:b.y},{x:b.x+b.w,y:b.y},{x:b.x+b.w,y:b.y+b.h},{x:b.x,y:b.y+b.h}];
-  const ap=polygon(a),bp=polygon(b);
-  for(const ps of [ap,bp])for(let i=0;i<ps.length;i++) {
-    const p=ps[i],q=ps[(i+1)%ps.length],len=Math.hypot(q.x-p.x,q.y-p.y)||1;
-    const nx=-(q.y-p.y)/len,ny=(q.x-p.x)/len;
-    const aa=ap.map(p=>p.x*nx+p.y*ny),bb=bp.map(p=>p.x*nx+p.y*ny);
-    if(Math.max(...aa)<Math.min(...bb)-1.2||Math.max(...bb)<Math.min(...aa)-1.2)return false;
-  }
-  return true;
-}
 
 export function resetReactions(world) {
   world.water = []; world.gas = []; world.reactionSerial = 0; world.reactionClock = 0;
@@ -278,10 +263,9 @@ function moveWater(world, dt) {
   world.water=world.water.filter(q=>q.h>.05&&q.y<H+80);
 }
 
-function conduction(world, dt, bs) {
-  const nodes=[...world.water.filter(q=>!q.frozen&&q.h>=.5),...bs.filter(conductive),
-    ...world.platforms.filter(p=>p.hp!==0&&p.material==="metal"&&!p.wreckId)];
-  const boxes=nodes.map(bounds), live=new Set(), queue=[];
+function conduction(world, dt) {
+  const nodes=conductorNodes(world);
+  const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
     const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2));
@@ -291,10 +275,7 @@ function conduction(world, dt, bs) {
   // removes the circuit immediately, even if the source is still powered.
   for(let n=0;n<queue.length;n++) {
     const i=queue[n];nodes[i].charge=1;
-    for(let j=0;j<nodes.length;j++)if(!live.has(j)&&overlap(boxes[i],boxes[j],1.2)&&touching(nodes[i],nodes[j])){
-      // Adjacent pools cannot conduct through a wall that separates their water.
-      if(nodes[i].grounded!==undefined&&nodes[j].grounded!==undefined&&
-        !clear(world,centre(nodes[i]),centre(nodes[j])))continue;
+    for(let j=0;j<nodes.length;j++)if(!live.has(j)&&conductorsTouch(nodes[i],nodes[j],world.platforms,boxes[i],boxes[j])){
       live.add(j);queue.push(j);
     }
   }
@@ -399,7 +380,7 @@ export function updateReactions(world, dt) {
       world.explode({x:g.x,y:g.y,kind:"grenade",weapon:"gas",owner:g.owner,radius:g.r+28,damage:38,force:480});}}
   }
   world.gas=world.gas.filter(g=>g.life>0&&g.y>-100&&g.y<H+100&&g.x>-100&&g.x<W+100);
-  conduction(world,dt,bs.filter(b=>b.hp>0));
+  conduction(world,dt);
 }
 
 export function consumeReactionArea(world, blast) {
