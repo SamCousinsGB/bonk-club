@@ -83,6 +83,7 @@ export function firePhaser(world, player, ax, ay) {
     life: weapon.life, age: 0, owner: player.id };
   const id = s => `${s.sourceId || s.id || "spike"}:cph${++world.terrainSerial}`;
   world.water = (world.water || []).filter(q => !beamTouches(q, beam));
+  world.spills = (world.spills || []).filter(q => !beamTouches(q, beam));
   world.gas = (world.gas || []).filter(g => !beamTouches({x:g.x-g.r,y:g.y-g.r,w:g.r*2,h:g.r*2}, beam));
   const removedWreck = new Set(world.platforms.filter(s => s.wreckId && beamTouches(s, beam)).map(s => s.wreckId));
   world.wreckage = world.wreckage.filter(w => !removedWreck.has(w.id));

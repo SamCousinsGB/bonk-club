@@ -68,21 +68,21 @@ test("flames reach distant fighters and cover still stops ignition", () => {
     const w = fixture(), q = w.players[1]; q.x = 1150;
     if (wall) w.platforms.push({ id: "wall", x: 800, y: 350, w: 30, h: 210 });
     fire(w, "flame"); projectiles(w, .85);
-    assert.equal(q.burn, wall ? 0 : 1); assert.equal(w.projectiles.length, 0);
+    assert.equal(q.burn, wall ? 0 : 3); assert.equal(w.projectiles.length, 0);
   }
   const w = fixture(); w.players[1].x = 1320; fire(w, "flame"); projectiles(w, 1);
   assert.ok(w.players[1].hp < 100);
 });
 
-test("a single ignition keeps burning after fire stops, chars a full-health target and resets next round", () => {
+test("a single ignition expires after three seconds and resets next round", () => {
   const w = fixture(), q = w.players[1]; q.x = 1000;
-  fire(w, "flame"); projectiles(w, .8); assert.equal(q.burn, 1);
+  fire(w, "flame"); projectiles(w, .8); assert.equal(q.burn, 3);
   const hp = q.hp;
   for (let t = 0; t < 2.5; t += STEP) w.move(q, cleanInput({}), STEP);
-  assert.ok(q.alive); assert.ok(q.hp < hp - 40); assert.equal(q.burn, 1);
+  assert.ok(q.alive); assert.ok(q.hp < hp - 40); assert.ok(q.burn > 0 && q.burn < .51);
   assert.ok(validSnapshot(wire(w)));
   for (let t = 0; t < 4 && q.alive; t += STEP) w.move(q, cleanInput({}), STEP);
-  assert.equal(q.alive, false); assert.equal(w.ragdolls[0].effect, "burn"); assert.equal(w.ragdolls[0].ash, true);
+  assert.equal(q.alive, true); assert.equal(q.burn, 0); assert.ok(Math.abs(q.hp - (hp - 54)) < 1e-6);
   w.startRound(); assert.ok(w.players.every(p => p.burn === 0 && p.bubble === 0));
 });
 
@@ -178,7 +178,7 @@ test("new weapons appear in the featured rotation and preserve validated guest/h
     const w = fixture(); fire(w, type); const a = wire(w); projectiles(w, .05);
     const b = wire(w), hot = JSON.parse(JSON.stringify(b));
     assert.ok(validSnapshot(hot), type); assert.ok(validSnapshot(interpolateStates(a, b, .5)));
-    for (const mutate of [s => s.players[0].bubble = 99, s => s.players[0].burn = .5,
+    for (const mutate of [s => s.players[0].bubble = 99, s => s.players[0].burn = 99,
       s => s.projectiles[0].life = 999, s => s.projectiles[0].r = 300,
       s => s.projectiles[0].owner = 4, s => s.projectiles[0].returning = "true"]) {
       const bad = structuredClone(hot); mutate(bad); assert.equal(validSnapshot(bad), false);

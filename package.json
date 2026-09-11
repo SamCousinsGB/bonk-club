@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "releaseNotes": "Cargo conveyor, alternating presses and ice saw arenas with hazard-aware AI",
   "private": true,
   "type": "module",

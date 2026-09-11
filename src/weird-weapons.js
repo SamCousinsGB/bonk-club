@@ -2,6 +2,10 @@ import { segmentBox, playerBox } from "./collision.js";
 
 export const BUBBLE_TIME = 2.4;
 export const BURN_DAMAGE = 18;
+export const BURN_DURATION = 3;
+export function igniteFighter(p) {
+  if (p.alive && !(p.soaked > 0) && !(p.cold > 0) && !(p.freeze > 0)) p.burn = BURN_DURATION;
+}
 
 export function steerBoomerang(world, b, dt) {
   if (b.kind !== "boomerang" || (b.age || 0) < .45) return;
