@@ -21,6 +21,20 @@ function fixture() {
 }
 const advance = (p, input, seq, now = 1000 + seq * 1000 / 60) => p.advance(cleanInput(input), seq, now);
 
+test("high refresh movement samples advance smoothly between input ticks without changing replay or crossing walls", () => {
+  const { w, snapshot, prediction } = fixture();
+  Object.assign(w.players[1], { vx: 240 }); w.time += STEP;
+  const s = snapshot(); prediction.receive(s, 1, 1001);
+  advance(prediction, { right: true }, 1, 1017);
+  const before = structuredClone(prediction.player), pending = structuredClone(prediction.pending);
+  const positions = [1018, 1022, 1026, 1030].map(now => prediction.sample(s, now).players[1].x);
+  for (let i = 1; i < positions.length; i++) assert.ok(positions[i] > positions[i - 1]);
+  assert.deepEqual(prediction.player, before); assert.deepEqual(prediction.pending, pending);
+  w.platforms.push({ id: "wall", x: 420, y: 380, w: 30, h: 120 });
+  w.time += STEP; prediction.receive(snapshot(), 1, 1031);
+  for (const now of [1032, 1036, 1045]) assert.ok(prediction.sample(s, now).players[1].x <= 405);
+});
+
 test("prediction carries a fighter on a moving lift using the same support motion", () => {
   const { w, snapshot, prediction } = fixture();
   Object.assign(w.platforms[0], { baseX: 0, baseY: 500, travel: 100, speed: 1 });
@@ -129,7 +143,8 @@ test("prediction stops on a stalled connection and resumes from fresh authority 
   const { w, prediction, snapshot, s } = fixture();
   for (let i = 1; i < 100; i++) advance(prediction, { right: true }, i, 1001);
   assert.equal(prediction.pending.length, 30);
-  assert.equal(prediction.sample(s, 1500).players[1].x, 400);
+  assert.ok(prediction.sample(s, 1500).players[1].x > 400, "a stale connection holds predicted motion instead of rewinding to an old snapshot");
+  assert.deepEqual(prediction.sample(s, 1500).players[1], prediction.sample(s, 1700).players[1]);
   w.time += 1; Object.assign(w.players[1], { x: 600 });
   prediction.receive(snapshot(), 1, 2000);
   assert.equal(prediction.pending.length, 0); assert.equal(prediction.player.x, 600);

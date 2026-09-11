@@ -1,8 +1,10 @@
 import { wreckTiles } from "./blackhole.js";
-// Collision strips are derived from the visible wreck outlines. Sending both
-// geometries multiplies black-hole bandwidth. Guests reconstruct the strips
-// from validated outlines; only the host runs collision/physics. Every frame
-// remains self-contained for packet loss, resets and hot joins.
+import { WreckReplayer } from "./wreck-motion.js";
+// Moving black-hole terrain carries an initial shape/field plus a tick count.
+// Guests run the shared deformation solver and derive collision strips locally.
+// A final checkpoint guarantees identical settled geometry. Unrecorded pieces
+// retain the compact outline fallback. Every reconstructed delta baseline is
+// self-contained for packet loss, resets and hot joins.
 export function compactSnapshot(state) {
   const counts = new Map();
   for (const p of state.platforms) if (p.wreckId) {
@@ -14,6 +16,10 @@ export function compactSnapshot(state) {
   }
   return { ...state, platforms: state.platforms.filter(p => !p.wreckId), derivedWreck: true,
     wreckage: state.wreckage.map(w => {
+      if (w.terrain) {
+        const {x, y, w:width, h, angle, vx, vy, spin, spine, outline, ...out} = w;
+        return out;
+      }
       if (!w.spine || !w.outline) return w;
       const {spine, outline, ...out} = w;
       // A tenth of a world unit is below a screen pixel even at maximum zoom.
@@ -22,11 +28,16 @@ export function compactSnapshot(state) {
     }),
   };
 }
-export function expandSnapshot(state, validate) {
+export function expandSnapshot(state, validate, replayer = new WreckReplayer()) {
   if (!state || state.derivedWreck !== true || !Array.isArray(state.wreckage) || state.wreckage.length > 60) throw new Error("Invalid snapshot");
   const {derivedWreck, ...out} = state;
+  replayer.retain(state.wreckage, `${state.round}:${state.arenaIndex}`);
   out.wreckage = state.wreckage.map(w => {
     if (!w || typeof w !== "object") throw new Error("Invalid wreck");
+    if (w.terrain !== undefined) {
+      if (!w.terrain || w.kind === "matter" || [w.ribbon,w.tiles,w.spine,w.outline].some(v => v !== undefined)) throw new Error("Invalid terrain encoding");
+      return replayer.expand(w);
+    }
     if (w.ribbon === undefined) {
       if (w.tiles !== undefined || w.spine !== undefined || w.outline !== undefined) throw new Error("Invalid ribbon encoding");
       return {...w};

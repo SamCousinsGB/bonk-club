@@ -53,3 +53,25 @@ test("guest history handles delivery jitter, duplicate frames, stalls and round 
   assert.equal(frames.sample(2100).players[0].x,900);
   frames.reset();assert.equal(frames.sample(2200),null);
 });
+
+test("adaptive buffering changes playback speed gradually while arrival jitter changes", () => {
+  const w = new World(), encoder = new RenderSnapshots(), frames = new GuestFrames();
+  const arrivals = [];
+  for (let i = 0; i < 180; i++) {
+    w.time = i / 30; w.players[0].x = w.time * 240;
+    arrivals.push({ at: 1000 + i * 1000 / 30 + (i > 30 && i < 110 ? (i % 4) * 12 : 0), state: encoder.make(w.snapshot()) });
+  }
+  arrivals.sort((a, b) => a.at - b.at);
+  let last = null, advances = 0;
+  for (let now = 1000; now < 6500; now += 8) {
+    while (arrivals.length && arrivals[0].at <= now) { const frame = arrivals.shift(); frames.push(frame.state, frame.at); }
+    const view = frames.sample(now);
+    if (last !== null) {
+      const delta = view.time - last;
+      assert.ok(delta >= -1e-9 && delta <= .00881, `bounded playback speed ${delta}`);
+      if (delta > .006) advances++;
+    }
+    last = view.time;
+  }
+  assert.ok(advances > 600, `continuous display samples: ${advances}`);
+});

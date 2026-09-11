@@ -1,4 +1,4 @@
-import { seedOrbit, orbitPoint, limitRope, springRope, ribbonOutline } from "./orbit.js";
+import { recordWreckStep } from "./wreck-motion.js";
 import { trackKillSource } from "./kill-credit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
@@ -298,27 +298,7 @@ export function updateWreckage(world, dt = 1 / 120) {
         f.life > 0,
     );
     if (!f) continue;
-    if (!w.spine) {
-      w.spine = Array.from({ length: 6 }, (_, i) => ({
-        x: w.x + (i / 5 - 0.5) * w.w * Math.cos(w.angle),
-        y: w.y + (i / 5 - 0.5) * w.w * Math.sin(w.angle),
-      }));
-      for (const p of w.spine) {
-        p.vx = w.vx - (p.y - w.y) * w.spin;
-        p.vy = w.vy + (p.x - w.x) * w.spin;
-        seedOrbit(p, f);
-      }
-    }
-    springRope(w.spine, w.w / 5, dt, 110);
-    for (const p of w.spine) orbitPoint(p, f, dt);
-    limitRope(w.spine, w.w / 5, 4);
-    w.x = w.spine.reduce((sum, p) => sum + p.x, 0) / w.spine.length;
-    w.y = w.spine.reduce((sum, p) => sum + p.y, 0) / w.spine.length;
-    w.angle = Math.atan2(
-      w.spine.at(-1).y - w.spine[0].y,
-      w.spine.at(-1).x - w.spine[0].x,
-    );
-    w.outline = ribbonOutline(w.spine, w.h, f);
+    recordWreckStep(w, f, dt);
   }
   world.platforms = world.platforms.filter((p) => !p.wreckId);
   for (const w of world.wreckage) world.platforms.push(...wreckTiles(w, old));

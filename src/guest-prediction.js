@@ -1,6 +1,7 @@
 import { World, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
+import { blend } from "./render-state.js";
 
 const INPUT_STEP = 1 / 60, MAX_PENDING = 30, STALE_MS = 250;
 const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "facing", "aimAngle",
@@ -15,16 +16,20 @@ export class GuestPrediction {
   reset() {
     this.latest = null; this.player = null; this.context = null;
     this.pending = []; this.id = null; this.lastAt = null;
-    this.correction = { x: 0, y: 0 }; this.lastSequence = 0;
+    this.correction = { x: 0, y: 0 }; this.correctionAt = 0; this.lastSequence = 0;
+    this.advanceAt = null; this.input = null; this.future = null;
   }
   receive(state, id, now) {
     const p = state.players.find(p => p.id === id), old = this.player;
+    const correctionDecay = Math.exp(-Math.max(0, now - this.correctionAt) * .02);
     const changed = this.id !== id || this.latest?.round !== state.round ||
       this.latest?.arenaIndex !== state.arenaIndex || old?.occupant !== p?.occupant;
     if (!changed && this.latest && state.time <= this.latest.time) return;
     const stalled = this.lastAt !== null && now - this.lastAt > STALE_MS;
     if (changed || stalled) this.pending = [];
     this.id = id; this.latest = state; this.lastAt = now;
+    this.future = null;
+    if (changed || stalled) { this.advanceAt = now; this.input = null; }
     const ack = state.inputAcks?.[id];
     if (!validInputSequence(ack) || !validMotion(p?.motion)) {
       this.pending = []; this.player = null; this.context = null; return;
@@ -47,13 +52,13 @@ export class GuestPrediction {
     else this.pending = [];
     // Keep tiny reconciliation errors unobtrusive. Large corrections, posture
     // changes and disabled/dead fighters use the host result immediately.
-    const dx = old ? old.x + this.correction.x - this.player.x : 0;
-    const dy = old ? old.y + this.correction.y - this.player.y : 0;
+    const dx = old ? old.x + this.correction.x * correctionDecay - this.player.x : 0;
+    const dy = old ? old.y + this.correction.y * correctionDecay - this.player.y : 0;
     this.correction = !changed && !stalled && controllable(p) && old?.prone === p.prone &&
       Math.hypot(dx, dy) < 45 ? { x: dx, y: dy } : { x: 0, y: 0 };
+    this.correctionAt = now;
   }
-  step(input) {
-    const p = this.player, w = this.context;
+  step(input, p = this.player, w = this.context) {
     for (let n = 0; n < 2; n++) {
       w.time += STEP;
       World.prototype.movePlatforms.call(w);
@@ -76,18 +81,34 @@ export class GuestPrediction {
     const command = { seq, input: cleanInput(input) };
     this.pending.push(command);
     this.step(command.input);
-    const decay = Math.exp(-INPUT_STEP * 20);
-    this.correction.x *= decay; this.correction.y *= decay;
+    this.advanceAt = now; this.input = command.input; this.future = null;
   }
   sample(state, now) {
     if (!state || !this.player || state.round !== this.latest.round ||
         state.arenaIndex !== this.latest.arenaIndex) return state;
     const authoritative = this.latest.players.find(p => p.id === this.id);
     let local = authoritative;
-    if (controllable(authoritative) && this.latest.phase === "fight" && now - this.lastAt <= STALE_MS) {
+    if (controllable(authoritative) && this.latest.phase === "fight") {
       local = { ...authoritative };
-      for (const key of motionKeys) local[key] = this.player[key];
+      let motion = this.player;
+      const fraction = Math.max(0, Math.min(1, (now - this.advanceAt) / (INPUT_STEP * 1000)));
+      if (this.input && fraction > 0 && now - this.lastAt <= STALE_MS) {
+        if (!this.future) {
+          // One collision-checked lookahead between input ticks. It is only a
+          // render sample: it never becomes replay state or changes authority.
+          this.future = structuredClone(this.player);
+          const context = { ...this.context, players: [this.future],
+            platforms: this.context.platforms.map(p => ({ ...p })),
+            cover: this.context.cover.map(p => ({ ...p })), chunks: this.context.chunks.map(p => ({ ...p })),
+          };
+          this.step(this.input, this.future, context);
+        }
+        if (this.future.prone === this.player.prone) motion = blend(this.player, this.future, fraction);
+      }
+      for (const key of motionKeys) local[key] = motion[key];
       let { x: dx, y: dy } = this.correction;
+      const decay = Math.exp(-Math.max(0, Math.min(now, this.lastAt + STALE_MS) - this.correctionAt) * .02);
+      dx *= decay; dy *= decay;
       const radius = local.prone ? 34 : 15, top = local.prone ? 10 : 28, bottom = local.prone ? 10 : 30;
       if (this.context.solids(this.player).some(s => local.x + dx + radius > s.x &&
           local.x + dx - radius < s.x + s.w && local.y + dy + bottom > s.y + .1 &&

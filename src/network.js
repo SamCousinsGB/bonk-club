@@ -9,8 +9,13 @@ import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
-import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from "./realtime.js";
-import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
+import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets, motionPacket } from "./realtime.js";
+import { compactSnapshot } from "./snapshot-wire.js";
+import { SnapshotHistory } from "./snapshot-delta.js";
+import { StateCodec } from "./state-codec.js";
+import { InputDelivery } from "./input-delivery.js";
+import { motionState, mergeMotion, completeMotion } from "./motion-stream.js";
+export { encodeState, decodeState } from "./state-codec.js";
 import { FighterChat, cleanChat, CHAT_LIMIT, CHAT_COOLDOWN } from "./chat.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { validExpandedProjectile } from "./expanded-weapons.js";
@@ -36,45 +41,17 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 38;
+export const PROTOCOL = 39;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
-const STATE_BYTES_PER_SECOND = 90000;
+const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
 const realtimeOpen = c => c?.realtimeReady && c.realtime?.readyState === "open";
 const makeCode = () =>
   Array.from(
     crypto.getRandomValues(new Uint8Array(6)),
     (v) => alphabet[v % alphabet.length],
   ).join("");
-export async function encodeState(state) {
-  const stream = new Blob([JSON.stringify(state)])
-    .stream()
-    .pipeThrough(new CompressionStream("deflate"));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-export async function decodeState(bytes) {
-  if (bytes instanceof ArrayBuffer) bytes = new Uint8Array(bytes);
-  if (!(bytes instanceof Uint8Array) || bytes.byteLength > 250000)
-    throw new Error("Invalid frame");
-  const reader = new Blob([bytes])
-    .stream()
-    .pipeThrough(new DecompressionStream("deflate"))
-    .getReader();
-  const chunks = [];
-  let length = 0;
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    length += value.byteLength;
-    if (length > 1000000) {
-      await reader.cancel();
-      throw new Error("Frame too large");
-    }
-    chunks.push(value);
-  }
-  return JSON.parse(await new Blob(chunks).text());
-}
 export class Room {
   constructor(callbacks = {}, PeerClass = Peer, options = {}) {
     this.callbacks = callbacks;
@@ -102,6 +79,11 @@ export class Room {
     this.roster = [];
     this.slots = defaultSlots();
     this.renderSnapshots = new RenderSnapshots();
+    this.snapshots = new SnapshotHistory();
+    this.motionSnapshots = new SnapshotHistory();
+    this.codec = new StateCodec();
+    this.receivedSequence = 0;
+    this.receivedMotionSequence = 0;
     this.running = false;
     this.closed = false;
     this.inputTimes = {};
@@ -109,6 +91,7 @@ export class Room {
     this.sequence = 0;
     this.reconnectAttempts = 0;
     this.inputSequence = 0;
+    this.inputDelivery = new InputDelivery();
     this.appliedInputs = [0, 0, 0, 0];
 
     this.chat = new FighterChat();
@@ -158,7 +141,7 @@ export class Room {
       channel.onopen = announce;
       c.on("open", announce);
       c.on("data", m => { if (m?.t === "realtime-ready") c.realtimeReady = true; });
-      const assembler = new FrameAssembler();
+      const assembler = new FrameAssembler(), motionAssembler = new FrameAssembler();
       channel.onmessage = ({ data }) => {
         if (this.closed || !c.open || !this.running) return;
         if (this.host) {
@@ -167,45 +150,76 @@ export class Room {
           try {
             const m = JSON.parse(data);
             if (m.t === "input" && validInputSequence(m.seq) && m.seq > (c.inputSequence || 0)) {
+              this.acknowledgeState(c, m.stateAck); this.acknowledgeState(c, m.motionAck, true);
               c.inputSequence = m.seq;
+              c.inputDelivery ||= new InputDelivery(); c.inputDelivery.receive(m.edges, m.seq);
               this.lastInputs[id] = cleanInput(m.input);
               this.inputTimes[id] = performance.now();
             }
           } catch { /* Ignore malformed guest controls. */ }
         } else if (this.connection === c && this.id !== null) {
-          const frame = assembler.push(data, performance.now());
+          const frame = (motionPacket(data) ? motionAssembler : assembler).push(data, performance.now());
           if (frame) this.receiveFrame(c, frame);
         }
       };
       channel.onerror = () => { /* Reliable fallback remains available. */ };
-      c.on("close", () => { channel.close(); c.decoder?.close(); });
+      c.on("close", () => { channel.close(); c.decoder?.close(); c.motionDecoder?.close(); });
     } catch { /* Browsers without a second stream retain bounded reliable delivery. */ }
   }
   receiveFrame(c, frame) {
-    c.decoder ||= new LatestFrameDecoder(async m => {
+    const decoderKey = frame.motion ? "motionDecoder" : "decoder";
+    c[decoderKey] ||= new LatestFrameDecoder(async m => {
       try {
-        const decoded = m.t === "frame" ? await decodeState(m.bytes) : m.state;
+        const decoded = m.t === "frame" ? await this.codec.run("decode", m.bytes) : m.state;
         if (this.closed || this.connection !== c) return;
-        const state = expandSnapshot(decoded, validSnapshot);
-        if (validSnapshot(state)) {
-          const now = performance.now(), stats = this.streamStats;
+        const history = m.motion ? this.motionSnapshots : this.snapshots;
+        const ackKey = m.motion ? "receivedMotionSequence" : "receivedSequence";
+        const compact = history.decode(decoded, m.seq);
+        if (!compact) { this[ackKey] = 0; return; }
+        let state;
+        if (m.motion) {
+          if (!completeMotion(compact)) throw new Error("Incomplete motion snapshot");
+          // The full world establishes the epoch and collision state. A hot
+          // join never renders actors against a missing or different arena.
+          if (!this.worldState || this.worldState.round !== compact.round || this.worldState.arenaIndex !== compact.arenaIndex) return;
+          if (!validSnapshot({ ...this.worldState, ...compact })) throw new Error("Invalid motion snapshot");
+          state = mergeMotion(this.worldState, compact);
+          this.motionState = compact;
+        } else {
+          const expanded = await this.codec.run("expand", compact);
+          if (this.closed || this.connection !== c) return;
+          if (!validSnapshot(expanded)) throw new Error("Invalid snapshot");
+          this.worldState = expanded;
+          this.emit("onWorldState", this.worldState);
+          state = mergeMotion(this.worldState, this.motionState);
+        }
+        history.remember(m.seq, compact);
+        this[ackKey] = m.seq;
+        const now = performance.now(), stats = this.streamStats;
+        stats.lastBytes = m.bytes?.byteLength || 0;
+        stats[m.motion ? "motionBytes" : "worldBytes"] = stats.lastBytes;
+        this.chat.setRound(state.round);
+        if (!this.emittedState || state.round !== this.emittedState.round || state.arenaIndex !== this.emittedState.arenaIndex || state.time > this.emittedState.time) {
           if (this.lastFrameAt !== undefined) {
             stats.lastGapMs = Math.round(now - this.lastFrameAt);
             stats.maxGapMs = Math.max(stats.maxGapMs, stats.lastGapMs);
           }
           this.lastFrameAt = now; stats.received++;
-          stats.lastBytes = m.bytes?.byteLength || 0;
-          this.chat.setRound(state.round);
-          this.emit("onState", state);
+          this.emittedState = state; this.emit("onState", state);
         }
       } catch {
         this.emit("onNotice", "A game update could not be read. Waiting for the next update.");
       } finally {
-        if (m.ack) this.send(c, { t: "ack", seq: m.seq });
+        if (m.ack) this.send(c, { t: "ack", seq: m.seq, stateAck: this.receivedSequence });
       }
     });
-    if (c.decoder.pending && frame.seq > c.decoder.last) this.streamStats.skipped++;
-    c.decoder.push(frame);
+    if (c[decoderKey].pending && frame.seq > c[decoderKey].last) this.streamStats.skipped++;
+    c[decoderKey].push(frame);
+  }
+  acknowledgeState(c, seq, motion = false) {
+    const key = motion ? "motionAck" : "stateAck", sent = motion ? c.sentMotionStates : c.sentStates;
+    if (seq === 0) { c[key] = 0; return; }
+    if (Number.isInteger(seq) && seq > (c[key] || 0) && sent?.has(seq)) c[key] = seq;
   }
   async openPeer(id) {
     if (!this.config) this.config = await loadIceConfig(this.iceServersUrl);
@@ -397,6 +411,7 @@ export class Room {
       c.frameAck = 0;
       c.frameSentAt = 0;
       c.inFlight = [];
+      c.sentStates = new Set();
       this.send(c, {
         t: "welcome",
         id,
@@ -422,13 +437,16 @@ export class Room {
       if (m.t === "input" && this.running) {
         if (realtimeOpen(c)) return;
         if (!validInputSequence(m.seq) || m.seq <= (c.inputSequence || 0)) return;
+        this.acknowledgeState(c, m.stateAck); this.acknowledgeState(c, m.motionAck, true);
         c.inputSequence = m.seq;
+        c.inputDelivery ||= new InputDelivery(); c.inputDelivery.receive(m.edges, m.seq);
         this.lastInputs[id] = cleanInput(m.input);
         this.inputTimes[id] = performance.now();
       }
       if (m.t === "profile") this.assignProfile(id, m.profile);
       if (m.t === "chat") this.acceptChat(id, m.text);
       if (m.t === "ack" && Number.isInteger(m.seq) && m.seq > c.frameAck && m.seq <= c.frameSequence) {
+        this.acknowledgeState(c, m.stateAck);
         c.frameAck = m.seq;
         c.inFlight = c.inFlight.filter(seq => seq > m.seq);
       }
@@ -677,20 +695,21 @@ export class Room {
   sendInput(input) {
     if (!this.running) return;
     const c = this.connection, channel = c?.realtime;
-    const m = { t: "input", seq: ++this.inputSequence, input: cleanInput(input) };
+    const m = { t: "input", seq: ++this.inputSequence, stateAck: this.receivedSequence,
+      motionAck: this.receivedMotionSequence, input: cleanInput(input) };
+    m.edges = this.inputDelivery.capture(m.input, m.seq);
     if (realtimeOpen(c)) {
       if (channel.bufferedAmount < 1000) try { channel.send(JSON.stringify(m)); } catch { /* Next input replaces it. */ }
     } else if (!c?.bufferSize && (c?.dataChannel?.bufferedAmount || 0) < 1000) this.send(c, m);
     return m.seq;
   }
-  getInputs(now = performance.now()) {
+  getInputs(now = performance.now(), consume = true) {
     const out = {};
     for (const id in this.lastInputs) {
-      this.appliedInputs[id] = this.connections.get(Number(id))?.inputSequence || 0;
-      out[id] =
-        now - (this.inputTimes[id] || 0) < 700
-          ? this.lastInputs[id]
-          : cleanInput(null);
+      const c = this.connections.get(Number(id)), stale = now - (this.inputTimes[id] || 0) >= 700;
+      if (consume) this.appliedInputs[id] = c?.inputSequence || 0;
+      const input = stale ? cleanInput(null) : this.lastInputs[id];
+      out[id] = consume && c?.inputDelivery ? c.inputDelivery.sample(input, stale) : input;
     }
     return out;
   }
@@ -709,42 +728,60 @@ export class Room {
           : !c.bufferSize && (c.dataChannel?.bufferedAmount || 0) < 16384 &&
             (c.inFlight.length < 4 || now - c.frameSentAt > 1200)),
     );
-    if (!ready.length) return;
+    const motionReady = [...this.connections.values()].filter(c => c.open && realtimeOpen(c) &&
+      !c.realtime.bufferedAmount && now >= (c.nextMotionAt || 0));
+    if (!ready.length && !motionReady.length) return;
     this.encoding = true;
     const encodeAt = performance.now();
     try {
-      state = compactSnapshot({ ...this.renderSnapshots.make(state), inputAcks: [...this.appliedInputs] });
-      const compressed =
-        this.compression && ready.some((c) => c.metadata?.compression)
-          ? await encodeState(state)
-          : null;
-      if (this.closed) return;
+      const view = { ...this.renderSnapshots.make(ready.length ? state : motionState(state)), inputAcks: [...this.appliedInputs] };
+      const motion = motionState(view);
+      state = ready.length ? compactSnapshot(view) : null;
       const seq = ++this.sequence;
+      const encodings = new Map();
+      const jobs = [...motionReady.map(c => ({ c, fast: true })), ...ready.map(c => ({ c, fast: false }))];
+      const deliveries = await Promise.all(jobs.map(async ({ c, fast }) => {
+        const history = fast ? this.motionSnapshots : this.snapshots;
+        const envelope = history.encode(fast ? motion : state, (fast ? c.motionAck : c.stateAck) || 0);
+        const compressed = this.compression && c.metadata?.compression;
+        const key = `${fast}:${envelope.base}:${compressed}`;
+        if (!encodings.has(key)) encodings.set(key, compressed ? this.codec.run("encode", envelope) : envelope);
+        return { c, fast, value: await encodings.get(key), compressed };
+      }));
+      if (this.closed) return;
+      if (state) this.snapshots.remember(seq, state);
+      if (motionReady.length) this.motionSnapshots.remember(seq, motion);
       this.streamStats.encodeMs = Math.round(performance.now() - encodeAt);
       this.streamStats.maxEncodeMs = Math.max(this.streamStats.maxEncodeMs || 0, this.streamStats.encodeMs);
       this.streamStats.sent = (this.streamStats.sent || 0) + 1;
-      const packets = compressed ? framePackets(compressed, seq) : null;
-      for (const c of ready) {
+      const permitted = new Set([...ready, ...motionReady].filter(c => !realtimeOpen(c) || !c.realtime.bufferedAmount));
+      for (const { c, fast, value, compressed } of deliveries) {
         if (!c.open || ![...this.connections.values()].includes(c)) continue;
+        const packets = compressed ? framePackets(value, seq, fast) : null;
+        const history = fast ? this.motionSnapshots : this.snapshots, sentKey = fast ? "sentMotionStates" : "sentStates";
+        c[sentKey] ||= new Set(); c[sentKey].add(seq);
+        for (const old of c[sentKey]) if (!history.states.has(old)) c[sentKey].delete(old);
         if (packets && realtimeOpen(c)) {
-          if (!c.realtime.bufferedAmount) {
+          if (permitted.has(c)) {
             try { for (const packet of packets) c.realtime.send(packet); }
             catch { /* Drop the frame; the next complete one is independent. */ }
-            c.nextFrameAt = performance.now() + compressed.byteLength * 1000 / STATE_BYTES_PER_SECOND;
+            c[fast ? "nextMotionAt" : "nextFrameAt"] = performance.now() +
+              (value.byteLength + packets.length * 10) * 1000 / (fast ? MOTION_BYTES_PER_SECOND : STATE_BYTES_PER_SECOND);
           }
           continue;
         }
+        if (fast) continue;
         if (now - c.frameSentAt > 1200) c.inFlight = [];
         c.inFlight.push(seq);
         c.frameSequence = seq;
         c.frameSentAt = performance.now();
-        const bytes = compressed && c.metadata?.compression ? compressed.byteLength : new TextEncoder().encode(JSON.stringify(state)).byteLength;
+        const bytes = compressed ? value.byteLength : new TextEncoder().encode(JSON.stringify(value)).byteLength;
         c.nextFrameAt = c.frameSentAt + bytes * 1000 / STATE_BYTES_PER_SECOND;
         this.send(
           c,
-          compressed && c.metadata?.compression
-            ? { t: "frame", seq, bytes: compressed }
-            : { t: "state", seq, state },
+          compressed
+            ? { t: "frame", seq, bytes: value }
+            : { t: "state", seq, state: value },
         );
       }
     } catch {
@@ -785,6 +822,8 @@ export class Room {
     if (this.closed) return;
     this.roomServiceAtClose = this.roomServiceState();
     this.closed = true;
+    this.codec.stop(); this.snapshots.states.clear(); this.motionSnapshots.states.clear();
+    this.worldState = this.motionState = this.emittedState = null;
     this.chat.reset();
     this.diagnostics.close();
     this.joinReject?.(new Error("Connection cancelled."));

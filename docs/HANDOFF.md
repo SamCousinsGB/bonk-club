@@ -2,6 +2,72 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Guest fluidity and transport repair - 11 September 2026
+
+- Release **v0.17.2**, protocol **39**. Refresh every player and create a new
+  room. Work is integrated from main `bd9fbd0` in `../bonk-club-qa/guest-fluidity`,
+  branch `codex/guest-fluidity`. The fixes are also merged into the canonical
+  checkout without replacing its unrelated edits; 55 focused tests pass there.
+- Moving black-hole terrain now sends its initial shape/momentum, field position
+  and simulation tick count instead of continuously transmitting ribbon vertices.
+  Host and guest use the same `wreck-motion.js` solver. Initial shapes preserve
+  prior terrain damage; overlapping fields start a new recipe from the existing
+  spine. Removed pieces remain removed. A full-precision final checkpoint makes
+  the settled artwork and collision identical, including on late join.
+- Replay runs in the guest codec worker and caches incremental progress, bounded
+  to 60 pieces and 1,000 ticks per recipe. Immutable acknowledged baselines retain
+  all seeds for recovery and hot join. Finished checkpoints are sent once per
+  acknowledged change. The terrain-only moving test uses less than 20% of the
+  earlier vertex-stream bandwidth. Gameplay authority remains with the host.
+- Snapshot deltas reference only a recipient-confirmed baseline. Numeric
+  differences preserve the existing hundredth-unit render precision exactly;
+  unquantized movement state retains exact replacements. Both ends retain at
+  most 32 baselines per stream. Lost, reordered, invalid or evicted baselines
+  cannot be applied to the wrong world; a zero acknowledgement requests a full
+  recovery snapshot. The guest validates reconstructed state before acceptance.
+- Fighters, projectiles, pickups, scores, events and input acknowledgements have
+  an independent disposable stream and bandwidth allowance. Large moving terrain
+  no longer blocks their 30 Hz delivery. Combined allowances remain below the
+  existing TURN allocation ceiling. The reliable room stream remains separate;
+  browsers without disposable transport retain the bounded reliable fallback.
+- Actor and world render histories interpolate separately at their actual rates.
+  Jitter changes playback speed gradually; outages abandon stale queues. Local
+  controls use a collision-checked render lookahead between the existing 60 Hz
+  prediction steps, and reconciliation decays continuously. A stale connection
+  holds the bounded predicted pose instead of rewinding it to an old snapshot.
+- Repeated button-edge sequences recover brief jump/fire/parry/throw presses
+  when the original input packet is lost. Host control validation, weapon rules,
+  health, damage, physics, inventory and scores retain their authority.
+- JSON/compression and terrain reconstruction use a bounded dedicated worker with
+  a browser fallback.
+  Interpolation avoids repeating the discarded half of each stream and uses a
+  direct point interpolation path for rigs and deformed geometry. No new
+  dependencies, desktop shell changes, debug hooks or Pi changes were introduced.
+- Paired real Edge host/guest tests selected relay/relay candidates. In the
+  controlled ordinary sprint, repeated local-position display frames fell from
+  **58.4% to 0%**. Moving two-black-hole fighter delivery rose from **42 to 120
+  updates in four seconds**. With 80 ms added each way, jitter and about 9%
+  disposable packet loss, delivery rose from **34 to 109 updates**. Combined
+  actor/world traffic in the moving two-field test fell from **267,706 to 149,794
+  bytes in four seconds**, while delivering nearly three times as many fighter
+  updates. These are captured application bytes, excluding WebRTC overhead.
+- Final moving-scene guest frame p95 was **11.9 ms** on this PC. This is a
+  controlled one-PC external-relay test, not a cross-ISP or every-device guarantee.
+  Tests covered independent stream delivery, full-world fallback, exact changing
+  physics reconstruction, invalid patches, changing jitter, walls/destruction,
+  death/knockdown, hot join, missing baselines, 600 ms outages, a one-second blocked
+  guest, four-times CPU throttling, real mobile touch and chat input suppression.
+  Final latency tests measured a 12.6 ms displayed jump versus 212 ms host
+  confirmation with injected 80 ms delay in each direction. No page errors.
+- All **775 tests** and the production build passed. A separate three-browser
+  relay test checked exact moving artwork and collision against captured host
+  snapshots, including a mid-field hot join, overlapping fields, an explosion,
+  and final terrain. The unmodified production bundle passed solo, host/guest
+  controls, third-player hot join, leave and narrow-menu smoke checks with no
+  browser errors. Local geometry and final gameplay screenshots were inspected.
+- External scripts, logs, metrics, profile and screenshots are
+  `../bonk-club-qa/guest-fluidity-*`; production publication verification follows.
+
 ## Death physics continuity - 11 September 2026
 
 - Release **v0.17.1**, protocol **38**. Death effects preserve the incoming

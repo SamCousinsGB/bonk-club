@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.17.1",
-  "releaseNotes": "Death effects keep their momentum: skeletons fall and crumble",
+  "version": "0.17.2",
+  "releaseNotes": "Smoother online movement and faster guest updates during heavy combat",
   "private": true,
   "type": "module",
   "scripts": {

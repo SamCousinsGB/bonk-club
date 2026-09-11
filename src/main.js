@@ -5,6 +5,7 @@ import { version, releaseNotes } from "../package.json";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
+import { mergeMotion } from "./motion-stream.js";
 import { GuestPrediction } from "./guest-prediction.js";
 import {
   PALETTE,
@@ -118,7 +119,8 @@ let world = null,
   last = performance.now(),
   toastTimer,
   returnFocus = null;
-const guestFrames = new GuestFrames();
+const guestFrames = new GuestFrames("actors");
+const guestWorldFrames = new GuestFrames("world");
 const guestPrediction = new GuestPrediction();
 let guestInputClock = 0;
 
@@ -309,7 +311,7 @@ function home() {
   room = null;
   world = null;
   remote = null;
-  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
+  guestFrames.reset(); guestWorldFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   setPlaying(false);
   hidePanel();
   history.replaceState(null, "", location.pathname);
@@ -360,7 +362,7 @@ function startWorld(ids) {
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
   botChat.attach(world);
   remote = null;
-  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
+  guestFrames.reset(); guestWorldFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -712,7 +714,7 @@ async function quickMatch() {
 function enterGuest() {
   world = null;
   remote = null;
-  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
+  guestFrames.reset(); guestWorldFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -742,6 +744,7 @@ function roomCallbacks() {
       if (room.host) startWorld(room.roster.map((p) => p.id));
       else enterGuest();
     },
+    onWorldState: (s) => guestWorldFrames.push(s, performance.now()),
     onState: (s) => {
       remote = s;
       const now = performance.now();
@@ -757,7 +760,7 @@ function roomCallbacks() {
       room = null;
       world = null;
       remote = null;
-      guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
+      guestFrames.reset(); guestWorldFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
       setPlaying(false);
       onlineMenu(message);
     },
@@ -929,7 +932,10 @@ function equipmentInfo(p) {
   return `<small title="${esc(name+' · '+detail)}"><span class="held-weapon">${esc(name)}</span><span class="weapon-state">${esc(detail)}</span></small>`;
 }
 function interpolated(now) {
-  return guestPrediction.sample(guestFrames.sample(now), now);
+  const actors = guestFrames.sample(now), world = guestWorldFrames.sample(now);
+  const state = actors && world && actors.round === world.round && actors.arenaIndex === world.arenaIndex
+    ? mergeMotion(world, actors, true) : actors;
+  return guestPrediction.sample(state, now);
 }
 let simulationLast = performance.now();
 function simulate(now) {
@@ -944,7 +950,7 @@ function simulate(now) {
     accumulator += dt;
     while (accumulator >= STEP) {
       const inputs = room
-        ? { ...room.getInputs(now), 0: ownInput() }
+        ? { ...room.getInputs(now, world.hitstop <= 0), 0: ownInput() }
         : { 0: ownInput() };
       world.step(STEP, inputs);
       accumulator -= STEP;

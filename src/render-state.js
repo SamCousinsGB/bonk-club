@@ -1,4 +1,5 @@
 import { motionState } from "./prediction-state.js";
+import { wreckRecipe } from "./wreck-motion.js";
 const simulationOnly = new Set([
   "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
   "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
@@ -28,14 +29,18 @@ export class RenderSnapshots {
       const source = state[key][i];
       if (!this.ids.has(source)) this.ids.set(source, ++this.nextId);
       entity.netId = this.ids.get(source);
+      if (key === "wreckage") {
+        const terrain = wreckRecipe(source, state.fields || []);
+        if (terrain) entity.terrain = terrain;
+      }
     });
     return out;
   }
 }
 
 const lerp = (a, b, t) => a + (b - a) * t;
-function blend(a, b, t) {
-  if (!a) return b;
+export function blend(a, b, t) {
+  if (!a || a === b || t === 1) return b;
   const out = { ...b };
   for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
@@ -57,31 +62,40 @@ function blend(a, b, t) {
     const items = new Map(a.items.map(p => [p.id,p]));
     out.items = b.items.map(p => blend(items.get(p.id),p,t));
   }
-  for (const key of ["rig", "points", "spine", "outline", "strands"])
+  for (const key of ["rig", "points", "spine", "outline"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
-      out[key] = b[key].map((p, i) => blend(a[key][i], p, t));
+      out[key] = b[key].map((p, i) => {
+        const old = a[key][i];
+        return !old || old === p ? p : { ...p, x: lerp(old.x, p.x, t), y: lerp(old.y, p.y, t) };
+      });
+  if (a.strands && b.strands) out.strands = b.strands.map((p, i) => blend(a.strands[i], p, t));
   return out;
 }
-export function interpolateStates(a, b, t) {
+export function interpolateStates(a, b, t, mode = "all") {
   if (!a || a.round !== b.round || a.arenaIndex !== b.arenaIndex) return b;
   const out = { ...b };
-  out.players = b.players.map(p => {
+  if (mode !== "world") out.players = b.players.map(p => {
     const old = a.players.find(q => q.id === p.id);
     return old && old.occupant === p.occupant && old.alive === p.alive ? blend(old, p, t) : p;
   });
-  const platforms = new Map(a.platforms.map(p => [p.id,p]));
-  out.platforms = b.platforms.map(p => {
-    const old = platforms.get(p.id);
-    // Wreck collision strips have no artwork. Blend the visible ribbons once.
-    if (p.wreckId || (old?.x === p.x && old?.y === p.y)) return p;
-    return old && old.w === p.w && old.h === p.h ? blend(old,p,t) : p;
-  });
   out.time = lerp(a.time,b.time,t);
-  out.hazards = b.hazards.map(h => {
-    const old = a.hazards.find(q => q.id === h.id);
-    return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
-  });
+  if (mode !== "actors") {
+    const platforms = new Map(a.platforms.map(p => [p.id,p]));
+    out.platforms = a.platforms === b.platforms ? b.platforms : b.platforms.map(p => {
+      const old = platforms.get(p.id);
+      // Wreck collision strips have no artwork. Blend the visible ribbons once.
+      if (p.wreckId || (old?.x === p.x && old?.y === p.y)) return p;
+      return old && old.w === p.w && old.h === p.h ? blend(old,p,t) : p;
+    });
+    out.hazards = b.hazards.map(h => {
+      const old = a.hazards.find(q => q.id === h.id);
+      return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
+    });
+  }
   for (const key of movingLists) {
+    const actor = key === "projectiles" || key === "drops";
+    if (mode === "actors" && !actor || mode === "world" && actor) continue;
+    if (a[key] === b[key]) { out[key] = b[key]; continue; }
     const old = new Map((a[key] || []).filter(p => p.netId != null).map(p => [p.netId, p]));
     out[key] = (b[key] || []).map(p => {
       const previous=old.get(p.netId);
@@ -102,8 +116,11 @@ export function interpolateStates(a, b, t) {
 // A short history absorbs packet jitter. Sampling against the host's simulation
 // clock keeps delivery bursts from repeatedly freezing and accelerating motion.
 export class GuestFrames {
-  constructor() { this.reset(); }
-  reset() { this.frames = []; this.offset = null; this.interval = 33; this.lastAt = null; this.playhead = null; }
+  constructor(mode = "all") { this.mode = mode; this.reset(); }
+  reset() {
+    this.frames = []; this.offset = null; this.interval = 33; this.jitter = 0;
+    this.lastAt = null; this.playhead = null; this.sampleAt = null;
+  }
   push(state, now) {
     const last = this.frames.at(-1);
     const changed = last && (last.round !== state.round || last.arenaIndex !== state.arenaIndex);
@@ -113,17 +130,33 @@ export class GuestFrames {
     if (changed || (this.lastAt !== null && (now - this.lastAt > 250 ||
         Math.abs(now - this.lastAt - (state.time - last.time) * 1000) > 250))) this.reset();
     const offset = now - state.time * 1000;
-    this.offset = this.offset === null ? offset : Math.min(offset, this.offset + 1);
-    if (this.lastAt !== null) this.interval += (Math.min(200, now - this.lastAt) - this.interval) * 0.08;
+    this.offset = this.offset === null ? offset : Math.min(offset, this.offset + .1);
+    if (this.lastAt !== null) {
+      const interval = (state.time - last.time) * 1000;
+      this.interval += (Math.min(200, interval) - this.interval) * .1;
+      const jitter = Math.abs(now - this.lastAt - interval);
+      // Increase protection quickly, release it slowly. Arrival bursts must not
+      // convince the player that the host suddenly runs at a higher tick rate.
+      this.jitter += (Math.min(100, jitter) - this.jitter) * (jitter > this.jitter ? .25 : .025);
+    }
     this.lastAt = now;
     this.frames.push(state);
     if (this.frames.length > 12) this.frames.shift();
   }
   sample(now) {
     if (!this.frames.length) return null;
-    const delay = Math.max(70, Math.min(180, this.interval * 1.8));
-    const time = Math.max(this.playhead ?? -Infinity, (now - this.offset - delay) / 1000);
-    this.playhead = Math.min(time, this.frames.at(-1).time);
+    const delay = Math.max(45, Math.min(180, this.interval * 1.35 + this.jitter * 2));
+    const target = (now - this.offset - delay) / 1000;
+    let time = target;
+    if (this.playhead !== null && this.sampleAt !== null) {
+      const dt = Math.max(0, (now - this.sampleAt) / 1000), error = target - this.playhead;
+      // Adjust playback speed gently instead of freezing whenever the buffer
+      // grows or snapping forward when it shrinks. A resumed tab drops old time.
+      time = dt > .25 || error > .25 ? Math.max(this.playhead, target) :
+        this.playhead + dt * Math.max(.9, Math.min(1.1, 1 + (error - dt) * 3));
+    }
+    time = Math.max(this.frames[0].time, Math.min(time, this.frames.at(-1).time));
+    this.playhead = time; this.sampleAt = now;
     while (this.frames.length > 2 && this.frames[1].time <= time) this.frames.shift();
     const [a, b] = this.frames;
     if (!b || time <= a.time) return a;
@@ -131,6 +164,6 @@ export class GuestFrames {
     // A quiet or stalled stream already has its final frame. Do not rebuild
     // every entity at the render rate while waiting for another snapshot.
     if (t === 1) return b;
-    return interpolateStates(a, b, t);
+    return interpolateStates(a, b, t, this.mode);
   }
 }

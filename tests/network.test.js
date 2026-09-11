@@ -18,6 +18,8 @@ test("host acknowledges applied inputs, rejects stale sequences and never accept
     await host.create(); await guest.join(host.code); host.start(); await tick();
     const seq = guest.sendInput({ right: true, x: 999, hp: 1000 }); await tick();
     assert.equal(host.appliedInputs[1], 0, "receiving is not an application acknowledgement");
+    assert.equal(host.getInputs(performance.now(), false)[1].right, true);
+    assert.equal(host.appliedInputs[1], 0, "hitstop ticks cannot acknowledge controls the simulation did not apply");
     assert.equal(host.getInputs()[1].right, true);
     assert.equal(host.getInputs()[1].x, undefined);
     assert.equal(host.appliedInputs[1], seq);
@@ -27,6 +29,11 @@ test("host acknowledges applied inputs, rejects stale sequences and never accept
     await host.sendState(new World().snapshot()); await tick(); await tick();
     assert.equal(states.at(-1).inputAcks[1], seq);
     assert.equal(typeof states.at(-1).players[1].motion.jumpHeld, "boolean");
+    guest.sendInput({ jump: true }); await tick();
+    guest.sendInput({ jump: false }); await tick();
+    for (let i = 0; i < 8; i++) host.getInputs(performance.now(), false);
+    assert.equal(host.getInputs()[1].jump, true, "a brief jump survives the host's hitstop");
+    assert.equal(host.getInputs()[1].jump, false);
     host.appliedInputs[1] = 5000;
     guest.close(); await tick();
     const replacement = new Room({}, FakePeer);
@@ -551,11 +558,20 @@ test("negotiated disposable stream carries validated state and sequenced bounded
     assert.ok(h.realtimeReady&&g.realtimeReady);
     const w=new World();w.round=20;await host.sendState(w.snapshot());await tick();await g.decoder.done;
     assert.deepEqual(got,[20]);assert.equal(h.inFlight.length,0);
+    // Large terrain must not delay fighters and shots. Hold the full-world
+    // budget closed while the independently acknowledged actor stream advances.
+    h.nextFrameAt=Infinity;h.nextMotionAt=0;
+    w.time+=1/30;w.players[1].x+=10;
+    await host.sendState(w.snapshot());await tick();await g.motionDecoder.done;
+    assert.equal(guest.emittedState.players[1].x,w.players[1].x);
+    assert.notEqual(guest.worldState.players[1].x,w.players[1].x);
+    assert.equal(guest.receivedMotionSequence,host.sequence);
+    assert.deepEqual(got,[20,20]);
     guest.sendInput({right:true,hp:0,x:10000});await tick();assert.equal(host.getInputs()[1].right,true);assert.equal(host.lastInputs[1].hp,undefined);
     channels[1].send(JSON.stringify({t:"input",seq:1,input:{left:true}}));await tick();assert.equal(host.getInputs()[1].right,true);
     channels[1].send(JSON.stringify({t:"state",seq:999,state:{hp:0}}));await tick();assert.equal(host.getInputs()[1].right,true);
     channels[0].close();channels[1].close();h.nextFrameAt=0;w.round=21;await host.sendState(w.snapshot());await tick();await g.decoder.done;
-    assert.deepEqual(got,[20,21]);
+    assert.deepEqual(got,[20,20,21]);
   } finally {guest.close();host.close();}
 });
 

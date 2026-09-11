@@ -4,14 +4,17 @@
 export const REALTIME_LABEL = "bonk-realtime-1";
 export const PACKET_BYTES = 12000;
 const HEADER = 10, MAX_BYTES = 250000, MAX_PARTS = Math.ceil(MAX_BYTES / PACKET_BYTES);
-export function framePackets(bytes, seq) {
+export function motionPacket(buffer) {
+  return buffer instanceof ArrayBuffer && buffer.byteLength > HEADER && !!(new DataView(buffer).getUint16(6) & 0x8000);
+}
+export function framePackets(bytes, seq, motion = false) {
   if (!(bytes instanceof Uint8Array) || !bytes.length || bytes.length > MAX_BYTES ||
       !Number.isInteger(seq) || seq < 1 || seq > 0xffffffff) throw new Error("Invalid frame");
   const count = Math.ceil(bytes.length / PACKET_BYTES), packets = [];
   for (let i = 0; i < count; i++) {
     const part = bytes.subarray(i * PACKET_BYTES, (i + 1) * PACKET_BYTES);
     const packet = new Uint8Array(HEADER + part.length), view = new DataView(packet.buffer);
-    view.setUint32(0, seq); view.setUint16(4, i); view.setUint16(6, count); view.setUint16(8, part.length);
+    view.setUint32(0, seq); view.setUint16(4, i); view.setUint16(6, count | (motion ? 0x8000 : 0)); view.setUint16(8, part.length);
     packet.set(part, HEADER); packets.push(packet);
   }
   return packets;
@@ -20,7 +23,7 @@ export class FrameAssembler {
   constructor() { this.pending = new Map(); this.last = 0; }
   push(buffer, now) {
     if (!(buffer instanceof ArrayBuffer) || buffer.byteLength <= HEADER || buffer.byteLength > PACKET_BYTES + HEADER) return null;
-    const view = new DataView(buffer), seq = view.getUint32(0), index = view.getUint16(4), count = view.getUint16(6), length = view.getUint16(8);
+    const view = new DataView(buffer), seq = view.getUint32(0), index = view.getUint16(4), count = view.getUint16(6) & 0x7fff, length = view.getUint16(8);
     if (seq <= this.last || !count || count > MAX_PARTS || index >= count || length !== buffer.byteLength - HEADER ||
         (index < count - 1 && length !== PACKET_BYTES) || (index === count - 1 && (count - 1) * PACKET_BYTES + length > MAX_BYTES)) return null;
     for (const [id, frame] of this.pending) if (now - frame.at > 250 || id < seq - 2) this.pending.delete(id);
@@ -41,7 +44,7 @@ export class FrameAssembler {
     for (const p of frame.parts) { bytes.set(p, offset); offset += p.length; }
     this.last = seq;
     for (const id of this.pending.keys()) if (id <= seq) this.pending.delete(id);
-    return { t: "frame", seq, bytes };
+    return { t: "frame", seq, bytes, ...(motionPacket(buffer) ? { motion: true } : {}) };
   }
 }
 
