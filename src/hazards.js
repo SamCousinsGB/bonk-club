@@ -2,6 +2,7 @@ import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { breakable } from "./maps.js";
 import { hazardProps, propFor, impulseProp } from "./props.js";
+import { isScanner, scanFighters } from "./scanner.js";
 import { releaseCargo } from "./cargo.js";
 export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","loader"];
 export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
@@ -26,7 +27,7 @@ export function hazardZone(h) {
 }
 export function dangerous(h) { return !h.done&&(h.active||h.warning>0); }
 function hit(world,p,h,damage,force=600) {
-  const effect={saw:"slice",tesla:"tesla",xray:"tesla",geyser:"burn",crusher:"blast",frost:"ice"}[h.type]||null;
+  const effect={saw:"slice",tesla:"tesla",geyser:"burn",crusher:"blast",frost:"ice"}[h.type]||null;
   world.hit(p,{x:h.bodyX,y:h.bodyY,vx:0,vy:0},damage,force,Math.sign(p.x-h.bodyX)||h.dir,-.55,{blast:true,hitstop:.018,cause:h.type==="geyser"?"burn":h.type,execute:h.type==="saw",effect});
 }
 function magneticPull(world,h,zone,dt) {
@@ -93,7 +94,11 @@ export function updateHazards(world,dt) {
       for(const s of world.solids())if(breakable(s)&&!propFor(world,s)&&segmentBox(h.x,oldY,h.x,h.bodyY,s,h.w/2))world.damageCover(s,200);
     }
     const zone=hazardZone(h);
-    if(h.type==="magnet"){magneticPull(world,h,zone,dt);continue;}
+    if(isScanner(h)) {
+      scanFighters(world,h,zone,world.solids());
+      if(h.type==="magnet")magneticPull(world,h,zone,dt);
+      continue;
+    }
     hazardProps(world,h,zone,dt);
     const solids=world.solids();
     for(const p of world.players) {
@@ -112,7 +117,7 @@ export function updateHazards(world,dt) {
       if(["geyser","tesla","xray","steam","frost","spores"].includes(h.type)&&solids.some(s=>segmentBox(h.x,h.y-3,p.x,p.y,s)))continue;
       if(h.hitIds.includes(p.id))continue;
       h.hitIds.push(p.id);
-      const damage={geyser:1000,crusher:1000,pendulum:100,saw:1000,tesla:70,xray:24,steam:32,frost:10,spores:18}[h.type];
+      const damage={geyser:1000,crusher:1000,pendulum:100,saw:1000,tesla:70,steam:32,frost:10,spores:18}[h.type];
       hit(world,p,h,damage,["xray","frost","spores"].includes(h.type)?30:h.type==="pendulum"?1300:800);
       if(h.type==="steam"&&p.alive){p.vy=Math.min(p.vy,-720);p.ground=false;p.support=null;carryImpulse(p,.35);}
       if(h.type==="frost"&&p.alive)p.chill=Math.max(p.chill,1.5);

@@ -30,9 +30,45 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   `codex/guest-prediction`; source edits also remain in the shared canonical
   checkout alongside unrelated concurrent work. External QA files live in
   `../bonk-club-qa/guest-latency`. There are no production debug hooks.
-- Display version is prepared as **0.15.1**, protocol **37**. Both players must
+- All **733 local gameplay/network/shared tests passed**, including 11 new
+  prediction/acknowledgement regressions. The final acknowledgement replacement
+  check also passed in a focused 23-test network run. Production build passed.
+- The integrated browser rerun passed real touch dragging and chat input
+  suppression, in addition to the latency and physical interaction scenarios.
+  It measured 41 ms visible movement and 21 ms visible jump onset while host
+  responses took longer during simultaneous full-suite load; do not treat that
+  run as a stable network benchmark. The unmodified production bundle passed
+  solo, host/guest start, hot join, leave and small-menu checks through TURN.
+- Display version is prepared as **0.16.1**, protocol **37**. Both players must
   refresh and create a new room after publishing. Final release verification
   follows below once complete.
+
+## Scanner layering and skeleton flicker — 11 September 2026
+
+Implemented in the canonical checkout and integrated with current main in
+`../bonk-club-qa/scanner-release` / `codex/scanner-pass`, preserving the
+canonical checkout's unrelated edits. Display version **0.15.0**, protocol **35**
+unchanged; refresh players' tabs for consistent artwork.
+
+- X-ray and magnetic scanners draw the left/rear post behind fighters and the
+  right/front post over them. The default complete drawing remains available
+  for destroyed casing fragments. Destroyed fixtures draw neither post.
+- Active scanners expose pose-following skeletons in brief double flickers.
+  Scanning costs only 1 HP per existing 0.8-second damage interval, with no
+  stun, hitstop or knockback. Magnetic pull, activation warnings, shielding and
+  mounting destruction remain. Exposure clears within 0.12 seconds after leaving.
+  Reduced effects uses a steady faint skeleton; electrical weapons retain their
+  own stronger exposure. Existing xray/xrayType fields carry status; no new wire
+  shape, dependencies, desktop-shell or Pi changes.
+- Eight regression tests cover bounded damage, movement, shielding, destruction,
+  exit/re-entry, fatal exposure, reset, encoded snapshots, interpolation, post
+  layers and flicker frames. Real Edge host/guest checks passed walking through
+  both types (98 HP remaining), exposure clearing, a late-joining browser,
+  destroyed scanner clearing and reset, with selected relay/relay candidates and
+  no page errors. Actual gameplay and enlarged animation frames were inspected.
+  This is one-machine browser QA. Helpers and captures: `../bonk-club-qa/scanner-*`.
+- Full suite, exact production build and public release verification follow below
+  once completed. QA hooks stay in the external helpers, never the game bundle.
 
 ## Fighter chat — 11 September 2026
 
@@ -116,7 +152,7 @@ on `codex/singularity-core-release`. Preserve unrelated canonical edits.
 
 ## Hazard breakup and complete clearing — 11 September 2026
 
-Display version **0.13.1**, protocol **34** inherited from object pickup. This
+Prepared as **0.13.1** and integrated with **0.14.0**, protocol **35**. This
 artwork change uses the existing validated `done` flag and adds no wire fields.
 Refresh all players' tabs to load the release.
 
@@ -132,8 +168,9 @@ Refresh all players' tabs to load the release.
   At most eight bursts and 48 source-art shards per fixture exist at once. Source
   canvases are created only on a break and released with the burst. Reduced-motion
   mode reduces travel and removes spin.
-- Eight new regressions cover direct hits, support loss, disabled damage/drawing,
-  bounded clearing, all fixture meshes, host/guest snapshots, late join and reset.
+- Nine new regressions cover direct hits, support loss, disabled damage/drawing,
+  bounded clearing, all fixture meshes, host/guest snapshots, late join, reset and
+  preventing later black holes from recreating cleared fixtures.
   The initial full suite passed 683 tests; after the direct-hit fix, all 16 focused
   checks passed. After integrating the latest object-pickup release from main, all
   57 hazard/terrain/object-carry checks passed, plus production build.
@@ -147,7 +184,13 @@ Refresh all players' tabs to load the release.
   `../bonk-club-qa/hazard-break-release` / `codex/hazard-break-release`.
   External harnesses/logs/screenshots use `../bonk-club-qa/hazard-break-*`.
   No production debug hooks, dependencies or Pi configuration changes.
-  Final full-suite and published-release verification follows below.
+- The later standalone full suite passed 684 tests. Final hazard/terrain/black-hole
+  integration checks passed 28 tests, and the combined source plus v0.14.0 production
+  bundle repeated all browser checks successfully. Eight maximum-size fixtures
+  generated 198 visible shards in 9.9 ms, with 0.6 ms p95 drawing CPU cost on this
+  machine. Software canvas readback avoids the earlier 127 ms first-frame stall.
+  This measures drawing cost, not FPS or internet latency. The cleared frame
+  contained zero hazard pixels. Published-release verification follows below.
 
 ## Physical object pickup and carrying — 11 September 2026
 

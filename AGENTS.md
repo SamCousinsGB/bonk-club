@@ -130,6 +130,9 @@ Keep this constitution for durable rules and the handoff for current work.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
   saw rails and electrical traps. They may cycle unpredictably with readable
   warnings. Do not restore arbitrary randomly appearing hazard zones.
+  Broken fixtures shatter into brief casing fragments and dust, then clear
+  completely. Do not retain faded shells, persistent hazard rubble or let later
+  black holes recreate cleared fixtures as physical wreckage.
 - Furniture, crates, logs, barrels and rocks are moving physical bodies with
   mass, friction and rotational inertia. Fighters, shots, throws, explosions,
   ragdolls and fixtures transfer momentum to them. Keep heavy stone harder to

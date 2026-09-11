@@ -6,6 +6,7 @@ import { deathJoints } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawAppearance } from "./identity.js";
 import { drawSingularityBody } from "./singularity-art.js";
+import { scannerFlicker } from "./scanner.js";
 function energy(r, points, color, time) {
   const c = r.ctx;
   c.save();
@@ -39,7 +40,10 @@ function energy(r, points, color, time) {
 export function drawStatus(r, p, time) {
   if (!p.alive || !p.rig) return;
   if (p.morphTime > 0) drawTransformedBody(r,p.rig,p.morph,p.morphAge,time);
-  if (p.xray > 0) {
+  if (p.xray > 0 && p.xrayType === "scanner") {
+    if (r.reduced || scannerFlicker(time, p.id))
+      drawAshSkeleton(r, { points: p.rig, life: r.reduced ? .55 : 1, ashAge: 0 });
+  } else if (p.xray > 0) {
     const color = p.xrayType === "phaser" ? "#89ffce" : p.xrayType === "plasma" ? "#8bf5ff" : "#cfabff";
     energy(r, p.rig, color, r.reduced ? 0 : time);
     drawAshSkeleton(r, { points: p.rig, life: 1, ashAge: 0 });

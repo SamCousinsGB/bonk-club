@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.15.1",
+  "version": "0.16.1",
   "releaseNotes": "Faster online controls with local prediction and host reconciliation",
   "private": true,
   "type": "module",
