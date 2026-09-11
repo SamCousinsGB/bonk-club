@@ -4,7 +4,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Local combat prediction and replay - 12 September 2026
 
-- Release **v0.18.0**, protocol **40**. Refresh every player's tab and create a
+- Release **v0.18.1**, protocol **40**. Refresh every player's tab and create a
   new room. Integrated from main `3dd74cf` in `../bonk-club-qa/client-combat`,
   branch `codex/client-combat`. Preserve unrelated canonical checkout edits.
 - Guest firing, alternate fire and weapon throws now create immediate visual
@@ -15,7 +15,12 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   never enter authoritative physics, inventory, damage, destruction or scoring.
 - Host acknowledgements remove rejected previews; authoritative impacts,
   reflections, capture, deaths and resets take precedence. Histories are bounded
-  to 128 previews, 256 recent effects and 250 ms without fresh authority.
+  to 128 previews, 128 recent removals, 256 recent effects and 250 ms without
+  fresh authority. An input awaiting acknowledgement may retain its preview
+  for up to 750 ms while other host updates remain fresh.
+  Confirmed local shots bypass the buffered remote timeline without disappearing
+  at confirmation or reappearing after an impact. PHASER's fast firing event
+  authorizes its preview while its slower world-field update is still in flight.
 - Ballistic projectiles transmit a full-precision initial state and tick count.
   The guest worker runs the shared flight solver; a bounce, reflection, force or
   other trajectory change starts a fresh recipe. Guided/returning projectiles
@@ -32,17 +37,20 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   This measures that test's compressed application data, not all gameplay traffic.
 - Real Edge host/guest browsers selected relay/relay candidates. With 80 ms added
   each direction plus jitter, blaster, shotgun alternate fire, throws, nukes and
-  PHASER appeared in **12-21 ms**, versus **187-222 ms** for host confirmation in
+  PHASER appeared in **14-22 ms**, versus **259-388 ms** for host confirmation in
   the final run. Sustained minigun fire with approximately 9% packet loss produced
   no duplicate shots, kept the guest alive, and used bounded prediction history.
 - Three real relay browsers verified exact active terrain, collision and captured
   contents, a mid-field hot join, overlapping holes, an explosion during
-  deformation and settled terrain/contents. Moving two-hole tests retained 121
-  actor updates in four seconds, 107 with injected delay/loss. Missing-baseline,
+  deformation and settled terrain/contents. Final moving two-hole tests retained
+  120 actor updates in four seconds, with guest frame p95 of 9 ms on this PC.
+  The same test's total application traffic fell from 149,776 to 108,053 bytes
+  versus v0.17.2 (28% less). Missing-baseline,
   600 ms outage, blocked-renderer and four-times CPU-throttle recovery passed.
   These are controlled one-PC relay tests, not cross-ISP or all-device guarantees.
 - All **788 tests** passed, followed by focused final checks and an additional
-  worker/round-transition race regression. The production build and unmodified
+  worker/round-transition race regression plus two confirmation-continuity cases.
+  The production build and unmodified
   production-bundle solo, real host/guest controls, third-player hot join, leave
   and narrow-menu smoke checks passed. Screenshots were inspected; no page errors.
 - No dependencies, Pi services or desktop shell code changed. External QA scripts,

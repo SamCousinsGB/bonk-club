@@ -46,13 +46,41 @@ test('host confirmation replaces a preview once, while hit/removal and rejection
   w.step(STEP,{1:input});w.step(STEP,{1:input});
   const confirmed=snapshot(1);assert.equal(confirmed.projectiles[0].action,preview.action);
   p.receive(confirmed,1,1100);assert.equal(p.sample(confirmed,1105).projectiles.length,1);
+  assert.equal(p.sample(s,1105).projectiles.length,1,'confirmation cannot create a gap before the buffered birth');
   const shot=confirmed.events.find(e=>e.type==='shoot');assert.equal(p.weapons.acceptEvent(shot),false);
   assert.equal(p.weapons.acceptEvent({...shot,action:'1:1:0:20'}),true);
   w.projectiles=[];w.time+=1/30;const hit=snapshot(1);p.receive(hit,1,1120);
   assert.equal(p.sample(hit,1121).projectiles.length,0);assert.equal(p.weapons.pending.size,0);
+  assert.equal(p.sample(confirmed,1121).projectiles.length,0,'buffered state cannot resurrect an authoritative impact');
+  const unrelated={...confirmed,drops:[{x:300,y:400,type:'rocket'}],projectiles:[{...preview,owner:0}]};
+  assert.equal(p.sample(unrelated,1121).drops.length,1,'ownerless pickups remain visible');
+  assert.equal(p.sample(unrelated,1121).projectiles.length,1,'a reflected shot belongs to its new owner');
   const rejected=fixture('blaster');rejected.prediction.advance(input,1,1017);
   rejected.w.time+=STEP;rejected.prediction.receive(rejected.snapshot(1),1,1040);
   assert.equal(rejected.prediction.weapons.pending.size,0);
+});
+
+test('PHASER authorization on the fast stream keeps its preview until the world field arrives',()=>{
+  const {w,s,prediction:p,snapshot}=fixture('phaser');
+  const input=cleanInput({attack:true,aim:0});p.advance(input,1,1017);
+  w.step(STEP,{1:input});w.step(STEP,{1:input});
+  const confirmed=snapshot(1),actors={...confirmed,fields:[]};
+  p.receive(actors,1,1100);assert.equal(p.sample(s,1105).fields.length,1);
+  w.time+=1/30;const world=snapshot(1);p.receive(world,1,1140);
+  assert.equal(p.sample(s,1145).fields.length,1);
+  w.fields=[];w.time+=1/30;p.receive(snapshot(1),1,1180);
+  assert.equal(p.sample(world,1185).fields.length,0);
+});
+
+test('fresh authority with a slower input round trip keeps a bounded preview moving until acknowledgement',()=>{
+  const {w,s,prediction:p,snapshot}=fixture('blaster');p.advance(cleanInput({attack:true,aim:0}),1,1017);
+  const positions=[];
+  for(const now of [1100,1200,1300,1400]){
+    w.time+=.1;p.receive(snapshot(),1,now);positions.push(p.sample(s,now+1).projectiles[0].x);
+  }
+  assert.ok(positions.every((x,i)=>!i||x>positions[i-1]));
+  w.time+=.1;p.receive(snapshot(1),1,1450);
+  assert.equal(p.sample(s,1451).projectiles.length,0,'an applied rejection still clears immediately');
 });
 
 test('denied actions, reflections, round changes and stale connections cannot retain previews',()=>{
