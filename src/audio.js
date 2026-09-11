@@ -39,7 +39,7 @@ export class Sound {
     this.safetyInput.gain.value = 1.25 / 8;
     this.saturator.curve = Float32Array.from({ length: 16385 }, (_, i) => {
       const x = (i / 8192 - 1) * 8, a = Math.abs(x);
-      return a <= .6 ? x : Math.sign(x) * (.6 + .22 * Math.tanh((a - .6) / .22));
+      return a <= .6 ? x : Math.sign(x) * (.6 + .2 * Math.tanh((a - .6) / .2));
     });
     this.saturator.oversample = '4x';
     this.master.connect(this.limiter);
