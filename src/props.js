@@ -14,6 +14,8 @@ export const PROP_TYPES = {
   bed:     { mass: 70, material: "metal" },
   cabinet: { mass: 58, material: "metal" },
   barrel:  { mass: 48, material: "metal" },
+  canister: { mass: 32, material: "metal" },
+  waterTank: { mass: 78, material: "metal" },
 };
 export const PROP_MATERIALS = {
   wood:   { friction: .48, bounce: .12, color: "#b48660" },
@@ -186,6 +188,7 @@ function resolve(a, b, hit, dt, dynamic = false) {
 export function damageProp(world, b, damage, vx = 0, vy = 0, point) {
   if (b.hp <= 0) return;
   prepareProp(b);
+  damage = world.reactPropDamage?.(b, damage) ?? damage;
   impulseProp(b, vx * 22, vy * 22, point?.x, point?.y);
   b.hp = Math.max(0, b.hp - damage);
   world.event(b.hp ? "coverhit" : "break", { ...center(b), color: PROP_MATERIALS[b.material].color });
@@ -235,6 +238,7 @@ export function fractureProp(world, b) {
     if (["stone", "glass"].includes(material)) chunk.shape = [
       [-.5, -.21], [-.27, -.5], [.34, -.46], [.5, .14], [.21, .5], [-.41, .35],
     ];
+    world.inheritPropReaction?.(b, chunk);
     world.chunks.push(chunk);
   }
   // Keep substantial wreckage until round reset, with a strict network/CPU cap.

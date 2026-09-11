@@ -23,6 +23,7 @@ import {
 import { SUDDEN_DEATH } from "./scale.js";
 import { JOINTS } from "./puppet.js";
 import { drawChunks } from "./prop-art.js";
+import { drawReactiveProp, drawGas, drawReactions } from "./reaction-art.js";
 import { meleePose, SWING_START } from "./melee-pose.js";
 import { drawPhaser } from "./phaser-art.js";
 import { drawBurning, drawBubble } from "./weird-art.js";
@@ -328,6 +329,7 @@ export class Renderer {
   tableArt(p) {
     if (p.hp <= 0) return;
     const c = this.ctx;
+    if (drawReactiveProp(c, p)) return;
     if (drawCover(c, p)) return;
     c.fillStyle = "#14202a99";
     c.fillRect(p.x + 7, p.y + p.h - 3, p.w, 7);
@@ -880,6 +882,7 @@ export class Renderer {
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
+    drawGas(c, state, time);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -930,6 +933,7 @@ export class Renderer {
     drawHazards(c, state.hazards, time);
     this.fragments(state.debris);
     drawChunks(this.ctx, state.chunks);
+    drawReactions(c, state, time);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {

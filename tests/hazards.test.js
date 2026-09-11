@@ -62,7 +62,7 @@ test("trap snapshot validation rejects unknown types and invalid body positions"
  const {w}=lab();for(const patch of [{type:"<img>"},{bodyX:Infinity},{w:10000},{warning:-1},{active:"yes"},{hitIds:[9]}]){
  const s=structuredClone(w.snapshot());Object.assign(s.hazards[0],patch);assert.equal(validSnapshot(s),false);}
 });
-test("railgun rounds break every new cover type", () => {
+test("railgun rounds break cover or rupture a pressure cylinder", () => {
   for (const kind of COVER_KINDS.filter((k) => k !== "table")) {
     const { w, p } = lab();
     w.hazards = [];
@@ -82,7 +82,8 @@ test("railgun rounds break every new cover type", () => {
     p.aimAngle = 0;
     w.attack(p);
     for (let i = 0; i < 8; i++) w.updateProjectiles(STEP);
-    assert.equal(c.hp, 0, kind);
+    if (kind === "canister") { assert.equal(c.hp,1);assert.equal(c.leak,1);assert.ok(c.fuse>0); }
+    else assert.equal(c.hp, 0, kind);
   }
 });
 test("the full map rotation visits every map once before repeating", () => {

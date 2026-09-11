@@ -1,11 +1,12 @@
 const simulationOnly = new Set([
+  "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
   "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
 ]);
-const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks"];
+const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
 function copy(value) {
   if (typeof value === "number") return quantize(value);
@@ -20,7 +21,7 @@ export class RenderSnapshots {
   constructor() { this.ids = new WeakMap(); this.nextId = 0; }
   make(state) {
     const out = copy(state);
-    for (const key of movingLists) out[key].forEach((entity, i) => {
+    for (const key of movingLists) (out[key] || []).forEach((entity, i) => {
       const source = state[key][i];
       if (!this.ids.has(source)) this.ids.set(source, ++this.nextId);
       entity.netId = this.ids.get(source);
@@ -77,8 +78,8 @@ export function interpolateStates(a, b, t) {
     return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
   });
   for (const key of movingLists) {
-    const old = new Map(a[key].filter(p => p.netId != null).map(p => [p.netId, p]));
-    out[key] = b[key].map(p => blend(old.get(p.netId), p, t));
+    const old = new Map((a[key] || []).filter(p => p.netId != null).map(p => [p.netId, p]));
+    out[key] = (b[key] || []).map(p => blend(old.get(p.netId), p, t));
   }
   return out;
 }

@@ -153,6 +153,11 @@ export class Sound {
       this.rumble(heavy ? 0.24 : 0.09, heavy ? 0.6 : 0.3, 2300);
       return;
     }
+    if(type==="hazard"&&detail.kind==="leak"){
+      this.rumble(.28,.16,detail.urgent?3800:2600);
+      if(detail.urgent)this.tone(940,1250,.08,.12,"triangle");
+      return;
+    }
     const table = {
       hazard: [780, 0.22, "sine"],
       parry: [920, 0.15, "sine"], swing: [160, 0.035, "triangle"],

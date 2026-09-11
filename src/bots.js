@@ -4,6 +4,7 @@ import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
 import { breakable } from "./maps.js";
 import { dangerous, hazardZone } from "./hazards.js";
+import { reactionDanger } from "./reactions.js";
 import { grenadePlan } from "./ballistics.js";
 import {
   navigationSteps,
@@ -737,6 +738,13 @@ export class BotController {
       const z=hazardZone(h);
       return p.x>z.x-45&&p.x<z.x+z.w+45&&p.y+30>z.y-20&&p.y-28<z.y+z.h;
     });
+    if (reactionDanger(world,p.x,p.y) && !b.flight && here) {
+      const leftSafe=!reactionDanger(world,p.x-90,p.y),rightSafe=!reactionDanger(world,p.x+90,p.y);
+      const dir=leftSafe&&!rightSafe?-1:rightSafe&&!leftSafe?1:p.facing;
+      i.left=dir<0;i.right=dir>0;i.duck=false;i.block=false;
+      const roof=solids.some(s=>s.y+s.h<p.y-25&&s.y+s.h>p.y-165&&p.x+20>s.x&&p.x-20<s.x+s.w);
+      if(!roof)i.jump=p.ground;
+    }
     if (hazard && !b.flight) {
       const z=hazardZone(hazard);
       let away=p.x<z.x+z.w/2?-1:1;
