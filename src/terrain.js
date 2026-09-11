@@ -74,14 +74,17 @@ export function carveExplosion(world, blast) {
     if (remains.length !== 1 || remains[0].w !== s.w) changed = true;
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
-  const traps = world.hazards.length;
-  world.hazards = world.hazards.filter(h => {
+  for (const h of world.hazards) {
+    if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,
     };
-    return carveRectangle(box, cut)[0] === box;
-  });
-  changed ||= traps !== world.hazards.length;
+    if (carveRectangle(box, cut)[0] !== box) {
+      // Keep the existing disabled identity for guest break animation and hot
+      // join. It has no collision, damage or artwork after its brief breakup.
+      h.done = true; h.active = false; h.warning = 0; changed = true;
+    }
+  }
   if (!changed) return;
   world.terrainVersion++;
   const ids = new Set(world.solids().map(s => s.id));

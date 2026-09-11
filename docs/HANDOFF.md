@@ -3,6 +3,41 @@
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 
+## Hazard breakup and complete clearing — 11 September 2026
+
+Display version **0.13.1**, protocol **34** inherited from object pickup. This
+artwork change uses the existing validated `done` flag and adds no wire fields.
+Refresh all players' tabs to load the release.
+
+- All twelve environmental fixtures disappear through jagged pieces of their
+  own casing, rods and moving heads, followed by dust and small grit. The intact
+  machine never fades. Every shard and puff clears within 1.05 seconds, leaving
+  no persistent hazard rubble, ghost artwork or active hazard damage.
+- Both lost mounting floors and direct explosive hits trigger the break. Ordinary
+  blasts retain a disabled fixture identity for the transition; nuclear/PHASER
+  consumption and black-hole collection keep their existing specialized effects.
+- Per-renderer observation prevents duplicate packets, hot joins, scene changes
+  or background gaps from replaying a stale break. Round reset restores fixtures.
+  At most eight bursts and 48 source-art shards per fixture exist at once. Source
+  canvases are created only on a break and released with the burst. Reduced-motion
+  mode reduces travel and removes spin.
+- Eight new regressions cover direct hits, support loss, disabled damage/drawing,
+  bounded clearing, all fixture meshes, host/guest snapshots, late join and reset.
+  The initial full suite passed 683 tests; after the direct-hit fix, all 16 focused
+  checks passed. After integrating the latest object-pickup release from main, all
+  57 hazard/terrain/object-carry checks passed, plus production build.
+- Real Edge host/guest/hot join passed all twelve types, actual carved mounting
+  floors, shard artwork, empty aftermath and round restoration twice, including
+  the integrated source. Selected relay/relay candidates were checked at each end.
+  The unmodified production bundle passed solo, host/guest controls, hot join,
+  leaving and a small-screen menu with no browser errors. Gameplay frames were
+  visually inspected. This is one-machine browser QA.
+- Canonical unrelated edits were preserved. Release integration is in
+  `../bonk-club-qa/hazard-break-release` / `codex/hazard-break-release`.
+  External harnesses/logs/screenshots use `../bonk-club-qa/hazard-break-*`.
+  No production debug hooks, dependencies or Pi configuration changes.
+  Final full-suite and published-release verification follows below.
+
 ## Physical object pickup and carrying — 11 September 2026
 
 Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the

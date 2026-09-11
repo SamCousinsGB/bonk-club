@@ -8,8 +8,9 @@ function wheel(c,x,y,r,time,spikes=false){
 }
 export function drawHazards(c,hazards,time,theme){
   for(const h of hazards||[]){
+    if(h.done)continue;
     const left=h.x-h.w/2,top=h.y-h.h;
-    c.save();if(h.done)c.globalAlpha=.3;
+    c.save();
     const alert=h.warning>0&&Math.sin(time*18)>0;
     if(h.warning>0&&!h.done){
       c.fillStyle=alert?"#ffca5730":"#ffca5718";c.fillRect(left,top,h.w,h.h);

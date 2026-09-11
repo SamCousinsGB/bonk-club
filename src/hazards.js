@@ -45,7 +45,7 @@ export function updateHazards(world,dt) {
   if(world.phase!=="fight")return;
   for(const h of world.hazards) {
     if(h.done)continue;
-    // Destroying the mounting floor disables a fixture, leaving its casing visible.
+    // The renderer breaks the casing apart when this fixture loses its mounting.
     if(!world.platforms.some(p=>p.hp!==0&&Math.abs(p.y-h.y)<2&&p.x<=h.x&&p.x+p.w>=h.x)) {
       h.done=true;h.active=false;h.warning=0;continue;
     }

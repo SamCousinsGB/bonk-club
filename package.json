@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.13.0",
-  "releaseNotes": "Right-click to pick up physical objects, carry them and throw them",
+  "version": "0.13.1",
+  "releaseNotes": "Broken environmental hazards shatter into dust and clear completely",
   "private": true,
   "type": "module",
   "scripts": {
