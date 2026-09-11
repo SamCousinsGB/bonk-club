@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, emptyInput } from "../src/engine.js";
 import { JOINTS, makeRig } from "../src/puppet.js";
-import { blackholeField } from "../src/blackhole.js";
+import { blackholeField, SINGULARITY } from "../src/blackhole.js";
 import { updateFields } from "../src/specials.js";
 import { captureFighter, moveCaptured } from "../src/singularity-body.js";
 import { collectMatter, MATTER_LIMIT } from "../src/accretion.js";
@@ -19,6 +19,38 @@ function fixture() {
 function advance(w,seconds) {
   for(let t=0;t<seconds;t+=STEP) { w.time+=STEP; updateFields(w,STEP); w.updateRagdolls(STEP); }
 }
+
+test("the smaller singularity leaves fighters, pickups and terrain beyond its new boundary intact", async()=>{
+  const w=fixture(),f=blackholeField(w,{x:1100,y:700,owner:0});w.fields=[f];
+  assert.equal(f.radius,620*.75);
+  Object.assign(w.players[0],{x:1400,y:700});w.players[0].rig=makeRig(w.players[0]);
+  Object.assign(w.players[1],{x:1550,y:700});w.players[1].rig=makeRig(w.players[1]);
+  w.drops=[464,466].map((dx,i)=>({id:i+1,x:f.x+dx,y:f.y,type:"bat",ammo:4,life:20}));
+  w.platforms=[{id:"inside",x:1535,y:690,w:10,h:20},
+    {id:"outside",x:1580,y:690,w:10,h:20}]
+    .map(p=>({...p,baseX:p.x,baseY:p.y,dx:0,dy:0}));
+  advance(w,.45);
+  assert.equal(w.players[0].capturedBy,f.riftId);
+  assert.equal(w.players[1].capturedBy,undefined);
+  assert.deepEqual(w.drops.map(p=>p.id),[2]);
+  assert.ok(!w.platforms.some(p=>p.id==="inside"));
+  assert.ok(w.platforms.some(p=>p.id==="outside"));
+  const late=await decodeState(await encodeState(wire.make(w.snapshot())));
+  assert.ok(validSnapshot(late));
+  assert.equal(late.rifts[0].radius,SINGULARITY.radius);
+  assert.equal(late.fields[0].radius,SINGULARITY.radius);
+  for(const radius of [466,620,Infinity]) {
+    const bad=structuredClone(late);bad.fields[0].radius=radius;
+    assert.equal(validSnapshot(bad),false);
+  }
+  advance(w,5.1);
+  assert.equal(w.players[0].alive,false);
+  assert.equal(w.players[1].alive,true);
+  assert.equal(w.wreckage.find(p=>p.kind==="matter").totals[3],1);
+  w.startRound();
+  assert.equal(w.rifts.length,0);
+  assert.ok(w.players.every(p=>p.alive&&!p.capturedBy));
+});
 test("living fighters orbit as connected stretched limbs and cannot fire, jump or recover during capture",()=>{
   const w=fixture(),p=w.players[0],f=blackholeField(w,{x:1100,y:700,owner:1});
   w.fields=[f]; f.torn=true;f.age=.41;

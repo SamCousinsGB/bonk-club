@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.6.0",
-  "releaseNotes": "3 new levels and themed hazards",
+  "version": "0.6.1",
+  "releaseNotes": "Improved ice and smaller black holes",
   "private": true,
   "type": "module",
   "scripts": {

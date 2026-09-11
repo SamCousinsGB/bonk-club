@@ -152,8 +152,10 @@ Keep this constitution for durable rules and the handoff for current work.
   flattened perspective ellipses or rigid prefab spinning. Actual wreckage and
   consumed terrain must agree with collision and remain changed until round reset.
   Captured living fighters go limp and orbit with colliding, stretched limbs before
-  compression. On closing, collected fighters, weapons, props, traps, projectiles,
-  debris and blood become a persistent dense ball with real collision. Keep the
+  compression. The field radius is 465 units (25% down from 620), with the lens
+  reduced to match. Compressed fighters show only their coloured head in the final
+  ball, never a miniature stick body. On closing, collected fighters, weapons,
+  props, traps, projectiles, debris and blood become a persistent dense ball with real collision. Keep the
   outer twisted platforms and their existing artwork. Captured matter must not
   simply disappear at the core; bound visual samples while retaining all counts.
   Keep capture violent: retain incoming momentum, fast eccentric orbits, elastic

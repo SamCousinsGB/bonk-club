@@ -2,6 +2,33 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Frozen bodies and smaller black holes — 11 September 2026
+
+Gameplay **v0.6.1**. Protocol **29** because field and retained-rift validation
+now use the smaller radius. Refresh every player's tab and create a new room.
+
+- `src/frozen-art.js` replaces the bounding polygon with translucent, bevelled
+  crystals following the actual head and each bone. Bright edges, shaded facets,
+  branching cracks and small crystal tips remain readable in standing, prone and
+  airborne poses. Living freeze and ice deaths share the artwork; existing thaw,
+  cooldown, frozen-pose physics and timed shattering are preserved.
+- Black-hole pull/destruction radius is **465**, exactly 25% below 620. Weapon
+  targeting metadata agrees, and the lens scales down by the same proportion.
+  Captured fighters retain their stretched physical bodies during orbit. On final
+  compression each shows only a coloured head, drawn after rubble to stay visible.
+  Matter counts, the persistent collidable ball, outer wreckage and resets remain.
+- A regression covers players, pickups and terrain on either side of the new
+  boundary, validated transport, invalid radii, collapse counts and round reset.
+  Real Edge source host/guest and a third hot joiner verified frost-shot freezing,
+  thaw, ice death, live orbital strands, collapsed matter and matching collision.
+  Selected connections for that completed check were direct on the QA machine;
+  this is not a cross-ISP or new TURN-infrastructure test. No browser errors.
+- Rendered gameplay and enlarged standing/prone/airborne/shatter/head frames were
+  inspected. External helpers/captures: `bonk-club-qa/frozen-visual.cjs`,
+  `frozen-online.cjs`, `frozen-release.cjs`, and `frozen-*.png`. Test hooks stay
+  outside production. No dependencies or Pi changes. Release verification follows.
+
+
 ## Arena, scenery and fairness pass — 11 September 2026
 
 Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
