@@ -157,9 +157,10 @@ test("all hairstyles survive the wire snapshot and unsupported player metadata i
   assert.equal(validSnapshot(w.snapshot()), false);
 });
 
-test("every arena opens with a nuke and another unusual weapon on the first round", () => {
+test("standard arenas open with featured weapons while survival arenas start unarmed", () => {
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena, random: () => 0.3 });
+    if(w.arena.survival){assert.equal(w.drops.length,0);continue;}
     assert.equal(w.drops[0]?.type, "nuke", ARENAS[arena].name);
     assert.ok(["rare", "exotic"].includes(WEAPONS[w.drops[1]?.type]?.rarity));
   }

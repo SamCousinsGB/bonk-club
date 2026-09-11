@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.2",
-  "releaseNotes": "Flowing water, impact splashes and branching electrical arcs",
+  "version": "0.10.0",
+  "releaseNotes": "Cargo conveyor, alternating presses and ice saw arenas with hazard-aware AI",
   "private": true,
   "type": "module",
   "scripts": {

@@ -15,6 +15,18 @@ export function drawHazards(c,hazards,time,theme){
       c.fillStyle=alert?"#ffca5730":"#ffca5718";c.fillRect(left,top,h.w,h.h);
       line(c,[[left,h.y-2],[left+h.w,h.y-2]],"#ffd372",3);
     }
+    if(h.type === "loader") {
+      // A visible outlet and amber beacon precede every physical box.
+      c.fillStyle="#121e28";c.fillRect(left,top,h.w,h.h);
+      c.strokeStyle="#69838b";c.lineWidth=12;c.strokeRect(left,top,h.w,h.h);
+      c.fillStyle="#293c48";
+      const open=h.active?0:h.warning>0?h.h*(h.warning/1):h.h;
+      c.fillRect(left+6,top+6,h.w-12,Math.max(0,open-12));
+      for(let y=top+15;y<top+open-8;y+=18)line(c,[[left+9,y],[left+h.w-9,y]],"#60757d",3);
+      for(let x=left;x<left+h.w;x+=24)line(c,[[x,top-14],[x+12,top-26]],"#d4aa52",8);
+      circle(c,h.x,top-40,10,h.warning>0?(alert?"#ffe089":"#9e6935"):"#456369");
+      c.restore();continue;
+    }
     if(h.type==="xray"||h.type==="magnet"){
       const magnetic=h.type==="magnet",color=magnetic?"#8acbff":"#b4ffe2";
       // The scanner opening is passable. Solid-looking shells sit at its sides;

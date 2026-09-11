@@ -80,11 +80,17 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
   for (let i = 0; i < ARENAS.length; i++) {
     const w = new World({ arena: i, players: [0, 1, 2, 3] });
     assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > 2400);
-    assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
-    assert.ok(Math.max(...w.platforms.map((p) => p.y)) >= 1200);
-    assert.ok(w.platforms.length >= 16);
-    assert.ok(w.cover.length >= 3);
-    assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
+    if (w.arena.survival) {
+      assert.equal(w.platforms.length, 1);
+      assert.ok(w.platforms[0].w > 2300);
+      assert.ok(w.players.every(p=>p.y < w.platforms[0].y));
+    } else {
+      assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
+      assert.ok(Math.max(...w.platforms.map((p) => p.y)) >= 1200);
+      assert.ok(w.platforms.length >= 16);
+      assert.ok(w.cover.length >= 3);
+      assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
+    }
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());
     bad.platforms = Array(1537).fill(bad.platforms[0]);

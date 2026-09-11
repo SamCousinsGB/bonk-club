@@ -23,6 +23,7 @@ const near = (b, x, y, radius) => b.mass ? bodyInBlast(b, { x, y, radius }) :
 export function resetReactions(world) {
   world.water = []; world.gas = []; world.reactionSerial = 0; world.reactionClock = 0;
   world.reactionHeatAt = 0;
+  if (world.arena.survival) return;
   // Place a few readable opportunities on existing landings, outside spawns and
   // trap machinery. Layouts, routes and the opening weapon rotation stay intact.
   const floors = world.platforms.filter(p => p.w >= 290 && p.h <= 65 && p.y > 320 &&

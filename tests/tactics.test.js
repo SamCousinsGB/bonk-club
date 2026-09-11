@@ -202,7 +202,8 @@ test("all arenas preserve their wood and glass materials alongside structural su
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena });
     const panels = w.platforms.filter((p) => p.destructible);
-    assert.ok(panels.length > 0 && panels.length <= 6, ARENAS[arena].name);
+    if(w.arena.survival)assert.equal(panels.length,0,"machinery floors resist bullets");
+    else assert.ok(panels.length > 0 && panels.length <= 6, ARENAS[arena].name);
     assert.ok(w.platforms.some((p) => !p.destructible));
     assert.ok(w.platforms.length <= 72);
     for (const p of panels) {

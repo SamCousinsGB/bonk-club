@@ -127,7 +127,7 @@ function saveProfile(value) {
 }
 const roomOptions = () => ({ profile });
 
-let selectedArena = ["city", "random"].includes(preferences.value.arena) || Number(preferences.value.arena) < ARENAS.length ? preferences.value.arena : "random",
+let selectedArena = ["city", "random", "survival"].includes(preferences.value.arena) || Number(preferences.value.arena) < ARENAS.length ? preferences.value.arena : "random",
   ping = 0;
 let searchId = 0;
 const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
@@ -294,7 +294,7 @@ function home() {
   history.replaceState(null, "", location.pathname);
 }
 function settingsHtml() {
-  return `<div class="settings"><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label><label>AI DIFFICULTY<select id="difficulty">${["easy", "normal", "hard"].map(value => `<option value="${value}" ${difficulty === value ? "selected" : ""}>${value[0].toUpperCase() + value.slice(1)}</option>`).join("")}</select></label></div>`;
+  return `<div class="settings"><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option><option value="survival" ${selectedArena === "survival" ? "selected" : ""}>Survival arenas</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label><label>AI DIFFICULTY<select id="difficulty">${["easy", "normal", "hard"].map(value => `<option value="${value}" ${difficulty === value ? "selected" : ""}>${value[0].toUpperCase() + value.slice(1)}</option>`).join("")}</select></label></div>`;
 }
 function wireSettings() {
   $("#difficulty")?.addEventListener("change", e => {
@@ -324,16 +324,16 @@ function arenaMenu() {
 }
 function startWorld(ids) {
   enterGameScreen();
-  const pool = selectedArena === "city" ? CITY_ARENAS : ARENAS.map((_, i) => i);
+  const pool = selectedArena === "city" ? CITY_ARENAS : selectedArena === "survival" ? ARENAS.flatMap((a,i)=>a.survival?[i]:[]) : ARENAS.map((_, i) => i);
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
     bots: room ? activeSlots(room.slots, room.roster).filter(p => p.bot).map(p => p.id) : [0, 1, 2, 3].filter((id) => !ids.includes(id)),
     fillSolo: false,
     difficulty,
-    arena: ["city", "random"].includes(selectedArena)
+    arena: ["city", "random", "survival"].includes(selectedArena)
       ? pool[Math.floor(Math.random() * pool.length)]
       : Number(selectedArena),
-    shuffle: ["city", "random"].includes(selectedArena),
+    shuffle: ["city", "random", "survival"].includes(selectedArena),
     arenaPool: pool,
   });
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
@@ -876,7 +876,7 @@ function updateHud(s) {
   status.classList.toggle("hidden", !warning);
   const a = $("#announcement");
   if (s.phase === "countdown") {
-    setHtml(a, `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>`);
+    setHtml(a, `${s.phaseTime > 0.45 ? Math.ceil(s.phaseTime) : "FIGHT"}<small>${ARENAS[s.arenaIndex].name}</small>${ARENAS[s.arenaIndex].instruction ? `<small class="arena-instruction">${ARENAS[s.arenaIndex].instruction}</small>` : ""}`);
   } else if (s.phase === "result") {
     const message = victoryMessage(s, s.players.find((p) => p.id === s.winner)?.name || NAMES[s.winner] || "Player");
     setHtml(a, `<span class="victory-title" style="--victory-title-size:${Math.min(7, 110 / [...message.title].length)}vw">${esc(message.title)}</span>${message.detail ? `<span class="victory-detail">${esc(message.detail)}</span>` : ""}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);

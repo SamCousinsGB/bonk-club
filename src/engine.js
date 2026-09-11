@@ -36,6 +36,7 @@ import { projectileMuzzle } from "./weapon-mount.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { NEW_ARENAS } from "./new-arenas.js";
+import { SURVIVAL_ARENAS } from "./survival-arenas.js";
 import { nearFixture } from "./arena-dressing.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
@@ -62,7 +63,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena);
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -171,7 +172,7 @@ export class World {
     const starter = ["blaster","smg","shotgun","burst"][(this.round-1)%4];
     this.drops.push(...this.arena.starterWeapons.map(([x,y])=>({x,y,type:starter,
       ammo:WEAPONS[starter].ammo,vx:0,vy:0,life:SUDDEN_DEATH})));
-    this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0;
+    this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0; this.cargoSerial = 0;
     this.cover = (this.arena.cover || []).map((c, i) => prepareProp({
       ...c,
       id: "cover" + i,
@@ -188,7 +189,7 @@ export class World {
     this.phase = "countdown";
     this.phaseTime = 2.4;
     this.elapsed = 0;
-    this.weaponTimer = 2;
+    this.weaponTimer = this.arena.survival?.firstWeapon ?? 2;
     this.hitstop = 0;
     this.winner = null;
     this.lastDeathCause = null;
@@ -433,7 +434,7 @@ export class World {
       this.weaponTimer -= dt;
       if (this.weaponTimer <= 0) {
         this.spawnWeapon();
-        this.weaponTimer = 3 + this.random() * 2;
+        this.weaponTimer = (this.arena.survival?.weaponInterval ?? 3) + this.random() * 2;
       }
     }
     for (const p of this.players) {
@@ -963,6 +964,20 @@ export class World {
     this.event("throw", { x: p.x, y: p.y });
   }
   spawnWeapon() {
+    if (this.arena.survival) {
+      if (this.drops.length || this.players.some(p => p.alive && p.weapon)) return;
+      const candidates = this.platforms.filter(p => p.hp !== 0 && p.w > 80)
+        .flatMap(p => [.25, .5, .75].map(f => ({ x: p.x + p.w * f, y: p.y - 30 })))
+        .filter(q => q.x > 350 && q.x < 2200 && !this.solids().some(s => s.kind && s.hp > 0 &&
+          q.x > s.x - 30 && q.x < s.x + s.w + 30 && q.y > s.y - 25 && q.y < s.y + s.h) &&
+          !this.hazards.some(h => !h.done && h.type === "crusher" && Math.abs(q.x - h.x) < h.w / 2 + 30) &&
+          !this.players.some(p => p.alive && Math.hypot(p.x - q.x, p.y - q.y) < 130));
+      if (!candidates.length) return;
+      const point = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))];
+      const type = ["bat", "blaster", "sword", "smg"][(this.round - 1 + Math.floor(this.random() * 4)) % 4];
+      this.drops.push({ ...point, type, ammo: Math.max(1, Math.ceil(WEAPONS[type].ammo * .45)), vx: 0, vy: 0, life: 25 });
+      return;
+    }
     if (this.drops.length >= 12) return;
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     // Prefer accessible, unoccupied landings near the current fight. Avoid

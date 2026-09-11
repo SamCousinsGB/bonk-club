@@ -2,6 +2,43 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Survival arenas — 11 September 2026
+
+Implemented in `bonk-club-survival` / `codex/survival-arena-release` while other
+tasks changed the canonical checkout. Preserve those separate changes.
+
+- Three new broad-floor arenas, taking the rotation to 30: **Cargo Conveyor**
+  sends breakable, weighted boxes from the right along a left-moving belt;
+  **Press Floor** alternates six warned crusher lanes with safe gaps;
+  **Ice Sweep** has two opposing saws crossing a slippery floor.
+- These arenas start unarmed, with no automatic scenery props or elemental
+  containers. The first weapon opportunity is after 12 seconds, then every
+  15–17 seconds; no reinforcement while a living fighter or loose drop already
+  holds a weapon. Drops use modest weapons with reduced ammunition. The existing
+  maps retain their featured/nuclear rotation and equal starter pickups.
+- Settings includes a saved **Survival arenas** rotation, alongside individual
+  arena choices and all maps. Each new arena gives one functional countdown hint.
+- Bots predict approaching cargo and curved saw motion, steer toward a safe
+  landing, spend their ordinary second jump at intersecting saw passes, brake
+  near belt ends and leave warned press lanes. Combat aim/difficulty is unchanged.
+- The outlet warns before each crate. Backed-up cargo blocks spawning; at most
+  14 intact cargo bodies are admitted and broken pieces use the existing 96-piece
+  rubble limit. Stable cargo IDs, source artwork, rotation, collision, blast cuts,
+  disabled machinery and round reset follow host-authoritative state.
+- Protocol **32** adds loader fixtures, bounded conveyor settings and wide saw
+  rails. Refresh all players and create a new room. Display version is prepared
+  as **0.10.0**, subject to integration with concurrent releases.
+- Real Edge host/guest/hot join passed through selected relay/relay connections:
+  moving cargo, fracture, a destroyed belt floor, matching late-join terrain and
+  shards, guest controls, press/saw state and round resets. No browser errors.
+  This was one QA machine, not separate-ISP evidence. Guest drawing CPU p95 was
+  0.6 ms over 2,887 samples; this is not FPS or network latency.
+- Rendered gameplay was inspected for all three arenas. External helpers/logs/
+  captures are `../bonk-club-qa/survival-*`; no production debug hooks. Ten new
+  regressions cover survival behavior, repeated ordinary-control dodges, scarce
+  drops, admission limits, invalid wire settings, destruction/hot join and reset.
+  The full suite and final publication verification are still in progress.
+
 ## Falling water and living electrical arcs — 11 September 2026
 
 Implemented in `bonk-club-water` / `codex/water-arcs-release`, preserving the

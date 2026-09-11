@@ -55,7 +55,7 @@ test("destroying a fixture mounting floor disables it",()=>{
 test("every arena has fixed, varied traps away from spawns",()=>{
  const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length>=2,a.name);
  for(const h of a.traps){kinds.add(h.type);assert.ok(a.platforms.some(p=>p.y===h.y&&p.x<=h.x&&p.x+p.w>=h.x));
- assert.ok(!a.spawns.some(([x,y])=>Math.abs(x-h.x)<h.w/2+85&&Math.abs(y-(h.y-30))<90),a.name);}}
+ if(!a.survival)assert.ok(!a.spawns.some(([x,y])=>Math.abs(x-h.x)<h.w/2+85&&Math.abs(y-(h.y-30))<90),a.name);}}
  assert.equal(kinds.size,HAZARD_TYPES.length);
 });
 test("trap snapshot validation rejects unknown types and invalid body positions",()=>{

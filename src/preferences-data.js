@@ -7,7 +7,7 @@ export function cleanPreferences(value = {}) {
     schema: 1,
     profile: cleanProfile(value.profile, { name: 'Player', color: '#55baff', hair: 'None' }),
     difficulty: cleanDifficulty(value.difficulty),
-    arena: typeof value.arena === 'string' && /^(random|city|\d{1,3})$/.test(value.arena) ? value.arena : 'random',
+    arena: typeof value.arena === 'string' && /^(random|city|survival|\d{1,3})$/.test(value.arena) ? value.arena : 'random',
     muted: value.muted === true,
     reducedMotion: typeof value.reducedMotion === 'boolean' ? value.reducedMotion : null,
   };

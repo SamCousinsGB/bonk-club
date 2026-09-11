@@ -2,15 +2,18 @@ import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { breakable } from "./maps.js";
 import { hazardProps, propFor, impulseProp } from "./props.js";
-export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores"];
-export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant"};
+import { releaseCargo } from "./cargo.js";
+export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","loader"];
+export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {
   return (world.arena.traps||[]).map((h,i)=>({
-    ...h,id:i+1,bodyX:h.x,bodyY:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.y-h.h+24,vy:0,age:0,
+    ...h,id:i+1,bodyX:h.type==="saw"?h.x+Math.sin(h.motionPhase||0)*(h.w/2-28):h.x,bodyY:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.y-h.h+24,vy:0,age:0,
     warning:0,duration:1.25,cooldown:3.5+i*.75,active:false,
     done:false,hitIds:[],hitTimer:0,
+    ...(h.type === "loader" ? {cooldown: 3.5} : {}),
+    ...(world.arena.survival && h.type === "conveyor" ? {cooldown: 0} : {}),
   }));
 }
 export function hazardZone(h) {
@@ -49,7 +52,18 @@ export function updateHazards(world,dt) {
     h.age+=dt;h.hitTimer-=dt;
     if(h.hitTimer<=0){h.hitIds=[];h.hitTimer=.8;}
     const mechanical=["conveyor","pendulum","saw"].includes(h.type);
-    if(mechanical) {
+    if(world.arena.survival?.kind === "press" && h.type === "crusher") {
+      // Neighbouring lanes alternate, with a full 1.4 seconds of visible warning.
+      const t = ((h.age - 3 + (h.id % 2 ? 0 : 3.2)) % 6.4 + 6.4) % 6.4;
+      const wasActive = h.active;
+      h.warning = h.age >= 3 && t < 1.4 ? 1.4 - t : 0;
+      h.active = h.age >= 3 && t >= 1.4 && t < 2.25;
+      if (h.active && !wasActive) { h.hitIds = []; world.event("hazard", {x:h.x,y:h.y,kind:h.type}); }
+      if (!h.active) h.bodyY = Math.max(h.y - h.h + 22, h.bodyY - 300 * dt);
+    }else if(mechanical) {
+      if(h.type==="saw"&&h.motionSpeed) {
+        h.bodyX=h.x+Math.sin(h.age*h.motionSpeed+(h.motionPhase||0))*(h.w/2-28);
+      }
       if(h.cooldown>0){h.cooldown=Math.max(0,h.cooldown-dt);h.warning=h.cooldown<1?h.cooldown:0;continue;}
       h.warning=0;
       h.active=true;
@@ -58,20 +72,21 @@ export function updateHazards(world,dt) {
         h.bodyX=h.x+Math.sin(angle)*length;
         h.bodyY=h.y-h.h+Math.cos(angle)*length;
       }else if(h.type==="saw") {
-        h.bodyX=h.x+Math.sin(h.age*1.65)*(h.w/2-28);h.bodyY=h.y-28;
+        h.bodyX=h.x+Math.sin(h.age*(h.motionSpeed ?? 1.65)+(h.motionPhase || 0))*(h.w/2-28);h.bodyY=h.y-28;
       }
     }else if(h.active) {
       h.duration-=dt;
-      if(h.duration<=0){h.active=false;h.cooldown=2.5+world.random()*3;h.hitIds=[];continue;}
+      if(h.duration<=0){h.active=false;h.cooldown=(h.type === "loader" ? 1.7 : 2.5)+world.random()*(h.type === "loader" ? .8 : 3);h.hitIds=[];continue;}
     }else if(h.warning>0) {
       h.warning=Math.max(0,h.warning-dt);
-      if(h.warning===0){h.active=true;h.duration=h.type==="crusher"?1.1:1.35;h.hitIds=[];world.event("hazard",{x:h.x,y:h.y,kind:h.type});}
+      if(h.warning===0){h.active=true;h.duration=h.type==="loader"?.25:h.type==="crusher"?1.1:1.35;h.hitIds=[];world.event("hazard",{x:h.x,y:h.y,kind:h.type});if(h.type==="loader")releaseCargo(world,h);}
     }else {
       h.cooldown-=dt;
       if(h.type==="crusher")h.bodyY=Math.max(h.y-h.h+22,h.bodyY-160*dt);
       if(h.cooldown<=0)h.warning=1;
     }
     if(!h.active)continue;
+    if(h.type === "loader") continue;
     const oldY=h.bodyY;
     if(h.type==="crusher") {
       h.bodyY=Math.min(h.y-22,h.bodyY+1100*dt);
@@ -86,7 +101,7 @@ export function updateHazards(world,dt) {
       const box=playerBox(p);
       if(h.type==="conveyor") {
         if(p.ground&&Math.abs(box.y+box.h-h.y)<8&&box.x+box.w>zone.x&&box.x<zone.x+zone.w) {
-          p.vx+=h.dir*Math.min(3000*dt,Math.max(0,800-p.vx*h.dir));
+          p.vx+=h.dir*Math.min((h.beltForce ?? 3000)*dt,Math.max(0,(h.beltSpeed ?? 800)-p.vx*h.dir));
           carryImpulse(p,.2);
         }
         continue;

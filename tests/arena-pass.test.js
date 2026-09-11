@@ -10,6 +10,7 @@ import {prepareProp,updateProps} from "../src/props.js";
 
 test("every spawn has the same unobstructed first weapon run, away from every fixture sweep",()=>{
   for(let arena=0;arena<ARENAS.length;arena++)for(const round of [1,2,3,4]){
+    if(ARENAS[arena].survival)continue; // Survival starts deliberately have no guns.
     const w=new World({arena,players:[0,1,2,3],shuffle:false,random:()=>.35});
     w.round=round;w.startRound();w.phase="fight";w.weaponTimer=999;
     const starts=w.players.map(p=>p.x),weapons=w.drops.slice(-4);
@@ -32,6 +33,7 @@ test("every spawn has the same unobstructed first weapon run, away from every fi
 
 test("all contested opening pickups are reachable from every spawn and outside fixture footprints",()=>{
   for(let arena=0;arena<ARENAS.length;arena++){
+    if(ARENAS[arena].survival)continue;
     const w=new World({arena,players:[0,1,2,3],shuffle:false,random:()=>.45});
     assert.ok(w.arena.weapons.length>=2,w.arena.name);
     const solids=w.solids(),graph=navigation(solids,{time:0,spikes:w.arena.spikes});

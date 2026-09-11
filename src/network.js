@@ -34,7 +34,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 31;
+export const PROTOCOL = 32;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -878,7 +878,11 @@ export function validSnapshot(s) {
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= 400 &&
+        h.w <= (h.type === "saw" ? 2400 : 400) &&
+        (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
+        (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
+        (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&
+        (h.motionPhase === undefined || (h.type === "saw" && finite(h.motionPhase) && Math.abs(h.motionPhase) <= Math.PI)) &&
         h.h > 0 &&
         h.h <= 300 &&
         h.warning >= 0 &&

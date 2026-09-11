@@ -6,6 +6,7 @@ import { breakable } from "./maps.js";
 import { dangerous, hazardZone } from "./hazards.js";
 import { reactionDanger } from "./reactions.js";
 import { grenadePlan } from "./ballistics.js";
+import { survivalControls } from "./survival-ai.js";
 import {
   navigationSteps,
   traceFlight,
@@ -734,6 +735,7 @@ export class BotController {
       i.block = false;
     }
     const hazard = world.hazards.find(h=>{
+      if(world.arena.survival || h.type === "loader")return false;
       if(!dangerous(h))return false;
       const z=hazardZone(h);
       return p.x>z.x-45&&p.x<z.x+z.w+45&&p.y+30>z.y-20&&p.y-28<z.y+z.h;
@@ -805,6 +807,7 @@ export class BotController {
       i.aim = Math.atan2(Math.sin(i.aim + error), Math.cos(i.aim + error));
     }
     if (i.block && !p.weapon) i.block = !p.blockHeld && p.parryCooldown <= 0;
+    survivalControls(world, p, b, i, solids);
     return i;
   }
 }

@@ -104,6 +104,11 @@ Keep this constitution for durable rules and the handoff for current work.
 
 ## Maps, AI and weapon effects
 
+- Survival arenas are deliberate exceptions to the tall, heavily armed layouts.
+  Cargo Conveyor, Press Floor and Ice Sweep use broad floors, unarmed starts and
+  sparse contested weapons. Preserve the Survival arenas setting, physical cargo,
+  machinery warnings, ordinary-control AI dodges, destruction and hot join.
+
 - Maintain varied themes and layouts: jungle, desert, homes, hospitals, industrial
   sites, ice, volcanoes and skyscrapers. Do not turn every arena into a tower.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double

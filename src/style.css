@@ -1436,3 +1436,4 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   .menu-panel h1 { margin: 6px 0 14px; }
   #menu .button { padding: 10px 12px; }
 }
+:root .arena-instruction { font-size: clamp(12px, 1.3vw, 20px); letter-spacing: .01em; line-height: 1.5; margin-top: .6em; }
