@@ -67,7 +67,23 @@ canonical checkout's unrelated sound/prone edits and the published survival aren
   No production debug hooks, dependencies, desktop-shell or Pi changes.
 - The local full suite passed 675 tests; the additional same-step collision
   regression also passed in the final 11-test focused run. Production build and
-  diff checks passed. Published-release verification is recorded below on completion.
+  diff checks passed. The exact-commit production bundle passed solo, guest
+  controls, hot join, leave and the small menu through selected relay candidates.
+  Two preceding hot-join attempts timed out before welcome; a fresh-room run
+  passed with no page errors. Their cause was not established; do not claim
+  general TURN reliability from the successful one-machine check.
+- Published gameplay revision: **`12729fc443ca724116442e4717955d53cf6604b5`**.
+  [Pages run 34641209160](https://github.com/SamCousinsGB/bonk-club/actions/runs/34641209160)
+  passed all **676 game/network/shared tests**, **3 server tests**, production build
+  and deployment. All **15 public files** match the same revision's LF build byte
+  for byte (JS `index-CPxc6UzA.js`, CSS `index-szAYY0PO.css`).
+- The unmodified public v0.12.0 passed solo, host/guest start, real guest controls,
+  hot join, leaving and the small menu with selected relay/relay candidates and no
+  page errors. Public gameplay was visually inspected. Task servers 5241/5242 are
+  stopped. Desktop packaging was not changed or rebuilt for this browser release.
+- For parity on Windows, export with `git -c core.autocrlf=false archive`.
+  A default archive inherited CRLF for HTML/SVG, producing a different favicon
+  hash despite identical game JS/CSS. The explicit LF export matched all files.
 
 
 ## Survival arenas — 11 September 2026
