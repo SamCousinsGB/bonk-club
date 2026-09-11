@@ -95,7 +95,7 @@ test("human controls are never replaced by AI after a hot join", () => {
   assert.equal(w.players[1].weapon, null);
   assert.equal(w.players[1].bot, false);
 });
-test("four AI fighters fight and complete rounds across all 24 arenas", () => {
+test("four AI fighters fight and complete rounds across every arena", () => {
   for (let arena = 0; arena < ARENAS.length; arena++) {
     let seed = 4781 + arena;
     const random = () =>

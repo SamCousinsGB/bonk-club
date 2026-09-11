@@ -30,6 +30,7 @@ const MATERIALS = {
   ice: ["#5787a7", "#d3f6f7"],
   basalt: ["#625361", "#c18b76"],
   metal: ["#566875", "#a4bec4"],
+  concrete: ["#536673", "#afc1c4"],
 };
 
 export function drawEnvironment(c, a) {
@@ -526,7 +527,30 @@ export function drawCover(c, p) {
   c.save();
   c.fillStyle = "#06142455";
   c.fillRect(x + 5, y + h - 4, w, 8);
-  if (p.kind === "stone") {
+  if(p.kind === "trolley") {
+    c.fillStyle="#9dbfc3";c.fillRect(x,y,w,8);c.fillRect(x,y+27,w,7);
+    for(const xx of [x+7,x+w-7]){line(c,[[xx,y],[xx,y+h-6]],"#cad5cd",4);circle(c,xx,y+h-5,5,"#172c39");}
+    c.fillStyle="#d7ded2";c.fillRect(x+7,y+11,w-14,14);
+    c.fillStyle="#668a8b";c.fillRect(x+w/2-6,y+16,12,3);
+    c.fillStyle="#7babb0";c.fillRect(x+9,y+37,w-18,12);
+  } else if(p.kind === "generator") {
+    c.fillStyle="#283c47";c.fillRect(x,y+8,w,h-8);
+    c.fillStyle="#a99460";c.fillRect(x+5,y+13,w-10,h-23);
+    line(c,[[x+8,y+7],[x+8,y+2],[x+w-8,y+2],[x+w-8,y+7]],"#a6b9b7",5);
+    for(let xx=x+12;xx<x+w-30;xx+=9)line(c,[[xx,y+24],[xx,y+h-17]],"#3d5359",4);
+    circle(c,x+w-18,y+25,8,"#d5d9bf");line(c,[[x+w-18,y+25],[x+w-14,y+21]],"#a15545",2);
+    c.fillStyle="#e3bd69";c.fillRect(x+w-24,y+39,12,5);
+  } else if(p.kind === "planter") {
+    // Dense leaves fill the collider's upper silhouette.
+    for(let i=0;i<7;i++)circle(c,x+12+i*(w-24)/6,y+13+Math.sin(i*3)*5,12,i%2?"#779c68":"#537c62");
+    c.fillStyle="#ae8e78";c.fillRect(x+3,y+26,w-6,h-26);
+    c.fillStyle="#d0b396";c.fillRect(x,y+24,w,8);
+    for(const xx of [x+13,x+w-16])line(c,[[xx,y+36],[xx,y+h-5]],"#755f5866",3);
+  } else if(p.kind === "pallet") {
+    c.fillStyle="#635044";c.fillRect(x,y+8,w,h-8);
+    for(const yy of [y,y+14,y+h-8]){c.fillStyle="#b58e62";c.fillRect(x,yy,w,7);}
+    for(const xx of [x+10,x+w/2,x+w-12]){c.fillStyle="#d8b78a";c.fillRect(xx,y+8,9,h-16);circle(c,xx+4,y+3,1.7,"#544c43");}
+  } else if (p.kind === "stone") {
     polygon(
       c,
       [

@@ -35,6 +35,8 @@ import { BURN_DAMAGE } from "./weird-weapons.js";
 import { projectileMuzzle } from "./weapon-mount.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
+import { NEW_ARENAS } from "./new-arenas.js";
+import { nearFixture } from "./arena-dressing.js";
 import { BotController } from "./bots.js";
 import { THEMED_ARENAS, breakable } from "./maps.js";
 import { createHazards, updateHazards } from "./hazards.js";
@@ -60,7 +62,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS].map(equipArena);
+export const ARENAS = [...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena);
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -165,6 +167,10 @@ export class World {
         life: SUDDEN_DEATH,
       };
     });
+    // Equal first pickup, equal distance and full ammunition for all four starts.
+    const starter = ["blaster","smg","shotgun","burst"][(this.round-1)%4];
+    this.drops.push(...this.arena.starterWeapons.map(([x,y])=>({x,y,type:starter,
+      ammo:WEAPONS[starter].ammo,vx:0,vy:0,life:SUDDEN_DEATH})));
     this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0;
     this.cover = (this.arena.cover || []).map((c, i) => prepareProp({
       ...c,
@@ -172,6 +178,7 @@ export class World {
       dx: 0,
       dy: 0,
     }));
+    this.hazards = createHazards(this);
     for (const d of this.drops) Object.assign(d, this.pickupPosition(d));
     this.debris = [];
     this.hazards = createHazards(this);
@@ -961,20 +968,24 @@ export class World {
     // Prefer accessible, unoccupied landings near the current fight. Avoid
     // repeatedly piling weapons on a single ledge or abandoned rooftop.
     const living = this.players.filter(p => p.alive);
-    const ranked = platforms.map(s => ({s, cost:
-      Math.min(...living.map(p => Math.hypot(p.x - (s.x + s.w/2), p.y - s.y)), 2500) +
-      this.drops.filter(d => Math.abs(d.y - s.y) < 100 && d.x > s.x - 40 && d.x < s.x + s.w + 40).length * 900 +
-      this.random() * 750})).sort((a,b) => a.cost-b.cost);
-    const s = ranked[0]?.s;
-    if (!s) return;
+    const ranked = platforms.flatMap(s => {
+      const point=this.pickupPosition({x:s.x+s.w/2,y:s.y-30},true);
+      if(!point)return [];
+      const distances=living.map(p=>Math.hypot(p.x-point.x,p.y-point.y)).sort((a,b)=>a-b);
+      // Reinforcements should be contestable, with no pickup placed in a hand.
+      if(distances[0]<130)return [];
+      return [{point,cost:(distances[0]||1500)+Math.abs((distances[1]||distances[0])-distances[0])*.45+
+        this.drops.filter(d=>Math.hypot(d.x-point.x,d.y-point.y)<220).length*900+this.random()*450}];
+    }).sort((a,b)=>a.cost-b.cost);
+    const point=ranked[0]?.point;
+    if (!point) return;
     const type = chooseWeapon(
       this.random,
       new Set(this.drops.map((d) => d.type)),
     );
-    const x = s.x + s.w * (0.2 + this.random() * 0.6);
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
-      ...this.pickupPosition({x, y:s.y-75}),
+      ...point,
       vx: 0,
       vy: 0,
       type,
@@ -982,19 +993,20 @@ export class World {
       life: 60,
     });
   }
-  pickupPosition(point) {
+  pickupPosition(point, requireSafe=false) {
     const surface = this.platforms.filter(s => s.hp !== 0 && point.x >= s.x && point.x <= s.x+s.w && s.y >= point.y)
       .sort((a,b) => a.y-b.y)[0];
-    if (!surface) return {x:point.x,y:point.y};
+    if (!surface) return requireSafe?null:{x:point.x,y:point.y};
     const options = [point.x, surface.x+25, surface.x+surface.w-25, surface.x+surface.w*.35, surface.x+surface.w*.65];
     for (const x of options) {
       const y=surface.y-30;
-      if (x < surface.x+12 || x > surface.x+surface.w-12) continue;
+      if (![x-18,x+18].every(xx=>this.platforms.some(s=>s.hp!==0&&Math.abs(s.y-surface.y)<.5&&xx>=s.x&&xx<=s.x+s.w))) continue;
+      if (nearFixture(x,y,this.hazards||this.arena.traps,45)) continue;
       if (this.solids().some(s => s !== surface && x+18 > s.x && x-18 < s.x+s.w && y+12 > s.y && y-18 < s.y+s.h)) continue;
       if (this.drops?.some(d => d !== point && Math.hypot(d.x-x,d.y-y)<70)) continue;
       return {x,y};
     }
-    return {x:point.x,y:point.y};
+    return requireSafe?null:{x:point.x,y:point.y};
   }
   updateDrops(dt) {
     for (const d of this.drops) {

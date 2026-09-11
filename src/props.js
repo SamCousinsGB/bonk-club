@@ -16,6 +16,11 @@ export const PROP_TYPES = {
   barrel:  { mass: 48, material: "metal" },
   canister: { mass: 32, material: "metal" },
   waterTank: { mass: 78, material: "metal" },
+
+  trolley: { mass: 32, material: "metal" },
+  generator: { mass: 105, material: "metal" },
+  planter: { mass: 55, material: "stone" },
+  pallet: { mass: 24, material: "wood" },
 };
 export const PROP_MATERIALS = {
   wood:   { friction: .48, bounce: .12, color: "#b48660" },
@@ -278,6 +283,7 @@ export function contactProp(world, p, s, nx, ny, dt) {
 }
 
 export function hazardProps(world, h, zone, dt) {
+  if (["xray","magnet","frost","spores"].includes(h.type)) return;
   let times = hitTimes.get(h);
   if (!times) { times = new Map(); hitTimes.set(h, times); }
   for (const b of [...world.cover, ...world.chunks]) {

@@ -239,3 +239,28 @@ test("new rounds clear transient reactions and restore finite container supplies
   assert.ok(w.cover.filter(b=>b.kind==="canister").every(b=>!b.leak));assert.ok(w.cover.find(b=>b.kind==="waterTank").waterLeft===210);
   assert.equal(w.players[0].soaked,undefined);assert.equal(w.gas.length,0);assert.ok(validSnapshot(w.snapshot()));
 });
+
+test("a damaged generator powers touching metal, and its destruction removes that source",()=>{
+  const w=lab(),g=prop("generator",500,900),b=prop("cabinet",560,930);w.cover=[g,b];
+  w.damageCover(g,5);advance(w,.05);assert.equal(b.charge,1);
+  w.damageCover(g,200);advance(w,.05);assert.equal(b.charge,0);
+});
+
+test("the arena frost fixture freezes water and temporarily seals a cylinder",()=>{
+  const w=lab(),b=prop("canister",800,928);w.cover=[b];addWater(w,820,999,20);advance(w,.1);w.damageCover(b,1);
+  w.hazards=[{type:"frost",x:830,y:1000,w:150,h:130,active:true,done:false}];
+  advance(w,.3);assert.ok(w.water.some(q=>q.frozen));assert.ok(b.cold>0);
+});
+
+test("fast gas leaving the bottom boundary is removed before transport",()=>{
+  const w=lab();w.gas=[{id:1,x:800,y:1538,r:30,life:2,vx:0,vy:250,lit:0,owner:0}];
+  advance(w,.05);assert.equal(w.gas.length,0);assert.ok(validSnapshot(w.snapshot()));
+});
+
+test("fighters land on the actual frozen-water surface and can jump away",()=>{
+  const w=lab();addWater(w,800,999,48);advance(w,.2);explosionReaction(w,{x:816,y:970,radius:210,weapon:"cryo"});
+  const q=w.water.find(q=>q.frozen),p=w.players[0];Object.assign(p,{x:q.x+16,y:900,ground:false,vy:50});
+  for(let n=0;n<60;n++)w.move(p,{left:false,right:false,jump:false,duck:false},STEP);
+  assert.ok(p.ground);assert.ok(Math.abs(p.y+30-q.y)<.1);
+  w.move(p,{jump:true},STEP);assert.ok(p.vy<0&&!p.ground);
+});

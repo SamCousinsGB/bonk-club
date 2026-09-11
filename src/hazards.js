@@ -1,9 +1,9 @@
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { breakable } from "./maps.js";
-import { hazardProps, propFor } from "./props.js";
-export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw"];
-export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail"};
+import { hazardProps, propFor, impulseProp } from "./props.js";
+export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores"];
+export const HAZARD_LABELS={geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {
@@ -23,7 +23,20 @@ export function hazardZone(h) {
 }
 export function dangerous(h) { return !h.done&&(h.active||h.warning>0); }
 function hit(world,p,h,damage,force=600) {
-  world.hit(p,{x:h.bodyX,y:h.bodyY,vx:0,vy:0},damage,force,Math.sign(p.x-h.bodyX)||h.dir,-.55,{blast:true,hitstop:.018,cause:h.type==="geyser"?"burn":h.type,execute:h.type==="saw",effect:h.type==="saw"?"slice":h.type==="tesla"?"tesla":h.type==="geyser"?"burn":h.type==="crusher"?"blast":null});
+  const effect={saw:"slice",tesla:"tesla",xray:"tesla",geyser:"burn",crusher:"blast",frost:"ice"}[h.type]||null;
+  world.hit(p,{x:h.bodyX,y:h.bodyY,vx:0,vy:0},damage,force,Math.sign(p.x-h.bodyX)||h.dir,-.55,{blast:true,hitstop:.018,cause:h.type==="geyser"?"burn":h.type,execute:h.type==="saw",effect});
+}
+function magneticPull(world,h,zone,dt) {
+  const visible=p=>!world.platforms.some(s=>s.hp!==0&&segmentBox(h.x,h.y-65,p.x,p.y,s));
+  const pull=p=>Math.max(-650,Math.min(650,(h.x-p.x)*6))*dt;
+  for(const p of world.players)if(p.alive&&p.weapon&&overlap(playerBox(p),zone)&&visible(p)) {
+    p.vx+=pull(p);carryImpulse(p,.15);
+  }
+  for(const d of world.drops)if(overlap({x:d.x-7,y:d.y-7,w:14,h:14},zone)&&visible(d))d.vx+=pull(d)*2;
+  for(const b of [...world.cover,...world.chunks]) {
+    const p={x:b.x+b.w/2,y:b.y+b.h/2};
+    if(b.hp>0&&b.material==="metal"&&overlap(b,zone)&&visible(p))impulseProp(b,pull(p)*b.mass*1.5,0);
+  }
 }
 export function updateHazards(world,dt) {
   if(world.phase!=="fight")return;
@@ -37,7 +50,8 @@ export function updateHazards(world,dt) {
     if(h.hitTimer<=0){h.hitIds=[];h.hitTimer=.8;}
     const mechanical=["conveyor","pendulum","saw"].includes(h.type);
     if(mechanical) {
-      if(h.cooldown>0){h.cooldown=Math.max(0,h.cooldown-dt);continue;}
+      if(h.cooldown>0){h.cooldown=Math.max(0,h.cooldown-dt);h.warning=h.cooldown<1?h.cooldown:0;continue;}
+      h.warning=0;
       h.active=true;
       if(h.type==="pendulum") {
         const angle=Math.sin(h.age*1.8)*.85,length=h.h-35;
@@ -64,7 +78,9 @@ export function updateHazards(world,dt) {
       for(const s of world.solids())if(breakable(s)&&!propFor(world,s)&&segmentBox(h.x,oldY,h.x,h.bodyY,s,h.w/2))world.damageCover(s,200);
     }
     const zone=hazardZone(h);
+    if(h.type==="magnet"){magneticPull(world,h,zone,dt);continue;}
     hazardProps(world,h,zone,dt);
+    const solids=world.solids();
     for(const p of world.players) {
       if(!p.alive)continue;
       const box=playerBox(p);
@@ -77,10 +93,13 @@ export function updateHazards(world,dt) {
       }
       const crush=h.type==="crusher"&&segmentBox(h.x,oldY,h.x,h.bodyY,box,h.w/2);
       if(!overlap(box,zone)&&!crush)continue;
-      if(["geyser","tesla"].includes(h.type)&&world.solids().some(s=>segmentBox(h.x,h.y-3,p.x,p.y,s)))continue;
+      if(["geyser","tesla","xray","steam","frost","spores"].includes(h.type)&&solids.some(s=>segmentBox(h.x,h.y-3,p.x,p.y,s)))continue;
       if(h.hitIds.includes(p.id))continue;
       h.hitIds.push(p.id);
-      hit(world,p,h,["geyser","crusher"].includes(h.type)?1000:h.type==="pendulum"?100:70,h.type==="pendulum"?1300:800);
+      const damage={geyser:1000,crusher:1000,pendulum:100,saw:1000,tesla:70,xray:24,steam:32,frost:10,spores:18}[h.type];
+      hit(world,p,h,damage,["xray","frost","spores"].includes(h.type)?30:h.type==="pendulum"?1300:800);
+      if(h.type==="steam"&&p.alive){p.vy=Math.min(p.vy,-720);p.ground=false;p.support=null;carryImpulse(p,.35);}
+      if(h.type==="frost"&&p.alive)p.chill=Math.max(p.chill,1.5);
     }
     if(h.type==="conveyor")for(const d of world.drops)if(Math.abs(d.y+8-h.y)<16&&Math.abs(d.x-h.x)<h.w/2)d.vx=h.dir*500;
   }

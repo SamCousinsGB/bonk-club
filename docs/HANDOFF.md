@@ -13,7 +13,8 @@ The five additions share host-authoritative rules in `src/reactions.js`:
 - Finite water from damaged blue tanks lands on surviving floors, spreads and
   drains through actual destruction. It extinguishes fighters and burning props,
   including recovering knockdowns. Wet fighters temporarily resist re-ignition.
-- Tesla shots and active electrical fixtures energise connected water and metal.
+- Tesla shots, damaged generators and active electrical fixtures energise connected
+  water and metal.
   Rotated prop contacts use their physical polygons. Removing a connection or
   switching off the source removes downstream power. Shock intervals are bounded;
   wet fighters take more damage. Electrical arcs can ignite nearby leaked gas.
@@ -37,17 +38,71 @@ in the existing planar matter flow. All transient state resets each round.
 Rendering is in `src/reaction-art.js`. Water is capped at 192 parcels, gas at 24;
 simulation runs at 20 Hz alongside the existing physics clock. Render snapshots
 interpolate stable parcel identities and validate numeric bounds and duplicates.
-Protocol **28** requires both players to refresh and create a new room. Display
-release: **v0.6.0**. No dependencies or Pi infrastructure changes.
+Protocol **29** requires both players to refresh and create a new room. Display
+release: **v0.7.0**. No dependencies or Pi infrastructure changes.
 
-Focused verification: 27 reaction regressions, plus terrain/hazard checks, passed.
+Focused verification: 31 reaction regressions passed; all 64 combined reaction,
+terrain-fixture and arena checks passed after integrating the new arenas.
 Real Edge host/guest and a third hot joiner received all five systems through
 selected TURN relay candidates. Real guest mouse fire ruptured a host-authoritative
 cylinder. Hot join matched melted platform IDs and frozen water. Actual gameplay
 screenshots were inspected, with no page errors. These browsers ran on the QA
 machine; this is not a new cross-ISP test. Helpers/logs/screenshots are outside Git
 under `bonk-club-qa/systems-*`. All hooks are confined to that external harness.
-Full-suite and published-release verification follows below after completion.
+Before the arena merge, all 563 gameplay/network tests and the production build
+passed. The production bundle passed the three-browser room lifecycle check.
+The newly published arena release is now integrated; final verification follows.
+
+## Arena, scenery and fairness pass — 11 September 2026
+
+Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
+a new room. Implemented on `codex/arena-pass` in the canonical checkout, including
+the restored live menu fights, 36 weapons, persistent shots and v0.5.0 audio release.
+
+- Refreshed all 24 existing arenas and added **Radiology**, **Production Hall**
+  and **Geothermal Terraces**, bringing the rotation to **27**. Cached scenery
+  includes clinical monitors/radiographs/curtain tracks, industrial machinery and
+  pipework, home wall details, port fittings, vines, strata and basalt cracks.
+  Trolleys, generators, planters and pallets are real moving, breakable props with
+  distinct material/mass and physical rubble. Placement leaves takeoffs, headroom,
+  fixture sweeps and opening weapon runs clear.
+- Added X-ray scanners (damage and skeleton exposure), magnetic scanners (pull
+  armed fighters, weapons and metal props), hot geysers (damage and upward impulse),
+  coolant vents (damage and chill), and spore plants. Each uses existing warning,
+  cycle, mounting-floor destruction and reset behavior. Walls/floors shield
+  exposure. Production Hall has opposing belts feeding a saw and press, with
+  outer lifts and upper catwalks as alternate routes. Theme sets are shared by
+  the existing hospital, factory, volcano, ice, jungle and other arenas.
+- Four equal first pickups sit 100 units inward from each spawn, with equal full
+  ammunition. The shared starter rotates between pistol, SMG, shotgun and burst
+  rifle. Premium pickups stay in contested interior locations, at least 300 units
+  from starts; featured exotic rotation and regular nuclear pickups remain.
+  Reinforcements avoid fixture footprints, destroyed floors and immediate pickup
+  in a living fighter's hand. Reduced saw/rail/ricochet ammunition and rate of fire,
+  slowed heavy machine gun/burst fire, and slightly improved pistol firing rate.
+  One-hit weapon identities remain; this is an initial tuning pass, not a measured
+  claim that every weapon has identical win rates.
+- Repaired unreachable upper perches, head traps and overlapping ledges. Lift
+  shafts now stay clear through intermediate landings. Abandoned Factory has
+  lower upper side floors; Volcanic Quarry has recovery ledges that prevent the
+  previously observed stranded-bot stalemate. Real collision-traced routes connect
+  every opening pickup to every spawn. Standing/prone lift round trips pass.
+- Validation: **557 gameplay/network tests pass** after integration. Tests cover
+  actual opening movement/pickups for all 27 arenas and four starter rotations,
+  navigation, hazards/shielding, magnetic movement, invalid snapshots, fixture
+  destruction, physical props, rubble and reset. Actual Canvas renders of all
+  arenas and enlarged new fixture art were inspected. Real Edge host/guest/hot
+  join received all five hazard effects, moving trolleys, destroyed floors and
+  material rubble; guest keyboard control and reset passed. All three browsers
+  selected TURN relay candidates and reported no errors. This is one QA machine,
+  not cross-ISP or physical mobile verification. No Pi infrastructure changes.
+- QA scripts, logs, gallery and screenshots live outside Git at `bonk-club-qa/arena-*`.
+  No debug hooks ship. Release/deployment verification is recorded below once
+  the Pages run completes.
+- The stale canonical checkout was fast-forwarded before this work. Its three
+  pre-existing modified files were saved in the stash named `Preserved pre-existing
+  canonical edits before arena pass`; the two substantive validator lines were
+  already present upstream. Keep that backup; do not reapply it over current code.
 
 ## Actual menu fights restored — 11 September 2026
 

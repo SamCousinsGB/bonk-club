@@ -115,6 +115,7 @@ function armCylinder(b) {
 
 export function propReactionDamage(world, b, damage) {
   if (b.chunk) return damage;
+  if (b.kind === "generator" && damage > 0) b.spark = 1.1;
   if (b.kind === "canister" && !b.spent && damage > 0) {
     armCylinder(b);
     if (damage >= 60) b.fuse = Math.min(b.fuse, 1.8);
@@ -372,6 +373,11 @@ export function updateReactions(world, dt) {
       const z=hazardZone(h);
       for(const b of bs)if(overlap(bodyBounds(b),z))ignite(b);
       meltIce(world,h.x,h.y-5,30);
+    }
+    for(const h of world.hazards)if(h.type==="frost"&&h.active&&!h.done) {
+      const z=hazardZone(h),origin={x:h.x,y:h.y-3};
+      for(const q of world.water)if(overlap(q,z)&&clear(world,origin,centre(q)))freezeWater(world,q);
+      for(const b of bs)if(overlap(bodyBounds(b),z)&&clear(world,origin,centre(b))){b.cold=1.5;b.fire=0;}
     }
   }
   for(const g of world.gas) {

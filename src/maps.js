@@ -10,6 +10,11 @@ export const COVER_KINDS = [
   "barrel",
   "canister",
   "waterTank",
+
+  "trolley",
+  "generator",
+  "planter",
+  "pallet",
 ];
 export const breakable = (p) =>
   p && (p.destructible === true || COVER_KINDS.includes(p.kind));

@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "releaseNotes": "Water, electricity, spreading fire, melting ice and gas canisters",
   "private": true,
   "type": "module",
