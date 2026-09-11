@@ -2,6 +2,40 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Jelly, Midas, Tangle and persistent shots — 11 September 2026
+
+Worktree: `bonk-club-quirky`, branch `codex/quirky-weapons`, started from `755ede5`
+and merged the newer menu montage. The canonical checkout's network/nuclear/terrain
+WIP is preserved. The arsenal now contains **36 weapons**:
+
+- Jelly Gun: elastic living ragdolls rebound from floors, walls and props. Lethal
+  shots produce independently colliding jelly pieces.
+- Midas Gun: physical constraints preserve the victim's pose as a heavy gold
+  statue. Lethal statues fall, then scatter colliding coins after 1.15 seconds.
+- Tangle Gun: yarn constrains wrists and ankles, drawing a living fighter into a
+  rolling knot. Lethal knots unravel into separate curling strands.
+
+All three have distinct held/pickup/projectile art, firing sounds, throw masses
+and result causes. Living transformations last 1.6 seconds and use existing safe
+knockdown recovery. They cannot stack their duration. Empty-hand parries reflect
+them; cover stops them. Ice replaces the transformation and black holes restore
+their usual stretched-body capture. Death pieces clear within four seconds.
+Rare/exotic featured rotation includes all three; nuclear frequency is unchanged.
+
+Every airborne projectile now keeps flying past its old lifetime and the arena
+boundary. Grenades keep intentional fuses; fireworks and black-hole seeds activate
+on contact, ducks after their permitted bounces/contact, and boomerangs still return
+and can be caught. Firework sparks persist too. Bots use the new flight reach.
+The host retains distant flight but omits it from drawing and transport. Nearby
+shots have a 512-shot admission limit; reaching it preserves existing shots and
+does not spend ammunition. An off-map singularity no longer prevents round scoring.
+
+Gameplay is in `src/transmutation.js` and `src/projectile-flight.js`; art is in
+`src/transmutation-art.js`. Protocol **27** validates the new state and IDs.
+Both players must refresh and create a new room. The display release is **v0.4.0**.
+No Pi infrastructure changes. Local verification and final release evidence follow
+after publishing. QA helpers, logs and screenshots: `bonk-club-qa/quirky-*`.
+
 ## Main-menu effects montage — 11 September 2026
 
 The menu now runs six Canvas vignettes: Tesla electrocution, acid melting,

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
   "version": "0.4.0",
-  "releaseNotes": "Jelly, Midas and Tangle guns; unlimited projectile range",
+  "releaseNotes": "3 new weapons; unlimited range",
   "private": true,
   "type": "module",
   "scripts": {
