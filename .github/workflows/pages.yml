@@ -9,7 +9,8 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Let the tested release finish; newer commits replace the pending run.
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
