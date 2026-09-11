@@ -175,6 +175,7 @@ test("punctured cylinders launch, leak gas, survive the first hit and detonate o
   w.damageCover(b,200);assert.equal(b.hp,1);assert.ok(b.leak&&b.vx!==0&&b.spin!==0);
   advance(w,.3);assert.ok(w.gas.length>0);const velocity=Math.hypot(b.vx,b.vy);assert.ok(velocity>200);
   advance(w,2);assert.equal(b.hp,0);assert.equal(w.events.filter(e=>e.type==="explosion"&&e.weapon==="canister").length,1);
+  assert.ok(w.chunks.some(c=>c.kind==="canister"&&c.material==="metal"&&Math.hypot(c.vx,c.vy)>200));
   advance(w,3);assert.equal(w.events.filter(e=>e.type==="explosion"&&e.weapon==="canister").length,1);
 });
 

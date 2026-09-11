@@ -1,6 +1,6 @@
 import { W, H } from "./scale.js";
 import { segmentBox, playerBox } from "./collision.js";
-import { bodyBounds, bodyPoints, bodyInBlast, impulseProp, prepareProp } from "./props.js";
+import { bodyBounds, bodyPoints, bodyInBlast, impulseProp, prepareProp, fractureProp } from "./props.js";
 import { carveRectangle } from "./nuclear.js";
 import { hazardZone } from "./hazards.js";
 
@@ -335,6 +335,15 @@ function containers(world, dt, bs) {
       b.spent=true;b.fire=0;b.leak=0;b.hp=0;world.terrainVersion++;
       const p=centre(b);
       world.explode({...p,kind:"grenade",weapon:"canister",owner:0,radius:185,damage:125,force:1350});
+      // Fracture after the pressure blast so the canister's own blast does not
+      // immediately delete its casing. Its metal pieces retain incoming spin
+      // and receive an outward impulse through the normal physical-body solver.
+      const serial=world.chunkSerial;
+      fractureProp(world,b);
+      for(const c of world.chunks)if(Number(c.id.slice(5))>serial) {
+        const q=centre(c),dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy)||1;
+        impulseProp(c,dx/d*c.mass*430,(dy/d*430-90)*c.mass);
+      }
       world.event("break",{...p,color:"#ef916b"});
     }
   }
