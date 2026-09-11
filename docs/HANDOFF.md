@@ -53,7 +53,24 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   nuclear kills, with selected relay/relay candidates. Bubbles expired and human
   chat continued to work. Replacing the speaking bot cleared its bubble.
   All 753 local tests passed before integration with the concurrent performance
-  update. Production release verification is in progress.
+  update. The integrated 87-test focused rerun also passed.
+- **Published and verified:** v0.17.0 at gameplay revision
+  3759a6715432f0f8531fc0d2703cbdbc2aa3680e. Pages run
+  [34648378829](https://github.com/SamCousinsGB/bonk-club/actions/runs/34648378829)
+  passed all **754 game/shared tests and 3 server tests**, then deployed.
+  All **15 public files** matched the CI artifact and the local build byte for
+  byte (committed LF sources avoid Windows line-ending differences).
+- The exact public release passed solo, host/guest speech, hot join, leaving,
+  reduced-motion expiry, input cancellation and a narrow menu, through selected
+  relay/relay candidates on three Edge browsers. Gameplay/menu screenshots were
+  visually inspected; no page errors. The integrated deterministic browser check
+  also verified real black-hole/nuclear bot speech and speaker replacement.
+  Three minutes of ordinary unmodified play remained quiet with no errors.
+- External evidence uses ../bonk-club-qa/bot-chat-* including ci.log,
+  public-parity.log, public.log, integrated-browser.log and screenshots. Test
+  browsers and this task's dev/preview servers are stopped. Later main commits
+  include the separate v0.17.1 death-physics work; preserve those changes.
+
 
 ## Physics and guest performance pass — 11 September 2026
 
