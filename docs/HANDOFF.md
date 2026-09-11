@@ -141,7 +141,22 @@ on `codex/hud-alignment`, preserving unrelated work in progress.
   resize and menu access. DOM measurements confirmed aligned health bars and
   no horizontal overflow. Production build and diff checks passed.
 - No gameplay, network, desktop-shell, dependencies or Pi configuration changed.
-  Pages completion and final test results are recorded after deployment.
+- HUD implementation: **`e0017d899b90ba5f9380978615344bb04b49a500`**.
+  Published in combined **v0.16.0**, revision
+  **`d592f7de1f883d68fed1af4d661678be7a210286`**, with protocol **36** from the
+  separate chat release. [Pages run 34644311143](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644311143)
+  passed **731 game/network/shared tests**, **3 server tests**, build and deploy.
+  The HUD revision's local suite passed **713 tests** before those later changes.
+- All **15 public files** matched that run's tested CI artifact byte for byte:
+  JS `index-CjkugI-9.js`, CSS `index-DSLPu4j9.css`. Live Jungle Temple gameplay
+  passed at 1440 x 688 and 568 x 320: exact round centring, equal health-bar rows,
+  no horizontal overflow, separated invite controls and usable menu/leave actions.
+  Browser logs contained no errors or warnings. This was a hosted lobby with AI;
+  no new host/guest transport or cross-network reliability claim is involved.
+- QA log/artifacts: `../bonk-club-qa/hud-tests.log`, `hud-ci-build.log`,
+  `hud-ci-artifact`, `verify-hud-live.mjs` and `hud-live-hashes.json`.
+  Task previews on ports 5261/5262 are stopped. Unrelated later releases on main
+  may supersede this version; the HUD CSS was preserved through integration.
 
 ## Customised heads and lethal singularities — 11 September 2026
 
