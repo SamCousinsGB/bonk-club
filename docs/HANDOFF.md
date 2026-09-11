@@ -6,6 +6,9 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 Implemented in `bonk-club-water` / `codex/water-arcs-release`, preserving the
 canonical checkout's concurrent prop-fracture work. Display version **0.9.2**.
+Final integration is in `bonk-club-water-release` / `codex/water-arcs-integrated`.
+It includes jagged props and protocol **31**: all players must refresh and create
+a new room. The water/arc artwork itself adds no wire fields.
 
 - Falling water uses velocity-stretched, tapered streams and detached droplets.
   Settled pools share a continuous ripple; observed landings emit bounded splashes.
@@ -26,7 +29,23 @@ canonical checkout's concurrent prop-fracture work. Display version **0.9.2**.
   separate-ISP evidence. The maximum water/rubble art stress took 6 ms at p95 on
   this machine; that measures drawing CPU cost, not FPS or internet latency.
   External harnesses, captures and logs: `../bonk-club-qa/waterarc-*`.
-- Final integrated test/build/publication results are recorded after release.
+- Published gameplay revision: `712aaf1c8d5e22b8183c679021f90e896bc88e57`.
+  [Pages run 34624223889](https://github.com/SamCousinsGB/bonk-club/actions/runs/34624223889)
+  passed **612 gameplay/network/shared tests**, **3 server tests**, production
+  build and deployment. All **15 public files** matched the tested clean LF
+  archive build byte for byte (`index-DV4Q8FQI.js`, `index-D3DFRitl.css`).
+- The unmodified production bundle and public v0.9.2 passed solo, host/guest start,
+  controls, hot join, leave and small-screen menu checks through selected relay/relay
+  candidates, without browser errors. Local pre-integration tests passed 608 checks;
+  final integrated focused checks passed 65. Task previews on 5223–5225 are stopped.
+- Desktop smoke and online harnesses now read the root release version, including
+  an exact displayed-version check. Six desktop unit tests and the local Windows
+  executable runtime smoke passed. [Desktop run 34624377335](https://github.com/SamCousinsGB/bonk-club/actions/runs/34624377335)
+  passed native Windows/Linux builds and smoke on `a24dc613a45753b17be8ba2ae7b85b10323acd21`.
+  Its gameplay assets are unchanged from the Pages revision; subsequent changes
+  affect test assertions and this handoff only. No new Steam approval or hardware
+  compatibility claim is made.
+
 ## Jagged prop fragments — 11 September 2026
 
 Shipped in the combined **v0.9.2** release, protocol **31** (the prop change was
