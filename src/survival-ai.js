@@ -14,7 +14,9 @@ export function survivalControls(world, p, b, input, solids) {
   if (mode === "press") {
     const dangerous = world.hazards.filter(h => !h.done && (h.warning > 0 || h.active));
     const unsafe = x => dangerous.some(h => x > h.x - h.w / 2 - 30 && x < h.x + h.w / 2 + 30);
-    const projected = p.x + p.vx * .22 + (Number(input.right) - Number(input.left)) * (input.attack ? 100 : 40);
+    // An unarmed strike lunges along the aim even with no movement key held.
+    const lunge = input.attack && !p.weapon ? Math.sign(Math.cos(input.aim ?? (p.facing < 0 ? Math.PI : 0))) * 150 : 0;
+    const projected = p.x + p.vx * .22 + (Number(input.right) - Number(input.left)) * 40 + lunge;
     if (unsafe(p.x) || unsafe(projected)) {
       const candidates = [p.x, ...dangerous.flatMap(h => [h.x - h.w / 2 - 44, h.x + h.w / 2 + 44])]
         .filter(x => supported(x) && !unsafe(x)).sort((a, c) => Math.abs(a - projected) - Math.abs(c - projected));

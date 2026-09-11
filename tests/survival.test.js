@@ -72,6 +72,13 @@ test("a bot uses normal movement to escape a warned press without jumping into i
   assert.equal(p.hp,100);assert.ok(Math.abs(p.x-430)>140);assert.equal(jumped,false);
 });
 
+test("a bot in a safe press gap does not lunge back into the warned lane",()=>{
+  const w=world("press");w.phase="fight";machinery(w,3.2);
+  const p=w.players[0];Object.assign(p,{x:276,y:1090,vx:0,ground:true,weapon:null});
+  const input=cleanInput({attack:true,aim:0});survivalControls(w,p,{},input,w.solids());
+  assert.equal(input.attack,false);assert.equal(input.right,false);
+});
+
 test("bot cargo dodge clears a moving box with real jump physics",()=>{
   const w=world("cargo");w.phase="fight";w.players=w.players.slice(0,2);
   const p=w.players[0];Object.assign(p,{x:1200,y:1050,ground:true});w.players[1].x=200;
