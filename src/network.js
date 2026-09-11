@@ -34,7 +34,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 34;
+export const PROTOCOL = 35;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -834,6 +834,8 @@ export function validSnapshot(s) {
         p.hp <= 100 &&
         (p.facing === 1 || p.facing === -1) &&
         typeof p.alive === "boolean" &&
+        (p.carryId === null || (typeof p.carryId === "string" && p.carryId.length > 0 && p.carryId.length <= 80 &&
+          p.alive && p.weapon === null && p.knockdown === 0 && p.freeze === 0)) &&
         (p.weapon === null || weaponTypes.includes(p.weapon)),
     ) &&
     s.players.length >= 1 &&
@@ -869,6 +871,8 @@ export function validSnapshot(s) {
     new Set(s.cover.map(c => c.id)).size === s.cover.length &&
     list(s.chunks,CHUNK_LIMIT,c => physicalProp(c) && c.chunk === true) &&
     new Set([...s.cover,...s.chunks].map(c => c.id)).size === s.cover.length+s.chunks.length &&
+    s.players.every(p => p.carryId === null || [...s.cover,...s.chunks].some(b => b.id === p.carryId && b.hp > 0)) &&
+    new Set(s.players.filter(p => p.carryId).map(p => p.carryId)).size === s.players.filter(p => p.carryId).length &&
     list(
       s.hazards,
       8,

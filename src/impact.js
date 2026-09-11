@@ -4,9 +4,9 @@ export function updateParry(p, pressed, dt) {
   p.parryCooldown = Math.max(0, (p.parryCooldown || 0) - dt);
   if (p.block) {
     p.blockTime += dt;
-    if (p.blockTime >= PARRY.window || p.weapon || p.stun > 0) p.block = false;
+    if (p.blockTime >= PARRY.window || p.weapon || p.carryId || p.stun > 0) p.block = false;
   }
-  if (pressed && !p.blockHeld && !p.weapon && p.parryCooldown <= 0 && p.stun <= 0) {
+  if (pressed && !p.blockHeld && !p.weapon && !p.carryId && p.parryCooldown <= 0 && p.stun <= 0) {
     p.block = true;
     p.blockTime = 0;
     p.parryCooldown = PARRY.cooldown;
@@ -15,7 +15,7 @@ export function updateParry(p, pressed, dt) {
 }
 
 export function canParry(p, source) {
-  if (p.weapon || !p.block || p.blockTime >= PARRY.window) return false;
+  if (p.weapon || p.carryId || !p.block || p.blockTime >= PARRY.window) return false;
   const angle = p.aimAngle ?? (p.facing > 0 ? 0 : Math.PI);
   return (source.x - p.x) * Math.cos(angle) + (source.y - p.y) * Math.sin(angle) > -5;
 }

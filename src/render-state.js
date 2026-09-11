@@ -1,4 +1,5 @@
 const simulationOnly = new Set([
+  "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
   "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
   "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",

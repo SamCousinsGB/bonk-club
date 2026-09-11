@@ -2,6 +2,42 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+
+## Physical object pickup and carrying — 11 September 2026
+
+Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
+canonical checkout's existing work. Protocol **34** requires all players to
+refresh and create a new room. Display version **0.13.0** integrates the separate
+bullet-ignition release (v0.12.0).
+
+- Right-click/G or controller secondary action picks up the nearest reachable
+  prop or physical fragment in front. It sets down an equipped weapon with its
+  ammunition intact; nuclear pickups remain unarmed. Right-click again drops;
+  left-click/attack or F/throw launches the original body towards aim.
+- The original object stays in the normal physics and reaction simulation.
+  A bounded spring lifts it; floor/wall/other-player collision, spin, damage,
+  burning and fuses continue. Heavy objects slow running and throw less far.
+  Two-handed procedural poses follow the body's near surface. Carried objects
+  cannot collide with their own carrier or be used to parry/punch/fire.
+- One host-authoritative carry ID per fighter is validated against a live body
+  and exclusive ownership. Held input cannot repeatedly toggle pickup/drop or
+  turn a throw into sustained punching. Knockdown, freezing, death, destruction,
+  black-hole capture, slot replacement and round reset release the grip.
+- Touch retains two compact buttons: Jump and contextual Pick up/Drop/Parry/Alt
+  fire. Existing aim/fire and double-tap throw work for carried objects.
+- All **682 gameplay/network/shared tests** passed before integrating the separate
+  bullet-ignition release, including 17 new carry regressions. Production build
+  passed. Three actual Edge browsers verified guest right-click, carry movement,
+  drop, left-click throw, held TNT detonation and hot join. Actual CDP touch events
+  verified pickup/drop. All selected candidates were relay/relay; no page errors.
+  This is one-machine browser QA. The holding pose and touch gameplay were viewed.
+- After integrating bullet ignition, all **147 focused regression tests** passed,
+  including carrying, fuel ignition, barrel reactions, physical props, networking,
+  parry and touch. The production build and complete three-browser carry/touch/
+  hot-join/held-explosive test passed again with relay/relay and no page errors.
+- External harness, logs and captures are `../bonk-club-qa/carry-*`. No test hooks,
+  dependencies or Pi configuration changes were added to production.
+
 ## Bullet ignition and wider fuel flow — 11 September 2026
 
 Display version **0.12.0**, protocol **33** unchanged. Gameplay was edited in the
@@ -31,7 +67,24 @@ canonical checkout's unrelated sound/prone edits and the published survival aren
   No production debug hooks, dependencies, desktop-shell or Pi changes.
 - The local full suite passed 675 tests; the additional same-step collision
   regression also passed in the final 11-test focused run. Production build and
-  diff checks passed. Published-release verification is recorded below on completion.
+  diff checks passed. The exact-commit production bundle passed solo, guest
+  controls, hot join, leave and the small menu through selected relay candidates.
+  Two preceding hot-join attempts timed out before welcome; a fresh-room run
+  passed with no page errors. Their cause was not established; do not claim
+  general TURN reliability from the successful one-machine check.
+- Published gameplay revision: **`12729fc443ca724116442e4717955d53cf6604b5`**.
+  [Pages run 34641209160](https://github.com/SamCousinsGB/bonk-club/actions/runs/34641209160)
+  passed all **676 game/network/shared tests**, **3 server tests**, production build
+  and deployment. All **15 public files** match the same revision's LF build byte
+  for byte (JS `index-CPxc6UzA.js`, CSS `index-szAYY0PO.css`).
+- The unmodified public v0.12.0 passed solo, host/guest start, real guest controls,
+  hot join, leaving and the small menu with selected relay/relay candidates and no
+  page errors. Public gameplay was visually inspected. Task servers 5241/5242 are
+  stopped. Desktop packaging was not changed or rebuilt for this browser release.
+- For parity on Windows, export with `git -c core.autocrlf=false archive`.
+  A default archive inherited CRLF for HTML/SVG, producing a different favicon
+  hash despite identical game JS/CSS. The explicit LF export matched all files.
+
 
 ## Survival arenas — 11 September 2026
 

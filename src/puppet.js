@@ -133,7 +133,12 @@ export function updateRig(p, dt, platforms, time) {
   }
   let handA, handB;
   const melee = meleePose(p);
-  if (p.block) {
+  if (p.carryId && p.carryPoint) {
+    const gx = p.carryPoint.x - neck[0], gy = p.carryPoint.y - neck[1];
+    const reach = Math.min(1, 35 / (Math.hypot(gx, gy) || 1));
+    handA = [neck[0] + gx * reach, neck[1] + gy * reach - 6];
+    handB = [neck[0] + gx * reach, neck[1] + gy * reach + 6];
+  } else if (p.block) {
     handA = [neck[0] + dx * 29 - dy * 10, neck[1] + dy * 29 + dx * 10];
     handB = [neck[0] + dx * 28 + dy * 8, neck[1] + dy * 28 - dx * 8];
   } else if (melee) {
@@ -186,7 +191,7 @@ export function updateRig(p, dt, platforms, time) {
           : i < 3
             ? 0.23
             : i === 4 || i === 6
-              ? 0.1
+              ? p.carryId ? 0.38 : 0.1
               : i >= 7 && p.ground
                 ? 0.16
                 : 0.065;

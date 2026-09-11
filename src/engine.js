@@ -1,4 +1,5 @@
 import { hitCause } from "./victory.js";
+import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
 import { explosiveBarrel } from "./barrels.js";
 import { resetReactions, updateReactions, propReactionDamage, inheritReaction, surfaceReaction,
   reactionContacts, contactReaction, explosionReaction } from "./reactions.js";
@@ -228,6 +229,7 @@ export class World {
       jumpHeld: false,
       jumpBuffer: 0,
       throwHeld: false,
+      carryId: null,
       pickupCooldown: 0,
       support: null,
       block: false,
@@ -324,6 +326,7 @@ export class World {
     this.occupants[id]++;
     this.ai.forget(id);
     const previous = this.players.find((p) => p.id === id);
+    if (previous.carryId) releaseObject(this, previous);
     // A live fighter is taken over in place. Eliminated arrivals enter at a clear spawn.
     const p =
       !previous.alive && this.phase === "fight"
@@ -388,6 +391,7 @@ export class World {
       return;
     }
     this.movePlatforms();
+    cleanCarriedObjects(this);
     this.updateCover(dt);
     updateReactions(this, dt);
     this.updateDebris(dt);
@@ -438,15 +442,17 @@ export class World {
         this.weaponTimer = (this.arena.survival?.weaponInterval ?? 3) + this.random() * 2;
       }
     }
+    const actions = new Map();
     for (const p of this.players) {
       if (!p.alive) continue;
-      const input = active ? cleanInput(inputs[p.id]) : emptyInput();
+      const input = objectInput(this, p, active ? cleanInput(inputs[p.id]) : emptyInput());
+      actions.set(p.id, input);
       this.move(p, input, dt);
     }
     // Resolve defence before attacks so neither slot has a blocking-order advantage.
     for (const p of this.players) {
       if (!p.alive) continue;
-      const i = active ? cleanInput(inputs[p.id]) : emptyInput();
+      const i = actions.get(p.id);
       if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown) this.throwWeapon(p);
       p.throwHeld = i.throw;
       if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown) {
@@ -457,8 +463,9 @@ export class World {
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         this.collidePlayers(this.players[a], this.players[b]);
+    cleanCarriedObjects(this);
     for (const p of this.players)
-      if (p.alive) updateRig(p, dt, this.solids(), this.time);
+      if (p.alive) updateRig(p, dt, this.solids(p), this.time);
     for (let a = 0; a < this.players.length; a++)
       for (let b = a + 1; b < this.players.length; b++)
         collideRigs(this.players[a], this.players[b]);
@@ -493,12 +500,13 @@ export class World {
         this.event("round", { winner: this.winner });
       }
     }
+    cleanCarriedObjects(this);
   }
-  solids() {
+  solids(carrier = null) {
     return [
       ...this.platforms.filter((p) => p.hp !== 0),
-      ...this.cover.flatMap(propSolids),
-      ...this.chunks.flatMap(propSolids),
+      ...this.cover.filter(b => b.id !== carrier?.carryId).flatMap(propSolids),
+      ...this.chunks.filter(b => b.id !== carrier?.carryId).flatMap(propSolids),
       ...this.spikes().map(spikeBase),
     ];
   }
@@ -517,7 +525,7 @@ export class World {
     }
   }
   move(p, i, dt) {
-    const solids = this.solids();
+    const solids = this.solids(p);
     const boxBefore=playerBox(p);p.spikeY=boxBefore.y+boxBefore.h;
     const support = p.ground && solids.find((s) => s.id === p.support);
     if (support) {
@@ -595,7 +603,7 @@ export class World {
       p.facing = dir;
       const max =
         (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
-        (p.chill > 0 ? 0.58 : 1) * (sticky ? p.glued > 0 ? .25 : .5 : 1);
+        (p.chill > 0 ? 0.58 : 1) * (sticky ? p.glued > 0 ? .25 : .5 : 1) * carrySpeed(this, p);
       const acceleration =
         (p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1) * (slippery ? .24 : 1);
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
@@ -719,7 +727,7 @@ export class World {
     }
   }
   attack(p, alternate = false) {
-    if(p.freeze>0||p.knockdown>0)return;
+    if(p.freeze>0||p.knockdown>0||p.carryId)return;
     if (p.weapon && p.ammo <= 0) return;
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
@@ -878,6 +886,7 @@ export class World {
   }
   kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null} = {}) {
     if (!p.alive) return;
+    if (p.carryId) releaseObject(this, p);
     if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
     p.hp = 0;
@@ -911,7 +920,7 @@ export class World {
     this.ragdolls.at(-1).deathId = this.nextEvent;
   }
   pickup(p) {
-    if (p.weapon || p.pickupCooldown > 0 || !p.alive || p.knockdown > 0) return;
+    if (p.weapon || p.carryId || p.pickupCooldown > 0 || !p.alive || p.knockdown > 0) return;
     let best = null,
       dist = 48;
     for (const d of this.drops) {
@@ -1419,6 +1428,7 @@ export class World {
     return spikes;
   }
   snapshot() {
+    cleanCarriedObjects(this);
     return {
       players: this.players,
       platforms: this.platforms,
