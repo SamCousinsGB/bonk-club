@@ -2,6 +2,39 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Customised heads and lethal singularities — 11 September 2026
+
+Display version **0.14.0**, protocol **35**. All players must refresh and create
+a new room. Implementation was edited in the canonical checkout, then integrated
+with the fuel-ignition and object-pickup releases in `../bonk-club-singularity-release`
+on `codex/singularity-core-release`. Preserve unrelated canonical edits.
+
+- Captured living fighters and existing corpses retain hair, hair colour, facial
+  hair, accessories, colour and facing in their collected heads. The same character
+  artwork draws them larger and mostly upright, above the rubble. The original
+  appearance survives occupant replacement, another black hole and hot join.
+- Completed cores are glossy circular spheres with bright reflections and visible
+  contents. Heads sit inside the rim, and the shell clips the final contents to
+  its circular boundary. Active capture still uses the existing planar orbits,
+  differential limb stretching and warped outer platforms.
+- Contact with an intact completed core kills living fighters, including prone
+  and recovering physical bodies, and adds their head and held weapon. Contact
+  uses the existing solid strips and actual ragdoll limbs. Incomplete/destroyed
+  cores are harmless; terrain destruction and round-reset behavior are preserved.
+- Eleven new regressions cover cosmetics, corpses, bounded samples, wire rejection,
+  contact directions, physical limbs, single counting, destruction and resets.
+  All **676** pre-integration tests passed; **116** focused tests passed after the
+  fuel and pickup integration. Production build passed. Published CI verification
+  follows below when complete.
+- Three real Edge browsers verified capture, collapse, matching transported
+  collision, hot join after a slot replacement, real guest movement into the core,
+  contact death, added contents and reset through selected relay/relay candidates.
+  Rendered gameplay and one/four-head closeups were inspected. This is one-machine
+  browser QA. A few repeated harness attempts hit temporary late-join retries;
+  the complete run and the unmodified production room check passed.
+- External helpers, logs and screenshots: `../bonk-club-qa/singularity-*`.
+  Test hooks remain outside production. No dependencies or Pi configuration changes.
+
 
 ## Physical object pickup and carrying — 11 September 2026
 
