@@ -29,8 +29,8 @@ canonical checkout's concurrent prop-fracture work. Display version **0.9.2**.
 - Final integrated test/build/publication results are recorded after release.
 ## Jagged prop fragments — 11 September 2026
 
-Prepared as **v0.9.1**, protocol **31**. All players must refresh and create a
-new room after this release. Publication verification follows below when complete.
+Shipped in the combined **v0.9.2** release, protocol **31** (the prop change was
+prepared as v0.9.1). All players must refresh and create a new room.
 
 - Props fracture along varied oblique cuts into 8–10 physical shards. Each piece
   samples its own region of the original artwork, retaining crate braces, cabinet
@@ -54,6 +54,21 @@ new room after this release. Publication verification follows below when complet
   passed. Desktop CI exposed a smoke-test assertion hard-coded to v0.9.0; it now
   reads the root package version. All six desktop tests and the Windows runtime
   smoke passed locally after that test-only fix.
+- Published gameplay: **`712aaf1c8d5e22b8183c679021f90e896bc88e57`**, including
+  prop implementation `0443ec9` and the separate water/electrical artwork.
+  [Pages run 34624223889](https://github.com/SamCousinsGB/bonk-club/actions/runs/34624223889)
+  passed **612 gameplay/network/shared tests**, **3 server tests**, build and
+  deployment. All **15 public files** matched the tested clean production build
+  byte for byte: JS `index-DV4Q8FQI.js`, CSS `index-D3DFRitl.css`.
+- The combined source passed the three-browser fragment/hot-join/black-hole check
+  again. Its production build and the unmodified public game passed room slots,
+  guest controls, hot join, leaving/rejoining and mobile viewport checks through
+  selected TURN relay candidates, without page errors. Public v0.9.2 and solo
+  start/return also passed. This task's Vite server on port 5217 was stopped.
+- [Desktop run 34624377335](https://github.com/SamCousinsGB/bonk-club/actions/runs/34624377335)
+  passed Windows and Linux build, unit, runtime smoke and package checks on
+  `a24dc613a45753b17be8ba2ae7b85b10323acd21`, which adds only version-check fixes
+  after the gameplay release. Existing local v0.9.0 archives were not replaced.
 
 ## Steam desktop production — 11 September 2026
 
