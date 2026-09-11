@@ -960,6 +960,13 @@ export class Renderer {
     } else {
       this.background(arena.color, time);
       this.city(arena, state.platforms);
+      if(!this.scenery.has(state.arenaIndex)){
+        const layer=document.createElement("canvas");layer.width=W;layer.height=H;
+        sceneDetail(layer.getContext("2d"),arena);
+        if(this.scenery.size>=3)this.scenery.delete(this.scenery.keys().next().value);
+        this.scenery.set(state.arenaIndex,layer);
+      }
+      c.drawImage(this.scenery.get(state.arenaIndex),0,0);
     }
     ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
@@ -1030,7 +1037,7 @@ export class Renderer {
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
     for (const p of state.players) {this.fighter(p, time);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
-    drawHazards(c, state.hazards, time);
+    drawHazards(c, state.hazards, time, arena.theme);
     this.fragments(state.debris);
     drawChunks(this.ctx, state.chunks);
     drawBlood(this,state.blood);

@@ -8,6 +8,10 @@ export const COVER_KINDS = [
   "bed",
   "cabinet",
   "barrel",
+  "trolley",
+  "generator",
+  "planter",
+  "pallet",
 ];
 export const breakable = (p) =>
   p && (p.destructible === true || COVER_KINDS.includes(p.kind));
