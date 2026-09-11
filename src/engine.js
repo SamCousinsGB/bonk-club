@@ -1335,8 +1335,8 @@ export class World {
         impact = true;
         break;
       }
-      // A piercing beam carries on to the end of its swept segment after passing cover or a player.
-      if (!impact && !redirected && ["rail", "saw", "force", "boomerang", "bolt"].includes(b.kind)) {
+      // Non-blocking fuel contacts and piercing hits must not shorten flight.
+      if (!impact && !redirected) {
         b.x = endX;
         b.y = endY;
       }

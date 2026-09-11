@@ -1,8 +1,8 @@
 // Shared identities for physical containers, their contents and their artwork.
 export const SPILLS = {
-  oil: { color: "#423f32", rim: "#b5a568", flow: 1, life: 35, burn: 7 },
+  oil: { color: "#423f32", rim: "#b5a568", flow: 1.4, life: 35, burn: 7 },
   glue: { color: "#d3dba0", rim: "#fbffd0", flow: .35, life: 24, burn: 0 },
-  tar: { color: "#27222e", rim: "#826782", flow: .18, life: 40, burn: 11 },
+  tar: { color: "#27222e", rim: "#826782", flow: .6, life: 40, burn: 11 },
 };
 export const BARRELS = {
   barrel: { label: "TNT", color: "#b74732", rim: "#ffc28b" },

@@ -19,6 +19,17 @@ const ice = p => p.ice || p.material === "ice";
 const walls = world => world.platforms.filter(p => p.hp !== 0 && !p.waterId);
 const clear = (world, a, b) => !walls(world).some(s => segmentBox(a.x, a.y, b.x, b.y, s));
 const bodies = world => [...world.cover, ...world.chunks].filter(b => b.hp > 0);
+const ballistic = shot => ["bullet", "pellet", "rail", "ricochet"].includes(shot.kind);
+// One chance per shot and fuel body, not another roll on every simulation tick.
+// Weak references keep long-lived projectiles from retaining old world objects.
+const ignitionAttempts = new WeakMap();
+function bulletIgnites(world, shot, fuel) {
+  let seen = ignitionAttempts.get(shot);
+  if (!seen) { seen = new WeakSet(); ignitionAttempts.set(shot, seen); }
+  if (seen.has(fuel)) return false;
+  seen.add(fuel);
+  return world.random() < .3;
+}
 const near = (b, x, y, radius) => b.mass ? bodyInBlast(b, { x, y, radius }) :
   Math.hypot(x - clamp(x, b.x, b.x + b.w), y - clamp(y, b.y, b.y + b.h)) <= radius;
 
@@ -212,6 +223,10 @@ export function meltIce(world, x, y, radius = 24) {
 export function surfaceReaction(world, shot, surface) {
   const b = world.cover.find(b => b.id === (surface.propId || surface.id)) ||
     world.chunks.find(b => b.id === (surface.propId || surface.id)) || surface;
+  const contents = BARRELS[b.kind]?.contents;
+  if (ballistic(shot) && !b.chunk && !b.spent && b.hp > 0 && !b.cold && !b.soaked &&
+    (b.kind === "canister" || (contents && SPILLS[contents].burn && (b.liquidLeft ?? 96) > 0)) &&
+    bulletIgnites(world, shot, b)) ignite(b);
   if (shot.kind === "flame" || shot.kind === "spark") {
     ignite(b);
     if (ice(surface)) {
@@ -230,13 +245,13 @@ export function reactionContacts(world, shot, x, y, ex, ey) {
       const hit = segmentBox(x, y, ex, ey, q, shot.r);
       if (hit) out.push({ reaction: q, hit });
     }
-  if (["flame", "spark", "plasma", "rocket", "tesla"].includes(shot.kind))
+  if (ballistic(shot) || ["flame", "spark", "plasma", "rocket", "tesla"].includes(shot.kind))
     for (const g of world.gas) if (!g.lit) {
       const hit = segmentBox(x, y, ex, ey, { x: g.x-g.r*.7, y: g.y-g.r*.7, w:g.r*1.4, h:g.r*1.4 }, shot.r);
       if (hit) out.push({ reaction: g, gas: true, hit });
     }
-  if (["flame","spark","plasma","rocket","tesla","frost"].includes(shot.kind))
-    for (const q of world.spills) if(q.h>=.5) {
+  if (ballistic(shot) || ["flame","spark","plasma","rocket","tesla","frost"].includes(shot.kind))
+    for (const q of world.spills) if(q.h>=.5 && (!ballistic(shot) || (SPILLS[q.kind].burn && !q.fire && !q.cold))) {
       const hit=segmentBox(x,y,ex,ey,q,shot.r);
       if(hit)out.push({reaction:q,spill:true,hit});
     }
@@ -244,6 +259,7 @@ export function reactionContacts(world, shot, x, y, ex, ey) {
 }
 export function contactReaction(world, shot, collision) {
   const q = collision.reaction;
+  if (ballistic(shot) && !bulletIgnites(world, shot, q)) return false;
   if (collision.spill) {
     if(shot.kind==="frost"){q.cold=3;q.fire=0;}
     else if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;
@@ -300,15 +316,16 @@ function moveWater(world, dt, key = "water") {
     q.vy=Math.min(1000,q.vy+1000*dt);
     if (f && bottom+q.vy*dt>=f.y) { q.y=f.y-q.h; q.vy=0; q.grounded=true; }
     else { q.y+=q.vy*dt; q.grounded=false; }
-    if (!q.grounded || q.h<4.1) continue;
+    const fuel = spill && SPILLS[q.kind].burn;
+    if (!q.grounded || q.h<(fuel ? .85 : 4.1)) continue;
     const floorY=q.y+q.h;
     for (const dir of [-1,1]) {
       const nx=q.x+dir*q.w;
       if(nx<0||nx+q.w>W)continue;
       let other=existing.get(cell(q,nx,floorY));
       if(other?.frozen)continue;
-      const transfer=Math.min(5,Math.max(0,(q.h-(other?.h||0)-2)*.22)) * (spill ? SPILLS[q.kind].flow : 1);
-      if(transfer<.2)continue;
+      const transfer=Math.min(5,Math.max(0,(q.h-(other?.h||0)-(fuel ? .35 : 2))*.22)) * (spill ? SPILLS[q.kind].flow : 1);
+      if(transfer<(fuel ? .06 : .2))continue;
       const a={x:q.x+q.w/2,y:floorY-Math.min(q.h,other?.h||q.h)/2};
       const b={x:nx+q.w/2,y:a.y};
       if(platforms.some(p=>segmentBox(a.x,a.y,b.x,b.y,p)))continue;
@@ -395,7 +412,8 @@ function containers(world, dt, bs) {
       if(b.gasAt<=0&&world.gas.length<GAS_LIMIT) {
         b.gasAt=.3;
         world.gas.push({id:++world.reactionSerial,x:b.x+b.w/2+dx*30,y:b.y+b.h/2+dy*30,
-          vx:b.vx*.15+dx*45,vy:b.vy*.15+dy*45-12,r:22,life:3.2,lit:0,owner:0});
+          vx:clamp(b.vx*.15+dx*130,-500,500),vy:clamp(b.vy*.15+dy*130-12,-500,500),
+          r:22,life:3.2,lit:b.fire>0?.22:0,owner:0});
       }
     }
     if(b.fuse<=0) {
@@ -493,7 +511,7 @@ export function updateReactions(world, dt) {
     }
   }
   for(const g of world.gas) {
-    g.life-=dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.vx*=.96;g.r=Math.min(62,g.r+dt*14);
+    g.life-=dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.vx*=.985;g.r=Math.min(62,g.r+dt*14);
     if(g.lit>0) {g.lit=Math.max(0,g.lit-dt);if(!g.lit&&g.life>0){g.life=0;
       world.explode({x:g.x,y:g.y,kind:"grenade",weapon:"gas",owner:g.owner,radius:g.r+28,damage:38,force:480});}}
   }
