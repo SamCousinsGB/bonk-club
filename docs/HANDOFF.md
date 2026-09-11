@@ -41,8 +41,9 @@ tasks changed the canonical checkout. Preserve those separate changes.
 
 ## Reactive barrels and finite fighter fire — 11 September 2026
 
-Display version **0.10.0**, protocol **32**. All players must refresh and create
-a new room. This supersedes the older permanent fighter-burning behavior.
+Prepared as **v0.10.0**, protocol **32**; shipped in the combined **v0.11.0**
+release, protocol **33**. All players must refresh and create a new room. This
+supersedes the older permanent fighter-burning behavior.
 
 - TNT and gas cylinders flash and swell through their own casing, with a countdown
   painted on the label. The surrounding flashing rectangle is removed. TNT has
@@ -67,7 +68,26 @@ a new room. This supersedes the older permanent fighter-burning behavior.
   Rendered artwork and gameplay were inspected. This is one-machine browser QA.
 - QA helpers, logs and captures are outside Git in `../bonk-club-qa/barrels-*`;
   no production debug hooks, new dependencies or Pi configuration changes.
-  Full-suite and published-release verification is recorded below when complete.
+  The clean barrel-only export passed all **630 tests**; the combined release
+  passed **665 gameplay/network/shared tests** and **3 server tests**, production
+  build and deployment in [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882).
+- Published gameplay: **`8ec9491420d72fe0515b596c1656086971b94363`**, retaining
+  barrel implementation `74f646d`, the prone-floor fix, sound update and survival
+  arenas. All **15 public files** match the clean LF archive build byte for byte:
+  JS `index-C0qDhMdc.js`, CSS `index-szAYY0PO.css`. The unmodified public v0.11.0
+  passed solo, host/guest start and input, hot join, leave and small-menu checks
+  with selected relay/relay candidates and no browser errors. Its rendered
+  gameplay shows the new containers. The detailed barrel/expiry/changed-floor
+  scenario also passed on the integrated source before the arena-only fixes.
+- [Desktop run 34636927927](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927927)
+  passed native Windows/Linux builds and runtime smoke on that same revision.
+  No new Steam approval or physical-device compatibility claim is made.
+- Maximum-spill QA retained the 96-parcel cap with valid guest snapshots.
+  On this machine the reaction step measured 0.4 ms at p95 and guest drawing
+  measured 0.7 ms at p95; these are CPU timings, not FPS or network latency.
+  Exact release source/build: `../bonk-club-qa/barrels-live`. Task preview
+  servers on 5228, 5229 and 5230 are stopped. Concurrent canonical-checkout
+  edits were preserved; final integration used `barrels-integration`.
 
 ## Jump and death sounds — 11 September 2026
 
