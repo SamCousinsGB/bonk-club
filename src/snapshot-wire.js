@@ -1,11 +1,14 @@
 import { wreckTiles } from "./blackhole.js";
 import { WreckReplayer } from "./wreck-motion.js";
+import { compactFlights, FlightReplayer } from "./flight-replay.js";
+import { compactMatter, MatterReplayer } from "./matter-replay.js";
 // Moving black-hole terrain carries an initial shape/field plus a tick count.
 // Guests run the shared deformation solver and derive collision strips locally.
 // A final checkpoint guarantees identical settled geometry. Unrecorded pieces
 // retain the compact outline fallback. Every reconstructed delta baseline is
 // self-contained for packet loss, resets and hot joins.
 export function compactSnapshot(state) {
+  state = compactMatter(compactFlights(state));
   const counts = new Map();
   for (const p of state.platforms) if (p.wreckId) {
     const match = /r([0-4]):[0-2]$/.exec(p.id);
@@ -28,8 +31,9 @@ export function compactSnapshot(state) {
     }),
   };
 }
-export function expandSnapshot(state, validate, replayer = new WreckReplayer()) {
+export function expandSnapshot(state, validate, replayer = new WreckReplayer(), flights = new FlightReplayer(), matter = new MatterReplayer()) {
   if (!state || state.derivedWreck !== true || !Array.isArray(state.wreckage) || state.wreckage.length > 60) throw new Error("Invalid snapshot");
+  state = matter.expand(flights.expand(state));
   const {derivedWreck, ...out} = state;
   replayer.retain(state.wreckage, `${state.round}:${state.arenaIndex}`);
   out.wreckage = state.wreckage.map(w => {

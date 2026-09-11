@@ -15,6 +15,7 @@ import { SnapshotHistory } from "./snapshot-delta.js";
 import { StateCodec } from "./state-codec.js";
 import { InputDelivery } from "./input-delivery.js";
 import { motionState, mergeMotion, completeMotion } from "./motion-stream.js";
+import { compactFlights } from "./flight-replay.js";
 export { encodeState, decodeState } from "./state-codec.js";
 import { FighterChat, cleanChat, CHAT_LIMIT, CHAT_COOLDOWN } from "./chat.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
@@ -41,7 +42,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 39;
+export const PROTOCOL = 40;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -182,9 +183,12 @@ export class Room {
           // The full world establishes the epoch and collision state. A hot
           // join never renders actors against a missing or different arena.
           if (!this.worldState || this.worldState.round !== compact.round || this.worldState.arenaIndex !== compact.arenaIndex) return;
-          if (!validSnapshot({ ...this.worldState, ...compact })) throw new Error("Invalid motion snapshot");
-          state = mergeMotion(this.worldState, compact);
-          this.motionState = compact;
+          const expanded = await this.codec.run("motion", compact);
+          if (this.closed || this.connection !== c) return;
+          if (this.worldState.round !== expanded.round || this.worldState.arenaIndex !== expanded.arenaIndex) return;
+          if (!validSnapshot({ ...this.worldState, ...expanded })) throw new Error("Invalid motion snapshot");
+          state = mergeMotion(this.worldState, expanded);
+          this.motionState = expanded;
         } else {
           const expanded = await this.codec.run("expand", compact);
           if (this.closed || this.connection !== c) return;
@@ -735,7 +739,7 @@ export class Room {
     const encodeAt = performance.now();
     try {
       const view = { ...this.renderSnapshots.make(ready.length ? state : motionState(state)), inputAcks: [...this.appliedInputs] };
-      const motion = motionState(view);
+      const motion = compactFlights(motionState(view));
       state = ready.length ? compactSnapshot(view) : null;
       const seq = ++this.sequence;
       const encodings = new Map();
@@ -841,6 +845,8 @@ export class Room {
 const finite = (n) =>
   typeof n === "number" && Number.isFinite(n) && Math.abs(n) < 10000000;
 const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+const action = value => value === undefined || typeof value === "string" && value.length <= 54 &&
+  /^\d+:\d+:[0-3]:\d+$/.test(value) && value.split(":").every(n => Number.isSafeInteger(Number(n)));
 const weaponTypes = Object.keys(WEAPONS);
 const list = (value, max, check) =>
   Array.isArray(value) &&
@@ -905,6 +911,7 @@ export function validSnapshot(s) {
         validReactionObject(p) &&
         typeof p.bot === "boolean" &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
+        integer(p.actionSerial, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&
         [
           p.vx,
@@ -1018,6 +1025,7 @@ export function validSnapshot(s) {
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
         PROJECTILE_KINDS.includes(p.kind) &&
+        action(p.action) && (p.shot === undefined || integer(p.shot, 0, 127)) &&
         (p.age === undefined || (finite(p.age) && p.age >= 0)) &&
         validTransmutationProjectile(p) &&
         validExpandedProjectile(p) &&
@@ -1032,6 +1040,7 @@ export function validSnapshot(s) {
       (f) =>
         xy(f) &&
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
+        action(f.action) &&
         ["arc", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
         (!["tether", "cryo", "firework"].includes(f.kind) ||
           (integer(f.owner, 0, 3) && f.radius === {tether: 0, cryo: 210, firework: 120}[f.kind] &&
@@ -1063,7 +1072,7 @@ export function validSnapshot(s) {
     list(
       s.drops,
       20,
-      (d) => xy(d) && finite(d.life) && weaponTypes.includes(d.type),
+      (d) => xy(d) && finite(d.life) && weaponTypes.includes(d.type) && action(d.action),
     ) &&
     list(
       s.ragdolls,
@@ -1088,6 +1097,7 @@ export function validSnapshot(s) {
       35,
       (e) =>
         integer(e.id, 0, 10000000) &&
+        action(e.action) &&
         [
           "hazard",
           "fight",

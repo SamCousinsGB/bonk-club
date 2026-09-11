@@ -1,5 +1,7 @@
 import { motionState } from "./prediction-state.js";
 import { wreckRecipe } from "./wreck-motion.js";
+import { flightRecipe } from "./flight-replay.js";
+import { matterRecipe } from "./matter-replay.js";
 const simulationOnly = new Set([
   "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
   "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
@@ -29,6 +31,14 @@ export class RenderSnapshots {
       const source = state[key][i];
       if (!this.ids.has(source)) this.ids.set(source, ++this.nextId);
       entity.netId = this.ids.get(source);
+      if (key === "fields" && source.matter) {
+        const orbit=matterRecipe(source.matter);
+        if(orbit)entity.matter.orbit=orbit;
+      }
+      if (key === "projectiles") {
+        const flight = flightRecipe(source);
+        if (flight) entity.flight = flight;
+      }
       if (key === "wreckage") {
         const terrain = wreckRecipe(source, state.fields || []);
         if (terrain) entity.terrain = terrain;

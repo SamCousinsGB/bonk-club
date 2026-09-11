@@ -19,9 +19,11 @@ export async function decodeState(bytes) {
 // Keep JSON/compression off the rendering thread. At most one frame generation
 // (two streams for three recipients) or two guest decodes are in flight.
 export class StateCodec {
-  constructor() { this.pending = new Map(); this.serial = 0; this.closed = false; this.terrain = new WreckReplayer(); }
+  constructor() { this.pending = new Map(); this.serial = 0; this.closed = false; this.terrain = new WreckReplayer();
+    this.flights = new FlightReplayer(); this.motionFlights = new FlightReplayer(); this.matter = new MatterReplayer(); }
   async run(operation, value) {
-    const fallback = () => operation === "expand" ? expandSnapshot(value, () => true, this.terrain) :
+    const fallback = () => operation === "motion" ? this.motionFlights.expand(value) :
+      operation === "expand" ? expandSnapshot(value, () => true, this.terrain, this.flights, this.matter) :
       operation === "encode" ? encodeState(value) : decodeState(value);
     if (this.closed) throw new Error("Codec closed");
     if (typeof Worker === "undefined" || this.failed) return fallback();
@@ -55,3 +57,5 @@ export class StateCodec {
 }
 import { expandSnapshot } from "./snapshot-wire.js";
 import { WreckReplayer } from "./wreck-motion.js";
+import { FlightReplayer } from "./flight-replay.js";
+import { MatterReplayer } from "./matter-replay.js";

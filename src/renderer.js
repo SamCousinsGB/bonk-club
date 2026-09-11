@@ -102,10 +102,13 @@ export class Renderer {
     c.fillStyle = color;
     c.fill();
   }
-  events(events, sound, time) {
+  events(events, sound, time, preview = false, accept = null) {
     for (const e of events || []) {
-      if (e.id <= this.lastEvent) continue;
-      this.lastEvent = e.id;
+      if (!preview) {
+        if (e.id <= this.lastEvent) continue;
+        this.lastEvent = e.id;
+      }
+      if (accept && !accept(e)) continue;
       if (e.type === "ko" && Number.isFinite(time) && Number.isFinite(e.at) &&
           time - e.at >= DEATH_CUE_DURATION) continue;
       if (e.type !== "ko" && Number.isFinite(time) && Number.isFinite(e.at) && time - e.at > .4) continue;

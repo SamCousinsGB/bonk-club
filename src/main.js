@@ -997,7 +997,9 @@ function frame(now) {
   sound.update(playing ? state : null);
   renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
-    renderer.events(state.events, sound, state.time);
+    const weapons = !world && room ? guestPrediction.weapons : null;
+    renderer.events(state.events, sound, state.time, false, weapons ? e=>weapons.acceptEvent(e) : null);
+    if (weapons) renderer.events(weapons.takeEvents(), sound, state.time, true);
     if (hudClock > 0.07) {
       hudClock = 0;
       updateHud(state);

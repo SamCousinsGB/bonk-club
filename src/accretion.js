@@ -1,4 +1,5 @@
-import { orbitPoint, seedOrbit } from "./orbit.js";
+import { seedOrbit } from "./orbit.js";
+import { recordMatterStep } from "./matter-replay.js";
 import { trackKillSource } from "./kill-credit.js";
 import { cleanProfile } from "./identity.js";
 import { segmentBox } from "./collision.js";
@@ -54,25 +55,7 @@ function addSample(core, item) {
 export function packMatter(f, dt) {
   const core = f.matter;
   if (!core) return;
-  core.packing = Math.max(0, Math.min(1, 1 - f.life / 1.1));
-  const heads = core.items.filter(q => q.kind === "fighter");
-  for (let i = 0; i < core.items.length; i++) {
-    const q = core.items[i], head = q.kind === "fighter",
-      a = head ? heads.indexOf(q) * Math.PI * 2 / heads.length - Math.PI / 2 : i * 2.399963,
-      d = head ? (heads.length === 1 ? 0 : Math.max(0, Math.min(core.w * .25, core.w / 2 - 24))) :
-        Math.sqrt((i + .5) / core.items.length) * Math.max(0, core.w / 2 - q.size - 3),
-      x = core.x + Math.cos(a) * d, y = core.y + Math.sin(a) * d;
-    if (f.life > 1.1) {
-      orbitPoint(q, f, dt, .8, 155);
-      q.spin += Math.sin(f.age * 9 + q.id) * dt * 7;
-      q.angle += q.spin * dt;
-      continue;
-    }
-    const response = f.life <= 0 ? 1 : Math.min(1, dt * (core.packing ? 12 : 3));
-    q.x += (x - q.x) * response; q.y += (y - q.y) * response;
-    // Settle heads mostly upright so hair, facial hair and eyewear remain legible.
-    q.angle += ((head ? Math.sin(a) * .22 : a) - q.angle) * response;
-  }
+  recordMatterStep(core, f, dt);
 }
 
 // Use the same strips as solid collision, including the solver's tiny separation

@@ -2,6 +2,7 @@ import { World, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
 import { blend } from "./render-state.js";
+import { WeaponPrediction } from "./weapon-prediction.js";
 
 const INPUT_STEP = 1 / 60, MAX_PENDING = 30, STALE_MS = 250;
 const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "facing", "aimAngle",
@@ -18,6 +19,7 @@ export class GuestPrediction {
     this.pending = []; this.id = null; this.lastAt = null;
     this.correction = { x: 0, y: 0 }; this.correctionAt = 0; this.lastSequence = 0;
     this.advanceAt = null; this.input = null; this.future = null;
+    this.weapons = new WeaponPrediction();
   }
   receive(state, id, now) {
     const p = state.players.find(p => p.id === id), old = this.player;
@@ -27,6 +29,8 @@ export class GuestPrediction {
     if (!changed && this.latest && state.time <= this.latest.time) return;
     const stalled = this.lastAt !== null && now - this.lastAt > STALE_MS;
     if (changed || stalled) this.pending = [];
+    if (changed || stalled) this.weapons.reset();
+    this.weapons.receive(state, id, now);
     this.id = id; this.latest = state; this.lastAt = now;
     this.future = null;
     if (changed || stalled) { this.advanceAt = now; this.input = null; }
@@ -41,9 +45,11 @@ export class GuestPrediction {
     for (const q of this.player.rig || []) { q.px = q.x - p.vx * STEP; q.py = q.y - p.vy * STEP; }
     const platforms = structuredClone(state.platforms);
     this.context = {
-      prediction: true, phase: "prediction", time: state.time,
+      prediction: true, phase: "prediction", time: state.time, round:state.round,
       platforms, cover: structuredClone(state.cover), chunks: structuredClone(state.chunks),
       players: [this.player], projectiles: [],
+      projectileCount:state.projectiles.length,
+      attack(p,alternate) { World.prototype.attack.call(this,p,alternate); },
       spikes: () => state.spikes, solids: World.prototype.solids,
       random: () => .5, event() {}, hit() {}, kill() {}, damageCover() {},
     };
@@ -65,11 +71,13 @@ export class GuestPrediction {
       const x = p.x, y = p.y;
       World.prototype.move.call(w, p, input, STEP);
       if (p.carryPoint) p.carryPoint = { x: p.carryPoint.x + p.x - x, y: p.carryPoint.y + p.y - y };
+      if (input.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.carryId)
+        World.prototype.throwWeapon.call(w,p);
+      p.throwHeld=input.throw;
       if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
         if (input.block && p.weapon) World.prototype.attack.call(w, p, true);
         else if (input.attack) World.prototype.attack.call(w, p);
       }
-      // The throw, inventory change and flying weapon await host confirmation.
       updateRig(p, STEP, w.solids(p), w.time);
     }
   }
@@ -80,7 +88,13 @@ export class GuestPrediction {
         now - this.lastAt > STALE_MS || this.pending.length >= MAX_PENDING) return;
     const command = { seq, input: cleanInput(input) };
     this.pending.push(command);
+    this.context.previewShot=b=>this.weapons.capture("projectiles",b,seq,now);
+    this.context.previewThrow=b=>this.weapons.capture("drops",b,seq,now);
+    this.context.previewField=b=>this.weapons.capture("fields",b,seq,now);
+    this.context.event=(type,data)=>this.weapons.event({type,at:this.context.time,...data},now);
     this.step(command.input);
+    this.context.previewShot=this.context.previewThrow=this.context.previewField=undefined;
+    this.context.event=()=>{};
     this.advanceAt = now; this.input = command.input; this.future = null;
   }
   sample(state, now) {
@@ -118,6 +132,8 @@ export class GuestPrediction {
       local.rig = local.rig?.map(q => ({ ...q, x: q.x + dx, y: q.y + dy }));
     }
     const out = { ...state, players: state.players.map(p => p.id === this.id ? local : p) };
+    if ([...this.weapons.pending.values()].some(r=>r.list==='drops'&&!r.confirmed) && controllable(authoritative))
+      local.weapon=this.player.weapon;
     // A held object's artwork travels with its local carrier. Ownership, shape,
     // collisions, contents and the actual pickup/drop still come from the host.
     if (local.carryId) for (const list of ["cover", "chunks"]) {
@@ -126,6 +142,6 @@ export class GuestPrediction {
         ...held, x: held.x + local.x - authoritative.x, y: held.y + local.y - authoritative.y,
       } : b);
     }
-    return out;
+    return this.weapons.sample(out,now);
   }
 }

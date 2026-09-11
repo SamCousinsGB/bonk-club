@@ -11,6 +11,7 @@ import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { updateTransformedDeath } from "./transmutation.js";
 import { passiveBody } from "./body-physics.js";
 import { advanceFlight, projectileInArena, canSpawnProjectiles } from "./projectile-flight.js";
+import { recordFlight } from "./flight-replay.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
 import { carveRectangle } from "./nuclear.js";
@@ -257,6 +258,7 @@ export class World {
       freeze:0, freezeCooldown:0, xray:0, xrayType:null, knockdown:0,
       weapon: null,
       ammo: 0,
+      actionSerial: 0,
       walk: 0,
       gaitSpeed: 0,
       flash: 0,
@@ -738,6 +740,7 @@ export class World {
     if (w.kind !== "melee" && w.kind !== "phaser" &&
         !canSpawnProjectiles(this, w.count || (w.kind === "pellet" ? 5 : 1))) return;
     if (w.proneOnly && (!p.prone || !p.ground)) return;
+    const action = `${this.round}:${p.occupant}:${p.id}:${p.actionSerial = (p.actionSerial || 0) + 1}`;
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
       ax = Math.cos(angle),
       ay = Math.sin(angle);
@@ -751,14 +754,15 @@ export class World {
       p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
       const muzzle = projectileMuzzle(this, p, p.weapon, ax, ay);
-      if (w.kind === "phaser" && !this.prediction) firePhaser(this, p, ax, ay);
-      for (let n = 0; n < (w.kind === "phaser" || this.prediction ? 0 : count); n++) {
+      if (w.kind === "phaser") firePhaser(this, p, ax, ay, action);
+      for (let n = 0; n < (w.kind === "phaser" || this.prediction && !this.previewShot ? 0 : count); n++) {
         const spread =
           count > 1
             ? (n - (count - 1) / 2) *
               (w.spread || (w.kind === "rocket" ? 0.18 : 0.12))
             : (this.random() - 0.5) * (w.spread || 0);
-        this.projectiles.push(trackKillSource(this, {
+        const shot = {
+          action, shot:n,
           x: muzzle.x,
           y: muzzle.y,
           vx: w.speed * Math.cos(angle + spread),
@@ -796,7 +800,9 @@ export class World {
                     : w.kind === "grenade"
                       ? 7
                       : 4),
-        }));
+        };
+        if (this.prediction) this.previewShot?.(shot);
+        else this.projectiles.push(trackKillSource(this, shot));
       }
       const recoil = firingRecoil(w, p);
       if (recoil >= 60)
@@ -816,6 +822,7 @@ export class World {
         -ay * recoil * 2,
       );
       this.event("shoot", {
+        action,
         x: muzzle.x,
         y: muzzle.y,
         kind: w.kind,
@@ -953,12 +960,14 @@ export class World {
     if (p.weapon === "nuke") {
       this.attack(p);
       p.pickupCooldown = 0.35;
-      this.event("throw", { x: p.x, y: p.y });
+      this.event("throw", { x: p.x, y: p.y, action:`${this.round}:${p.occupant}:${p.id}:${p.actionSerial}` });
       return;
     }
     const ax = Math.cos(p.aimAngle),
       ay = Math.sin(p.aimAngle);
-    this.drops.push({
+    const action = `${this.round}:${p.occupant}:${p.id}:${p.actionSerial = (p.actionSerial || 0) + 1}`;
+    const thrown = {
+      action,
       x: p.x + ax * 12,
       y: p.y - 10 + ay * 12,
       vx: ax * 850 + p.vx * 0.4,
@@ -972,14 +981,16 @@ export class World {
       armed: true,
       angle: p.aimAngle,
       spin: p.facing * 17,
-    });
+    };
+    if (this.prediction) this.previewThrow?.(thrown);
+    else this.drops.push(thrown);
     p.weapon = null;
     p.ammo = 0;
     p.pickupCooldown = 0.35;
     p.swing = 0.22;
     p.cooldown = Math.max(p.cooldown, 0.22);
     impulseRig(p, p.x + ax * 25, p.y - 10, ax * 250, ay * 250);
-    this.event("throw", { x: p.x, y: p.y });
+    this.event("throw", { x: p.x, y: p.y, action });
   }
   spawnWeapon() {
     if (this.arena.survival) {
@@ -1363,6 +1374,7 @@ export class World {
       if (impact) b.life = 0;
     }
     this.projectiles = this.projectiles.filter(b => b.life > 0);
+    for (const b of this.projectiles) if (projectileInArena(b)) recordFlight(b, dt);
   }
   updateRagdolls(dt) {
     for (const rag of this.ragdolls) {

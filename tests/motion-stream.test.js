@@ -4,6 +4,23 @@ import { motionState, mergeMotion, completeMotion } from "../src/motion-stream.j
 import { FrameAssembler, framePackets, motionPacket } from "../src/realtime.js";
 import { World } from "../src/engine.js";
 import { RenderSnapshots } from "../src/render-state.js";
+import { Room } from "../src/network.js";
+
+test("an actor replay finishing after a round transition cannot replace the new round", async () => {
+  const states=[],notices=[],room=new Room({onState:s=>states.push(s),onNotice:s=>notices.push(s)});
+  const w=new World(),snapshots=new RenderSnapshots();
+  const world={...snapshots.make(w.snapshot()),inputAcks:[0,0,0,0]},actors=motionState(world);
+  room.worldState=world;room.connection={open:true,close(){}};
+  let finish;room.codec.stop();room.codec={run:()=>new Promise(resolve=>{finish=resolve;}),stop(){}};
+  try {
+    room.receiveFrame(room.connection,{t:'state',seq:1,motion:true,state:{base:0,state:actors}});
+    await new Promise(resolve=>setImmediate(resolve));assert.ok(finish);
+    room.worldState={...world,round:world.round+1};finish(actors);
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(room.receivedMotionSequence,0);assert.equal(room.motionState,undefined);
+    assert.deepEqual(states,[]);assert.deepEqual(notices,[]);
+  } finally { room.close(); }
+});
 
 test("actor updates preserve world destruction and newer outcomes cannot be undone by delayed world state", () => {
   const w = new World(), snapshots = new RenderSnapshots();

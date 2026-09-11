@@ -5,7 +5,7 @@ export const MAX_PROJECTILES = 512;
 // The margin includes edge-of-map black holes and returning weapons.
 export const projectileInArena = b => b.x > -700 && b.x < W + 700 && b.y > -3700 && b.y < H + 700;
 export function canSpawnProjectiles(world, count = 1) {
-  return world.projectiles.filter(b => b.life > 0 && projectileInArena(b)).length + count <= MAX_PROJECTILES;
+  return (world.prediction ? world.projectileCount || 0 : world.projectiles.filter(b => b.life > 0 && projectileInArena(b)).length) + count <= MAX_PROJECTILES;
 }
 export function advanceFlight(b, dt) {
   b.age = (b.age || 0) + dt;

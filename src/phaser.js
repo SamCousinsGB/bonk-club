@@ -75,12 +75,13 @@ export function carveBeam(s, f, nextId) {
   });
 }
 
-export function firePhaser(world, player, ax, ay) {
+export function firePhaser(world, player, ax, ay, action) {
   const weapon = WEAPONS.phaser;
   const { x, y } = weaponMuzzle(player, 54, Math.atan2(ay, ax));
   const beam = { kind: "phaser", x, y, ex: x + ax * weapon.range,
     ey: y + ay * weapon.range, radius: weapon.radius, flare: weapon.flare,
-    life: weapon.life, age: 0, owner: player.id };
+    life: weapon.life, age: 0, owner: player.id, ...(action ? {action} : {}) };
+  if (world.prediction) { world.previewField?.(beam); return beam; }
   const id = s => `${s.sourceId || s.id || "spike"}:cph${++world.terrainSerial}`;
   world.water = (world.water || []).filter(q => !beamTouches(q, beam));
   world.spills = (world.spills || []).filter(q => !beamTouches(q, beam));

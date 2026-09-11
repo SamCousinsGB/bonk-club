@@ -1,6 +1,54 @@
 # Bonk Club — next chat
 
-Updated 11 September 2026. Read the root `AGENTS.md` first.
+Updated 12 September 2026. Read the root `AGENTS.md` first.
+
+## Local combat prediction and replay - 12 September 2026
+
+- Release **v0.18.0**, protocol **40**. Refresh every player's tab and create a
+  new room. Integrated from main `3dd74cf` in `../bonk-club-qa/client-combat`,
+  branch `codex/client-combat`. Preserve unrelated canonical checkout edits.
+- Guest firing, alternate fire and weapon throws now create immediate visual
+  previews and local firing/throw effects. They use the existing weapon rules,
+  recoil and admission checks. A host-owned round/occupant/player/action identity
+  reconciles each projectile or throw and suppresses repeated firing effects.
+  PHASER previews return before any terrain or damage operation. Preview entities
+  never enter authoritative physics, inventory, damage, destruction or scoring.
+- Host acknowledgements remove rejected previews; authoritative impacts,
+  reflections, capture, deaths and resets take precedence. Histories are bounded
+  to 128 previews, 256 recent effects and 250 ms without fresh authority.
+- Ballistic projectiles transmit a full-precision initial state and tick count.
+  The guest worker runs the shared flight solver; a bounce, reflection, force or
+  other trajectory change starts a fresh recipe. Guided/returning projectiles
+  retain authoritative updates. Host shots still continue outside the arena;
+  recipe bookkeeping applies only to nearby transmitted shots.
+- Black-hole contents use the shared orbit/packing solver in the guest worker.
+  The host alone decides captures, mass, sample identities and the final physical
+  sphere. New captures and geometry changes reseed the recipe. Final contents
+  become a normal persistent checkpoint. Both streams keep separate replay
+  caches; late join and lost baselines retain complete seeds. Entity list changes
+  reuse survivors by stable identity instead of resending shifted list entries.
+- Controlled compression test: 96 captured samples and 40 flying shots used
+  **47,586 -> 6,183 bytes** over 30 steady delta updates (**87% less**).
+  This measures that test's compressed application data, not all gameplay traffic.
+- Real Edge host/guest browsers selected relay/relay candidates. With 80 ms added
+  each direction plus jitter, blaster, shotgun alternate fire, throws, nukes and
+  PHASER appeared in **12-21 ms**, versus **187-222 ms** for host confirmation in
+  the final run. Sustained minigun fire with approximately 9% packet loss produced
+  no duplicate shots, kept the guest alive, and used bounded prediction history.
+- Three real relay browsers verified exact active terrain, collision and captured
+  contents, a mid-field hot join, overlapping holes, an explosion during
+  deformation and settled terrain/contents. Moving two-hole tests retained 121
+  actor updates in four seconds, 107 with injected delay/loss. Missing-baseline,
+  600 ms outage, blocked-renderer and four-times CPU-throttle recovery passed.
+  These are controlled one-PC relay tests, not cross-ISP or all-device guarantees.
+- All **788 tests** passed, followed by focused final checks and an additional
+  worker/round-transition race regression. The production build and unmodified
+  production-bundle solo, real host/guest controls, third-player hot join, leave
+  and narrow-menu smoke checks passed. Screenshots were inspected; no page errors.
+- No dependencies, Pi services or desktop shell code changed. External QA scripts,
+  logs, metrics and screenshots are `../bonk-club-qa/client-combat-*`; the moving
+  replay run is `guest-fluidity-moving-client-combat.*`. No debug hooks are built.
+- Publication and exact public asset verification are pending below.
 
 ## Guest fluidity and transport repair - 11 September 2026
 

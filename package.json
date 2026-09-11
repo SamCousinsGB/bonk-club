@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.17.2",
-  "releaseNotes": "Smoother online movement and faster guest updates during heavy combat",
+  "version": "0.18.0",
+  "releaseNotes": "Immediate online firing and throwing with local projectile and black-hole motion",
   "private": true,
   "type": "module",
   "scripts": {
