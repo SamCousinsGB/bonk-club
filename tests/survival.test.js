@@ -79,6 +79,23 @@ test("a bot in a safe press gap does not lunge back into the warned lane",()=>{
   assert.equal(input.attack,false);assert.equal(input.right,false);
 });
 
+test("facing bots on the same side of a press choose the same nearest exit",()=>{
+  const w=world("press");w.phase="fight";machinery(w,3.2);
+  for(const [id,x,aim] of [[0,363,0],[1,393,Math.PI]]){
+    const p=w.players[id];Object.assign(p,{x,y:1090,vx:0,ground:true,weapon:null});
+    const input=cleanInput({attack:true,aim});survivalControls(w,p,{},input,w.solids());
+    assert.equal(input.left,true);assert.equal(input.right,false);assert.equal(input.attack,false);
+  }
+});
+
+test("a wide press hits only when its visible plate reaches the fighter",()=>{
+  const w=world("press");w.phase="fight";w.hazards=w.hazards.slice(0,1);
+  const p=w.players[0];Object.assign(p,{x:430,y:1090,ground:true});
+  Object.assign(w.hazards[0],{age:4.5,active:true,bodyY:1000});
+  machinery(w,STEP);assert.equal(p.hp,100);
+  machinery(w,.08);assert.equal(p.alive,false);
+});
+
 test("bot cargo dodge clears a moving box with real jump physics",()=>{
   const w=world("cargo");w.phase="fight";w.players=w.players.slice(0,2);
   const p=w.players[0];Object.assign(p,{x:1200,y:1050,ground:true});w.players[1].x=200;

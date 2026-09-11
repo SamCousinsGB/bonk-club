@@ -18,8 +18,11 @@ export function survivalControls(world, p, b, input, solids) {
     const lunge = input.attack && !p.weapon ? Math.sign(Math.cos(input.aim ?? (p.facing < 0 ? Math.PI : 0))) * 150 : 0;
     const projected = p.x + p.vx * .22 + (Number(input.right) - Number(input.left)) * 40 + lunge;
     if (unsafe(p.x) || unsafe(projected)) {
+      // Once inside a lane, escape from the actual position. The cancelled
+      // attack must not send two facing bots through each other to opposite exits.
+      const escapeFrom = unsafe(p.x) ? p.x + p.vx * .1 : projected;
       const candidates = [p.x, ...dangerous.flatMap(h => [h.x - h.w / 2 - 44, h.x + h.w / 2 + 44])]
-        .filter(x => supported(x) && !unsafe(x)).sort((a, c) => Math.abs(a - projected) - Math.abs(c - projected));
+        .filter(x => supported(x) && !unsafe(x)).sort((a, c) => Math.abs(a - escapeFrom) - Math.abs(c - escapeFrom));
       if (candidates.length) override(candidates[0]);
     }
     return;

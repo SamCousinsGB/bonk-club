@@ -106,7 +106,8 @@ export function updateHazards(world,dt) {
         }
         continue;
       }
-      const crush=h.type==="crusher"&&segmentBox(h.x,oldY,h.x,h.bodyY,box,h.w/2);
+      const crush=h.type==="crusher"&&segmentBox(h.x,oldY,h.x,h.bodyY,
+        {x:box.x-h.w/2,y:box.y-22,w:box.w+h.w,h:box.h+44});
       if(!overlap(box,zone)&&!crush)continue;
       if(["geyser","tesla","xray","steam","frost","spores"].includes(h.type)&&solids.some(s=>segmentBox(h.x,h.y-3,p.x,p.y,s)))continue;
       if(h.hitIds.includes(p.id))continue;
