@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.2",
-  "releaseNotes": "Flowing water, impact splashes and branching electrical arcs",
+  "version": "0.9.3",
+  "releaseNotes": "Fixed falling through floors after prone hits",
   "private": true,
   "type": "module",
   "scripts": {
