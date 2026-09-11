@@ -39,9 +39,21 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   responses took longer during simultaneous full-suite load; do not treat that
   run as a stable network benchmark. The unmodified production bundle passed
   solo, host/guest start, hot join, leave and small-menu checks through TURN.
-- Display version is prepared as **0.16.1**, protocol **37**. Both players must
-  refresh and create a new room after publishing. Final release verification
-  follows below once complete.
+- **Published and verified:** display **0.16.1**, protocol **37**, gameplay
+  revision `c06dd6a8b6fa62b6dcb013dda512f827e70787b8`. Both players must refresh
+  and create a new room. [Pages run 34644756415](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644756415)
+  passed all **742 game/shared tests and 3 server tests**, built and deployed.
+- All **15 public files** matched SHA-256 hashes from that run's Pages artifact,
+  including `index-Bqp12hF8.js` and `index-DSLPu4j9.css`. The actual public game
+  passed solo, host/guest start, guest controls, hot join and leaving, with
+  selected relay/relay candidates on all three real Edge browsers and no page
+  errors. Public gameplay and small-menu screenshots were visually inspected.
+  Evidence: `public.log`, `public-parity.json`, `ci-release.log` and
+  `latency-public-*.png` in the external QA directory. Test browsers and this
+  task's development/preview servers were stopped.
+- These checks used browsers on one PC and a real external relay. Sam and his
+  friend still need to judge play feel on their own connection; this release
+  does not guarantee a direct route or eliminate host-confirmed combat delay.
 
 ## Scanner layering and skeleton flicker — 11 September 2026
 
