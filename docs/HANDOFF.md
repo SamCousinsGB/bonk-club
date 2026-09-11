@@ -206,45 +206,49 @@ on `codex/singularity-core-release`. Preserve unrelated canonical edits.
 
 ## Hazard breakup and complete clearing — 11 September 2026
 
-Prepared as **0.13.1** and integrated with **0.14.0**, protocol **35**. This
-artwork change uses the existing validated `done` flag and adds no wire fields.
-Refresh all players' tabs to load the release.
+Shipped in the combined **v0.16.1**, protocol **37**. Refresh all players' tabs
+and create a new room. The hazard change itself uses the existing validated
+`done` flag and adds no wire fields; later features advanced the protocol.
 
-- All twelve environmental fixtures disappear through jagged pieces of their
-  own casing, rods and moving heads, followed by dust and small grit. The intact
-  machine never fades. Every shard and puff clears within 1.05 seconds, leaving
-  no persistent hazard rubble, ghost artwork or active hazard damage.
-- Both lost mounting floors and direct explosive hits trigger the break. Ordinary
-  blasts retain a disabled fixture identity for the transition; nuclear/PHASER
-  consumption and black-hole collection keep their existing specialized effects.
-- Per-renderer observation prevents duplicate packets, hot joins, scene changes
-  or background gaps from replaying a stale break. Round reset restores fixtures.
+- All twelve environmental fixtures break into jagged pieces of their own
+  casing, rods and moving heads, followed by dust and grit. The intact machine
+  never fades. Every shard and puff clears within 1.05 seconds, leaving no
+  persistent hazard rubble, ghost artwork or active hazard damage.
+- Lost mounting floors and direct explosive hits both trigger the break. Ordinary
+  blasts retain a disabled identity for guest transitions. Nuclear/PHASER removal
+  and black-hole collection retain their own effects; later black holes cannot
+  recreate an already cleared fixture as physical wreckage.
+- Per-renderer observation prevents repeated packets, hot joins, scene changes
+  and background gaps from replaying stale breaks. Round reset restores fixtures.
   At most eight bursts and 48 source-art shards per fixture exist at once. Source
-  canvases are created only on a break and released with the burst. Reduced-motion
-  mode reduces travel and removes spin.
-- Nine new regressions cover direct hits, support loss, disabled damage/drawing,
-  bounded clearing, all fixture meshes, host/guest snapshots, late join, reset and
-  preventing later black holes from recreating cleared fixtures.
-  The initial full suite passed 683 tests; after the direct-hit fix, all 16 focused
-  checks passed. After integrating the latest object-pickup release from main, all
-  57 hazard/terrain/object-carry checks passed, plus production build.
-- Real Edge host/guest/hot join passed all twelve types, actual carved mounting
-  floors, shard artwork, empty aftermath and round restoration twice, including
-  the integrated source. Selected relay/relay candidates were checked at each end.
-  The unmodified production bundle passed solo, host/guest controls, hot join,
-  leaving and a small-screen menu with no browser errors. Gameplay frames were
-  visually inspected. This is one-machine browser QA.
-- Canonical unrelated edits were preserved. Release integration is in
-  `../bonk-club-qa/hazard-break-release` / `codex/hazard-break-release`.
-  External harnesses/logs/screenshots use `../bonk-club-qa/hazard-break-*`.
-  No production debug hooks, dependencies or Pi configuration changes.
-- The later standalone full suite passed 684 tests. Final hazard/terrain/black-hole
-  integration checks passed 28 tests, and the combined source plus v0.14.0 production
-  bundle repeated all browser checks successfully. Eight maximum-size fixtures
-  generated 198 visible shards in 9.9 ms, with 0.6 ms p95 drawing CPU cost on this
-  machine. Software canvas readback avoids the earlier 127 ms first-frame stall.
-  This measures drawing cost, not FPS or internet latency. The cleared frame
-  contained zero hazard pixels. Published-release verification follows below.
+  canvases are capped at 880 by 440 even for extreme finite remote coordinates,
+  created only on a break and released with it. Reduced motion limits travel/spin.
+- Ten regressions cover direct hits, support loss, disabled damage/drawing,
+  clearing, mesh coverage, host/guest snapshots, hot join, reset, later black-hole
+  capture and allocation bounds. All 50 final hazard/scanner/terrain checks passed.
+  The scanner's complete rear/front artwork remains available for fragmentation.
+- Real Edge host/guest/hot join verified all twelve types, carved mounting floors,
+  recognizable shards, empty aftermath and round restoration, including the latest
+  scanner integration. Selected relay/relay candidates were checked at each end.
+  Actual gameplay frames were visually inspected; this is one-machine browser QA.
+- Eight maximum-size fixtures generated 198 visible shards in 9.9 ms, with 0.6 ms
+  p95 drawing CPU cost on this machine. Software canvas readback removed the
+  earlier 127 ms first-frame stall. These are drawing costs, not FPS or internet
+  latency. The final cleared frame contained zero hazard pixels.
+- Published revision **`c06dd6a8b6fa62b6dcb013dda512f827e70787b8`** includes the
+  hazard implementation and subsequent fixes. [Pages run 34644756415](https://github.com/SamCousinsGB/bonk-club/actions/runs/34644756415)
+  passed **742 game/network/shared tests**, **3 server tests**, build and deployment.
+  All **15 public files** matched its tested CI artifact byte for byte:
+  JS `index-Bqp12hF8.js`, CSS `index-DSLPu4j9.css`. Unmodified public **v0.16.1**
+  passed solo, host/guest start, controls, hot join, leaving and small-screen menu
+  checks through selected relay/relay candidates, with no browser errors.
+- Source edits were made in the canonical checkout and integrated with successive
+  main releases in `../bonk-club-qa/hazard-break-release` / `codex/hazard-break-release`.
+  The canonical checkout retains edits beside unrelated work; do not publish its
+  older branch over main. External harnesses, logs and screenshots use
+  `../bonk-club-qa/hazard-break-*`; the final CI download is `hazard-break-ci-live`.
+  Task servers on 5247/5248 are stopped. No production debug hooks, dependencies
+  or Pi configuration changes were added.
 
 ## Physical object pickup and carrying — 11 September 2026
 
