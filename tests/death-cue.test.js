@@ -114,7 +114,7 @@ function soundFixture() {
   sound.context = { state: "running", currentTime: 10 };
   sound.master = {};
   sound.tone = (...args) => { notes.push(args); sound.active++; };
-  sound.rumble = () => { sound.active++; };
+  sound.sample = () => { sound.active++; };
   return { sound, notes };
 }
 

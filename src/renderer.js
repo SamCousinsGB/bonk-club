@@ -1,4 +1,4 @@
-import { drawMenuMontage } from "./menu-montage.js";
+import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
 import { DeathCues, drawDeathCue, DEATH_CUE_DURATION } from "./death-cue.js";
@@ -105,6 +105,7 @@ export class Renderer {
       this.lastEvent = e.id;
       if (e.type === "ko" && Number.isFinite(time) && Number.isFinite(e.at) &&
           time - e.at >= DEATH_CUE_DURATION) continue;
+      if (e.type !== "ko" && Number.isFinite(time) && Number.isFinite(e.at) && time - e.at > .4) continue;
       sound?.play(
         e.type === "shoot" &&
           ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
@@ -135,7 +136,8 @@ export class Renderer {
           "break",
         ].includes(e.type)
       ) {
-        const count = e.ash ? 0 : e.nuclear
+        const firearm = e.type === "shoot" && ["bullet", "pellet", "ricochet"].includes(e.kind);
+        const count = e.ash ? 0 : firearm ? 5 : e.type === "shoot" ? 6 : e.nuclear
           ? 24
           : e.type === "explosion"
             ? 38
@@ -143,6 +145,7 @@ export class Renderer {
               ? 28
               : 12;
         for (let i = 0; i < count && this.particles.length < 240; i++) {
+          const smoke = firearm && i > 1;
           const a = Math.random() * TAU,
             v =
               70 +
@@ -151,13 +154,15 @@ export class Renderer {
           this.particles.push({
             x: e.x,
             y: e.y,
-            vx: Math.cos(a) * v,
-            vy: Math.sin(a) * v,
-            color: e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
+            vx: Math.cos(a) * v * (smoke ? .12 : 1),
+            vy: smoke ? -35 - Math.random() * 35 : Math.sin(a) * v,
+            smoke,
+            color: smoke ? "#9caaa9" : firearm ? "#ffcf87" : e.kind === "tesla" || e.kind === "plasma" ? "#b8b0ff" : e.kind === "frost" ? "#b9f3ff" :
+              e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
               e.type === "explosion" ? "#ffb867" : e.color || "#e6f8c7",
-            life: 0.2 + Math.random() * 0.6,
+            life: firearm ? (smoke ? .32 + Math.random() * .2 : .045 + Math.random() * .06) : 0.2 + Math.random() * 0.6,
             max: 0.8,
-            size: 2 + Math.random() * 5,
+            size: smoke ? 6 + Math.random() * 5 : 2 + Math.random() * 5,
           });
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
@@ -823,27 +828,46 @@ export class Renderer {
     }
     c.restore();
   }
-  draw(state, dt, time) {
+  draw(state, dt, time, menuArena = null) {
     const deathCues = this.deathCues.update(state);
     const c = this.ctx;
     c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
     if (!state) {
-      drawMenuMontage(this, dt);
+      this.menuFight ||= new MenuFight();
+      // Menu events have their own renderer state so starting a match cannot
+      // inherit its particles, event IDs or death cues.
+      this.menuRenderer ||= new Renderer(this.canvas);
+      const r = this.menuRenderer;
+      r.reduced = this.reduced;
+      r.menuSize = this.menuSize || { width: this.canvas.clientWidth || W, height: this.canvas.clientHeight || H };
+      const fight = this.menuFight.advance(dt, this.reduced);
+      r.events(fight.events, null, fight.time);
+      r.draw(fight, this.reduced ? 0 : dt, fight.time, this.menuFight.world.arena);
       return;
     }
-    const arena = ARENAS[state.arenaIndex];
+    const arena = menuArena || ARENAS[state.arenaIndex];
     c.save();
+    if (menuArena) {
+      const { width, height } = this.menuSize;
+      this.background("#283b35", time);
+      c.setTransform(this.canvas.width / width, 0, 0, this.canvas.height / height, 0, 0);
+      const camera = menuFightCamera(width, height);
+      c.translate(camera.x, camera.y); c.scale(camera.scale, camera.scale); c.translate(-960, -400);
+      this.city(arena, state.platforms);
+    }
     const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
     this.shake = Math.max(this.shake, pressure);
-    if (!this.reduced && this.shake > 0)
+    if (!menuArena && !this.reduced && this.shake > 0)
       c.translate(
         (Math.random() - 0.5) * this.shake,
         (Math.random() - 0.5) * this.shake,
       );
     this.shake = Math.max(0, this.shake - dt * 40);
 
-    if (arena.theme) {
+    if (menuArena) {
+      // The continuous menu arena has its own background and camera above.
+    } else if (arena.theme) {
       if (!this.scenery.has(state.arenaIndex)) {
         const layer = document.createElement("canvas");
         layer.width = W;
@@ -860,7 +884,7 @@ export class Renderer {
       this.background(arena.color, time);
       this.city(arena, state.platforms);
     }
-    ambientDetail(this, arena, time);
+    if (!menuArena) ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
@@ -901,7 +925,7 @@ export class Renderer {
         2,
       );
     }
-    for(const label of pickupLabels(state.drops,state.players,state.players.find(p=>p.id===this.localId&&p.alive),type=>this.pickup(type),WEAPONS))
+    for(const label of menuArena ? [] : pickupLabels(state.drops,state.players,state.players.find(p=>p.id===this.localId&&p.alive),type=>this.pickup(type),WEAPONS))
       c.drawImage(label.art.label,label.x,label.y);
     for (const r of state.ragdolls) {
       if (r.ash || r.effect) continue;
@@ -928,7 +952,7 @@ export class Renderer {
       c.globalAlpha = 1;
     }
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
-    for (const p of state.players) {this.fighter(p, time);drawStatus(this,p,time);}
+    for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time);
     this.fragments(state.debris);
@@ -1024,10 +1048,11 @@ export class Renderer {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 550 * dt;
-      c.globalAlpha = Math.max(0, p.life / p.max);
+      p.vy += (p.smoke ? -12 : 550) * dt;
+      c.globalAlpha = Math.max(0, p.life / p.max) * (p.smoke ? .3 : 1);
       c.fillStyle = p.color;
-      c.fillRect(p.x, p.y, p.size, p.size);
+      if (p.smoke) { p.size += 18 * dt; this.circle(p.x, p.y, p.size, p.color); }
+      else c.fillRect(p.x, p.y, p.size, p.size);
     }
     c.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.life > 0);
@@ -1049,7 +1074,12 @@ export class Renderer {
     // bullets and particles instead of letting them draw over the black core.
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
-    for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
+    if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     c.restore();
+    if (menuArena) {
+      const { width, height } = this.menuSize;
+      c.save(); c.setTransform(this.canvas.width / width, 0, 0, this.canvas.height / height, 0, 0);
+      menuFightVeil(c, width, height); c.restore();
+    }
   }
 }

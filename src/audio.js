@@ -1,171 +1,192 @@
+import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
+import { W } from './scale.js';
+
 export class Sound {
   constructor() {
-    this.muted = false;
+    this._muted = false;
     this.context = null;
     this.active = 0;
     this.last = new Map();
+    this.buffers = new Map();
+    this.variants = new Map();
+    this.nukeIds = new WeakMap();
+    this.nextNukeId = 0;
+    this.alarm = null;
+  }
+  get muted() { return this._muted; }
+  set muted(value) {
+    this._muted = !!value;
+    if (this.master?.gain) this.master.gain.setTargetAtTime(value ? 0 : .8, this.context.currentTime, .008);
+    if (value) this.stopAlarm();
   }
   connect() {
     const c = this.context;
     this.master = c.createGain();
-    this.master.gain.value = 0.65;
+    this.master.gain.value = this.muted ? 0 : .8;
     this.limiter = c.createDynamicsCompressor();
     this.limiter.threshold.value = -14;
     this.limiter.knee.value = 12;
     this.limiter.ratio.value = 8;
-    this.limiter.attack.value = 0.003;
-    this.limiter.release.value = 0.22;
-    // A compressor's attack can let overlapping transients through. Bound the
-    // final signal as well, including simultaneous explosions and impacts.
+    this.limiter.attack.value = .003;
+    this.limiter.release.value = .22;
     this.saturator = c.createWaveShaper();
     this.saturator.curve = Float32Array.from({ length: 8193 }, (_, i) =>
-      0.9 * Math.tanh(1.2 * (i / 4096 - 1)) / Math.tanh(1.2));
+      .9 * Math.tanh(1.2 * (i / 4096 - 1)) / Math.tanh(1.2));
     this.master.connect(this.limiter);
     this.limiter.connect(this.saturator);
     this.saturator.connect(c.destination);
-    this.noise = c.createBuffer(1, c.sampleRate * 4, c.sampleRate);
-    const samples = this.noise.getChannelData(0);
-    let previous = 0;
-    for (let i = 0; i < samples.length; i++) {
-      previous = (previous + (Math.random() * 2 - 1) * 0.12) / 1.025;
-      samples[i] = previous * 2.6;
-    }
   }
   unlock() {
     if (!this.context) {
       this.context = new (window.AudioContext || window.webkitAudioContext)();
       this.connect();
+      // Warm one recording at a time outside the simulation/render callback.
+      const queue = SOUND_NAMES.flatMap(name => name === 'siren' ? [[name, 0]] : [0, 1, 2].map(v => [name, v]));
+      const schedule = globalThis.requestIdleCallback
+        ? fn => globalThis.requestIdleCallback(fn, { timeout: 1500 })
+        : fn => globalThis.setTimeout(fn, 25);
+      const next = () => {
+        const args = queue.shift();
+        if (!args || this.context.state === 'closed') return;
+        this.buffer(...args);
+        if (queue.length) schedule(next);
+      };
+      schedule(next);
     }
-    if (this.context.state === "suspended") this.context.resume();
+    if (this.context.state === 'suspended') this.context.resume().catch(() => {});
   }
-  tone(freq, end, length, gain, wave = "sine", delay = 0) {
+  buffer(name, variant = 0) {
+    const key = name + ':' + variant;
+    if (!this.buffers.has(key)) {
+      const samples = synthesizeSound(name, variant);
+      const buffer = this.context.createBuffer(1, samples.length, SOUND_RATE);
+      buffer.getChannelData(0).set(samples);
+      this.buffers.set(key, buffer);
+    }
+    return this.buffers.get(key);
+  }
+  ready() {
+    const c = this.context;
+    if (this.muted || !c || (c.state !== 'running' && !c.startRendering)) return false;
+    if (!this.master) this.connect();
+    return true;
+  }
+  sample(name, detail = {}, { priority = false, offset = 0, duration, fixed = false } = {}) {
+    const ceiling = name === 'siren' || name === 'nuclear' ? 48 : priority ? 45 : 36;
+    if (!this.ready() || this.active >= ceiling) return null;
+    const c = this.context, now = c.currentTime;
+    const variant = fixed ? 0 : (this.variants.get(name) || 0);
+    if (!fixed) this.variants.set(name, (variant + 1) % 3);
+    const source = c.createBufferSource(), gain = c.createGain(), pan = c.createStereoPanner();
+    source.buffer = this.buffer(name, variant);
+    // Keep combat legible across the arena, with room for the central siren.
+    pan.pan.value = name === 'siren' ? 0 : Number.isFinite(detail.x) ? Math.max(-.7, Math.min(.7, (detail.x / W * 2 - 1) * .7)) : 0;
+    const level = name === 'siren' ? .8 : this.alarm ? .72 : 1;
+    gain.gain.setValueAtTime(offset > 0 ? 0 : level, now);
+    if (offset > 0) gain.gain.linearRampToValueAtTime(level, now + .008);
+    source.connect(gain); gain.connect(pan); pan.connect(this.master);
+    const length = Math.min(duration ?? source.buffer.duration - offset, source.buffer.duration - offset);
+    source.start(now, offset, Math.max(.001, length));
+    this.active++;
+    const voice = { source, gain, end: now + length, stopped: false };
+    source.onended = () => { voice.stopped = true; source.disconnect(); gain.disconnect(); pan.disconnect(); this.active--; };
+    return voice;
+  }
+  // Preserve the previously requested death and room-arrival interface chimes.
+  tone(freq, end, length, gain, wave = 'sine', delay = 0) {
     const c = this.context, start = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
     o.type = wave;
     o.frequency.setValueAtTime(freq, start);
     o.frequency.exponentialRampToValueAtTime(Math.max(18, end), start + length);
-    g.gain.setValueAtTime(0.001, start);
-    g.gain.linearRampToValueAtTime(gain, start + 0.006);
-    g.gain.exponentialRampToValueAtTime(0.001, start + length);
+    g.gain.setValueAtTime(.001, start);
+    g.gain.linearRampToValueAtTime(gain, start + .006);
+    g.gain.exponentialRampToValueAtTime(.001, start + length);
     o.connect(g); g.connect(this.master);
     o.start(start); o.stop(start + length);
     this.active++;
     o.onended = () => { o.disconnect(); g.disconnect(); this.active--; };
   }
-  rumble(length, gain, frequency, delay = 0) {
-    const c = this.context, start = c.currentTime + delay;
-    const noise = c.createBufferSource(), filter = c.createBiquadFilter(), g = c.createGain();
-    noise.buffer = this.noise;
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(frequency, start);
-    filter.frequency.exponentialRampToValueAtTime(70, start + length);
-    g.gain.setValueAtTime(0.001, start);
-    g.gain.linearRampToValueAtTime(gain, start + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.001, start + length);
-    noise.connect(filter); filter.connect(g); g.connect(this.master);
-    noise.start(start); noise.stop(start + length);
-    this.active++;
-    noise.onended = () => { noise.disconnect(); filter.disconnect(); g.disconnect(); this.active--; };
+  stopAlarm() {
+    const voice = this.alarm?.voice;
+    if (voice && !voice.stopped) {
+      const now = this.context.currentTime;
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setTargetAtTime(0, now, .004);
+      voice.source.stop(now + .018);
+      voice.stopped = true;
+    }
+    this.alarm = null;
+  }
+  update(state) {
+    const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
+      .reduce((first, b) => !first || b.life < first.life ? b : first, null);
+    if (!projectile || !this.ready()) { this.stopAlarm(); return; }
+    // Host projectiles keep object identity; guests already have stable netIds.
+    // Nothing new is added to the wire protocol or authoritative world state.
+    if (projectile.netId == null && !this.nukeIds.has(projectile)) this.nukeIds.set(projectile, ++this.nextNukeId);
+    const key = state.round + ':' + (projectile.netId ?? this.nukeIds.get(projectile));
+    const remaining = Math.min(NUKE_FUSE, projectile.life), now = this.context.currentTime;
+    const deadline = now + remaining;
+    if (this.alarm?.key === key) {
+      // Repeated rendering of one snapshot cannot restart or prolong the fuse.
+      if (state.time === this.alarm.stateTime) return;
+      this.alarm.stateTime = state.time;
+      if (Math.abs(deadline - this.alarm.voice.end) < .14) return;
+    }
+    this.stopAlarm();
+    const voice = this.sample('siren', {}, { priority: true, fixed: true, offset: NUKE_FUSE - remaining, duration: remaining });
+    if (voice) this.alarm = { key, voice, stateTime: state.time };
   }
   play(type, detail = {}) {
+    if (!this.ready()) return;
     const c = this.context;
-    if (this.muted || !c || (c.state !== "running" && !c.startRendering)) return;
-    if (!this.master) this.connect();
-    if (type === "player-join" || type === "player-leave") {
-      // A soft rising chime for arrivals; a lower falling chime for exits.
-      // Closely spaced arrivals or exits share a cue, with a bounded voice reserve
-      // so normal gunfire cannot swallow it or a join burst stack loud chords.
-      if (c.currentTime - (this.last.get(type) ?? -10) < 0.3 || this.active > 44) return;
+    if (type === 'player-join' || type === 'player-leave') {
+      if (c.currentTime - (this.last.get(type) ?? -10) < .3 || this.active > 44) return;
       this.last.set(type, c.currentTime);
-      const notes = type === "player-join" ? [660, 880] : [440, 330];
-      this.tone(notes[0], notes[0], 0.17, 0.2, "sine");
-      this.tone(notes[1], notes[1], 0.3, 0.18, "sine", 0.12);
+      const notes = type === 'player-join' ? [660, 880] : [440, 330];
+      this.tone(notes[0], notes[0], .17, .2);
+      this.tone(notes[1], notes[1], .3, .18, 'sine', .12);
       return;
     }
-    const key = detail.nuclear ? "nuclear" : type;
-    if (c.currentTime - (this.last.get(key) ?? -10) < (type === "ko" ? 0.12 : type === "shoot" ? 0.045 : 0.025)) return;
+    const shooting = type === 'shoot' || ['rocket', 'rail', 'plasma', 'pellet'].includes(type);
+    const shot = shooting ? weaponSound({ ...detail, kind: detail.kind || type }) : null;
+    const key = detail.nuclear ? 'nuclear' : shot ? 'shot:' + shot : type;
+    if (c.currentTime - (this.last.get(key) ?? -10) < (type === 'ko' ? .12 : shooting ? .04 : .025)) return;
     this.last.set(key, c.currentTime);
-    if (this.active > 28 && !detail.nuclear && !detail.melee && type !== "ko") return;
-    if (type === "ko") {
-      // Reserve a short, recognizable death cue even during busy gunfire.
-      // Simultaneous deaths share one cue; the existing master limits output.
-      if (this.active > 44) return;
-      this.tone(145, 62, 0.12, 0.35, "triangle");
-      this.tone(784, 740, 0.18, 0.25, "sine", 0.015);
-      this.tone(1568, 1480, 0.12, 0.07, "sine", 0.015);
-      this.tone(523, 392, 0.43, 0.3, "triangle", 0.13);
-      if (!detail.effect || this.active > 44) return;
+    if (type === 'ko') {
+      if (this.active > 40) return;
+      this.tone(145, 62, .12, .35, 'triangle');
+      this.tone(784, 740, .18, .25, 'sine', .015);
+      this.tone(1568, 1480, .12, .07, 'sine', .015);
+      this.tone(523, 392, .43, .3, 'triangle', .13);
+      if (!detail.effect) return;
     }
-    if (detail.nuclear && type === "explosion") {
-      this.tone(130, 28, 2.7, 0.9);
-      this.tone(52, 22, 3.8, 0.6, "triangle", 0.08);
-      this.rumble(3.9, 1.2, 1800);
+    if (detail.nuclear && type === 'explosion') {
+      this.stopAlarm();
+      this.sample('nuclear', detail, { priority: true }); return;
+    }
+    if (shooting) { this.sample(shot, detail); return; }
+    if (detail.effect && ['hit', 'ko', 'explosion'].includes(type)) {
+      const effect = ({ ice: 'ice', tesla: 'tesla', plasma: 'plasma', phaser: 'phaser',
+        slice: 'slice', singularity: 'singularity', burn: 'burn', jelly: 'jelly', gold: 'gold', tangle: 'tangle' })[detail.effect];
+      if (effect) { this.sample(effect, detail, { priority: type === 'ko' }); return; }
+    }
+    if (type === 'hit') {
+      this.sample(detail.move === 'spin' || detail.move === 'kick' || detail.damage > 35 ? 'heavy-impact' : 'impact', detail,
+        { priority: !!detail.melee }); return;
+    }
+    if (type === 'explosion') {
+      this.sample(detail.weapon === 'cryo' ? 'ice' : 'explosion', detail); return;
+    }
+    if(type==='hazard'&&detail.kind==='leak') {
+      this.sample('frost',detail,{duration:.22});
+      if(detail.urgent)this.tone(940,1250,.08,.12,'triangle');
       return;
     }
-    if(detail.effect && ["hit","ko","explosion"].includes(type)) {
-      const dead=type==="ko",effect=detail.effect;
-      if(effect==="ice"){this.tone(1550,380,dead?.55:.17,.28,"triangle");this.rumble(dead?.45:.08,.22,4500);return;}
-      if(effect==="tesla"||effect==="plasma"){this.tone(effect==="tesla"?980:510,60,dead?.7:.23,.32,"sawtooth");this.rumble(dead?.6:.15,.32,2600);return;}
-      if(effect==="slice"){this.rumble(dead?.26:.12,.65,3800);this.tone(210,38,.24,.45);return;}
-      if(effect==="singularity"&&type!=="hit"){this.tone(150,22,dead?1.3:3,.55,"triangle");this.rumble(dead?1.1:2.8,.6,750);return;}
-    }
-    if (type === "hit") {
-      const heavy = detail.move === "spin" || detail.damage > 35;
-      const kick = detail.move === "kick";
-      this.tone(detail.melee ? (kick ? 120 : 145) : 110, heavy ? 35 : kick ? 42 : 48, heavy ? 0.34 : kick ? 0.27 : 0.22,
-        detail.melee ? 0.65 : 0.35);
-      this.rumble(heavy ? 0.2 : kick ? 0.12 : 0.095, detail.melee ? 0.65 : 0.4, detail.melee ? 950 : 1800);
-      return;
-    }
-    if (type === "explosion") {
-      if (detail.weapon === "cryo") {
-        this.tone(1300, 280, .45, .3, "triangle"); this.rumble(.3, .28, 4200); return;
-      }
-      if (detail.weapon === "firework") {
-        this.rumble(.28, .42, 3300); this.tone(900, 180, .3, .25, "triangle"); return;
-      }
-      this.tone(95, 27, 0.75, 0.6);
-      this.rumble(1.05, 0.75, 1500);
-      return;
-    }
-    if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
-      const kind = detail.kind || type;
-      if (kind === "jelly") { this.tone(120,620,.16,.28,"sine"); this.tone(540,95,.27,.2,"sine"); return; }
-      if (kind === "gold") { this.tone(1320,880,.32,.24,"triangle"); this.tone(1980,1320,.24,.12,"sine"); return; }
-      if (kind === "tangle") { this.tone(330,105,.22,.2,"triangle"); this.rumble(.08,.12,1700); return; }
-      if (kind === "bolt") { this.tone(360, 85, .18, .25, "triangle"); this.rumble(.07, .15, 2700); return; }
-      if (kind === "harpoon") { this.tone(190, 55, .25, .3, "sawtooth"); this.rumble(.16, .24, 1300); return; }
-      if (detail.weapon === "firework") { this.tone(380, 1500, .42, .22, "sine"); this.rumble(.18, .18, 2500); return; }
-      if (detail.weapon === "shrapnel") { this.tone(120, 28, .28, .45); this.rumble(.3, .55, 3200); return; }
-      if (detail.weapon === "cryo") { this.tone(720, 460, .14, .16, "sine"); return; }
-      if (kind === "bubble") { this.tone(280, 920, .19, .24, "sine"); return; }
-      if (kind === "boomerang") { this.tone(560, 160, .23, .18, "triangle"); this.rumble(.15, .12, 2200); return; }
-      if (kind === "duck") { this.tone(620, 390, .18, .25, "square"); this.tone(470, 320, .25, .12, "triangle"); return; }
-      if (kind === "phaser") {
-        this.tone(520, 85, .42, .35, "sawtooth");
-        this.tone(1040, 210, .35, .18, "sine");
-        this.rumble(.35, .45, 850);
-        return;
-      }
-      const heavy = detail.heavy || ["rocket", "rail", "plasma", "pellet"].includes(kind);
-      this.tone(kind === "rail" ? 820 : kind === "plasma" ? 360 : 185,
-        kind === "rail" ? 60 : 38, heavy ? 0.34 : 0.14, heavy ? 0.5 : 0.25, "triangle");
-      this.rumble(heavy ? 0.24 : 0.09, heavy ? 0.6 : 0.3, 2300);
-      return;
-    }
-    if(type==="hazard"&&detail.kind==="leak"){
-      this.rumble(.28,.16,detail.urgent?3800:2600);
-      if(detail.urgent)this.tone(940,1250,.08,.12,"triangle");
-      return;
-    }
-    const table = {
-      hazard: [780, 0.22, "sine"],
-      parry: [920, 0.15, "sine"], swing: [160, 0.035, "triangle"],
-      throw: [190, 0.06, "triangle"], coverhit: [160, 0.055, "triangle"],
-      break: [75, 0.16, "square"], jump: [230, 0.055, "sine"],
-      pickup: [650, 0.12, "sine"], fight: [440, 0.2, "square"], round: [330, 0.23, "triangle"],
-    };
-    const def = table[type];
-    if (def) this.tone(def[0], def[0] * (type === "pickup" ? 1.5 : 0.3), def[1], 0.13, def[2]);
+    const swing = ['bat', 'sword', 'hammer'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
+    const name = { hazard: 'burn', parry: 'parry', swing, throw: 'whoosh',
+      coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];
+    if (name) this.sample(name, detail);
   }
 }
