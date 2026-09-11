@@ -1,5 +1,6 @@
 import { drawBlackhole } from "./blackhole-art.js";
 import { drawNuclear } from "./nuclear-art.js";
+import { NUKE_FUSE, sirenCycle } from "./sound-design.js";
 import { WEAPONS } from "./arsenal.js";
 import { drawExpandedWeapon, drawExpandedProjectile, drawExpandedField } from "./expanded-art.js";
 import { drawWeirdWeapon, drawWeirdProjectile } from "./weird-art.js";
@@ -221,7 +222,7 @@ export function drawSpecialProjectile(r, b, time) {
   if (drawWeirdProjectile(r, b, time)) return true;
   if (b.nuclear) {
     c.save();
-    c.globalAlpha = r.reduced ? 0.3 : 0.35 + Math.sin(time * 9) * 0.12;
+    c.globalAlpha = r.reduced ? 0.3 : 0.2 + sirenCycle(NUKE_FUSE - b.life) * 0.3;
     r.circle(b.x, b.y, 30 + Math.max(0, 1 - b.life) * 35, "#ffe486");
     c.restore();
     r.weapon("nuke", b.x, b.y, 1, time * 5);

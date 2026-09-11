@@ -36,7 +36,7 @@ export function meleeAttack(world, p, weapon) {
     effect: p.weapon === "sword" ? "slice" : null, occupant: p.occupant,
     hits: new Set(), cover: new Set(), rewarded: false };
   swings.set(p, strike);
-  if (!resolveMelee(world, p, strike)) world.event("swing", { x: p.x, y: p.y });
+  if (!resolveMelee(world, p, strike)) world.event("swing", { x: p.x, y: p.y, weapon: p.weapon });
 }
 
 // Each fighter/surface is struck once. Armed strikes wait for the wind-up and

@@ -362,7 +362,7 @@ export class World {
     if (this.phase === "result" && this.winner === id) this.winner = null;
   }
   event(type, data = {}) {
-    this.events.push({ id: ++this.nextEvent, type, ...data });
+    this.events.push({ id: ++this.nextEvent, type, at: this.time, ...data });
     if (this.events.length > 35) this.events.shift();
   }
   step(dt, inputs = {}) {
@@ -775,8 +775,8 @@ export class World {
         -ay * recoil * 2,
       );
       this.event("shoot", {
-        x: p.x + ax * 40,
-        y: p.y - 10 + ay * 40,
+        x: muzzle.x,
+        y: muzzle.y,
         kind: w.kind,
         weapon: p.weapon,
         heavy: recoil >= 250,

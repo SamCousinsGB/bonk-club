@@ -2,6 +2,41 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Weapon audio and nuclear siren — 11 September 2026
+
+Implemented in `bonk-club-audio`, branch `codex/weapon-audio`, while the canonical
+checkout is used by the arena task. Preserve that task's changes.
+
+- Replaced combat pitch sweeps with original layered PCM recordings synthesized
+  locally: pressure cracks, low body resonance, mechanical action, turbulent
+  exhaust, electrical crackle, ice/metal/wood impacts and short reflections.
+  All 33 weapons map to appropriate profiles; repeat shots rotate three variants.
+  No downloaded audio, new dependency or proprietary game recording is used.
+- Nuclear grenades have a dual-rotor air-raid siren: two rise/fall cycles over the
+  actual 2.8-second fuse. The warning glow uses the same cycle. The live projectile
+  drives seeking, early cancellation, combat-hitstop retiming, mute/unmute, round
+  reset and hot join. Multiple grenades share the soonest countdown. Audio remains
+  scheduled when rendering stops; stale copies of a snapshot cannot extend it.
+- Samples warm incrementally and are cached. Normal combat uses at most 36 voices,
+  with a reserve for essential cues and a hard 48-voice sample ceiling. Stereo
+  placement follows the arena, combat leaves room for the siren, and the existing
+  compressor/final output bound remains. Mute fades already-playing tails too.
+  The previously requested death and room-arrival chimes are preserved.
+- Gunfire emits brief warm sparks and drifting muzzle smoke, instead of a dozen
+  long-lived particles. Muzzle events now use the actual launch point. Sword and
+  hammer handling use their own textures. Combat events use the already optional
+  timestamp, so hot join does not replay historic gunfire/explosions. Protocol
+  remains **26**; there is no new required wire state or Pi configuration change.
+- Source QA: all 43 profiles rendered in real OfflineAudioContext, fade fully and
+  release voices. A 48-voice stress mix stayed below 0.9 peak. Real Edge host,
+  guest and hot join used selected TURN relay candidates. Mouse firing delivered
+  nine weapon families; the normal siren ended at host detonation and within 70 ms
+  on guests. Hot join sought 1.03 seconds into the countdown. Mute, resume and early
+  removal passed. Actual gameplay screenshots were inspected; no browser errors.
+  This is a single QA machine using real TURN, not a cross-ISP or physical mobile
+  test. Samples/reports/scripts are outside Git at `bonk-club-qa/audio-*`.
+- Gameplay version **0.3.0**. Final combined tests and publication record follow.
+
 ## Main-menu release note — 11 September 2026
 
 The menu displays **v0.2.0 — 6 new weapons added**. The version and short release
