@@ -93,8 +93,8 @@ async function toggleFullscreen() {
     toast("Fullscreen is unavailable in this browser.");
   }
 }
-async function syncFullscreenUi() {
-  const active = desktop ? await desktop.fullscreen() : mobileScreen.fullscreen;
+async function syncFullscreenUi(value) {
+  const active = typeof value === 'boolean' ? value : desktop ? await desktop.fullscreen() : mobileScreen.fullscreen;
   $("#fullscreen").setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
   $("#fullscreen").setAttribute("aria-pressed", String(active));
   if ($("#game-fullscreen")) $("#game-fullscreen").textContent = active ? "EXIT FULLSCREEN" : "FULLSCREEN";
@@ -149,7 +149,7 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
-  if (view || needsRotation() || document.hidden) return emptyInput();
+  if (view || needsRotation() || document.hidden || !document.hasFocus()) return emptyInput();
   if (device === "touch") return { ...touchInput };
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
@@ -979,6 +979,7 @@ $("#sound").textContent = sound.muted ? "♩" : "♪";
 $("#sound").setAttribute("aria-label", sound.muted ? "Unmute sound" : "Mute sound");
 $("#sound").setAttribute("aria-pressed", String(sound.muted));
 if (desktop) {
+  desktop.onFullscreenChange(syncFullscreenUi);
   $("#menu-controls").insertAdjacentHTML("afterend", '<button id="quit-game" class="button secondary">QUIT GAME</button>');
   $("#quit-game").onclick = () => { home(); void desktop.quit(); };
   $(".brand").onclick = event => { event.preventDefault(); home(); };

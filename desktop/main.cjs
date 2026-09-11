@@ -60,6 +60,7 @@ async function start() {
   const windowFile = path.join(app.getPath('userData'), 'window.json');
   let windowState = {};
   try { if (fs.statSync(windowFile).size < 1024) windowState = JSON.parse(fs.readFileSync(windowFile, 'utf8')); } catch { /* Defaults. */ }
+  if (!windowState || typeof windowState !== 'object') windowState = {};
   const display = screen.getPrimaryDisplay().workAreaSize;
   const width = Math.min(display.width, Math.max(800, Number(windowState.width) || 1280));
   const height = Math.min(display.height, Math.max(600, Number(windowState.height) || 800));
@@ -80,6 +81,9 @@ async function start() {
   win.webContents.on('will-navigate', event => event.preventDefault());
   win.webContents.on('will-redirect', event => event.preventDefault());
   win.webContents.on('will-attach-webview', event => event.preventDefault());
+  // On Windows these events can precede isFullScreen() updating its value.
+  win.on('enter-full-screen', () => win.webContents.send('window:fullscreen-changed', true));
+  win.on('leave-full-screen', () => win.webContents.send('window:fullscreen-changed', false));
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type === 'keyDown' && (input.key === 'F11' || (input.alt && input.key === 'Enter'))) {
       event.preventDefault(); win.setFullScreen(!win.isFullScreen());
@@ -91,8 +95,16 @@ async function start() {
   }
   ipcMain.handle('preferences:load', event => { trusted(event); return { value: store.value, warning: store.warning }; });
   ipcMain.handle('preferences:save', (event, value) => { trusted(event); return store.save(value); });
-  ipcMain.handle('window:fullscreen', (event, value) => {
-    trusted(event); if (typeof value === 'boolean') win.setFullScreen(value);
+  ipcMain.handle('window:fullscreen', async (event, value) => {
+    trusted(event);
+    if (typeof value === 'boolean' && value !== win.isFullScreen()) {
+      await new Promise(resolve => {
+        const name = value ? 'enter-full-screen' : 'leave-full-screen';
+        let timer;
+        const done = () => { clearTimeout(timer); win.removeListener(name, done); setImmediate(resolve); };
+        win.once(name, done); timer = setTimeout(done, 1500); win.setFullScreen(value);
+      });
+    }
     return win.isFullScreen();
   });
   ipcMain.handle('window:quit', event => { trusted(event); app.quit(); });

@@ -178,7 +178,7 @@ exist. No UI pretends they already work.
 
 | Gate | Required evidence before release | Present status |
 | --- | --- | --- |
-| Windows distribution | Clean install under standard user, Steam install/update/uninstall, signature/reputation decision, executable smoke | Local executable/package work implemented; Steam installation untested |
+| Windows distribution | Clean install under standard user, Steam install/update/uninstall, signature/reputation decision, executable smoke | Package built; runtime smoke passes; packaged EXE launch was blocked by automatic approval review; Steam installation untested |
 | Linux distribution | Native package smoke, actual Linux desktop, Steam Linux Runtime compatibility, clean permissions and sandbox | CI target implemented; actual Steam runtime validation pending |
 | Steam Deck | Real device at 1280×800/720, all menus/gameplay with controls alone, text entry, suspend/resume/reconnect, audio and readable HUD | No hardware test; do not claim Verified or full controller support yet |
 | Performance | Host and guests measured separately; frame-time percentiles, input feel, network bandwidth and 60-minute four-player soak across arenas and extreme effects | Existing regressions are useful, but not retail hardware certification |

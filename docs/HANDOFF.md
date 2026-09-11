@@ -28,7 +28,7 @@ release gates; `docs/STEAM-STORE.md` contains the factual store brief.
   never authenticates, uploads or makes a Steam branch live.
 - Initial verification: all 595 pre-existing gameplay/network checks passed,
   plus six new shared preference/controller checks and six desktop/save/security/
-  SteamPipe checks. Windows executable smoke passed offline solo, save/relaunch,
+  SteamPipe checks. Windows desktop runtime smoke passed offline solo, save/relaunch,
   renderer isolation, controller menus and on-screen keyboard. Controller input
   is emulated in this harness; physical gamepads/Deck remain unverified.
 - A real desktop host and two real browser clients, including hot join during
@@ -39,6 +39,9 @@ release gates; `docs/STEAM-STORE.md` contains the factual store brief.
 - Steam identity/friend invites, account-specific Cloud, overlay, private Steam
   installation, physical Deck QA, store artwork/trailer and commercial service
   operations are still open. Never label these implemented or Steam-approved.
+  Automatic approval review blocked launching the packaged Windows executable
+  with the reason "blocked by policy". Its manual launch check is unverified;
+  the development Electron runtime smoke is a separate successful check.
   CI and final deployed verification follow below after release.
 
 ## Connected elemental reactions — 11 September 2026

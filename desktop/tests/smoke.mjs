@@ -25,6 +25,15 @@ try {
   const prefs = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences());
   assert.equal(prefs.sandbox, true); assert.equal(prefs.contextIsolation, true); assert.equal(prefs.nodeIntegration, false); assert.equal(prefs.webSecurity, true);
   await page.screenshot({ path: path.join(results, 'menu.png') });
+  await page.locator('#fullscreen').click();
+  await page.waitForFunction(() => document.querySelector('#fullscreen').getAttribute('aria-pressed') === 'true');
+  // Native window accelerators live above Chromium's CDP keyboard injection.
+  await app.evaluate(({ BrowserWindow }) => {
+    const contents = BrowserWindow.getAllWindows()[0].webContents;
+    contents.sendInputEvent({ type: 'keyDown', keyCode: 'F11' });
+    contents.sendInputEvent({ type: 'keyUp', keyCode: 'F11' });
+  });
+  await page.waitForFunction(() => document.querySelector('#fullscreen').getAttribute('aria-pressed') === 'false');
   // Preserve settings through an actual process exit and relaunch.
   await page.locator('#character').click();
   let name = page.locator('#panel input:not([readonly])').first();
@@ -46,6 +55,8 @@ try {
   await app.close(); app = null;
   const saved = JSON.parse(await fs.readFile(path.join(profile, 'saves/preferences.json'), 'utf8'));
   assert.equal(saved.profile.name, 'Desktop Tester'); assert.equal(saved.muted, true); assert.equal(saved.difficulty, 'normal');
+  // A corrupt machine-specific window preference must not break game startup.
+  await fs.writeFile(path.join(profile, 'window.json'), 'null');
   page = await launch();
   name = page.locator('#panel input:not([readonly])').first();
   assert.equal(await page.locator('#sound').getAttribute('aria-label'), 'Unmute sound');
