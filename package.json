@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.9.3",
-  "releaseNotes": "Fixed falling through floors after prone hits",
+  "version": "0.9.4",
+  "releaseNotes": "Silent footsteps, boing jumps and heavier death sounds",
   "private": true,
   "type": "module",
   "scripts": {
