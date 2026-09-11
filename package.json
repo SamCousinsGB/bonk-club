@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.14.0",
-  "releaseNotes": "Black holes preserve customised heads and leave shiny, lethal singularities",
+  "version": "0.14.1",
+  "releaseNotes": "Aligned player scores and round details with the arena",
   "private": true,
   "type": "module",
   "scripts": {
