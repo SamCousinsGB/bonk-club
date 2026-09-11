@@ -2,6 +2,24 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Fighter chat — 11 September 2026
+
+Display version **0.15.0**, protocol **36**. Refresh all players' tabs and create
+a new room after updating.
+
+- Enter opens the chat field during play; Enter sends and Escape cancels. Held
+  keyboard, mouse, touch and controller combat input is suppressed while typing.
+  Simulation and networking continue.
+- Plain-text speech follows the fighter's physical head, wraps at 120 characters
+  and fades after four seconds of wall-clock time, including reduced-motion mode.
+  Each fighter has one bubble; another message replaces it.
+- The host assigns sender identity and enforces a one-second interval. Speech
+  uses the reliable room channel, carries its round and remaining lifetime to
+  hot joiners, and clears on round change, departure and room closure.
+- Implementation was made in the canonical checkout and integrated separately
+  at ../bonk-club-qa/chat-release to preserve other ongoing gameplay work.
+  Browser checks and release verification are recorded below when complete.
+
 ## Customised heads and lethal singularities — 11 September 2026
 
 Display version **0.14.0**, protocol **35**. All players must refresh and create

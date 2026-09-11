@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.14.0",
-  "releaseNotes": "Black holes preserve customised heads and leave shiny, lethal singularities",
+  "version": "0.15.0",
+  "releaseNotes": "Press Enter to chat above your fighter",
   "private": true,
   "type": "module",
   "scripts": {

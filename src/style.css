@@ -56,6 +56,24 @@ button:hover {
 .hidden {
   display: none !important;
 }
+#chat-form {
+  position: absolute;
+  z-index: 24;
+  left: 50%;
+  bottom: var(--ui-bottom);
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  padding: 12px 16px;
+  border: 1px solid #ffffff55;
+  border-radius: 10px;
+  background: #14212ef5;
+  box-shadow: 0 6px 24px #0005;
+}
+#chat-form label { font-size: 13px; font-weight: 700; }
+#chat-input { display: block; width: 100%; margin: 7px 0; padding: 9px 12px; border: 1px solid #ffffff44; border-radius: 5px; background: #09121d; color: #fff; font-size: 16px; }
+#chat-help { font-size: 12px; color: #bcc6cc; }
+#chat-hint { display: none; position: absolute; z-index: 5; bottom: var(--ui-bottom); left: var(--ui-left); padding: 5px 9px; border-radius: 5px; color: #d7dfdf; background: #14212ebb; font-size: 12px; pointer-events: none; }
+body.playing:not(.touch-device) #stage:not(:has(.dialog:not(.hidden))):not(:has(#chat-form:not(.hidden))) #chat-hint { display: block; }
 button:focus, input:focus, select:focus, summary:focus {
   outline: 3px solid var(--lime);
   outline-offset: 3px;
