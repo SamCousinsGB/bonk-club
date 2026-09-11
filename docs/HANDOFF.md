@@ -33,8 +33,30 @@ does not spend ammunition. An off-map singularity no longer prevents round scori
 Gameplay is in `src/transmutation.js` and `src/projectile-flight.js`; art is in
 `src/transmutation-art.js`. Protocol **27** validates the new state and IDs.
 Both players must refresh and create a new room. The display release is **v0.4.0**.
-No Pi infrastructure changes. Local verification and final release evidence follow
-after publishing. QA helpers, logs and screenshots: `bonk-club-qa/quirky-*`.
+No Pi infrastructure changes. QA helpers, logs and screenshots: `bonk-club-qa/quirky-*`.
+
+Published revision: `7d88765571db94a6837956079b22e939bc6e6db0`. Pages run
+`34612958119` passed **525 gameplay/network tests**, **3 server tests**, production
+build and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34612958119.
+All **15 public files** matched the exact committed LF-source build byte for byte.
+JS: `index-CDqmsxgy.js`; CSS: `index-DB2pWx_1.css`. Exact archive/build:
+`bonk-club-qa/quirky-release-7d88765`; checker: `verify-quirky-live.cjs`.
+
+Source Edge host/guest tests verified all three living transformations and death
+effects over selected TURN relay candidates, hot joining bound limbs, and real
+guest mouse input firing at the host. The exact production build passed the
+three-browser room lifecycle/relay check. Guest effect drawing cost was 0.6 ms
+at p95 on this QA machine, a CPU measurement rather than FPS or internet latency.
+Weapon art, physical poses, fragments and actual guest gameplay were inspected.
+Release-note/menu checks passed at 1440×900, 390×844, 568×320 and 320×568.
+
+The unmodified public v0.4.0 game was also checked in the in-app browser: host
+creation, guest lobby connection, match start, third-player hot join, continuing
+rounds and rendered guest gameplay all passed with no browser errors. A cached
+v0.3.0 page cleared with `?release=7d88765`; hard-refresh old tabs before reconnecting.
+These checks use real browsers on one QA machine, not a cross-ISP test. Temporary
+QA rooms and this task's Vite server were closed. The isolated worktree is clean;
+the canonical checkout's independently changing WIP remains untouched.
 
 ## Main-menu effects montage — 11 September 2026
 
