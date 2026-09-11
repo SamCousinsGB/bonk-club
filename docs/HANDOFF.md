@@ -75,9 +75,10 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   from 1.13% to below 0.001%, without a material level change. That isolates a
   distortion source; it is not a measurement of Sam's speakers or hardware.
 - Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
-  arena and other work. Release version is **0.7.0**, incorporating the concurrent
-  v0.6.0 arena update, restored live menu fights and v0.6.1 frozen-body/black-hole
-  changes. Protocol remains 29 from v0.6.1; refresh all tabs and start a new room.
+  arena and other work. Prepared as v0.7.0, then included in the concurrent
+  **v0.8.0** elemental release alongside the v0.6.0 arenas, live menu fights and
+  v0.6.1 frozen-body/black-hole changes. Protocol is 30 from that combined release;
+  refresh all tabs and start a new room.
 - Source checks rendered all 49 audio profiles and a 48-voice stress mix in real
   Web Audio. Peak was 0.898, with all voices released and silent tails. The SMG
   stays within 2% of its previous RMS level; the 180 Hz low-pass energy proportion
@@ -91,7 +92,7 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   early removal and detonation passed without browser errors. No new Pi setup.
   QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`.
 - The full local suite passed 563 tests, followed by 33 targeted audio, footsteps,
-  death and black-hole tests after merging v0.6.1. An exact LF archive of
+  death and black-hole tests after merging v0.6.1. A committed source archive of
   `02b684082cc54148c056943ada3b12d76a2020bf` passed fresh `npm ci` and the production
   build with the public signaling/TURN URLs. Its 15-file output is retained at
   `bonk-club-qa/audio2-release-02b6840/dist`; JS is `index-CgoletTx.js`, CSS is
@@ -103,9 +104,24 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   notice expiry, room reset and host disconnect, with no browser errors. Audio
   and network checks ran on one QA machine; they do not prove cross-ISP or
   physical-speaker behavior. This task's local Vite server on 5211 was stopped.
-- Final CI and public asset/browser verification will be recorded after the
-  [Pages run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616253842)
-  completes. No debug hooks or preview WAVs ship.
+- [The audio CI run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616253842)
+  passed all 564 gameplay/network tests, all three server tests and the production
+  build. Its deployment was superseded by the concurrent elemental release,
+  `c7464d71a44b0a1f07ec9777cd93be6945ea63d3`, which preserves this audio pass.
+  An archive of that combined revision also passed fresh install/build and the
+  same three-browser production check. For exact Linux build parity, archive with
+  `git -c core.autocrlf=false archive`: plain archive on this Windows installation
+  converted text to CRLF, changing HTML and favicon hashes. The final LF archive
+  passed fresh install/build; its output is retained in
+  `bonk-club-qa/audio2-release-c7464d7-lf/dist`: JS `index-Biz_Endf.js`, CSS
+  `index-DB2pWx_1.css`, favicon `favicon-yWuc7I8t.svg`. No debug hooks or WAVs ship.
+- [The combined Pages run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616769324)
+  **succeeded**, passing all **595 gameplay/network tests**, all **three server
+  tests**, build and deployment. All **15 public files** match the final LF build
+  byte-for-byte by SHA-256. Three actual Edge contexts on the public game passed
+  the same room lifecycle and gameplay check through selected TURN relay
+  candidates, with no page errors. Logs: `audio2-combined-ci-completed.log`,
+  `audio2-live-assets.log` and `audio2-live-browser.log` in the QA directory.
 
 ## Frozen bodies and smaller black holes — 11 September 2026
 
