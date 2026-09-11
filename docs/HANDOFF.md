@@ -94,8 +94,8 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
 
 ## Frozen bodies and smaller black holes — 11 September 2026
 
-Gameplay **v0.6.1**. Protocol **29** because field and retained-rift validation
-now use the smaller radius. Refresh every player's tab and create a new room.
+Implemented as **v0.6.1** / protocol **29**; shipped in the combined **v0.8.0**
+release, protocol **30**. Refresh every player's tab and create a new room.
 
 - `src/frozen-art.js` replaces the bounding polygon with translucent, bevelled
   crystals following the actual head and each bone. Bright edges, shaded facets,
@@ -116,7 +116,26 @@ now use the smaller radius. Refresh every player's tab and create a new room.
 - Rendered gameplay and enlarged standing/prone/airborne/shatter/head frames were
   inspected. External helpers/captures: `bonk-club-qa/frozen-visual.cjs`,
   `frozen-online.cjs`, `frozen-release.cjs`, and `frozen-*.png`. Test hooks stay
-  outside production. No dependencies or Pi changes. Release verification follows.
+  outside production. No dependencies or Pi changes.
+- All **558 gameplay/network tests passed**, plus the production build. The exact
+  LF-source export at `bonk-club-qa/frozen-release-919a509` passed real Edge solo,
+  menu return, online lobby/start, third-player hot join, leaving and a 568 x 320
+  release-note visibility check without browser errors. The release merge only
+  adds the concurrent menu task's documentation; its gameplay/build inputs match
+  that tested export.
+- The later audio and elemental releases preserve this work. All **23 focused
+  freeze/black-hole effect tests** passed again on the final combined revision.
+  Published **v0.8.0** revision: `c7464d71a44b0a1f07ec9777cd93be6945ea63d3`.
+  Pages run `34616769324` passed **595 game tests**, **3 server tests**, build
+  and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34616769324.
+- All **15 public files** matched the exact committed LF-source build byte for
+  byte. JS: `index-Biz_Endf.js`; CSS: `index-DB2pWx_1.css`. Exact source/build:
+  `bonk-club-qa/frozen-combined-c7464d7`; checker: `verify-frozen-live.cjs`.
+  Both that build and the unmodified public v0.8.0 game passed real Edge solo,
+  host/guest lobby/start, hot join, leave and small landscape menu checks without
+  browser errors. Public gameplay was visually inspected. Source effect checks
+  remain in `frozen-online.cjs`; public checks are in `frozen-release.cjs`.
+  This task's temporary browsers and port-5209 Vite server were closed.
 
 
 ## Arena, scenery and fairness pass — 11 September 2026
