@@ -553,21 +553,20 @@ export class World {
       moveKnocked(p,solids,dt);return;
     }
     if (p.ground) p.airLunge = false;
-    const wasProne = p.prone;
-    p.prone = !!i.duck;
-    if (
-      wasProne &&
-      !p.prone &&
-      solids.some(
-        (s) =>
-          p.x + 15 > s.x &&
-          p.x - 15 < s.x + s.w &&
-          p.y - 48 < s.y + s.h &&
-          p.y - 10 > s.y,
-      )
-    )
-      p.prone = true;
-    if (p.ground && wasProne !== p.prone) p.y += p.prone ? 20 : -20;
+    const prone = !!i.duck;
+    if (prone !== p.prone) {
+      // Keep the feet fixed even when a hit has just cleared ground/support.
+      // Growing downward from a prone airborne centre can start inside a floor,
+      // beyond the incoming-side checks used by movement collision below.
+      const y = p.y + (prone ? 20 : -20),
+        radius = prone ? 34 : 15, bottom = prone ? 10 : 30, top = prone ? 10 : 28;
+      // Validate the entire new body, including headroom and prone width.
+      if (!solids.some(s => p.x + radius > s.x && p.x - radius < s.x + s.w &&
+          y + bottom > s.y && y - top < s.y + s.h)) {
+        p.y = y;
+        p.prone = prone;
+      }
+    }
     const radius = p.prone ? 34 : 15,
       bottom = p.prone ? 10 : 30,
       top = p.prone ? 10 : 28;
@@ -631,17 +630,19 @@ export class World {
     p.support = null;
     p.ice = false;
     for (const s of solids) {
+      const surfaceDy = support === s ? 0 : s.dy || 0;
+      // Test the crossed top face before rejecting final-position overlap.
+      // Thin floors can be crossed in one step, and rising lifts can catch a
+      // fighter whose upward hit velocity is slower than the lift itself.
+      const landing = oldY + bottom <= s.y - surfaceDy + 3 &&
+        p.y + bottom > s.y && p.vy * dt >= surfaceDy;
       if (
         p.x + radius <= s.x ||
         p.x - radius >= s.x + s.w ||
-        p.y + bottom <= s.y ||
-        p.y - top >= s.y + s.h
+        (!landing && (p.y + bottom <= s.y || p.y - top >= s.y + s.h))
       )
         continue;
-      if (
-        oldY + bottom <= s.y - (support === s ? 0 : s.dy || 0) + 3 &&
-        p.vy >= 0
-      ) {
+      if (landing) {
         contactProp(this, p, s, 0, -1, dt);
         p.y = s.y - bottom;
         if (p.vy > 220) {

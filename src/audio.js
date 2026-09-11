@@ -1,6 +1,6 @@
 import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
 import { W } from './scale.js';
-import { Footsteps } from './footsteps.js';
+import { Landings } from './landings.js';
 
 export class Sound {
   constructor() {
@@ -13,7 +13,7 @@ export class Sound {
     this.nukeIds = new WeakMap();
     this.nextNukeId = 0;
     this.alarm = null;
-    this.footsteps = new Footsteps();
+    this.landings = new Landings();
   }
   get muted() { return this._muted; }
   set muted(value) {
@@ -134,7 +134,7 @@ export class Sound {
     this.alarm = null;
   }
   update(state) {
-    for (const contact of this.footsteps.update(state)) this.sample(contact.name, contact);
+    for (const contact of this.landings.update(state)) this.sample(contact.name, contact);
     const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
       .reduce((first, b) => !first || b.life < first.life ? b : first, null);
     if (!projectile || !this.ready()) { this.stopAlarm(); return; }

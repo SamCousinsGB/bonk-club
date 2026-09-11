@@ -39,6 +39,57 @@ tasks changed the canonical checkout. Preserve those separate changes.
   drops, admission limits, invalid wire settings, destruction/hot join and reset.
   The full suite and final publication verification are still in progress.
 
+## Jump and death sounds — 11 September 2026
+
+Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds.
+
+- Removed walking footsteps and their sample/cache entries. `src/landings.js`
+  observes only actual landings; it preserves the existing landing thud, mute,
+  occupant/reset handling and guest catch-up behavior.
+- Jump now plays a short elastic boing with a decaying pitch wobble. Death has
+  a heavier body impact and a brief falling, breathy vocal resonance. Both have
+  three bounded procedural variants and reuse cached PCM buffers. Existing death
+  priority, duplicate suppression, voice limits and weapon effects are preserved.
+- Focused sound/landing/death regressions pass. Real Edge host/guest gameplay
+  verified silent walking, both jumps from guest keyboard input, one landing
+  and one death cue per browser through selected relay/relay connections.
+  Actual Web Audio rendering verified audible clips, silent tails, source cleanup
+  and the 45-voice ceiling; simultaneous jump/death mix peak was 0.812.
+- Browser harness, rendered WAV samples and results are outside Git under
+  `../bonk-club-qa/jump-death-*`. Hooks exist only in that harness. No dependencies,
+  desktop shell, wire fields or Pi configuration changed. This was one-machine
+  browser QA, not separate-ISP or physical-device evidence.
+- Implementation used the canonical checkout. A clean release worktree at
+  `../bonk-club-qa/jump-death-release` / `codex/jump-death-audio` excludes the
+  concurrent barrel, fluid and arena changes in that checkout. The integrated
+  release includes the separately committed prone floor fix from main.
+
+## Prone floor collision fix - 11 September 2026
+
+Display version **0.9.3**; protocol **31** and wire shape are unchanged.
+
+- Reproduced intact-floor penetration when a hit clears grounded state while
+  prone and S is then released. The standing box previously grew 20 units into
+  the floor, beyond movement collision's incoming-side checks.
+- Stance changes preserve the feet in air as well as on ground and require room
+  for the complete new body. Low ceilings keep the fighter prone; nearby walls
+  must leave enough space to lie down. Hit velocity and recovery remain physical.
+- Landing checks detect crossed thin floors even at the maximum step/fall speed
+  and account for a rising platform catching an upward-moving fighter.
+  Actual gaps and destroyed terrain still permit falls.
+- Added 18 regressions covering hit strength/release timing, holding S, low
+  ceilings, prone width, moving floors, fast falls, knockdown recovery and gaps.
+  The 45 focused collision/movement/impact/physical-effects checks passed.
+- Six real Edge host/guest scenarios passed with guest keyboard S input, hits,
+  releases and landing. Both ends selected relay/relay candidates; the guest
+  received matching health and floor positions, with no page errors. Prone,
+  airborne-hit and landed gameplay screenshots were inspected. This is browser
+  QA on one machine, not new separate-network evidence.
+- Release work uses an export of main plus only this fix, preserving concurrent
+  barrel/fire/audio changes in the canonical checkout. External helpers and
+  captures: ../bonk-club-qa/prone-floor-*. No production debug hooks or Pi changes.
+  Full-suite, deployment and public-asset verification are recorded after release.
+
 ## Falling water and living electrical arcs — 11 September 2026
 
 Implemented in `bonk-club-water` / `codex/water-arcs-release`, preserving the
