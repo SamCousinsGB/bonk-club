@@ -12,6 +12,23 @@ import {
 import { World, STEP } from "../src/engine.js";
 import { pack, unpack } from "peerjs-js-binarypack";
 const tick = () => new Promise((r) => setImmediate(r));
+test("host acknowledges applied inputs, rejects stale sequences and never accepts guest movement authority", async () => {
+  const states = [], host = new Room({}, FakePeer), guest = new Room({ onState: s => states.push(s) }, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); host.start(); await tick();
+    const seq = guest.sendInput({ right: true, x: 999, hp: 1000 }); await tick();
+    assert.equal(host.appliedInputs[1], 0, "receiving is not an application acknowledgement");
+    assert.equal(host.getInputs()[1].right, true);
+    assert.equal(host.getInputs()[1].x, undefined);
+    assert.equal(host.appliedInputs[1], seq);
+    guest.connection.send({ t: "input", seq, input: { left: true } });
+    guest.connection.send({ t: "input", seq: Infinity, input: { left: true } }); await tick();
+    assert.equal(host.getInputs()[1].right, true);
+    await host.sendState(new World().snapshot()); await tick(); await tick();
+    assert.equal(states.at(-1).inputAcks[1], seq);
+    assert.equal(typeof states.at(-1).players[1].motion.jumpHeld, "boolean");
+  } finally { guest.close(); host.close(); }
+});
 class Connection extends EventEmitter {
   constructor() {
     super();

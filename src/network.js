@@ -8,6 +8,7 @@ import { DEATH_EFFECTS } from "./death-effects.js";
 import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
+import { validMotion, validInputSequence } from "./prediction-state.js";
 import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from "./realtime.js";
 import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
@@ -34,7 +35,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 34;
+export const PROTOCOL = 36;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -107,6 +108,7 @@ export class Room {
     this.sequence = 0;
     this.reconnectAttempts = 0;
     this.inputSequence = 0;
+    this.appliedInputs = [0, 0, 0, 0];
     this.streamStats = { received: 0, skipped: 0, lastBytes: 0, lastGapMs: 0, maxGapMs: 0 };
   }
   emit(name, ...args) {
@@ -159,7 +161,7 @@ export class Room {
           if (id === undefined || typeof data !== "string" || data.length > 1000) return;
           try {
             const m = JSON.parse(data);
-            if (m.t === "input" && Number.isSafeInteger(m.seq) && m.seq > (c.inputSequence || 0)) {
+            if (m.t === "input" && validInputSequence(m.seq) && m.seq > (c.inputSequence || 0)) {
               c.inputSequence = m.seq;
               this.lastInputs[id] = cleanInput(m.input);
               this.inputTimes[id] = performance.now();
@@ -409,6 +411,8 @@ export class Room {
         return;
       if (m.t === "input" && this.running) {
         if (realtimeOpen(c)) return;
+        if (!validInputSequence(m.seq) || m.seq <= (c.inputSequence || 0)) return;
+        c.inputSequence = m.seq;
         this.lastInputs[id] = cleanInput(m.input);
         this.inputTimes[id] = performance.now();
       }
@@ -623,14 +627,17 @@ export class Room {
     if (realtimeOpen(c)) {
       if (channel.bufferedAmount < 1000) try { channel.send(JSON.stringify(m)); } catch { /* Next input replaces it. */ }
     } else if (!c?.bufferSize && (c?.dataChannel?.bufferedAmount || 0) < 1000) this.send(c, m);
+    return m.seq;
   }
   getInputs(now = performance.now()) {
     const out = {};
-    for (const id in this.lastInputs)
+    for (const id in this.lastInputs) {
+      this.appliedInputs[id] = this.connections.get(Number(id))?.inputSequence || 0;
       out[id] =
         now - (this.inputTimes[id] || 0) < 700
           ? this.lastInputs[id]
           : cleanInput(null);
+    }
     return out;
   }
   async sendState(state) {
@@ -651,7 +658,7 @@ export class Room {
     this.encoding = true;
     const encodeAt = performance.now();
     try {
-      state = compactSnapshot(this.renderSnapshots.make(state));
+      state = compactSnapshot({ ...this.renderSnapshots.make(state), inputAcks: [...this.appliedInputs] });
       const compressed =
         this.compression && ready.some((c) => c.metadata?.compression)
           ? await encodeState(state)
@@ -782,6 +789,7 @@ const physicalProp = c => validReactionObject(c) && propSourceArt(c) && xy(c) &&
   typeof c.material === "string" && Object.hasOwn(PROP_MATERIALS,c.material) && propShape(c.shape);
 export function validSnapshot(s) {
   return (
+    (s?.inputAcks === undefined || Array.isArray(s.inputAcks) && s.inputAcks.length === 4 && s.inputAcks.every(validInputSequence)) &&
     !!s &&
     typeof s === "object" &&
     validReactions(s) &&
@@ -796,6 +804,7 @@ export function validSnapshot(s) {
       4,
       (p) =>
         integer(p.id, 0, 3) &&
+        (p.motion === undefined || validMotion(p.motion)) &&
         validProfile(p) &&
         validReactionObject(p) &&
         typeof p.bot === "boolean" &&

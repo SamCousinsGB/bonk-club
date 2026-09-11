@@ -32,6 +32,7 @@ export function meleeAttack(world, p, weapon) {
     carryImpulse(p, 0.23);
   }
   impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 100, ay * 100);
+  if (world.prediction) return;
   const strike = { w, unarmed, weapon: p.weapon, previous: meleeBlade(p),
     effect: p.weapon === "sword" ? "slice" : null, occupant: p.occupant,
     hits: new Set(), cover: new Set(), rewarded: false };

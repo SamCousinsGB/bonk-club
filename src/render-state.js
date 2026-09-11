@@ -1,3 +1,4 @@
+import { motionState } from "./prediction-state.js";
 const simulationOnly = new Set([
   "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
   "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
@@ -22,6 +23,7 @@ export class RenderSnapshots {
   constructor() { this.ids = new WeakMap(); this.nextId = 0; }
   make(state) {
     const out = copy(state);
+    out.players.forEach((p, i) => { p.motion = motionState(state.players[i]); });
     for (const key of movingLists) (out[key] || []).forEach((entity, i) => {
       const source = state[key][i];
       if (!this.ids.has(source)) this.ids.set(source, ++this.nextId);

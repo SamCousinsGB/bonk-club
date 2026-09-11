@@ -552,7 +552,7 @@ export class World {
     p.freezeCooldown=Math.max(0,(p.freezeCooldown||0)-dt);
     p.xray=Math.max(0,(p.xray||0)-dt);
     if(p.freeze>0){i=emptyInput();i.duck=p.prone;p.stun=Math.max(p.stun,p.freeze);p.block=false;}
-    if (p.burn > 0) {
+    if (p.burn > 0 && !this.prediction) {
       p.hp = Math.max(0, p.hp - BURN_DAMAGE * Math.min(dt, p.burn));
       p.burn = Math.max(0, p.burn - dt);
       if (!p.hp) { this.kill(p,{effect:"burn",ash:true}); return; }
@@ -748,8 +748,8 @@ export class World {
       p.comboTime = 0;
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
       const muzzle = projectileMuzzle(this, p, p.weapon, ax, ay);
-      if (w.kind === "phaser") firePhaser(this, p, ax, ay);
-      for (let n = 0; n < (w.kind === "phaser" ? 0 : count); n++) {
+      if (w.kind === "phaser" && !this.prediction) firePhaser(this, p, ax, ay);
+      for (let n = 0; n < (w.kind === "phaser" || this.prediction ? 0 : count); n++) {
         const spread =
           count > 1
             ? (n - (count - 1) / 2) *

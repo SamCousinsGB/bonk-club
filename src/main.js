@@ -5,6 +5,7 @@ import { version, releaseNotes } from "../package.json";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
+import { GuestPrediction } from "./guest-prediction.js";
 import {
   PALETTE,
   HAIRSTYLES,
@@ -116,6 +117,8 @@ let world = null,
   toastTimer,
   returnFocus = null;
 const guestFrames = new GuestFrames();
+const guestPrediction = new GuestPrediction();
+let guestInputClock = 0;
 const roomPresence = new RoomPresence();
 const roomNoticeTimers = new Map();
 let difficulty = preferences.value.difficulty;
@@ -180,7 +183,7 @@ function readInput(device) {
     i.attack ||= mouse.attack;
     i.block ||= mouse.block;
     const controlledId = room ? room.id : 0;
-    const p = (world?.players || remote?.players || []).find(
+    const p = (!world && guestPrediction.player) || (world?.players || remote?.players || []).find(
       (p) => p.id === controlledId,
     );
     if (p && mouse.active)
@@ -289,7 +292,7 @@ function home() {
   room = null;
   world = null;
   remote = null;
-  guestFrames.reset();
+  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   setPlaying(false);
   hidePanel();
   history.replaceState(null, "", location.pathname);
@@ -339,7 +342,7 @@ function startWorld(ids) {
   });
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
   remote = null;
-  guestFrames.reset();
+  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -691,7 +694,7 @@ async function quickMatch() {
 function enterGuest() {
   world = null;
   remote = null;
-  guestFrames.reset();
+  guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
   renderer.lastEvent = 0;
   renderer.particles = [];
   renderer.words = [];
@@ -723,7 +726,9 @@ function roomCallbacks() {
     },
     onState: (s) => {
       remote = s;
-      guestFrames.push(s, performance.now());
+      const now = performance.now();
+      guestFrames.push(s, now);
+      guestPrediction.receive(s, room.id, now);
     },
     onError: (message) => {
       const wasConnected = room?.roster.some(p => p.id === room.id);
@@ -734,7 +739,7 @@ function roomCallbacks() {
       room = null;
       world = null;
       remote = null;
-      guestFrames.reset();
+      guestFrames.reset(); guestPrediction.reset(); guestInputClock = 0;
       setPlaying(false);
       onlineMenu(message);
     },
@@ -834,7 +839,16 @@ function gameMenu(forceOpen = false) {
   }
   $("#pause-help").insertAdjacentHTML("beforebegin", `<button id="game-sound" class="button secondary">${sound.muted ? "UNMUTE SOUND" : "MUTE SOUND"}</button>`);
   $("#game-sound").onclick = () => $("#sound").click();
-  if (room && !room.host) $("#resume").insertAdjacentHTML("beforebegin", `<p class="subtle">Connection: ${ping} ms</p>`);
+  if (room && !room.host) {
+    const currentRoom = room;
+    $("#resume").insertAdjacentHTML("beforebegin", `<p id="network-status" class="subtle">Round-trip delay: ${ping} ms</p>`);
+    void room.diagnostics.refresh().then(() => {
+      if (room !== currentRoom || !$("#network-status")) return;
+      const pair = room.connectionReport().connections.find(c => c.direction === "outgoing" && c.selectedPair)?.selectedPair;
+      const route = pair ? [pair.local, pair.remote].includes("relay") ? "Relay" : "Direct" : "Connecting";
+      $("#network-status").textContent = `${route} · Round-trip delay: ${ping} ms`;
+    });
+  }
   syncFullscreenUi();
   $("#leave").onclick = home;
   $("#pause-help").onclick = () => help(hidePanel);
@@ -897,7 +911,7 @@ function equipmentInfo(p) {
   return `<small title="${esc(name+' · '+detail)}"><span class="held-weapon">${esc(name)}</span><span class="weapon-state">${esc(detail)}</span></small>`;
 }
 function interpolated(now) {
-  return guestFrames.sample(now);
+  return guestPrediction.sample(guestFrames.sample(now), now);
 }
 let simulationLast = performance.now();
 function simulate(now) {
@@ -918,11 +932,18 @@ function simulate(now) {
       accumulator -= STEP;
     }
   }
-  if (room && playing && netClock >= 1 / 30) {
+  if (room && playing && !room.host) {
+    guestInputClock += dt;
+    while (guestInputClock >= 1 / 60) {
+      const input = view || document.hidden ? emptyInput() : ownInput();
+      const sequence = room.sendInput(input);
+      guestPrediction.advance(input, sequence, now);
+      guestInputClock -= 1 / 60;
+    }
+  }
+  if (room?.host && playing && netClock >= 1 / 30) {
     netClock %= 1 / 30;
-    if (room.host && world) room.sendState(world.snapshot());
-    else if (!room.host)
-      room.sendInput(view || document.hidden ? emptyInput() : ownInput());
+    if (world) room.sendState(world.snapshot());
   }
   if (document.hidden) sound.update(playing ? world || remote : null);
 }
