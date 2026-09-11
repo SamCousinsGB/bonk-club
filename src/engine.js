@@ -9,6 +9,7 @@ import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gor
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { updateTransformedDeath } from "./transmutation.js";
+import { passiveBody } from "./body-physics.js";
 import { advanceFlight, projectileInArena, canSpawnProjectiles } from "./projectile-flight.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
@@ -904,7 +905,6 @@ export class World {
         life: 10,
       });
     const points = (p.rig || makeRig(p)).map((q) => ({ ...q }));
-    if (ash) for (const q of points) {q.px = q.x; q.py = q.y;}
     this.ragdolls.push({
       points,
       color: p.color,
@@ -1383,44 +1383,10 @@ export class World {
       if(updateDeath(rag,dt))continue;
       if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
-      if (rag.ash) {
-        rag.ashAge += dt;
-        if (rag.ashAge < .6) continue;
-      }
-      for (const p of rag.points) {
-        const vx = (p.x - p.px) * 0.993,
-          vy = (p.y - p.py) * 0.993;
-        p.px = p.x;
-        p.py = p.y;
-        p.x += vx;
-        p.y += vy + (rag.ash ? 150 : rag.effect === "ice" ? 320 : 1800) * dt * dt;
-      }
-      for (let k = 0; k < 4; k++)
-        for (const [a, b, len] of deathJoints(rag)) {
-          const p = rag.points[a],
-            q = rag.points[b],
-            dx = q.x - p.x,
-            dy = q.y - p.y,
-            d = Math.hypot(dx, dy) || 1,
-            f = ((d - len) / d) * (rag.ash ? Math.max(0, 1.1 - rag.ashAge) * .3 : .5);
-          p.x += dx * f;
-          p.y += dy * f;
-          q.x -= dx * f;
-          q.y -= dy * f;
-        }
-      for (const p of rag.points)
-        for (const s of this.platforms.filter((p) => p.hp !== 0))
-          if (
-            p.x > s.x &&
-            p.x < s.x + s.w &&
-            p.py <= s.y + 5 &&
-            p.y >= s.y - 4 &&
-            p.y < s.y + s.h
-          ) {
-            p.y = s.y - 4;
-            p.py = p.y + (p.y - p.py) * 0.35;
-            p.px = p.x - (p.x - p.px) * 0.7;
-          }
+      if (rag.ash) rag.ashAge += dt;
+      passiveBody(rag.points, deathJoints(rag), this.solids(), dt, {
+        restitution: rag.effect === "ice" ? .3 : .15,
+      });
     }
     this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
   }

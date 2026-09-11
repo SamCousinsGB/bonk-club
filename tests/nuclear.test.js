@@ -83,12 +83,16 @@ test("cut elevators become fixed fragments; uncut elevators still move",()=>{
   assert.ok(w.platforms.filter(p=>p!==far).every(p=>!p.move&&!p.elevator&&p.baseX===p.x&&p.baseY===p.y));
 });
 
-test("ash holds the last pose, crumbles away, and drops no weapon",()=>{
+test("ash preserves momentum, falls immediately, crumbles away, and drops no weapon",()=>{
   const w=world(),p=w.players[0];p.weapon="rocket";p.ammo=3;
+  Object.assign(p,{y:600,vx:240,vy:100});p.rig=makeRig(p);
   const pose=structuredClone(p.rig);w.kill(p,{ash:true,sourceX:p.x-100});
   assert.equal(w.drops.length,0);assert.equal(w.ragdolls[0].ashDirection,1);
-  w.updateRagdolls(.5);assert.deepEqual(w.ragdolls[0].points,pose);
-  w.updateRagdolls(.2);assert.notDeepEqual(w.ragdolls[0].points,pose);
+  assert.deepEqual(w.ragdolls[0].points,pose);
+  for(let n=0;n<30;n++)w.updateRagdolls(STEP);
+  const center=pts=>pts.reduce((sum,p)=>sum+p.y,0)/pts.length;
+  assert.ok(center(w.ragdolls[0].points)>center(pose)+30);
+  assert.ok(w.ragdolls[0].points[2].x>pose[2].x+35);
   for(let n=0;n<300;n++)w.updateRagdolls(STEP);
   assert.equal(w.ragdolls.length,0);
 });

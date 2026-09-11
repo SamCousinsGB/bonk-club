@@ -101,7 +101,7 @@ export function updateNuclear(world, f, dt) {
       world.kill(p, { ash: true, sourceX: f.x, cause: "nuke", source: f });
     }
     for (const rag of world.ragdolls) {
-      if (rag.ash || !inBlast(rag.points[2], f, radius)) continue;
+      if ((rag.ash && !rag.effect) || !inBlast(rag.points[2], f, radius)) continue;
       Object.assign(rag, {
         ash: true,
         ashAge: 0,
@@ -116,10 +116,6 @@ export function updateNuclear(world, f, dt) {
       delete rag.strands;
       delete rag.anchor;
       delete rag.severed;
-      for (const p of rag.points) {
-        p.px = p.x;
-        p.py = p.y;
-      }
     }
   }
   if (!f.melted && f.age >= NUCLEAR.meltAt) {

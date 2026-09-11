@@ -1,7 +1,7 @@
 import { seedOrbit, orbitPoint, limitRope } from "./orbit.js";
 import { WEAPONS } from "./arsenal.js";
 import { JOINTS } from "./puppet.js";
-import { TRANSMUTATIONS, seedTransformedDeath } from "./transmutation.js";
+import { TRANSMUTATIONS, seedTransformedDeath, rigidPose } from "./transmutation.js";
 export const DEATH_EFFECTS = [
   ...TRANSMUTATIONS,
   "slice",
@@ -60,10 +60,7 @@ export function deathPose(rag, effect, angle = 0, target = null) {
     }
   } else if (effect === "ice") {
     rag.life = 1.9;
-    for (const p of rag.points) {
-      p.px = p.x;
-      p.py = p.y;
-    }
+    rag.morphPose = rigidPose(rag.points);
   } else if (effect === "blast") {
     rag.life = 3;
     for (let i = 0; i < rag.points.length; i++) {
@@ -99,7 +96,6 @@ export function deathPose(rag, effect, angle = 0, target = null) {
 export function updateDeath(rag, dt) {
   if (!rag.effect) return false;
   rag.deathAge += dt;
-  if (rag.effect === "ice" && rag.deathAge < 0.4) return true;
   if (rag.effect !== "singularity") return false;
   const center = { x: rag.targetX, y: rag.targetY };
   for (const p of new Set(rag.strands.flatMap((s) => s.points)))
@@ -109,6 +105,8 @@ export function updateDeath(rag, dt) {
 }
 
 export function deathJoints(rag) {
+  if (rag.effect === "ice") return rag.deathAge < .4 ? rag.morphPose : [];
+  if (rag.ash) return JOINTS.filter((_, i) => !crumbledBone(rag, i));
   return rag.effect === "slice"
     ? CUT_JOINTS
     : rag.effect === "blast"
@@ -116,4 +114,24 @@ export function deathJoints(rag) {
       : rag.effect === "gib"
         ? JOINTS.filter((_, i) => !rag.severed.includes(i))
         : JOINTS;
+}
+
+// Release individual joints while the same particles keep their momentum and
+// world contacts. The ages already travel in snapshots, including hot joins.
+export function crumbledBone(rag, index) {
+  if (!rag.ash) return false;
+  const start = rag.effect === "burn" ? .85 : .65;
+  return rag.ashAge >= start + ((index * 7) % 10) * .045;
+}
+
+// Broken bones become short chips at their physical particle, never long lines
+// joining independently falling pieces. Guests derive the same art from age.
+export function deathSegments(rag) {
+  return JOINTS.map(([a, b, len], i) => {
+    const p = rag.points[a], q = rag.points[b];
+    if (!crumbledBone(rag, i)) return [p, q];
+    const angle = i * 2.4 + rag.ashAge * (i % 2 ? 5 : -4);
+    const size = Math.min(6, len * .3);
+    return [{ x: q.x - Math.cos(angle) * size, y: q.y - Math.sin(angle) * size }, q];
+  });
 }
