@@ -29,6 +29,45 @@ test("host acknowledges applied inputs, rejects stale sequences and never accept
     assert.equal(typeof states.at(-1).players[1].motion.jumpHeld, "boolean");
   } finally { guest.close(); host.close(); }
 });
+test("host and guest chat is attributed by the host and shared with late arrivals", async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), hot = new Room({}, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code);
+    assert.equal(guest.sendChat("lobby"), false);
+    host.start(); await host.sendState(new World().snapshot()); await tick();
+    assert.equal(host.sendChat("from host"), true);
+    // A guest cannot choose another fighter's id, lifetime or round.
+    guest.send(guest.connection, { t: "chat", text: "from guest", id: 0, life: 999999, round: 99 });
+    await tick();
+    assert.deepEqual(host.chat.snapshot().map(m => [m.id, m.text]), [[0, "from host"], [1, "from guest"]]);
+    assert.deepEqual(guest.chat.snapshot().map(m => [m.id, m.text]), [[0, "from host"], [1, "from guest"]]);
+    guest.send(guest.connection, { t: "chat", text: "spam" }); await tick();
+    assert.equal(host.chat.snapshot()[1].text, "from guest");
+    await hot.join(host.code); await tick();
+    assert.deepEqual(hot.chat.snapshot().map(m => m.text), ["from host", "from guest"]);
+    assert.ok(hot.chat.snapshot().every(m => m.life < 4000));
+    guest.close(); await tick();
+    assert.ok(host.chat.snapshot().every(m => m.id !== 1));
+    assert.ok(hot.chat.snapshot().every(m => m.id !== 1));
+    const next = new World().snapshot(); next.round = 2;
+    await host.sendState(next); await tick();
+    assert.deepEqual(host.chat.snapshot(), []);
+  } finally { hot.close(); guest.close(); host.close(); }
+});
+
+test("invalid guest chat cannot inject payloads or unbounded speech", async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); host.start();
+    await host.sendState(new World().snapshot()); await tick();
+    for (const text of [null, {}, "x".repeat(121), "\u0000\u202e"]) guest.send(guest.connection, { t: "chat", text });
+    await tick(); assert.deepEqual(host.chat.snapshot(), []);
+    assert.equal(host.receiveChat({ id: 3, text: "unoccupied", life: 4000, round: 1 }), false);
+    guest.sendChat("<b>hello</b>"); await tick();
+    assert.equal(host.chat.snapshot()[0].text, "<b>hello</b>");
+    assert.equal(guest.chat.snapshot()[0].text, "<b>hello</b>");
+  } finally { guest.close(); host.close(); }
+});
 class Connection extends EventEmitter {
   constructor() {
     super();

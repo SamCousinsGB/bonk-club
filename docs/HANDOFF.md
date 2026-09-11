@@ -30,9 +30,35 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
   `codex/guest-prediction`; source edits also remain in the shared canonical
   checkout alongside unrelated concurrent work. External QA files live in
   `../bonk-club-qa/guest-latency`. There are no production debug hooks.
-- Display version is prepared as **0.14.2**, protocol **36**. Both players must
+- Display version is prepared as **0.15.1**, protocol **37**. Both players must
   refresh and create a new room after publishing. Final release verification
   follows below once complete.
+
+## Fighter chat — 11 September 2026
+
+Display version **0.15.0**, protocol **36**. Refresh all players' tabs and create
+a new room after updating.
+
+- Enter opens the chat field during play; Enter sends and Escape cancels. Held
+  keyboard, mouse, touch and controller combat input is suppressed while typing.
+  Simulation and networking continue.
+- Plain-text speech follows the fighter's physical head, wraps at 120 characters
+  and fades after four seconds of wall-clock time, including reduced-motion mode.
+  Each fighter has one bubble; another message replaces it.
+- The host assigns sender identity and enforces a one-second interval. Speech
+  uses the reliable room channel, carries its round and remaining lifetime to
+  hot joiners, and clears on round change, departure and room closure.
+- Implementation was made in the canonical checkout and integrated separately
+  at ../bonk-club-qa/chat-release to preserve other ongoing gameplay work.
+- All **722 automated tests** passed, including nine new chat tests; production
+  build and diff checks passed. Actual Edge host/guest/hot join checked controls
+  while typing, continued simulation, expiry, round reset and departure through
+  selected relay/relay candidates. Wrapped bubbles and input were visually inspected.
+- The unmodified production build passed solo chat with reduced motion, expiry,
+  cancellation, host/guest speech, hot join, leaving and the narrow menu, with no
+  browser errors. This is one-machine browser QA. The final release includes
+  the current main HUD layout. QA scripts and screenshots: ../bonk-club-qa/chat-*.
+  No production debug hooks, dependencies, desktop-shell or Pi changes.
 
 ## Arena-aligned HUD — 11 September 2026
 
