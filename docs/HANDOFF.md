@@ -25,6 +25,88 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   distortion source; it is not a measurement of Sam's speakers or hardware.
 - Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
   arena and other work. Final combined verification and release record follows.
+## Arena, scenery and fairness pass — 11 September 2026
+
+Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
+a new room. Implemented on `codex/arena-pass` in the canonical checkout, including
+the restored live menu fights, 36 weapons, persistent shots and v0.5.0 audio release.
+
+- Refreshed all 24 existing arenas and added **Radiology**, **Production Hall**
+  and **Geothermal Terraces**, bringing the rotation to **27**. Cached scenery
+  includes clinical monitors/radiographs/curtain tracks, industrial machinery and
+  pipework, home wall details, port fittings, vines, strata and basalt cracks.
+  Trolleys, generators, planters and pallets are real moving, breakable props with
+  distinct material/mass and physical rubble. Placement leaves takeoffs, headroom,
+  fixture sweeps and opening weapon runs clear.
+- Added X-ray scanners (damage and skeleton exposure), magnetic scanners (pull
+  armed fighters, weapons and metal props), hot geysers (damage and upward impulse),
+  coolant vents (damage and chill), and spore plants. Each uses existing warning,
+  cycle, mounting-floor destruction and reset behavior. Walls/floors shield
+  exposure. Production Hall has opposing belts feeding a saw and press, with
+  outer lifts and upper catwalks as alternate routes. Theme sets are shared by
+  the existing hospital, factory, volcano, ice, jungle and other arenas.
+- Four equal first pickups sit 100 units inward from each spawn, with equal full
+  ammunition. The shared starter rotates between pistol, SMG, shotgun and burst
+  rifle. Premium pickups stay in contested interior locations, at least 300 units
+  from starts; featured exotic rotation and regular nuclear pickups remain.
+  Reinforcements avoid fixture footprints, destroyed floors and immediate pickup
+  in a living fighter's hand. Reduced saw/rail/ricochet ammunition and rate of fire,
+  slowed heavy machine gun/burst fire, and slightly improved pistol firing rate.
+  One-hit weapon identities remain; this is an initial tuning pass, not a measured
+  claim that every weapon has identical win rates.
+- Repaired unreachable upper perches, head traps and overlapping ledges. Lift
+  shafts now stay clear through intermediate landings. Abandoned Factory has
+  lower upper side floors; Volcanic Quarry has recovery ledges that prevent the
+  previously observed stranded-bot stalemate. Real collision-traced routes connect
+  every opening pickup to every spawn. Standing/prone lift round trips pass.
+- Validation: **557 gameplay/network tests pass** after integration. Tests cover
+  actual opening movement/pickups for all 27 arenas and four starter rotations,
+  navigation, hazards/shielding, magnetic movement, invalid snapshots, fixture
+  destruction, physical props, rubble and reset. Actual Canvas renders of all
+  arenas and enlarged new fixture art were inspected. Real Edge host/guest/hot
+  join received all five hazard effects, moving trolleys, destroyed floors and
+  material rubble; guest keyboard control and reset passed. All three browsers
+  selected TURN relay candidates and reported no errors. This is one QA machine,
+  not cross-ISP or physical mobile verification. No Pi infrastructure changes.
+- QA scripts, logs, gallery and screenshots live outside Git at `bonk-club-qa/arena-*`.
+  No debug hooks ship. Release/deployment verification is recorded below once
+  the Pages run completes.
+- The stale canonical checkout was fast-forwarded before this work. Its three
+  pre-existing modified files were saved in the stash named `Preserved pre-existing
+  canonical edits before arena pass`; the two substantive validator lines were
+  already present upstream. Keep that backup; do not reapply it over current code.
+
+## Actual menu fights restored — 11 September 2026
+
+Sam rejected the scripted effects montage and requested the earlier fighting
+demo with more variety and different weapons. The montage module and its tests
+are removed. `src/menu-fight.js` now runs three real Easy bots in a small physical
+arena, using the same World, controls, ammunition, pickups, knockback, melee,
+destruction and death effects as gameplay. There are no staged deaths, effect
+slides, fades between scenes or camera cuts. Natural round results leave a short
+aftermath before the next fight; weapon bags and spawn order vary across rounds.
+
+Seventeen ranged weapons and four melee/unarmed choices rotate through opening
+loadouts and falling pickups. Broad side supports retain real recoil inside the
+visible arena; the central wooden platform and furniture can be destroyed.
+Each new round restores the arena. Off-screen projectile history expires after
+15 seconds in menu play only, pickups are capped at eight, and the fixed-step
+clock allows at most six ticks per render. Reduced motion holds the initial
+fight still. The menu simulation stops advancing during actual gameplay.
+
+`Renderer` uses a separate effects instance for the menu, while sharing the
+normal fighter/projectile/status/death drawing code. Menu effects and event IDs
+cannot leak into a started match. There is no room or sound output from the demo.
+The responsive control layouts remain, with the live fight beside/above them.
+Worktree: `bonk-club-menu`, branch `codex/menu-live-fight`; the canonical checkout
+contains separate arena work and was left untouched.
+
+Three seeded 50-second behavior runs verify real hit/shoot/melee/jump/pickup/KO
+events, multiple completed rounds and at least eight weapons per run. Fixed-step,
+reduced-motion and world-isolation checks pass. Real Edge source checks confirm
+continuous fighting, responsive framing, Character/Settings, solo start/return,
+no menu simulation during play and a pixel-identical reduced-motion frame.
+QA helpers/screenshots: `bonk-club-qa/menu-fight-*`. Release verification follows.
 
 ## Weapon audio and nuclear siren — 11 September 2026
 

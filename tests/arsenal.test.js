@@ -144,7 +144,7 @@ test("heavy machine gun requires a grounded prone stance and bots deploy before 
   p.prone = false;
   advance(w, 1.5);
   assert.ok(p.prone);
-  assert.ok(p.ammo < 90);
+  assert.ok(p.ammo < 99, "the bot fires additional shots after deploying");
   assert.ok(w.players[1].hp < 100);
 });
 test("fire burns after contact and the freeze ray slows without permanently disabling movement", () => {
