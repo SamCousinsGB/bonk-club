@@ -168,7 +168,9 @@ test("every arena opens with a nuke and another unusual weapon on the first roun
 test("short rounds rotate the rare arsenal instead of resetting weapon variety", () => {
   const rotation = new WeaponRotation(() => 0.45),
     seen = new Set();
-  for (let round = 1; round <= 9; round++) {
+  const featured = Object.entries(WEAPONS).filter(([type,w]) => type !== "nuke" && ["rare", "exotic"].includes(w.rarity)).length;
+  // Two featured slots per round, with one reserved for a nuke every third round.
+  for (let round = 1; round <= Math.ceil(featured * 3 / 5); round++) {
     const opening = rotation.opening(round);
     opening.forEach((w) => seen.add(w));
     if (round % 3 === 1) assert.equal(opening[0], "nuke");

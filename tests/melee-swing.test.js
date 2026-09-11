@@ -28,7 +28,7 @@ function advance(w, p, duration) {
   }
 }
 
-for (const weapon of ["bat", "sword"]) {
+for (const weapon of ["bat", "sword", "hammer"]) {
   for (const facing of [1, -1]) {
     test(`${weapon} winds up, sweeps overhead and follows through facing ${facing}`, () => {
       const { w, p, q } = setup(weapon, facing);

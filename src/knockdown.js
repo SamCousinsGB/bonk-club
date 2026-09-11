@@ -2,6 +2,7 @@ import { JOINTS, makeRig } from "./puppet.js";
 import { passiveBody } from "./body-physics.js";
 
 export const THROW_MASS = {
+  hammer: 3, crossbow: 1.2, harpoon: 2.1, shrapnel: 2.8, firework: 1.7, cryo: .9,
   blaster: 0.7,
   smg: 0.85,
   grenade: 0.8,

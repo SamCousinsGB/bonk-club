@@ -3,6 +3,7 @@ import { nuclearField, updateNuclear } from "./nuclear.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
 import { BUBBLE_TIME, steerBoomerang } from "./weird-weapons.js";
+import { harpoonImpact, fireworkBurst } from "./expanded-weapons.js";
 
 const clear = (world, a, b) =>
   !world.solids().some((s) => segmentBox(a.x, a.y, b.x, b.y, s));
@@ -48,6 +49,7 @@ export function steerSpecial(world, b, dt) {
 
 export function impactSpecial(world, b, target, hurt) {
   if (!hurt) return;
+  if (b.kind === "harpoon") harpoonImpact(world, b, target);
   if (b.burn && target.alive) target.burn = 1;
   if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
     target.bubble = BUBBLE_TIME; target.ground = false; target.support = null;
@@ -103,6 +105,7 @@ export function impactSpecial(world, b, target, hurt) {
 }
 
 export function expireSpecial(world, b) {
+  if (b.weapon === "firework" && b.kind === "rocket") fireworkBurst(world, b);
   if (b.nuclear) {
     world.fields.push(nuclearField(world, b));
     world.fields = world.fields.slice(-12);

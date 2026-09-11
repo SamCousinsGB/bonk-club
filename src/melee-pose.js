@@ -1,5 +1,6 @@
 // Shared by the arm motors, weapon drawing and authoritative swept contacts.
 export const MELEE_SWINGS = {
+  hammer: { duration: .68, length: 78, artLength: 54, radius: 10 },
   bat: { duration: 0.44, length: 64, artLength: 34, radius: 6 },
   sword: { duration: 0.34, length: 80, artLength: 47, radius: 4 },
 };

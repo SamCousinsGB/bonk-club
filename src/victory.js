@@ -37,6 +37,7 @@ export function hitCause(options) {
   if (["saw", "railgun", "sword", "bat", "shotgun"].includes(options.weapon))
     return options.weapon;
   if (options.effect && validVictoryCause(options.effect)) return options.effect;
+  if (options.melee && options.weapon === "hammer") return "crusher";
   if (options.melee) return ["punch", "kick", "spin"].includes(options.move) ? options.move : "punch";
   if (options.blast) return "blast";
   if (options.projectile) return "bullet";

@@ -1,4 +1,5 @@
 import { NUCLEAR } from "./impact.js";
+import { EXPANDED_WEAPONS } from "./expanded-weapons.js";
 const original = {
   bat: {
     name: "BAT",
@@ -399,7 +400,7 @@ const rarity = {
   barrage: "exotic",
 };
 export const WEAPONS = Object.fromEntries(
-  Object.entries({ ...original, ...additions }).map(([key, w]) => [
+  Object.entries({ ...original, ...additions, ...EXPANDED_WEAPONS }).map(([key, w]) => [
     key,
     { rarity: rarity[key] || w.rarity, dismember: ["minigun","machinegun","shotgun"].includes(key), ...w, ...(w.kind === "melee" ? { boost: 260 } : {}) },
   ]),
@@ -446,6 +447,7 @@ export function chooseWeapon(random = Math.random, exclude = new Set()) {
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
 export const PROJECTILE_KINDS = [
+  "spark",
   ...new Set(
     Object.values(WEAPONS)
       .filter((w) => w.kind !== "melee")

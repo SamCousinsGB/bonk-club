@@ -10,6 +10,7 @@ import { RenderSnapshots } from "./render-state.js";
 import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from "./realtime.js";
 import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
+import { validExpandedProjectile } from "./expanded-weapons.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
 import { loadIceConfig, connectionFailure, hasRelay } from "./ice.js";
@@ -30,7 +31,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 25;
+export const PROTOCOL = 26;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -890,6 +891,7 @@ export function validSnapshot(s) {
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
         PROJECTILE_KINDS.includes(p.kind) &&
+        validExpandedProjectile(p) &&
         (!['bubble', 'boomerang', 'duck'].includes(p.kind) ||
           (p.weapon === p.kind && integer(p.owner, 0, 3) && p.r === WEAPONS[p.kind].r &&
            p.life >= 0 && p.life <= WEAPONS[p.kind].life &&
@@ -901,7 +903,10 @@ export function validSnapshot(s) {
       (f) =>
         xy(f) &&
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
-        ["arc", "blackhole", "shockwave", "phaser"].includes(f.kind) &&
+        ["arc", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
+        (!["tether", "cryo", "firework"].includes(f.kind) ||
+          (integer(f.owner, 0, 3) && f.radius === {tether: 0, cryo: 210, firework: 120}[f.kind] &&
+           f.life <= {tether: .18, cryo: .55, firework: .45}[f.kind])) &&
         f.radius >= 0 &&
         f.radius <= (f.kind === "shockwave" ? NUCLEAR.waveRadius : f.kind === "blackhole" ? SINGULARITY.radius : 400) &&
         (f.kind === "arc" || (finite(f.age) && f.age >= 0 && f.age <= 6)) &&

@@ -1,6 +1,44 @@
 # Bonk Club — next chat
 
-Updated 10 September 2026. Read the root `AGENTS.md` first.
+Updated 11 September 2026. Read the root `AGENTS.md` first.
+
+## Six more weapons — 11 September 2026
+
+Worktree: `bonk-club-arsenal`, branch `codex/arsenal-expansion`, based on
+`ad56cef`. The canonical checkout's existing network/nuclear/terrain WIP was
+left alone. This adds six weapons, bringing the arsenal to **33**:
+
+- Sledgehammer: 68 damage, strong launch, a slower physical sweep and longer
+  recovery. Its final use completes the visible swing. It can be parried.
+- Crossbow: 58-damage bolts pierce fighters once each and pass through panels
+  only when the hit breaks them. Structural cover still stops them.
+- Harpoon gun: a successful hit pulls a living opponent toward the living
+  shooter, with physical momentum and a brief cable. Intervening cover stops
+  the pull; parries transfer projectile ownership.
+- Shrapnel cannon: eight fragments per shell, two wall bounces, strong recoil,
+  bleeding and limb separation on lethal hits. One parry stops one fragment.
+- Firework launcher: rockets burst on impact or after 1.15 seconds into ten
+  damaging sparks. The small initial blast carves real terrain. Children cannot
+  burst recursively and all projectiles expire within the existing caps.
+- Cryo grenade: the normal 450-speed upward toss and 2.8-second fuse, followed
+  by a 210-radius freeze burst. Cover shields fighters, the owner can be frozen,
+  and terrain is preserved. Existing thaw cooldown and shatter behavior apply.
+
+Each has distinct held/pickup/projectile art, appropriate sounds and throw mass.
+Easy bots use regular controls/ammunition. Existing nuclear frequency and tier
+weights remain intact; the larger featured bag persists across short rounds.
+Protocol is **26** because older guests cannot decode the new weapon/projectile
+and field identifiers. Both players must refresh and create a new room.
+
+Source QA: the new behavior tests and extended hammer swing tests pass, including
+all six weapons used by Easy bots, ammo preservation, cover, recoil, parries,
+resets, malformed snapshots and interpolation. Real Edge host/guest browsers
+received all six weapons through selected TURN relay candidates. A third browser
+hot joined terrain cut by a firework; platform IDs matched. Real guest mouse
+input fired a harpoon at the authoritative host. Gameplay and weapon silhouettes
+were visually inspected without browser errors. Hooks are confined to the QA
+helper at `bonk-club-qa/arsenal-browser.cjs`; screenshots use `arsenal-*.png`.
+Release verification will be recorded here after publishing.
 
 ## Guest freezes and black-hole bandwidth — 10 September 2026
 

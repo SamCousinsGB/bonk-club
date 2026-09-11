@@ -118,12 +118,23 @@ export class Sound {
       return;
     }
     if (type === "explosion") {
+      if (detail.weapon === "cryo") {
+        this.tone(1300, 280, .45, .3, "triangle"); this.rumble(.3, .28, 4200); return;
+      }
+      if (detail.weapon === "firework") {
+        this.rumble(.28, .42, 3300); this.tone(900, 180, .3, .25, "triangle"); return;
+      }
       this.tone(95, 27, 0.75, 0.6);
       this.rumble(1.05, 0.75, 1500);
       return;
     }
     if (type === "shoot" || ["rocket", "rail", "plasma", "pellet"].includes(type)) {
       const kind = detail.kind || type;
+      if (kind === "bolt") { this.tone(360, 85, .18, .25, "triangle"); this.rumble(.07, .15, 2700); return; }
+      if (kind === "harpoon") { this.tone(190, 55, .25, .3, "sawtooth"); this.rumble(.16, .24, 1300); return; }
+      if (detail.weapon === "firework") { this.tone(380, 1500, .42, .22, "sine"); this.rumble(.18, .18, 2500); return; }
+      if (detail.weapon === "shrapnel") { this.tone(120, 28, .28, .45); this.rumble(.3, .55, 3200); return; }
+      if (detail.weapon === "cryo") { this.tone(720, 460, .14, .16, "sine"); return; }
       if (kind === "bubble") { this.tone(280, 920, .19, .24, "sine"); return; }
       if (kind === "boomerang") { this.tone(560, 160, .23, .18, "triangle"); this.rumble(.15, .12, 2200); return; }
       if (kind === "duck") { this.tone(620, 390, .18, .25, "square"); this.tone(470, 320, .25, .12, "triangle"); return; }

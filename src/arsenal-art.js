@@ -1,11 +1,13 @@
 import { drawBlackhole } from "./blackhole-art.js";
 import { drawNuclear } from "./nuclear-art.js";
 import { WEAPONS } from "./arsenal.js";
+import { drawExpandedWeapon, drawExpandedProjectile, drawExpandedField } from "./expanded-art.js";
 import { drawWeirdWeapon, drawWeirdProjectile } from "./weird-art.js";
 
 // Canvas silhouettes share the existing game's materials, with different barrels,
 // coils, tanks and drums so pickups remain identifiable at arena scale.
 export function drawNewWeapon(r, type) {
+  if (drawExpandedWeapon(r, type)) return;
   const w = WEAPONS[type],
     c = r.ctx;
   if (drawWeirdWeapon(r, type)) return;
@@ -213,6 +215,7 @@ export function drawNewWeapon(r, type) {
 }
 
 export function drawSpecialProjectile(r, b, time) {
+  if (drawExpandedProjectile(r, b, time)) return true;
   const c = r.ctx,
     color = WEAPONS[b.weapon]?.color || "#c8edff";
   if (drawWeirdProjectile(r, b, time)) return true;
@@ -284,6 +287,7 @@ export function drawSpecialProjectile(r, b, time) {
 export function drawFields(r, fields, time) {
   const c = r.ctx;
   for (const f of fields || []) {
+    if (drawExpandedField(r, f)) continue;
     if (f.kind === "shockwave") {
       drawNuclear(r, f, time);
     } else if (f.kind === "arc") {

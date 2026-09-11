@@ -1,4 +1,5 @@
 import { hitCause } from "./victory.js";
+import { cryoBurst } from "./expanded-weapons.js";
 import { bloodBurst, updateBlood, impale, spikeBase, updateImpaled } from "./gore.js";
 import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps, bodyBounds } from "./props.js";
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
@@ -1102,6 +1103,10 @@ export class World {
     this.debris = this.debris.filter((d) => d.life > 0 && d.y < H + 100);
   }
   explode(b) {
+    if (b.weapon === "cryo") {
+      cryoBurst(this, b, impactSpecial);
+      return;
+    }
     if (b.nuclear) {
       this.event("explosion", {x:b.x, y:b.y, radius:NUCLEAR.coreRadius, nuclear:true});
       return; // The expanding flash handles destruction and skeletal deaths.
@@ -1145,7 +1150,7 @@ export class World {
         );
     }
     carveExplosion(this, { x: b.x, y: b.y, radius });
-    this.event("explosion", { x: b.x, y: b.y, radius, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
+    this.event("explosion", { x: b.x, y: b.y, radius, weapon: b.weapon, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }
   updateProjectiles(dt) {
     for (const b of [...this.projectiles]) {
@@ -1198,7 +1203,7 @@ export class World {
               b.vy / speed * push,
               {x: b.x, y: b.y},
             );
-            if (["rail", "saw"].includes(b.kind) && s.hp <= 0) continue;
+            if (["rail", "saw", "bolt"].includes(b.kind) && s.hp <= 0) continue;
           }
           if (
             b.kind === "grenade" ||
@@ -1259,7 +1264,7 @@ export class World {
           },
         );
         impactSpecial(this, b, p, p.hp < hp);
-        if (["rail", "saw", "force", "boomerang"].includes(b.kind)) {
+        if (["rail", "saw", "force", "boomerang", "bolt"].includes(b.kind)) {
           (b.hitIds ||= []).push(p.id);
           continue;
         }
@@ -1267,7 +1272,7 @@ export class World {
         break;
       }
       // A piercing beam carries on to the end of its swept segment after passing cover or a player.
-      if (!impact && !redirected && ["rail", "saw", "force", "boomerang"].includes(b.kind)) {
+      if (!impact && !redirected && ["rail", "saw", "force", "boomerang", "bolt"].includes(b.kind)) {
         b.x = endX;
         b.y = endY;
       }

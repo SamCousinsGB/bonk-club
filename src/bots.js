@@ -30,6 +30,7 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
+  if (["harpoon", "bolt"].includes(w.kind) || w === WEAPONS.shrapnel || w === WEAPONS.firework) return w.range;
   if (["phaser", "boomerang", "duck"].includes(w.kind)) return w.range;
   if (["melee", "grenade", "flame", "force"].includes(w.kind)) return w.range;
   if (w.kind === "singularity") return w.speed * w.life + w.radius * 0.75;
@@ -465,7 +466,7 @@ export class BotController {
           ? Math.max(420, weapon.blast + 140)
           : ["flame", "repulsor"].includes(p.weapon)
             ? 185
-            : p.weapon === "shotgun"
+            : ["shotgun", "shrapnel"].includes(p.weapon)
               ? 260
               : 480;
         moveTo =

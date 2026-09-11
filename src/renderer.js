@@ -114,7 +114,7 @@ export class Renderer {
           size:e.move === "spin" ? 65 : e.melee ? 48 : Math.min(46,23+(e.damage||0)*.2), color:e.type === "parry" ? "#d5fa43" : "#fff1ce" });
         if (this.impacts.length > 32) this.impacts.shift();
       }
-      if(e.type === "explosion" && !e.nuclear) {
+      if(e.type === "explosion" && !e.nuclear && !["cryo", "firework"].includes(e.weapon)) {
         this.impacts.push({x:e.x,y:e.y,age:0,life:.45,size:e.radius||180,color:"#ffd08c",blast:true});
         if(this.impacts.length>32)this.impacts.shift();
       }
@@ -150,7 +150,8 @@ export class Renderer {
             y: e.y,
             vx: Math.cos(a) * v,
             vy: Math.sin(a) * v,
-            color: e.type === "explosion" ? "#ffb867" : e.color || "#e6f8c7",
+            color: e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
+              e.type === "explosion" ? "#ffb867" : e.color || "#e6f8c7",
             life: 0.2 + Math.random() * 0.6,
             max: 0.8,
             size: 2 + Math.random() * 5,
