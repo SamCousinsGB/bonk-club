@@ -73,9 +73,17 @@ Keep this constitution for durable rules and the handoff for current work.
 - Fighters use procedural poses and physical bodies. Avoid static stick sprites,
   permanent crouch-walking, rigid canned animation and purely cosmetic knockback.
 - Preserve keyboard/mouse, controller and usable mobile touch controls. Left click
-  punches/fires, S lies down, F throws. Pickups are automatic. Touch uses movement
+  punches/fires or throws a carried object, S lies down, F throws. Weapon pickups
+  are automatic. Right-click/G picks up the nearest reachable physical prop or
+  fragment in front of the fighter, setting down the current weapon with its ammo.
+  Right-click again drops the object; with no pickup available it parries or uses
+  alternate fire. Keep the original body's weight, collision, damage and reactions
+  active while carried; heavy objects slow movement and throw less far. Knockdown,
+  death, destruction, slot replacement and round reset release the grip. Controller
+  secondary action and the contextual touch button share pickup/drop behaviour.
+  Touch uses movement
   drags, jump swipes, aim/fire gestures and double-tap to throw. Keep only compact
-  Jump and contextual Parry/Alt fire buttons; no Throw or Lie down buttons. Use
+  Jump and contextual Pick up/Drop/Parry/Alt fire buttons; no Throw or Lie down buttons. Use
   light joystick guides that hide, including their labels, while held and return
   on release. Preserve generous invisible touch areas, simultaneous movement and
   firing, and dragging down to lie down.

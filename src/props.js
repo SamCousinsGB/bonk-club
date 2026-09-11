@@ -1,4 +1,5 @@
 import { H, W } from "./scale.js";
+import { pullCarriedObject } from "./object-carry.js";
 import { playerBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { knockDown } from "./knockdown.js";
@@ -235,7 +236,7 @@ export function fractureProp(world, b) {
 
 export function contactProp(world, p, s, nx, ny, dt) {
   const b = propFor(world, s);
-  if (!b || b.hp <= 0) return;
+  if (!b || b.hp <= 0 || p.carryId === b.id) return;
   prepareProp(b);
   const q = center(b);
   const x = clamp(p.x, s.x, s.x + s.w), y = ny < 0 ? s.y : ny > 0 ? s.y + s.h : clamp(p.y, s.y, s.y + s.h);
@@ -297,7 +298,8 @@ export function updateProps(world, dt) {
       if (b.hp <= 0) continue;
       // Sleeping is conditional on the actual support still being under the body.
       // A removed/moving floor, another body or any impulse wakes it immediately.
-      const rest = resting.get(b);
+      const carried = pullCarriedObject(world, b, sub);
+      const rest = carried ? null : resting.get(b);
       if (rest && floors.includes(rest) && !rest.dx && !rest.dy && overlaps(bodyBounds(b), rest, .2)) {
         bounds.set(b, bodyBounds(b)); continue;
       }
@@ -330,7 +332,7 @@ export function updateProps(world, dt) {
       }
       bounds.set(b, bodyBounds(b));
       for (const p of world.players) {
-        if (!p.alive || p.knockdown || b.hp <= 0) continue;
+        if (!p.alive || p.knockdown || b.hp <= 0 || p.carryId === b.id) continue;
         const box = playerBox(p);
         if (!overlaps(bounds.get(b), box)) continue;
         const hit = contact(b,box);

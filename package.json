@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.11.0",
-  "releaseNotes": "Cargo conveyor, alternating presses and ice saw arenas with hazard-aware AI",
+  "version": "0.12.0",
+  "releaseNotes": "Right-click to pick up physical objects, carry them and throw them",
   "private": true,
   "type": "module",
   "scripts": {

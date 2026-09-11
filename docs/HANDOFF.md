@@ -2,6 +2,37 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+
+## Physical object pickup and carrying — 11 September 2026
+
+Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
+canonical checkout's existing work. Protocol **34** requires all players to
+refresh and create a new room. Final display version and release evidence follow.
+
+- Right-click/G or controller secondary action picks up the nearest reachable
+  prop or physical fragment in front. It sets down an equipped weapon with its
+  ammunition intact; nuclear pickups remain unarmed. Right-click again drops;
+  left-click/attack or F/throw launches the original body towards aim.
+- The original object stays in the normal physics and reaction simulation.
+  A bounded spring lifts it; floor/wall/other-player collision, spin, damage,
+  burning and fuses continue. Heavy objects slow running and throw less far.
+  Two-handed procedural poses follow the body's near surface. Carried objects
+  cannot collide with their own carrier or be used to parry/punch/fire.
+- One host-authoritative carry ID per fighter is validated against a live body
+  and exclusive ownership. Held input cannot repeatedly toggle pickup/drop or
+  turn a throw into sustained punching. Knockdown, freezing, death, destruction,
+  black-hole capture, slot replacement and round reset release the grip.
+- Touch retains two compact buttons: Jump and contextual Pick up/Drop/Parry/Alt
+  fire. Existing aim/fire and double-tap throw work for carried objects.
+- All **682 gameplay/network/shared tests** passed before integrating the separate
+  bullet-ignition release, including 17 new carry regressions. Production build
+  passed. Three actual Edge browsers verified guest right-click, carry movement,
+  drop, left-click throw, held TNT detonation and hot join. Actual CDP touch events
+  verified pickup/drop. All selected candidates were relay/relay; no page errors.
+  This is one-machine browser QA. The holding pose and touch gameplay were viewed.
+- External harness, logs and captures are `../bonk-club-qa/carry-*`. No test hooks,
+  dependencies or Pi configuration changes were added to production.
+
 ## Survival arenas â€” 11 September 2026
 
 Implemented in `bonk-club-survival` / `codex/survival-arena-release` while other
