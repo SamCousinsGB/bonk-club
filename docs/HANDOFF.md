@@ -3,7 +3,7 @@
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 
-## Physical object pickup and carrying � 11 September 2026
+## Physical object pickup and carrying — 11 September 2026
 
 Prepared in `bonk-club-carry` / `codex/physical-object-pickup`, preserving the
 canonical checkout's existing work. Protocol **34** requires all players to
@@ -32,6 +32,38 @@ refresh and create a new room. Final display version and release evidence follow
   This is one-machine browser QA. The holding pose and touch gameplay were viewed.
 - External harness, logs and captures are `../bonk-club-qa/carry-*`. No test hooks,
   dependencies or Pi configuration changes were added to production.
+
+## Bullet ignition and wider fuel flow — 11 September 2026
+
+Display version **0.12.0**, protocol **33** unchanged. Gameplay was edited in the
+canonical checkout and integrated on current GitHub main in
+`../bonk-club-qa/ignition-release` / `codex/bullet-ignition`, preserving the
+canonical checkout's unrelated sound/prone edits and the published survival arenas.
+
+- Bullets, shotgun pellets, rail shots and ricochets have a 30% ignition chance
+  per contacted gas cloud, oil/tar parcel or live fuel container. A bullet can
+  ignite the first puncture's outgoing gas or liquid. Host-only weak references
+  prevent repeated rolls while one shot overlaps the same fuel; no wire fields.
+- Non-blocking fluid contacts preserve the shot's full swept travel and later
+  solid hits. Walls and props stop shots before fuel behind them. Glue, water,
+  cold/wet containers and non-ballistic cold/physical shots do not gain ignition.
+- Gas jets use 130 rather than 45 units/second of initial ejection speed and
+  retain more horizontal momentum. They keep the 3.2-second lifetime and 24-cloud
+  cap. Oil/tar flow into thinner pools; tar remains slower. A 96-unit spill in
+  the flat-floor QA reached widths of 832 (oil) / 640 (tar) after three seconds.
+  Volume, expiry, water/ice, wall collision, floor drainage and 96-parcel cap remain.
+- Eleven new regression tests cover chance outcomes, repeated contacts, puncture
+  and rupture, flight/occlusion, elemental exclusions, finite spreading, gas
+  lifetime, encoded snapshots and round reset. Real Edge host/guest/hot join
+  passed burning gas, missed ignition, spread, burning tar draining a broken
+  floor, real guest mouse firing and reset, with selected relay/relay candidates
+  and no page errors. Rendered gameplay inspected; this is one-machine browser QA.
+- QA scripts, logs and screenshots are outside Git in `../bonk-club-qa/ignition-*`.
+  No production debug hooks, dependencies, desktop-shell or Pi changes.
+- The local full suite passed 675 tests; the additional same-step collision
+  regression also passed in the final 11-test focused run. Production build and
+  diff checks passed. Published-release verification is recorded below on completion.
+
 
 ## Survival arenas — 11 September 2026
 

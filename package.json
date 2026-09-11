@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "releaseNotes": "Right-click to pick up physical objects, carry them and throw them",
   "private": true,
   "type": "module",
