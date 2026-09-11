@@ -382,7 +382,7 @@ const additions = {
     speed: 760,
     recoil: 300,
     life: 1.05,
-    radius: 620,
+    radius: 465,
     rarity: "exotic",
     range: 950,
     color: "#c6a1ff",

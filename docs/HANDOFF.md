@@ -25,7 +25,8 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   distortion source; it is not a measurement of Sam's speakers or hardware.
 - Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
   arena and other work. Release version is **0.7.0**, incorporating the concurrent
-  v0.6.0 arena update and the restored live menu fights.
+  v0.6.0 arena update, restored live menu fights and v0.6.1 frozen-body/black-hole
+  changes. Protocol remains 29 from v0.6.1; refresh all tabs and start a new room.
 - Source checks rendered all 49 audio profiles and a 48-voice stress mix in real
   Web Audio. Peak was 0.898, with all voices released and silent tails. The SMG
   stays within 2% of its previous RMS level; the 180 Hz low-pass energy proportion
@@ -39,6 +40,34 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   early removal and detonation passed without browser errors. No new Pi setup.
   QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`. Final combined
   test count, exact build and public verification record follows after deployment.
+
+## Frozen bodies and smaller black holes — 11 September 2026
+
+Gameplay **v0.6.1**. Protocol **29** because field and retained-rift validation
+now use the smaller radius. Refresh every player's tab and create a new room.
+
+- `src/frozen-art.js` replaces the bounding polygon with translucent, bevelled
+  crystals following the actual head and each bone. Bright edges, shaded facets,
+  branching cracks and small crystal tips remain readable in standing, prone and
+  airborne poses. Living freeze and ice deaths share the artwork; existing thaw,
+  cooldown, frozen-pose physics and timed shattering are preserved.
+- Black-hole pull/destruction radius is **465**, exactly 25% below 620. Weapon
+  targeting metadata agrees, and the lens scales down by the same proportion.
+  Captured fighters retain their stretched physical bodies during orbit. On final
+  compression each shows only a coloured head, drawn after rubble to stay visible.
+  Matter counts, the persistent collidable ball, outer wreckage and resets remain.
+- A regression covers players, pickups and terrain on either side of the new
+  boundary, validated transport, invalid radii, collapse counts and round reset.
+  Real Edge source host/guest and a third hot joiner verified frost-shot freezing,
+  thaw, ice death, live orbital strands, collapsed matter and matching collision.
+  Selected connections for that completed check were direct on the QA machine;
+  this is not a cross-ISP or new TURN-infrastructure test. No browser errors.
+- Rendered gameplay and enlarged standing/prone/airborne/shatter/head frames were
+  inspected. External helpers/captures: `bonk-club-qa/frozen-visual.cjs`,
+  `frozen-online.cjs`, `frozen-release.cjs`, and `frozen-*.png`. Test hooks stay
+  outside production. No dependencies or Pi changes. Release verification follows.
+
+
 ## Arena, scenery and fairness pass — 11 September 2026
 
 Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
@@ -120,7 +149,21 @@ events, multiple completed rounds and at least eight weapons per run. Fixed-step
 reduced-motion and world-isolation checks pass. Real Edge source checks confirm
 continuous fighting, responsive framing, Character/Settings, solo start/return,
 no menu simulation during play and a pixel-identical reduced-motion frame.
-QA helpers/screenshots: `bonk-club-qa/menu-fight-*`. Release verification follows.
+QA helpers/screenshots: `bonk-club-qa/menu-fight-*`.
+
+Published as **0.5.1**, revision `af53323eaba23723a430d3f8969dd85d2e1994a8`.
+Pages run `34614831482` passed its build job (**536 gameplay/network tests**,
+**3 server tests** and production build), then successfully completed the Publish
+step. The overall run was cancelled after publication when the concurrent arena
+release began. All **15 public files matched byte for byte** against an exact
+LF checkout/build of this revision. Live Edge checks passed at 1440×900, 390×844,
+568×320 and 320×568: visible controls/release note, menu actions, solo start/return
+and no browser errors. Actual rendered live fighting was visually inspected.
+Three real Edge contexts also passed host/guest/hot-join, departure, mute and
+disconnect checks over selected TURN relay candidates. These ran on one QA
+machine, not separate ISPs or physical mobile devices. An initial menu sizing
+race found during production QA was fixed before release. The subsequent arena
+integration at `2395bdd` includes this correction and advances the game to 0.6.0.
 
 ## Weapon audio and nuclear siren — 11 September 2026
 

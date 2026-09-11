@@ -7,14 +7,17 @@ export function drawMatter(r, core) {
     r.circle(core.x,core.y,radius-3,"#59534e");
     c.globalAlpha = 1;
   }
-  for (const q of core.items) {
+  // Draw the retained heads over the rubble so dense cores cannot bury them.
+  for (let pass = 0; pass < 2; pass++) for (const q of core.items) {
+    if ((q.kind === "fighter") !== (pass === 1)) continue;
     c.save(); c.translate(q.x,q.y); c.rotate(q.angle);
     if (q.kind === "weapon" && q.type) {
       r.weapon(q.type,0,0,1,0,.42);
     } else if (q.kind === "fighter") {
-      r.line([[-7,3],[-3,-4],[4,0],[-2,7],[8,5]],"#11161e",6);
-      r.line([[-7,3],[-3,-4],[4,0],[-2,7],[8,5]],q.color,3.5);
-      r.circle(-6,-6,4.5,q.color);
+      // Compression leaves just the head visible among the collected matter.
+      r.circle(0,0,8,"#11161e");
+      r.circle(0,0,6.5,q.color);
+      r.line([[2,-2],[4,-2]],"#18262c",1.5);
     } else if (q.kind === "prop" && q.sourceKind) {
       c.scale(.27,.27);
       r.table({kind:q.sourceKind,x:-32,y:-20,w:64,h:40,hp:100,maxHp:100,angle:0});
