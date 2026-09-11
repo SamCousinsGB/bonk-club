@@ -2,6 +2,31 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Death physics continuity - 11 September 2026
+
+- Release **v0.17.1**, protocol **38**. Death effects preserve the incoming
+  Verlet motion and immediately use the shared passive-body solver, with gravity,
+  swept wall/floor contacts, moving surfaces and momentum transfer to props.
+- Nuclear/energy skeletons fall immediately and progressively release their joints
+  from 0.65 seconds. Burned bodies crumble from 0.85 seconds. Detached bone art
+  becomes short chips at physical particles rather than stretched connecting lines.
+  Ice deaths retain a moving rigid pose for 0.4 seconds, then release physical shards.
+  Existing lifetimes, four-body cap, round reset, spike anchors and capture remain.
+- Nuclear conversion of earlier charred, frozen or severed remains also preserves
+  their motion. Rendering and breakup use existing validated ages/points, including
+  guest interpolation and hot join; no required wire shape changed.
+- All **749 local tests** passed before integrating main's separate performance
+  update. All **51** affected physics, nuclear, props and interpolation tests passed
+  after integration, along with the production build. Final CI/live proof follows.
+- Real Edge host/guest tests received moving nuclear, burn, plasma, Tesla, PHASER
+  and ice deaths over selected relay/relay candidates. A third browser hot joined
+  existing falling remains. Rendered stages and actual nuclear gameplay frames were
+  visually inspected. This is one-machine external-relay QA, not a cross-network
+  latency measurement. External scripts/images/logs use ../bonk-club-qa/death-physics-*.
+- Source edits remain in the canonical checkout alongside unrelated work. The
+  integrated release is ../bonk-club-qa/death-physics-release, codex/death-physics.
+  No production hooks, dependencies or Pi configuration changes were introduced.
+
 
 ## Occasional bot reactions — 11 September 2026
 
