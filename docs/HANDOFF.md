@@ -111,7 +111,7 @@ on `codex/singularity-core-release`. Preserve unrelated canonical edits.
 
 ## Hazard breakup and complete clearing — 11 September 2026
 
-Display version **0.13.1**, protocol **34** inherited from object pickup. This
+Prepared as **0.13.1** and integrated with **0.14.0**, protocol **35**. This
 artwork change uses the existing validated `done` flag and adds no wire fields.
 Refresh all players' tabs to load the release.
 
@@ -127,8 +127,9 @@ Refresh all players' tabs to load the release.
   At most eight bursts and 48 source-art shards per fixture exist at once. Source
   canvases are created only on a break and released with the burst. Reduced-motion
   mode reduces travel and removes spin.
-- Eight new regressions cover direct hits, support loss, disabled damage/drawing,
-  bounded clearing, all fixture meshes, host/guest snapshots, late join and reset.
+- Nine new regressions cover direct hits, support loss, disabled damage/drawing,
+  bounded clearing, all fixture meshes, host/guest snapshots, late join, reset and
+  preventing later black holes from recreating cleared fixtures.
   The initial full suite passed 683 tests; after the direct-hit fix, all 16 focused
   checks passed. After integrating the latest object-pickup release from main, all
   57 hazard/terrain/object-carry checks passed, plus production build.
@@ -142,7 +143,13 @@ Refresh all players' tabs to load the release.
   `../bonk-club-qa/hazard-break-release` / `codex/hazard-break-release`.
   External harnesses/logs/screenshots use `../bonk-club-qa/hazard-break-*`.
   No production debug hooks, dependencies or Pi configuration changes.
-  Final full-suite and published-release verification follows below.
+- The later standalone full suite passed 684 tests. Final hazard/terrain/black-hole
+  integration checks passed 28 tests, and the combined source plus v0.14.0 production
+  bundle repeated all browser checks successfully. Eight maximum-size fixtures
+  generated 198 visible shards in 9.9 ms, with 0.6 ms p95 drawing CPU cost on this
+  machine. Software canvas readback avoids the earlier 127 ms first-frame stall.
+  This measures drawing cost, not FPS or internet latency. The cleared frame
+  contained zero hazard pixels. Published-release verification follows below.
 
 ## Physical object pickup and carrying — 11 September 2026
 
