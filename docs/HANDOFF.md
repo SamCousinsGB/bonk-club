@@ -71,7 +71,9 @@ a new room. This supersedes the older permanent fighter-burning behavior.
 
 ## Jump and death sounds — 11 September 2026
 
-Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds.
+Prepared as **v0.9.4** and included in the combined **v0.11.0** release.
+The audio change adds no wire fields; the integrated arena release uses protocol
+**33**. Refresh all players and create a new room after the combined update.
 
 - Removed walking footsteps and their sample/cache entries. `src/landings.js`
   observes only actual landings; it preserves the existing landing thud, mute,
@@ -80,7 +82,8 @@ Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds
   a heavier body impact and a brief falling, breathy vocal resonance. Both have
   three bounded procedural variants and reuse cached PCM buffers. Existing death
   priority, duplicate suppression, voice limits and weapon effects are preserved.
-- Focused sound/landing/death regressions pass. Real Edge host/guest gameplay
+- All **612 tests** passed on the isolated audio revision; **27** focused sound,
+  landing and death checks passed again on the combined source. Real Edge host/guest gameplay
   verified silent walking, both jumps from guest keyboard input, one landing
   and one death cue per browser through selected relay/relay connections.
   Actual Web Audio rendering verified audible clips, silent tails, source cleanup
@@ -89,10 +92,19 @@ Display version **0.9.4**, protocol **31** unchanged. Refresh to load the sounds
   `../bonk-club-qa/jump-death-*`. Hooks exist only in that harness. No dependencies,
   desktop shell, wire fields or Pi configuration changed. This was one-machine
   browser QA, not separate-ISP or physical-device evidence.
-- Implementation used the canonical checkout. A clean release worktree at
-  `../bonk-club-qa/jump-death-release` / `codex/jump-death-audio` excludes the
-  concurrent barrel, fluid and arena changes in that checkout. The integrated
-  release includes the separately committed prone floor fix from main.
+- Implementation used the canonical checkout. The clean release worktree at
+  `../bonk-club-qa/jump-death-release` / `codex/jump-death-audio` initially isolated
+  the audio edits, then incorporated the independently committed prone, barrel
+  and arena changes from main. Audio commit: **`f7e037d20cdc160b6f07b939b5eec2dcdae9ba95`**.
+- The combined **`8ec9491420d72fe0515b596c1656086971b94363`** revision passed native
+  Windows/Linux builds and desktop smoke in
+  [desktop run 34636927927](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927927).
+- Published in that same combined revision. [Pages run 34636927882](https://github.com/SamCousinsGB/bonk-club/actions/runs/34636927882)
+  passed **665 gameplay/network/shared tests**, **3 server tests**, build and
+  deployment. All **15 public files** match its tested CI artifact byte for byte:
+  `index-C0qDhMdc.js` / `index-szAYY0PO.css`. Public **v0.11.0** passed solo start,
+  keyboard movement/jump, actual boing PCM playback and menu return without page
+  errors. The public gameplay frame was inspected. The task preview on 5234 is stopped.
 
 ## Prone floor collision fix - 11 September 2026
 
