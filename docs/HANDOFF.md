@@ -4,9 +4,9 @@ Updated 11 September 2026. Read the root `AGENTS.md` first.
 
 ## Connected elemental reactions — 11 September 2026
 
-Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. The canonical
-checkout's unfinished arena work is preserved. This branch includes the newer
-real menu fights and textured weapon audio from main.
+Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. Canonical checkout
+changes were preserved. The shipped merge includes the latest arenas, real menu
+fights, second audio pass, frozen corpses and black-hole head-only remains.
 
 The five additions share host-authoritative rules in `src/reactions.js`:
 
@@ -28,10 +28,12 @@ The five additions share host-authoritative rules in `src/reactions.js`:
   thrust while leaving gas. Ignition accelerates the fuse; cold temporarily seals
   leaks and pauses the countdown. Gas chains have finite volume and delayed bursts.
   Hissing, pressure gauges, jets and a final flashing outline provide warning.
+  The pressure blast leaves physical metal casing pieces under the rubble cap.
 
-Containers are placed on suitable existing landings away from spawn bodies and
-trap machinery. Bots use normal controls to escape nearby electrical/fire/cylinder
-danger. Last-elimination scoring waits for armed cylinders and ignited gas.
+Containers are placed on suitable existing landings, preserving headroom and
+avoiding spawn bodies and the full swept path of lifts. Bots use normal controls
+to escape nearby electrical/fire/cylinder danger. Last-elimination scoring waits
+for armed cylinders and ignited gas.
 Nukes and PHASER consume liquids; black holes retain fluid/vapour samples and counts
 in the existing planar matter flow. All transient state resets each round.
 
@@ -41,17 +43,26 @@ interpolate stable parcel identities and validate numeric bounds and duplicates.
 Protocol **30** requires both players to refresh and create a new room. Display
 release: **v0.8.0**. No dependencies or Pi infrastructure changes.
 
-Focused verification: 31 reaction regressions passed; all 64 combined reaction,
-terrain-fixture and arena checks passed after integrating the new arenas.
+Shipped gameplay commit: `c7464d71a44b0a1f07ec9777cd93be6945ea63d3`.
+[Pages run 34616769324](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616769324)
+passed all **595 gameplay/network tests**, **3 server tests** and the production
+build, and deployed successfully. The final merged checkout also passed 167
+focused checks, including all 31 reaction regressions. The navigation-only quarry
+fixture excludes added reaction containers so an early environmental elimination
+cannot invalidate its movement observation; full arena bot checks retain them.
 Real Edge host/guest and a third hot joiner received all five systems through
 selected TURN relay candidates. Real guest mouse fire ruptured a host-authoritative
 cylinder. Hot join matched melted platform IDs and frozen water. Actual gameplay
 screenshots were inspected, with no page errors. These browsers ran on the QA
-machine; this is not a new cross-ISP test. Helpers/logs/screenshots are outside Git
-under `bonk-club-qa/systems-*`. All hooks are confined to that external harness.
-Before the arena merge, all 563 gameplay/network tests and the production build
-passed. The production bundle passed the three-browser room lifecycle check.
-The newly published arena release is now integrated; final verification follows.
+machine; this is not a new cross-ISP test. Both the exact production bundle and
+the published game passed the three-browser room lifecycle test with selected
+relay candidates, hot join, guest controls, leave/rejoin and no browser errors.
+All **15 public files** match the clean LF archive production build byte for byte,
+including `index-Biz_Endf.js` and `index-DB2pWx_1.css`.
+Helpers/logs/screenshots are outside Git under `bonk-club-qa/systems-*`, including
+`systems-shipping-ci.log`, `systems-shipping-browser.log` and
+`systems-shipping-public-browser.log`. All hooks are confined to that external
+harness; the task's development server on port 5214 has been stopped.
 
 ## Second audio pass — 11 September 2026
 
