@@ -104,6 +104,7 @@ export class Renderer {
       this.lastEvent = e.id;
       if (e.type === "ko" && Number.isFinite(time) && Number.isFinite(e.at) &&
           time - e.at >= DEATH_CUE_DURATION) continue;
+      if (e.type !== "ko" && Number.isFinite(time) && Number.isFinite(e.at) && time - e.at > .4) continue;
       sound?.play(
         e.type === "shoot" &&
           ["rail", "plasma", "rocket", "pellet"].includes(e.kind)
@@ -134,7 +135,8 @@ export class Renderer {
           "break",
         ].includes(e.type)
       ) {
-        const count = e.ash ? 0 : e.nuclear
+        const firearm = e.type === "shoot" && ["bullet", "pellet", "ricochet"].includes(e.kind);
+        const count = e.ash ? 0 : firearm ? 5 : e.type === "shoot" ? 6 : e.nuclear
           ? 24
           : e.type === "explosion"
             ? 38
@@ -142,6 +144,7 @@ export class Renderer {
               ? 28
               : 12;
         for (let i = 0; i < count && this.particles.length < 240; i++) {
+          const smoke = firearm && i > 1;
           const a = Math.random() * TAU,
             v =
               70 +
@@ -150,13 +153,15 @@ export class Renderer {
           this.particles.push({
             x: e.x,
             y: e.y,
-            vx: Math.cos(a) * v,
-            vy: Math.sin(a) * v,
-            color: e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
+            vx: Math.cos(a) * v * (smoke ? .12 : 1),
+            vy: smoke ? -35 - Math.random() * 35 : Math.sin(a) * v,
+            smoke,
+            color: smoke ? "#9caaa9" : firearm ? "#ffcf87" : e.kind === "tesla" || e.kind === "plasma" ? "#b8b0ff" : e.kind === "frost" ? "#b9f3ff" :
+              e.weapon === "cryo" ? "#b9f3ff" : e.weapon === "firework" ? ["#ff95ce", "#8ef5d6", "#ffe294"][i % 3] :
               e.type === "explosion" ? "#ffb867" : e.color || "#e6f8c7",
-            life: 0.2 + Math.random() * 0.6,
+            life: firearm ? (smoke ? .32 + Math.random() * .2 : .045 + Math.random() * .06) : 0.2 + Math.random() * 0.6,
             max: 0.8,
-            size: 2 + Math.random() * 5,
+            size: smoke ? 6 + Math.random() * 5 : 2 + Math.random() * 5,
           });
         }
         if (["hit", "ko", "parry", "explosion"].includes(e.type)) {
@@ -1020,10 +1025,11 @@ export class Renderer {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 550 * dt;
-      c.globalAlpha = Math.max(0, p.life / p.max);
+      p.vy += (p.smoke ? -12 : 550) * dt;
+      c.globalAlpha = Math.max(0, p.life / p.max) * (p.smoke ? .3 : 1);
       c.fillStyle = p.color;
-      c.fillRect(p.x, p.y, p.size, p.size);
+      if (p.smoke) { p.size += 18 * dt; this.circle(p.x, p.y, p.size, p.color); }
+      else c.fillRect(p.x, p.y, p.size, p.size);
     }
     c.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.life > 0);

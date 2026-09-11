@@ -2,6 +2,43 @@
 
 Updated 11 September 2026. Read the root `AGENTS.md` first.
 
+## Weapon audio and nuclear siren — 11 September 2026
+
+Implemented in `bonk-club-audio`, branch `codex/weapon-audio`, while the canonical
+checkout is used by the arena task. Preserve that task's changes.
+
+- Replaced combat pitch sweeps with original layered PCM recordings synthesized
+  locally: pressure cracks, low body resonance, mechanical action, turbulent
+  exhaust, electrical crackle, ice/metal/wood impacts and short reflections.
+  All 36 weapons map to appropriate profiles; repeat shots rotate three variants,
+  including the concurrently released Jelly, Midas and Tangle guns.
+  No downloaded audio, new dependency or proprietary game recording is used.
+- Nuclear grenades have a dual-rotor air-raid siren: two rise/fall cycles over the
+  actual 2.8-second fuse. The warning glow uses the same cycle. The live projectile
+  drives seeking, early cancellation, combat-hitstop retiming, mute/unmute, round
+  reset and hot join. Multiple grenades share the soonest countdown. Audio remains
+  scheduled when rendering stops; stale copies of a snapshot cannot extend it.
+- Samples warm incrementally and are cached. Normal combat uses at most 36 voices,
+  with a reserve for essential cues and a hard 48-voice sample ceiling. Stereo
+  placement follows the arena, combat leaves room for the siren, and the existing
+  compressor/final output bound remains. Mute fades already-playing tails too.
+  The previously requested death and room-arrival chimes are preserved.
+- Gunfire emits brief warm sparks and drifting muzzle smoke, instead of a dozen
+  long-lived particles. Muzzle events now use the actual launch point. Sword and
+  hammer handling use their own textures. Combat events use the already optional
+  timestamp, so hot join does not replay historic gunfire/explosions. Protocol
+  is **27** after incorporating the concurrent weapon release; this audio pass
+  adds no required wire state or Pi configuration change.
+- Source QA: all 43 profiles rendered in real OfflineAudioContext, fade fully and
+  release voices. A 48-voice stress mix stayed below 0.9 peak. Real Edge host,
+  guest and hot join used selected TURN relay candidates. Mouse firing delivered
+  nine weapon families; the normal siren ended at host detonation and within 70 ms
+  on guests. Hot join sought 1.03 seconds into the countdown. Mute, resume and early
+  removal passed. Actual gameplay screenshots were inspected; no browser errors.
+  This is a single QA machine using real TURN, not a cross-ISP or physical mobile
+  test. Samples/reports/scripts are outside Git at `bonk-club-qa/audio-*`.
+- Gameplay version **0.5.0**, following the concurrent v0.4.0 weapon release.
+  Final combined tests and publication record follow.
 ## Jelly, Midas, Tangle and persistent shots — 11 September 2026
 
 Worktree: `bonk-club-quirky`, branch `codex/quirky-weapons`, started from `755ede5`
@@ -85,7 +122,19 @@ and solo start/return. Staged host/guest/hot-join checks passed through selected
 TURN relay candidates without browser errors. No Pi configuration changed.
 QA helpers and screenshots are in `bonk-club-qa`: `montage-visual.cjs`,
 `montage-lifecycle.cjs`, `montage-smoke.cjs` and `presence-browser.cjs`.
-Publishing verification is recorded below after deployment.
+Published revision: `b191ad40fab88da71a620824a551096f919587e2`.
+Pages run `34612361348` passed all **509 game tests**, **3 server tests**, build
+and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34612361348.
+All **15 public files** match the exact committed build byte for byte. Archive:
+`bonk-club-qa/montage-release-b191ad4`; checker: `verify-montage-live.cjs`.
+JS: `index-BemlW_Vn.js`; CSS: `index-DB2pWx_1.css`.
+The public menu passed at 1440×900, 390×844, 568×320 and 320×568, including
+Controls and solo start/return, without clipped buttons or release notes.
+Public host/guest/hot-join/disconnect checks also passed with selected TURN
+relay candidates and no browser errors. These are real browser contexts on
+the QA machine, not a new cross-ISP measurement. Live screenshots were inspected.
+Source lifecycle checks proved automatic cuts, Character/Settings access,
+no montage advancement during play and a pixel-identical reduced-motion still.
 
 ## Main-menu release note — 11 September 2026
 
