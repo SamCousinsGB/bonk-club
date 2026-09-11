@@ -24,7 +24,21 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   from 1.13% to below 0.001%, without a material level change. That isolates a
   distortion source; it is not a measurement of Sam's speakers or hardware.
 - Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
-  arena and other work. Final combined verification and release record follows.
+  arena and other work. Release version is **0.7.0**, incorporating the concurrent
+  v0.6.0 arena update and the restored live menu fights.
+- Source checks rendered all 49 audio profiles and a 48-voice stress mix in real
+  Web Audio. Peak was 0.898, with all voices released and silent tails. The SMG
+  stays within 2% of its previous RMS level; the 180 Hz low-pass energy proportion
+  rises from 4.6% to 7.6%. The siren rises from 1.9% to 9.1% on that same measure.
+  These are signal measurements, not a subjective listening test or perceived
+  loudness claims. Real host/guest mouse firing covered twelve weapon families.
+  Guest running produced five footfalls in 1.3 seconds; prone/jump stayed silent,
+  landing produced one heavier thud and a death produced one new impact.
+- Three real Edge browsers connected through selected TURN relay candidates.
+  Mid-fuse hot join, remaining-fuse correction during network stalls, mute/resume,
+  early removal and detonation passed without browser errors. No new Pi setup.
+  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`. Final combined
+  test count, exact build and public verification record follows after deployment.
 ## Arena, scenery and fairness pass — 11 September 2026
 
 Gameplay version **0.6.0**, protocol **28**. Refresh all players' tabs and create
