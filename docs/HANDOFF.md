@@ -38,8 +38,23 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
 - Three real Edge browsers connected through selected TURN relay candidates.
   Mid-fuse hot join, remaining-fuse correction during network stalls, mute/resume,
   early removal and detonation passed without browser errors. No new Pi setup.
-  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`. Final combined
-  test count, exact build and public verification record follows after deployment.
+  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`.
+- The full local suite passed 563 tests, followed by 33 targeted audio, footsteps,
+  death and black-hole tests after merging v0.6.1. An exact LF archive of
+  `02b684082cc54148c056943ada3b12d76a2020bf` passed fresh `npm ci` and the production
+  build with the public signaling/TURN URLs. Its 15-file output is retained at
+  `bonk-club-qa/audio2-release-02b6840/dist`; JS is `index-CgoletTx.js`, CSS is
+  `index-DB2pWx_1.css`. The subsequent merge `7494157536f12942e024fe3baaafbdf2762e03eb`
+  changes only the handoff and is the pushed release revision.
+- The final unmodified production bundle passed three actual Edge contexts over
+  selected TURN relay candidates: room creation, join/leave notices and sounds,
+  roster/rename silence, hot join, gameplay departure, mute, narrow viewport,
+  notice expiry, room reset and host disconnect, with no browser errors. Audio
+  and network checks ran on one QA machine; they do not prove cross-ISP or
+  physical-speaker behavior. This task's local Vite server on 5211 was stopped.
+- Final CI and public asset/browser verification will be recorded after the
+  [Pages run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616253842)
+  completes. No debug hooks or preview WAVs ship.
 
 ## Frozen bodies and smaller black holes — 11 September 2026
 
