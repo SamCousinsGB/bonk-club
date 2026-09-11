@@ -43,9 +43,9 @@ release gates; `docs/STEAM-STORE.md` contains the factual store brief.
 
 ## Connected elemental reactions — 11 September 2026
 
-Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. The canonical
-checkout's unfinished arena work is preserved. This branch includes the newer
-real menu fights and textured weapon audio from main.
+Worktree: `bonk-club-systems`, branch `codex/systemic-reactions`. Canonical checkout
+changes were preserved. The shipped merge includes the latest arenas, real menu
+fights, second audio pass, frozen corpses and black-hole head-only remains.
 
 The five additions share host-authoritative rules in `src/reactions.js`:
 
@@ -67,10 +67,12 @@ The five additions share host-authoritative rules in `src/reactions.js`:
   thrust while leaving gas. Ignition accelerates the fuse; cold temporarily seals
   leaks and pauses the countdown. Gas chains have finite volume and delayed bursts.
   Hissing, pressure gauges, jets and a final flashing outline provide warning.
+  The pressure blast leaves physical metal casing pieces under the rubble cap.
 
-Containers are placed on suitable existing landings away from spawn bodies and
-trap machinery. Bots use normal controls to escape nearby electrical/fire/cylinder
-danger. Last-elimination scoring waits for armed cylinders and ignited gas.
+Containers are placed on suitable existing landings, preserving headroom and
+avoiding spawn bodies and the full swept path of lifts. Bots use normal controls
+to escape nearby electrical/fire/cylinder danger. Last-elimination scoring waits
+for armed cylinders and ignited gas.
 Nukes and PHASER consume liquids; black holes retain fluid/vapour samples and counts
 in the existing planar matter flow. All transient state resets each round.
 
@@ -80,17 +82,26 @@ interpolate stable parcel identities and validate numeric bounds and duplicates.
 Protocol **30** requires both players to refresh and create a new room. Display
 release: **v0.8.0**. No dependencies or Pi infrastructure changes.
 
-Focused verification: 31 reaction regressions passed; all 64 combined reaction,
-terrain-fixture and arena checks passed after integrating the new arenas.
+Shipped gameplay commit: `c7464d71a44b0a1f07ec9777cd93be6945ea63d3`.
+[Pages run 34616769324](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616769324)
+passed all **595 gameplay/network tests**, **3 server tests** and the production
+build, and deployed successfully. The final merged checkout also passed 167
+focused checks, including all 31 reaction regressions. The navigation-only quarry
+fixture excludes added reaction containers so an early environmental elimination
+cannot invalidate its movement observation; full arena bot checks retain them.
 Real Edge host/guest and a third hot joiner received all five systems through
 selected TURN relay candidates. Real guest mouse fire ruptured a host-authoritative
 cylinder. Hot join matched melted platform IDs and frozen water. Actual gameplay
 screenshots were inspected, with no page errors. These browsers ran on the QA
-machine; this is not a new cross-ISP test. Helpers/logs/screenshots are outside Git
-under `bonk-club-qa/systems-*`. All hooks are confined to that external harness.
-Before the arena merge, all 563 gameplay/network tests and the production build
-passed. The production bundle passed the three-browser room lifecycle check.
-The newly published arena release is now integrated; final verification follows.
+machine; this is not a new cross-ISP test. Both the exact production bundle and
+the published game passed the three-browser room lifecycle test with selected
+relay candidates, hot join, guest controls, leave/rejoin and no browser errors.
+All **15 public files** match the clean LF archive production build byte for byte,
+including `index-Biz_Endf.js` and `index-DB2pWx_1.css`.
+Helpers/logs/screenshots are outside Git under `bonk-club-qa/systems-*`, including
+`systems-shipping-ci.log`, `systems-shipping-browser.log` and
+`systems-shipping-public-browser.log`. All hooks are confined to that external
+harness; the task's development server on port 5214 has been stopped.
 
 ## Second audio pass — 11 September 2026
 
@@ -114,9 +125,10 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
   from 1.13% to below 0.001%, without a material level change. That isolates a
   distortion source; it is not a measurement of Sam's speakers or hardware.
 - Work remains in `bonk-club-audio` / `codex/weapon-audio`, preserving concurrent
-  arena and other work. Release version is **0.7.0**, incorporating the concurrent
-  v0.6.0 arena update, restored live menu fights and v0.6.1 frozen-body/black-hole
-  changes. Protocol remains 29 from v0.6.1; refresh all tabs and start a new room.
+  arena and other work. Prepared as v0.7.0, then included in the concurrent
+  **v0.8.0** elemental release alongside the v0.6.0 arenas, live menu fights and
+  v0.6.1 frozen-body/black-hole changes. Protocol is 30 from that combined release;
+  refresh all tabs and start a new room.
 - Source checks rendered all 49 audio profiles and a 48-voice stress mix in real
   Web Audio. Peak was 0.898, with all voices released and silent tails. The SMG
   stays within 2% of its previous RMS level; the 180 Hz low-pass energy proportion
@@ -128,8 +140,38 @@ in gunshots and the nuclear siren, while retaining the SMG's character.
 - Three real Edge browsers connected through selected TURN relay candidates.
   Mid-fuse hot join, remaining-fuse correction during network stalls, mute/resume,
   early removal and detonation passed without browser errors. No new Pi setup.
-  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`. Final combined
-  test count, exact build and public verification record follows after deployment.
+  QA helpers/results and preview WAVs are in `bonk-club-qa/audio2-*`.
+- The full local suite passed 563 tests, followed by 33 targeted audio, footsteps,
+  death and black-hole tests after merging v0.6.1. A committed source archive of
+  `02b684082cc54148c056943ada3b12d76a2020bf` passed fresh `npm ci` and the production
+  build with the public signaling/TURN URLs. Its 15-file output is retained at
+  `bonk-club-qa/audio2-release-02b6840/dist`; JS is `index-CgoletTx.js`, CSS is
+  `index-DB2pWx_1.css`. The subsequent merge `7494157536f12942e024fe3baaafbdf2762e03eb`
+  changes only the handoff and is the pushed release revision.
+- The final unmodified production bundle passed three actual Edge contexts over
+  selected TURN relay candidates: room creation, join/leave notices and sounds,
+  roster/rename silence, hot join, gameplay departure, mute, narrow viewport,
+  notice expiry, room reset and host disconnect, with no browser errors. Audio
+  and network checks ran on one QA machine; they do not prove cross-ISP or
+  physical-speaker behavior. This task's local Vite server on 5211 was stopped.
+- [The audio CI run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616253842)
+  passed all 564 gameplay/network tests, all three server tests and the production
+  build. Its deployment was superseded by the concurrent elemental release,
+  `c7464d71a44b0a1f07ec9777cd93be6945ea63d3`, which preserves this audio pass.
+  An archive of that combined revision also passed fresh install/build and the
+  same three-browser production check. For exact Linux build parity, archive with
+  `git -c core.autocrlf=false archive`: plain archive on this Windows installation
+  converted text to CRLF, changing HTML and favicon hashes. The final LF archive
+  passed fresh install/build; its output is retained in
+  `bonk-club-qa/audio2-release-c7464d7-lf/dist`: JS `index-Biz_Endf.js`, CSS
+  `index-DB2pWx_1.css`, favicon `favicon-yWuc7I8t.svg`. No debug hooks or WAVs ship.
+- [The combined Pages run](https://github.com/SamCousinsGB/bonk-club/actions/runs/34616769324)
+  **succeeded**, passing all **595 gameplay/network tests**, all **three server
+  tests**, build and deployment. All **15 public files** match the final LF build
+  byte-for-byte by SHA-256. Three actual Edge contexts on the public game passed
+  the same room lifecycle and gameplay check through selected TURN relay
+  candidates, with no page errors. Logs: `audio2-combined-ci-completed.log`,
+  `audio2-live-assets.log` and `audio2-live-browser.log` in the QA directory.
 
 ## Frozen bodies and smaller black holes — 11 September 2026
 
