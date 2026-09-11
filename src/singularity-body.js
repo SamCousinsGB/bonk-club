@@ -22,6 +22,7 @@ export function captureFighter(p, f) {
   p.captureAge = 0;
   p.knockdown = 1;
   p.block = false; p.swing = 0; p.freeze = 0; p.bubble = 0;
+  p.morph = null; p.morphTime = 0; p.morphAge = 0; delete p.morphPose;
   p.prone = false; p.ground = false; p.support = null; p.jumpBuffer = 0;
   for (const q of new Set(p.strands.flatMap(s => s.points))) {
     seedOrbit(q, f, .45);

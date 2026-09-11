@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "releaseNotes": "Layered weapon audio and nuclear fuse siren",
   "private": true,
   "type": "module",

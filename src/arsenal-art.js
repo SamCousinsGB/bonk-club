@@ -4,10 +4,12 @@ import { NUKE_FUSE, sirenCycle } from "./sound-design.js";
 import { WEAPONS } from "./arsenal.js";
 import { drawExpandedWeapon, drawExpandedProjectile, drawExpandedField } from "./expanded-art.js";
 import { drawWeirdWeapon, drawWeirdProjectile } from "./weird-art.js";
+import { drawTransmutationWeapon, drawTransmutationProjectile } from "./transmutation-art.js";
 
 // Canvas silhouettes share the existing game's materials, with different barrels,
 // coils, tanks and drums so pickups remain identifiable at arena scale.
 export function drawNewWeapon(r, type) {
+  if (drawTransmutationWeapon(r, type)) return;
   if (drawExpandedWeapon(r, type)) return;
   const w = WEAPONS[type],
     c = r.ctx;
@@ -216,6 +218,7 @@ export function drawNewWeapon(r, type) {
 }
 
 export function drawSpecialProjectile(r, b, time) {
+  if (drawTransmutationProjectile(r, b, time)) return true;
   if (drawExpandedProjectile(r, b, time)) return true;
   const c = r.ctx,
     color = WEAPONS[b.weapon]?.color || "#c8edff";
@@ -231,7 +234,7 @@ export function drawSpecialProjectile(r, b, time) {
     c.font = "700 18px sans-serif";
     c.fillText(Math.max(0, b.life).toFixed(1), b.x, b.y - 34);
   } else if (b.kind === "flame") {
-    const size = 8 + Math.max(0, 1 - b.life / WEAPONS.flame.life) * 23;
+    const size = 8 + Math.min(1, (b.age || 0) / WEAPONS.flame.life) * 23;
     const flicker = r.reduced ? 0 : Math.sin(time * 25 + b.life * 20) * 6;
     c.save(); c.translate(b.x, b.y); c.rotate(Math.atan2(b.vy, b.vx));
     const tail = Math.min(48 + size * 1.8, Math.max(1, (WEAPONS.flame.life - b.life) * WEAPONS.flame.speed));

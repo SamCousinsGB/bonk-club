@@ -63,7 +63,7 @@ test("the last phase shot retains the gun throughout its discharge, then release
   assert.equal(p.weapon, null);
 });
 
-test("flames reach 750 units, remain bounded, and cover still stops ignition", () => {
+test("flames reach distant fighters and cover still stops ignition", () => {
   for (const wall of [false, true]) {
     const w = fixture(), q = w.players[1]; q.x = 1150;
     if (wall) w.platforms.push({ id: "wall", x: 800, y: 350, w: 30, h: 210 });
@@ -71,7 +71,7 @@ test("flames reach 750 units, remain bounded, and cover still stops ignition", (
     assert.equal(q.burn, wall ? 0 : 1); assert.equal(w.projectiles.length, 0);
   }
   const w = fixture(); w.players[1].x = 1320; fire(w, "flame"); projectiles(w, 1);
-  assert.equal(w.players[1].hp, 100);
+  assert.ok(w.players[1].hp < 100);
 });
 
 test("a single ignition keeps burning after fire stops, chars a full-health target and resets next round", () => {
@@ -145,18 +145,18 @@ test("boomerangs turn back, can hit twice, and are caught without damaging their
   assert.equal(w.projectiles.length, 0); assert.ok(w.events.some(e => e.type === "pickup"));
 });
 
-test("a boomerang still expires if its owner dies, and bounces off solid walls", () => {
+test("a boomerang keeps travelling if its owner dies, and bounces off solid walls", () => {
   const w = fixture(); w.players[1].y = 900;
   w.platforms.push({ id: "wall", x: 600, y: 300, w: 20, h: 250 });
   const b = fire(w, "boomerang"); projectiles(w, .3); assert.ok(b.vx < 0);
-  w.kill(w.players[0]); projectiles(w, 3); assert.equal(w.projectiles.length, 0);
+  w.kill(w.players[0]); projectiles(w, 3); assert.ok(w.projectiles.includes(b));
 });
 
-test("rubber ducks bounce then explode on their fuse, carving actual terrain once", () => {
+test("rubber ducks bounce then explode on a final collision, carving actual terrain once", () => {
   const w = fixture(); for (const p of w.players) p.y = 100;
   const b = fire(w, "duck"); b.x = 800; b.y = 520; b.vx = 50; b.vy = 200;
   projectiles(w, .15); assert.ok(b.vy < 0); assert.ok(b.life > 1.8);
-  const terrain = JSON.stringify(w.platforms); b.life = .02; b.x = 850; b.y = 540;
+  const terrain = JSON.stringify(w.platforms); b.bounces = 0; b.x = 850; b.y = 540; b.vy = 1000;
   projectiles(w, .1); assert.notEqual(JSON.stringify(w.platforms), terrain);
   assert.equal(w.events.filter(e => e.type === "explosion").length, 1);
   assert.equal(w.projectiles.length, 0); assert.ok(validSnapshot(wire(w)));

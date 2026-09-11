@@ -28,6 +28,7 @@ export const WEAPON_SOUNDS = Object.freeze({
   blackhole: 'singularity', crossbow: 'crossbow', harpoon: 'harpoon',
   firework: 'firework', bubble: 'bubble', boomerang: 'whoosh', duck: 'duck',
   bat: 'whoosh', sword: 'blade', hammer: 'heavy-swing',
+  jelly: 'jelly', midas: 'gold', tangle: 'tangle',
 });
 export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
@@ -167,6 +168,20 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
   } else if (name === 'saw') {
     mechanics(0, .32); noise(.004, .6, 1.3, 3700, 180, .005, 470);
     modes(.015, .35, .09, [211, 439, 877, 1731]);
+  } else if (name === 'gold') {
+    noise(0, .028, .7, 6800, 1100);
+    modes(.002, .45, .2, [973, 1747, 2917, 4283]);
+    for (let n = 0; n < 7; n++) mechanics(.06 + random() * .25, .13);
+  } else if (name === 'jelly') {
+    noise(0, .25, 1.6, 850, 70, .006, 81);
+    for (let n = 0; n < 5; n++) {
+      const at = random() * .17;
+      noise(at, .05, .5, 2100, 240);
+      modes(at, .07, .1, [173 + random() * 110, 413]);
+    }
+  } else if (name === 'tangle') {
+    noise(0, .32, .8, 3700, 320, .018, 217);
+    noise(.003, .03, .4, 6200, 1500); mechanics(.05, .17);
   } else if (name === 'bubble' || name === 'duck') {
     // Air pressure and damped rubber/cavity resonances, without square-wave quacks.
     noise(0, .13, .8, 1800, 160, .003);

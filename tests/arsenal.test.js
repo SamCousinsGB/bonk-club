@@ -212,7 +212,7 @@ test("black holes arm, capture fighters from both sides and retain loose weapons
   const w = arena(),
     [p, q] = w.players;
   const b = fire(w, "blackhole");
-  b.life = 0.001;
+  b.y = 552; b.vy = 1000; // Deploy on physical contact with the floor.
   w.updateProjectiles(STEP);
   assert.equal(w.fields.length, 1);
   const f = w.fields[0];
@@ -263,7 +263,7 @@ test("repulsor redirects incoming shots and has much more force than damage", ()
   assert.ok(force.hitIds.includes(1));
 });
 test("all weapons and their effects produce valid online snapshots", () => {
-  assert.equal(Object.keys(WEAPONS).length, 33);
+  assert.equal(Object.keys(WEAPONS).length, 36);
   for (const type of Object.keys(WEAPONS)) {
     const w = arena();
     if (WEAPONS[type].proneOnly) w.players[0].prone = true;

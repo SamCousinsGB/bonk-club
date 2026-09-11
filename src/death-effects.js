@@ -1,7 +1,9 @@
 import { seedOrbit, orbitPoint, limitRope } from "./orbit.js";
 import { WEAPONS } from "./arsenal.js";
 import { JOINTS } from "./puppet.js";
+import { TRANSMUTATIONS, seedTransformedDeath } from "./transmutation.js";
 export const DEATH_EFFECTS = [
+  ...TRANSMUTATIONS,
   "slice",
   "gib",
   "impale",
@@ -19,6 +21,7 @@ export const CUT_JOINTS = [
   [12, 2, 11.5],
 ];
 export function projectileEffect(b) {
+  if (TRANSMUTATIONS.includes(b.kind)) return b.kind;
   if (["saw", "rail"].includes(b.kind)) return "slice";
   if (["plasma", "tesla"].includes(b.kind)) return b.kind;
   if (b.kind === "frost") return "ice";
@@ -30,6 +33,7 @@ export function projectileEffect(b) {
 export function deathPose(rag, effect, angle = 0, target = null) {
   if (!effect) return;
   Object.assign(rag, { effect, deathAge: 0 });
+  seedTransformedDeath(rag);
   if (effect === "slice") {
     const a = rag.points[1],
       b = rag.points[2];

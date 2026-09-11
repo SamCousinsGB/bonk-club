@@ -4,6 +4,9 @@ import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
 import { BUBBLE_TIME, steerBoomerang } from "./weird-weapons.js";
 import { harpoonImpact, fireworkBurst } from "./expanded-weapons.js";
+import { TRANSMUTATIONS, rigidPose } from "./transmutation.js";
+import { knockDown } from "./knockdown.js";
+import { canSpawnProjectiles } from "./projectile-flight.js";
 
 const clear = (world, a, b) =>
   !world.solids().some((s) => segmentBox(a.x, a.y, b.x, b.y, s));
@@ -49,6 +52,13 @@ export function steerSpecial(world, b, dt) {
 
 export function impactSpecial(world, b, target, hurt) {
   if (!hurt) return;
+  if (TRANSMUTATIONS.includes(b.kind) && target.alive && !target.morphTime) {
+    knockDown(target, b.weapon);
+    target.morph = b.kind; target.morphTime = 1.6; target.morphAge = 0;
+    target.knockdown = 1.6;
+    target.bubble = 0;
+    if (b.kind === "gold") target.morphPose = rigidPose(target.rig);
+  }
   if (b.kind === "harpoon") harpoonImpact(world, b, target);
   if (b.burn && target.alive) target.burn = 1;
   if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
@@ -58,6 +68,10 @@ export function impactSpecial(world, b, target, hurt) {
   if (b.chill) {
     target.chill = Math.max(target.chill || 0, b.chill);
     if(target.alive && !(target.freezeCooldown>0)) {
+      if (target.morphTime > 0) {
+        target.morph = null; target.morphTime = 0; target.morphAge = 0;
+        target.knockdown = 0; delete target.morphPose;
+      }
       target.freeze=1.15;target.freezeCooldown=2.1;target.stun=Math.max(target.stun,1.15);target.block=false;
       target.freezePose=target.rig?.map(q=>({x:q.x-target.x,y:q.y-target.y}));
     }
@@ -116,6 +130,7 @@ export function expireSpecial(world, b) {
   }
   if (b.cluster) {
     for (let n = 0; n < 6; n++) {
+      if (!canSpawnProjectiles(world)) break;
       const a = -Math.PI + (n * Math.PI) / 5;
       world.projectiles.push({
         x: b.x,

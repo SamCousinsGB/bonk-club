@@ -11,6 +11,8 @@ import { REALTIME_LABEL, FrameAssembler, LatestFrameDecoder, framePackets } from
 import { compactSnapshot, expandSnapshot } from "./snapshot-wire.js";
 import { PROJECTILE_KINDS } from "./arsenal.js";
 import { validExpandedProjectile } from "./expanded-weapons.js";
+import { validTransmutation, validTransmutationProjectile } from "./transmutation.js";
+import { MAX_PROJECTILES } from "./projectile-flight.js";
 import { COVER_KINDS } from "./maps.js";
 import { HAZARD_TYPES } from "./hazards.js";
 import { loadIceConfig, connectionFailure, hasRelay } from "./ice.js";
@@ -31,7 +33,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 26;
+export const PROTOCOL = 27;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -815,6 +817,7 @@ export function validSnapshot(s) {
         p.knockdown>=0 && p.knockdown<=1.8 &&
         p.freeze >= 0 && p.freeze <= 1.2 && p.xray >= 0 && p.xray <= .4 &&
         finite(p.bubble) && p.bubble >= 0 && p.bubble <= 2.4 &&
+        validTransmutation(p) &&
         (p.burn === 0 || p.burn === 1) &&
         p.hp >= 0 &&
         p.hp <= 100 &&
@@ -886,11 +889,13 @@ export function validSnapshot(s) {
     ) &&
     list(
       s.projectiles,
-      160,
+      MAX_PROJECTILES,
       (p) =>
         xy(p) &&
         [p.vx, p.vy, p.r, p.life].every(finite) &&
         PROJECTILE_KINDS.includes(p.kind) &&
+        (p.age === undefined || (finite(p.age) && p.age >= 0)) &&
+        validTransmutationProjectile(p) &&
         validExpandedProjectile(p) &&
         (!['bubble', 'boomerang', 'duck'].includes(p.kind) ||
           (p.weapon === p.kind && integer(p.owner, 0, 3) && p.r === WEAPONS[p.kind].r &&

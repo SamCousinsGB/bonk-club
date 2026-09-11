@@ -10,7 +10,8 @@ checkout is used by the arena task. Preserve that task's changes.
 - Replaced combat pitch sweeps with original layered PCM recordings synthesized
   locally: pressure cracks, low body resonance, mechanical action, turbulent
   exhaust, electrical crackle, ice/metal/wood impacts and short reflections.
-  All 33 weapons map to appropriate profiles; repeat shots rotate three variants.
+  All 36 weapons map to appropriate profiles; repeat shots rotate three variants,
+  including the concurrently released Jelly, Midas and Tangle guns.
   No downloaded audio, new dependency or proprietary game recording is used.
 - Nuclear grenades have a dual-rotor air-raid siren: two rise/fall cycles over the
   actual 2.8-second fuse. The warning glow uses the same cycle. The live projectile
@@ -26,7 +27,8 @@ checkout is used by the arena task. Preserve that task's changes.
   long-lived particles. Muzzle events now use the actual launch point. Sword and
   hammer handling use their own textures. Combat events use the already optional
   timestamp, so hot join does not replay historic gunfire/explosions. Protocol
-  remains **26**; there is no new required wire state or Pi configuration change.
+  is **27** after incorporating the concurrent weapon release; this audio pass
+  adds no required wire state or Pi configuration change.
 - Source QA: all 43 profiles rendered in real OfflineAudioContext, fade fully and
   release voices. A 48-voice stress mix stayed below 0.9 peak. Real Edge host,
   guest and hot join used selected TURN relay candidates. Mouse firing delivered
@@ -35,7 +37,82 @@ checkout is used by the arena task. Preserve that task's changes.
   removal passed. Actual gameplay screenshots were inspected; no browser errors.
   This is a single QA machine using real TURN, not a cross-ISP or physical mobile
   test. Samples/reports/scripts are outside Git at `bonk-club-qa/audio-*`.
-- Gameplay version **0.3.0**. Final combined tests and publication record follow.
+- Gameplay version **0.5.0**, following the concurrent v0.4.0 weapon release.
+  Final combined tests and publication record follow.
+## Jelly, Midas, Tangle and persistent shots — 11 September 2026
+
+Worktree: `bonk-club-quirky`, branch `codex/quirky-weapons`, started from `755ede5`
+and merged the newer menu montage. The canonical checkout's network/nuclear/terrain
+WIP is preserved. The arsenal now contains **36 weapons**:
+
+- Jelly Gun: elastic living ragdolls rebound from floors, walls and props. Lethal
+  shots produce independently colliding jelly pieces.
+- Midas Gun: physical constraints preserve the victim's pose as a heavy gold
+  statue. Lethal statues fall, then scatter colliding coins after 1.15 seconds.
+- Tangle Gun: yarn constrains wrists and ankles, drawing a living fighter into a
+  rolling knot. Lethal knots unravel into separate curling strands.
+
+All three have distinct held/pickup/projectile art, firing sounds, throw masses
+and result causes. Living transformations last 1.6 seconds and use existing safe
+knockdown recovery. They cannot stack their duration. Empty-hand parries reflect
+them; cover stops them. Ice replaces the transformation and black holes restore
+their usual stretched-body capture. Death pieces clear within four seconds.
+Rare/exotic featured rotation includes all three; nuclear frequency is unchanged.
+
+Every airborne projectile now keeps flying past its old lifetime and the arena
+boundary. Grenades keep intentional fuses; fireworks and black-hole seeds activate
+on contact, ducks after their permitted bounces/contact, and boomerangs still return
+and can be caught. Firework sparks persist too. Bots use the new flight reach.
+The host retains distant flight but omits it from drawing and transport. Nearby
+shots have a 512-shot admission limit; reaching it preserves existing shots and
+does not spend ammunition. An off-map singularity no longer prevents round scoring.
+
+Gameplay is in `src/transmutation.js` and `src/projectile-flight.js`; art is in
+`src/transmutation-art.js`. Protocol **27** validates the new state and IDs.
+Both players must refresh and create a new room. The display release is **v0.4.0**.
+No Pi infrastructure changes. Local verification and final release evidence follow
+after publishing. QA helpers, logs and screenshots: `bonk-club-qa/quirky-*`.
+
+## Main-menu effects montage — 11 September 2026
+
+The menu now runs six Canvas vignettes: Tesla electrocution, acid melting,
+freeze/shatter, plasma skeleton-to-ash, incineration and railgun dismemberment.
+Each lasts roughly seven to eight seconds, with a shuffled rotation, no adjacent
+repeat, varied colours and scenery, and short fades through a dark background.
+This replaces the repeating three-fighter demo World. It does not run physics,
+bots, audio or networking, and it stops advancing while a match is being drawn.
+The acid sequence is menu artwork, not a new gameplay weapon or hazard.
+Reduced-motion preference uses a fixed, visible electrocution/skeleton frame.
+
+The montage and scheduling live in `src/menu-montage.js`. `Renderer.resize`
+records the display dimensions so the menu fills the screen without distorting
+the figures; gameplay retains its existing arena aspect ratio. Phone portrait
+puts the montage above the controls; short landscape keeps compact controls on
+the left and the scene on the right. The requested release note is now
+**v0.3.0 — New main-menu effects montage**. Wire protocol stays **26**.
+
+Worktree: `bonk-club-menu`, branch `codex/menu-montage`, based on `755ede5`.
+The canonical checkout's unfinished network/nuclear/terrain edits were preserved.
+All **509 tests passed**, including montage rotation, bounded clock and reduced
+motion; production build passed. Real Edge source and production checks cover
+all six scenes, intermediate transformations, responsive bounds, menu actions
+and solo start/return. Staged host/guest/hot-join checks passed through selected
+TURN relay candidates without browser errors. No Pi configuration changed.
+QA helpers and screenshots are in `bonk-club-qa`: `montage-visual.cjs`,
+`montage-lifecycle.cjs`, `montage-smoke.cjs` and `presence-browser.cjs`.
+Published revision: `b191ad40fab88da71a620824a551096f919587e2`.
+Pages run `34612361348` passed all **509 game tests**, **3 server tests**, build
+and deployment: https://github.com/SamCousinsGB/bonk-club/actions/runs/34612361348.
+All **15 public files** match the exact committed build byte for byte. Archive:
+`bonk-club-qa/montage-release-b191ad4`; checker: `verify-montage-live.cjs`.
+JS: `index-BemlW_Vn.js`; CSS: `index-DB2pWx_1.css`.
+The public menu passed at 1440×900, 390×844, 568×320 and 320×568, including
+Controls and solo start/return, without clipped buttons or release notes.
+Public host/guest/hot-join/disconnect checks also passed with selected TURN
+relay candidates and no browser errors. These are real browser contexts on
+the QA machine, not a new cross-ISP measurement. Live screenshots were inspected.
+Source lifecycle checks proved automatic cuts, Character/Settings access,
+no montage advancement during play and a pixel-identical reduced-motion still.
 
 ## Main-menu release note — 11 September 2026
 

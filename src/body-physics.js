@@ -8,6 +8,7 @@ export function collidePoint(
   radius = 3,
   origin = p,
   carried = new Set(),
+  { restitution = 0, mass = 1 } = {},
 ) {
   const ox = origin.x,
     oy = origin.y;
@@ -42,13 +43,13 @@ export function collidePoint(
       normal = vx * nx + vy * ny;
     const bodyId = `impulse:${s.propId || s.id}`;
     if (normal < 0 && s.onContact && !carried.has(bodyId)) {
-      s.onContact(x,y,nx*normal*120*5,ny*normal*120*5);
+      s.onContact(x,y,nx*normal*120*5*mass,ny*normal*120*5*mass);
       carried.add(bodyId);
     }
     p.x = x + nx * 0.05;
     p.y = y + ny * 0.05;
-    p.px = p.x - (vx - normal * nx) * 0.78;
-    p.py = p.y - (vy - normal * ny) * 0.78;
+    p.px = p.x - (vx - normal * nx) * 0.78 + Math.min(0, normal) * nx * restitution;
+    p.py = p.y - (vy - normal * ny) * 0.78 + Math.min(0, normal) * ny * restitution;
     if (ny === -1 && !carried.has(s.id)) {
       p.x += s.dx || 0;
       p.y += s.dy || 0;
@@ -62,13 +63,13 @@ export function passiveBody(
   joints,
   solids,
   dt,
-  { gravity = 1800, anchor = null } = {},
+  { gravity = 1800, anchor = null, restitution = 0, stiffness = .5, drag = .992, mass = 1 } = {},
 ) {
   const origins = points.map((p) => ({ x: p.x, y: p.y }));
   const carried = points.map(() => new Set());
   for (const p of points) {
-    const vx = (p.x - p.px) * 0.992,
-      vy = (p.y - p.py) * 0.992;
+    const vx = (p.x - p.px) * drag,
+      vy = (p.y - p.py) * drag;
     p.px = p.x;
     p.py = p.y;
     p.x += vx;
@@ -81,14 +82,14 @@ export function passiveBody(
         dx = b.x - a.x,
         dy = b.y - a.y,
         d = Math.hypot(dx, dy) || 1,
-        k = ((d - len) / d) * 0.5;
+        k = ((d - len) / d) * stiffness;
       a.x += dx * k;
       a.y += dy * k;
       b.x -= dx * k;
       b.y -= dy * k;
     }
     for (let i = 0; i < points.length; i++)
-      collidePoint(points[i], solids, i === 0 ? 10 : 3, origins[i], carried[i]);
+      collidePoint(points[i], solids, i === 0 ? 10 : 3, n === 0 ? origins[i] : points[i], carried[i], { restitution, mass });
     if (anchor) {
       const p = points[anchor.point];
       p.x = p.px = anchor.x;
