@@ -42,6 +42,7 @@ import { projectileMuzzle } from "./weapon-mount.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
 import { NEW_ARENAS } from "./new-arenas.js";
+import { TRANSMISSION_ARENA } from "./transmission-arena.js";
 import { SURVIVAL_ARENAS } from "./survival-arenas.js";
 import { nearFixture } from "./arena-dressing.js";
 import { BotController } from "./bots.js";
@@ -69,7 +70,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,

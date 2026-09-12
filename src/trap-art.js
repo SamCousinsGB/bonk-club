@@ -30,6 +30,7 @@ function scannerFront(c,h) {
 export function drawHazards(c,hazards,time,theme,layer="all"){
   for(const h of hazards||[]){
     if(h.done)continue;
+    if(h.type==="powerline")continue;
     if(layer==="back"&&!isScanner(h))continue;
     if(layer==="front"&&isScanner(h)){
       c.save();scannerFront(c,h);c.restore();continue;
