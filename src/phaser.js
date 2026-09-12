@@ -102,6 +102,7 @@ export function firePhaser(world, player, ax, ay, action) {
   for (const key of ["cover", "chunks"])
     world[key] = world[key].filter(s => !beamIntersection(s,beam,bodyPoints(s)).length);
   world.hazards = world.hazards.filter(h =>
+    h.type === "powerline" ||
     !beamTouches({ x: h.bodyX - h.w / 2, y: h.bodyY - 20, w: h.w, h: 40 }, beam) &&
     !beamTouches({ x: h.x, y: h.y, w: h.w, h: h.h }, beam));
   for (const key of ["drops", "projectiles", "debris", "blood"])

@@ -2,18 +2,30 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
-## Heavy hanging cables - 12 September 2026
+## Heavy hanging cables and enlarged pylons - 12 September 2026
 
-- v0.24.1, protocol 46. Refresh every player and create a new room.
+- v0.24.2, protocol 47. Refresh every player and create a new room.
+- Sam corrected the initial interpretation: intact tower wires must be walkable,
+  cut wires must be non-blocking and must keep electrifying. The added centre
+  maintenance bridges are removed. The v0.24.1 workflow was cancelled before
+  deployment; this section supersedes its bridge and disabled-circuit rules.
 - Both maps use `heavy-cables.js`: host-owned 120 Hz Verlet gravity, strongly
-  damped motion, 24 constrained links per wire and small powered forces. No
-  fighter contacts or supporting cable colliders. Transmission's two original
-  crossing routes remain as foreground steel maintenance walkways.
+  damped motion, 24 constrained links per wire and small powered forces. Actors
+  do not feed force back into this heavy background simulation. Intact tower
+  wires derive a thin walking top from their live curve; a cut or lost mount
+  removes the whole span's supporting collision immediately, including guests.
+  Furnace cables remain pass-through. Surviving tower tails still use the normal
+  safe/warning/live cycle, visible arcs and host-owned electrical contact damage.
 - `cable-layout.js` owns the exact mount coordinates for simulation and art.
-  Tower conductors meet the lower insulator clamps at x=770/1790, 70 units
+  Tower conductors meet the lower insulator clamps at x=960/1600, 70 units
   below each cross-arm. Furnace cables retain wall mounts when the machine ends
   fall. Losing both mounts drops the whole surviving span; cuts leave independent
   tails. Cables drape over surviving structure and persist through round results.
+- Pylons extend from y=75 to y=1380 with wider tapered legs, double steel braces,
+  gussets, rivets and broader cross-arms at y=350/830. Access gaps beside the
+  bodies and staggered lower steps preserve climbing and descent. The centre
+  crossings are wires alone. Navigation treats adjacent wire tiles as a curve,
+  caches their stable routes and spreads route rebuilding across ticks.
 - Explosions, nukes and PHASER cut current cable segments; dead links never draw
   connecting curves or live arcs. No vanished cable is recreated. The next round
   restores the original layout. Positions, links and attachments are bounded,
@@ -21,11 +33,12 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Release integration: `../bonk-club-qa/heavy-cables-release`, branch
   `codex/heavy-hanging-cables`, based on main 7b2b3b7. Preserve the canonical
   checkout's older concurrent edits; do not replace newer shared platform code.
-- Nine dedicated regressions cover small powered displacement, impulse damping,
-  pass-through collision, one/two lost mounts, cut tails, PHASER, prediction,
-  continuing result physics, reset, exact hot-join geometry and malformed wire
-  data. Initial full suite: 852/854; two obsolete solid-wire map assumptions
-  were corrected and all 52 affected checks passed. Publication checks follow.
+- Twenty dedicated cable/transmission checks cover small powered displacement,
+  impulse damping, intact walking, four crossing directions/routes, cut support
+  release, guest prediction, one/two lost mounts, live cut tails, PHASER, nukes,
+  continuing result physics, reset, hot-join geometry and malformed wire data.
+  All pass. All spawns can reach the enlarged map's contested pickups. Full
+  integrated suite and publication verification follow below.
 - Actual tower/furnace gameplay and detached-wire art inspected in the browser.
   A host, guest and third player joining after furnace destruction all selected
   relay/relay and retained six matching wall-held cables, without page errors.

@@ -10,6 +10,7 @@ import { validSnapshot } from "../src/network.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
 import { firePhaser } from "../src/phaser.js";
+import { GuestPrediction } from "../src/guest-prediction.js";
 
 const arena = kind => {
   const w = new World({ arena: ARENAS.findIndex(a => a[kind]), players: [0,1], shuffle: false, random: () => .4 });
@@ -27,17 +28,38 @@ const bounded = w => {
   }
 };
 
-test("tower endpoints hang from the lower insulator clamps and foreground walkways are separate", () => {
+test("tower endpoints hang below insulators; intact wires support feet and cut wires do not block", () => {
   const w = arena("transmission");
   for (const [i, cable] of w.cables.entries()) for (const [j, point] of [cable.points[0], cable.points.at(-1)].entries()) {
     const end = TOWER_MOUNTS[i][j];
     assert.equal(point.x, end.x); assert.equal(point.y, end.supportY + 70);
   }
-  assert.ok(!w.solids().some(s => s.material === "cable"));
+  assert.ok(w.solids().some(s => s.material === "cable"));
+  assert.ok(!w.platforms.some(s => s.x < 1280 && s.x + s.w > 1280), "no replacement centre platforms");
   const p = w.players[0], wire = w.cables[0].points[12];
   Object.assign(p, { x: wire.x, y: wire.y - 55, vx: 0, vy: 100, ground: false, rig: null });
   for (let i = 0; i < 60; i++) w.move(p, cleanInput({}), STEP);
+  assert.ok(Math.abs(p.y + 30 - wire.y) < 6, `${p.y}/${wire.y}`);
+  assert.ok(p.ground && p.support.startsWith("tower0:wire"));
+  blastCables(w, {...w.cables[0].points[8],radius:25});
+  assert.equal(p.ground,false); assert.equal(p.support,null);
+  assert.ok(!w.solids().some(s => s.id.startsWith("tower0:wire")));
+  for (let i = 0; i < 35; i++) w.move(p, cleanInput({}), STEP);
   assert.ok(p.y > wire.y + 30, `${p.y}/${wire.y}`);
+});
+
+test("guest movement supports intact wires and releases support on a received cut", () => {
+  const w = arena("transmission"), p=w.players[0], wire=w.cables[0].points[12];
+  Object.assign(p,{x:wire.x,y:wire.y-55,vx:0,vy:100,ground:false,rig:null});
+  const encoder=new RenderSnapshots(), snapshot=()=>({...encoder.make(w.snapshot()),inputAcks:[0,0,0,0]});
+  const prediction=new GuestPrediction();prediction.receive(snapshot(),0,0);
+  for(let i=0;i<40;i++)prediction.step(cleanInput({}));
+  assert.ok(prediction.player.ground && prediction.player.support.startsWith("tower0:wire"));
+  Object.assign(p,{x:prediction.player.x,y:prediction.player.y,ground:true,support:prediction.player.support});
+  blastCables(w,{...w.cables[0].points[8],radius:25});w.time+=STEP;
+  prediction.receive(snapshot(),0,16);
+  for(let i=0;i<20;i++)prediction.step(cleanInput({}));
+  assert.ok(prediction.player.y>wire.y+30);assert.equal(prediction.player.ground,false);
 });
 
 for (const kind of ["furnace", "transmission"]) test(`${kind}: powered motion is subtle and local impulses rapidly damp`, () => {
@@ -75,7 +97,7 @@ test("furnace destruction releases electrode ends but preserves heavy wires hang
 test("lost pylon mount drops its end while the other insulator holds; losing both drops the span", () => {
   const w = arena("transmission"), c = w.cables[0], spec = cableLayout(c.id);
   carveExplosion(w, { x: spec.a.x, y: spec.a.supportY, radius: 36 }); run(w, 3);
-  assert.deepEqual(c.attached, [false, true]); assert.ok(w.hazards[0].done);
+  assert.deepEqual(c.attached, [false, true]); assert.equal(w.hazards[0].done,false);
   assert.ok(c.points[0].y > spec.a.y + 100); assert.equal(c.points.at(-1).y, spec.b.y);
   bounded(w);
   carveExplosion(w, { x: spec.b.x, y: spec.b.supportY, radius: 36 }); run(w, 4);
@@ -86,7 +108,7 @@ test("lost pylon mount drops its end while the other insulator holds; losing bot
 test("a cut creates two independent hanging tails with no rendered bridge across the gap", () => {
   const w = arena("transmission"), c = w.cables[0], point = {...c.points[12]};
   blastCables(w, { ...point, radius: 35 }); run(w, 5);
-  assert.deepEqual(c.attached, [true,true]); assert.ok(w.hazards[0].done);
+  assert.deepEqual(c.attached, [true,true]); assert.equal(w.hazards[0].done,false);
   const runs = cableRuns(c); assert.equal(runs.length, 2);
   assert.ok(runs[0].at(-1).y > point.y + 150); assert.ok(runs[1][0].y > point.y + 150);
   bounded(w);

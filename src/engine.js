@@ -1,5 +1,5 @@
 import { FURNACE_ARENA } from "./furnace-arena.js";
-import { createCables, updateCables, cableSnapshot } from "./heavy-cables.js";
+import { createCables, updateCables, cableSnapshot, cableSolids } from "./heavy-cables.js";
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
 import { trackKillSource } from "./kill-credit.js";
@@ -519,6 +519,7 @@ export class World {
   solids(carrier = null) {
     const solids = [], carryId = carrier?.carryId;
     for (const p of this.platforms) if (p.hp !== 0) solids.push(p);
+    solids.push(...cableSolids(this));
     for (const bodies of [this.cover, this.chunks])
       for (const b of bodies) if (b.id !== carryId)
         for (const tile of propSolids(b)) solids.push(tile);
@@ -660,13 +661,17 @@ export class World {
     p.ground = false;
     p.support = null;
     p.ice = false;
+    const incomingVy = p.vy;
     for (const s of solids) {
       const surfaceDy = support === s ? 0 : s.dy || 0;
       // Test the crossed top face before rejecting final-position overlap.
       // Thin floors can be crossed in one step, and rising lifts can catch a
       // fighter whose upward hit velocity is slower than the lift itself.
-      const landing = oldY + bottom <= s.y - surfaceDy + 3 &&
-        p.y + bottom > s.y && p.vy * dt >= surfaceDy;
+      // A foot overlaps several small cable tiles. Allow their combined rise
+      // so walking up the sag does not hit the side of the next tiny segment.
+      const landing = oldY + bottom <= s.y - surfaceDy + (s.material === "cable" ? 10 : 3) &&
+        p.y + bottom > s.y && (s.material === "cable" ? incomingVy >= 0 : p.vy * dt >= surfaceDy);
+      if (s.material === "cable" && !landing) continue;
       if (
         p.x + radius <= s.x ||
         p.x - radius >= s.x + s.w ||

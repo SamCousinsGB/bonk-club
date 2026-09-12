@@ -12,7 +12,9 @@ export function intactPowerline(world,h) {
   return cableIntact(wireCable(world, h));
 }
 export function updatePowerline(world,h,dt) {
-  if(!intactPowerline(world,h)) {h.done=true;h.active=false;h.warning=0;return;}
+  releaseCableMounts(world);
+  const cable = wireCable(world,h);
+  if(!cable || !cable.links.some(Boolean)) {h.done=true;h.active=false;h.warning=0;return;}
   h.age+=dt;
   const phase=(h.age+1e-9)%(POWER_INTERVAL*2),wasActive=h.active;
   h.active=phase>=POWER_INTERVAL;

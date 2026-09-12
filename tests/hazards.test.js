@@ -5,6 +5,7 @@ import { HAZARD_TYPES, createHazards, updateHazards, hazardZone } from "../src/h
 import { COVER_KINDS } from "../src/maps.js";
 import { validSnapshot } from "../src/network.js";
 import { combatFloor } from "./helpers.js";
+import { TOWER_MOUNTS } from "../src/cable-layout.js";
 function lab(type="geyser") {
  const w=new World({random:()=>.5,shuffle:false});combatFloor(w);w.phase="fight";
  w.arena={...w.arena,traps:[{type,x:650,y:565,w:type==="conveyor"?300:120,h:type==="conveyor"?20:230,dir:1}]};
@@ -55,7 +56,7 @@ test("destroying a fixture mounting floor disables it",()=>{
 test("every arena has fixed, varied traps away from spawns",()=>{
  const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length>=2,a.name);
  for(const h of a.traps){kinds.add(h.type);
- if(h.type==="powerline")assert.ok([770,1790].every(x=>a.platforms.some(p=>p.y===h.y-28&&p.x<=x&&p.x+p.w>=x)));
+ if(h.type==="powerline")assert.ok(TOWER_MOUNTS[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
  else assert.ok(a.platforms.some(p=>p.y===h.y&&p.x<=h.x&&p.x+p.w>=h.x));
  if(!a.survival)assert.ok(!a.spawns.some(([x,y])=>Math.abs(x-h.x)<h.w/2+85&&Math.abs(y-(h.y-30))<90),a.name);}}
  assert.equal(kinds.size,HAZARD_TYPES.length);

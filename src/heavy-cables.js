@@ -31,6 +31,7 @@ export function createCables(arena) {
 export function releaseCableMounts(world) {
   if (world.prediction) return;
   for (const c of world.cables || []) {
+    const wasIntact = cableIntact(c);
     const spec = cableLayout(c.id);
     if (spec.kind === "tower") {
       for (const [i, end] of [spec.a, spec.b].entries())
@@ -39,6 +40,7 @@ export function releaseCableMounts(world) {
       const machine = world.hazards.find(h => h.type === "furnace");
       if (!machine || machine.done || !survives(world, 1280, 1000)) c.attached[1] = false;
     }
+    if (wasIntact && !cableIntact(c)) releaseCableSupport(world, c);
   }
 }
 
@@ -46,8 +48,8 @@ function contact(p, platforms) {
   for (const s of platforms) {
     if (s.hp === 0 || p.x < s.x - 4 || p.x > s.x + s.w + 4 ||
         p.y < s.y - 4 || p.y > s.y + s.h + 4) continue;
-    // Background cables rest on surviving steel without pushing fighters or
-    // turning into climbable surfaces. No actor displacement feeds this solver.
+    // Heavy background cables rest on surviving steel. Actor displacement does
+    // not feed this solver; only intact tower spans provide walking support.
     const faces = [p.x - s.x + 4, s.x + s.w + 4 - p.x, p.y - s.y + 4, s.y + s.h + 4 - p.y];
     const face = faces.indexOf(Math.min(...faces));
     if (face < 2) { p.x = face === 0 ? s.x - 4 : s.x + s.w + 4; p.px = p.x; }
@@ -56,6 +58,7 @@ function contact(p, platforms) {
 }
 
 export function stepCable(c, time, power, platforms) {
+  c.motionRevision = (c.motionRevision || 0) + 1;
   const spec = cableLayout(c.id), points = c.points;
   for (let i = 0; i <= CABLE_SEGMENTS; i++) {
     const p = points[i];
@@ -100,7 +103,7 @@ export function updateCables(world, dt) {
     for (const c of world.cables) {
       const spec = cableLayout(c.id), h = world.hazards.find(h =>
         spec.kind === "furnace" ? h.type === "furnace" : h.type === "powerline" && h.circuit === spec.index);
-      const power = h && !h.done && h.active && cableIntact(c) ? 1 : 0;
+      const power = h && !h.done && h.active && (spec.kind === "tower" || cableIntact(c)) ? 1 : 0;
       stepCable(c, world.time - world.cableAccumulator, power, world.platforms);
     }
     world.cableAccumulator -= STEP;
@@ -115,6 +118,7 @@ const distanceToSegment = (x, y, a, b) => {
 export function blastCables(world, blast) {
   if (world.prediction || !blast) return;
   for (const c of world.cables || []) {
+    const wasIntact = cableIntact(c);
     for (let i = 0; i < CABLE_SEGMENTS; i++) if (c.links[i] &&
         distanceToSegment(blast.x, blast.y, c.points[i], c.points[i + 1]) < blast.radius)
       c.links[i] = false;
@@ -126,12 +130,14 @@ export function blastCables(world, blast) {
         p.px -= dx / d * impulse; p.py -= dy / d * impulse;
       }
     }
+    if (wasIntact && !cableIntact(c)) releaseCableSupport(world, c);
   }
 }
 
 export function cutCables(world, touches) {
   if (world.prediction) return;
   for (const c of world.cables || []) {
+    const wasIntact = cableIntact(c);
     for (let i = 0; i < CABLE_SEGMENTS; i++) if (c.links[i]) {
       const a = c.points[i], b = c.points[i + 1], d = Math.hypot(b.x - a.x, b.y - a.y) || 1,
         nx = (b.y - a.y) / d * 4, ny = (a.x - b.x) / d * 4;
@@ -141,7 +147,45 @@ export function cutCables(world, touches) {
     for (const [i, p] of [c.points[0], c.points.at(-1)].entries())
       if (touches([{x:p.x-4,y:p.y-4},{x:p.x+4,y:p.y-4},{x:p.x+4,y:p.y+4},{x:p.x-4,y:p.y+4}]))
         c.attached[i] = false;
+    if (wasIntact && !cableIntact(c)) releaseCableSupport(world, c);
   }
+}
+
+function releaseCableSupport(world, c) {
+  if (cableLayout(c.id).kind !== "tower") return;
+  world.terrainVersion++;
+  for (const p of world.players || []) if (p.support?.startsWith(`${c.id}:wire`)) {
+    p.support = null; p.ground = false; p.coyote = 0;
+  }
+}
+
+const collisionCache = new WeakMap();
+const COLLISION_SEGMENTS = 48;
+export function cableSolids(world) {
+  const all = [];
+  for (const c of world.cables || []) {
+    if (cableLayout(c.id)?.kind !== "tower" || !cableIntact(c)) continue;
+    let cached = collisionCache.get(c);
+    if (!cached || cached.revision !== c.motionRevision) {
+      const previous = cached?.tiles;
+      const sample = u => {
+        const f = u * CABLE_SEGMENTS, n = Math.min(CABLE_SEGMENTS - 1, Math.floor(f)), t = f - n;
+        const a = c.points[n], b = c.points[n + 1];
+        return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
+      };
+      const tiles = [];
+      // Small rises stay inside the shared walking solver's landing tolerance.
+      // These are derived from the live rope, never separate visible platforms.
+      for (let i = 0; i < COLLISION_SEGMENTS; i++) {
+        const a = sample(i / COLLISION_SEGMENTS), b = sample((i + 1) / COLLISION_SEGMENTS), x = Math.min(a.x,b.x), y = (a.y+b.y)/2-3;
+        tiles.push({id:`${c.id}:wire${i}`,x,y,w:Math.max(.1,Math.abs(b.x-a.x)),h:6,material:"cable",
+          dx:previous ? x-previous[i].x : 0,dy:previous ? y-previous[i].y : 0});
+      }
+      cached = {revision:c.motionRevision,tiles}; collisionCache.set(c,cached);
+    }
+    all.push(...cached.tiles);
+  }
+  return all;
 }
 
 export function cableSnapshot(cables = []) {
