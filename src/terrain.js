@@ -50,7 +50,7 @@ export function preparePlatforms(arena, arenaIndex) {
   });
 }
 
-export function carveExplosion(world, blast) {
+export function carveExplosion(world, blast, { fixtures = true } = {}) {
   blastCables(world, blast);
   const cut = { ...blast, id: `blast${++world.terrainSerial}` };
   let changed = false;
@@ -77,7 +77,7 @@ export function carveExplosion(world, blast) {
     if (remains.length !== 1 || remains[0].w !== s.w) changed = true;
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
-  for (const h of world.hazards) {
+  for (const h of fixtures ? world.hazards : []) {
     if (h.type === "powerline") continue; // Cut conductors keep their power cycle.
     if (h.done) continue;
     const box = {

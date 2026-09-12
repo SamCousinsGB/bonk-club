@@ -129,7 +129,7 @@ export function movePowerFlight(world, body, dt) {
         remember(sweep({ x: a.x+(b.x-a.x)*t-3, y: a.y+(b.y-a.y)*t-3, w: 6, h: 6 }));
       }
     }
-    for (const hit of contacts) carveExplosion(world, { ...hit, radius: POWER_FIST.radius });
+    for (const hit of contacts) carveExplosion(world, { ...hit, radius: POWER_FIST.radius }, { fixtures: false });
     // Newly fractured pieces in the contact path must not stop/recreate cover.
     for (const b of world.chunks) if (b.hp > 0 && propSolids(b).some(sweep)) b.hp = 0;
     if (contacts.length && world.time >= flight.soundAt) {
