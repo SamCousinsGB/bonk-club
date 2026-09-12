@@ -103,6 +103,10 @@ export function traceFlight(
     for (const raw of nearby) {
       const p =
         raw.move || raw.travel ? predictedSurface(raw, time + age) : raw;
+      // A conductor is tiled only to follow its curve. Trace the tile beneath
+      // the feet, rather than rejecting an overlapping neighbour's narrow edge.
+      if (p.material === "cable" && (x < p.x || x > p.x + p.w)) continue;
+      if (p.material === "cable" && (vy < 0 || oldY + 30 > p.y + 10)) continue;
       if (
         x + 15 <= p.x ||
         x - 15 >= p.x + p.w ||
@@ -118,7 +122,7 @@ export function traceFlight(
           ground = true;
           continue;
         }
-        const pad = Math.min(23, p.w / 4);
+        const pad = p.material === "cable" ? 0 : Math.min(23, p.w / 4);
         if (x < p.x + pad || x > p.x + p.w - pad) return null;
         return {
           from: from.id,
@@ -152,6 +156,8 @@ export function* navigationSteps(
   { time = 0, spikes = [], cache = null, batchSize = Infinity } = {},
 ) {
   solids = solids.filter((p) => p.hp !== 0);
+  const sameCable = (a,b) => a.material === "cable" && b.material === "cable" &&
+    a.id.split(":")[0] === b.id.split(":")[0];
   let traces = 0;
   for (const from of solids) {
     const signature =
@@ -165,7 +171,10 @@ export function* navigationSteps(
               p.y + p.h > from.y - 285 &&
               p.y < from.y + 950,
           )
-          .map((p) => [
+          // Intact wires keep fixed mounts and only a few units of vibration.
+          // Reuse their routes until topology changes, rather than invalidating
+          // every neighbouring takeoff for each tiny powered movement.
+          .map((p) => p.material === "cable" ? [p.id,"cable"] : [
             p.id,
             Math.round(p.x),
             Math.round(p.y),
@@ -189,7 +198,7 @@ export function* navigationSteps(
       launches.add(x);
     for (const to of solids) {
       if (
-        to === from ||
+        to === from || sameCable(from,to) ||
         to.y < from.y - 265 ||
         to.y > from.y + 220 ||
         to.x > from.x + from.w + 300 ||
@@ -247,7 +256,7 @@ export function* navigationSteps(
     const starts = [from.x + 20, from.x + from.w - 20, from.x + from.w / 2];
     for (const to of solids) {
       if (
-        to === from ||
+        to === from || sameCable(from,to) ||
         to.y < from.y - 265 ||
         to.y > from.y + 600 ||
         to.x > from.x + from.w + 300 ||
@@ -303,7 +312,7 @@ export function* navigationSteps(
         edges.push(edge);
     }
     for (const to of solids)
-      if (to !== from && Math.abs(to.y - from.y) < 4) {
+      if (to !== from && Math.abs(to.y - from.y) < (sameCable(from,to) ? 10 : 4)) {
         const gap =
           Math.max(from.x, to.x) - Math.min(from.x + from.w, to.x + to.w);
         if (gap <= 8 && gap >= -5) {

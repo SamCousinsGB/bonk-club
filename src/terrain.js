@@ -78,6 +78,7 @@ export function carveExplosion(world, blast) {
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
   for (const h of world.hazards) {
+    if (h.type === "powerline") continue; // Cut conductors keep their power cycle.
     if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,

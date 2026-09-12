@@ -119,6 +119,7 @@ export class BotController {
         // traces so rebuilding its routes cannot monopolize a simulation tick.
         batchSize: world.wreckage.some(w => w.hp > 0) ||
           world.fields.some(f => f.kind === "blackhole") ? 8 :
+          world.cables?.some(c => c.id.startsWith("tower")) ? 64 :
           world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) ? 64 : Infinity,
       });
       this.builtAt = world.time;

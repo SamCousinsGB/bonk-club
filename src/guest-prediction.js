@@ -48,6 +48,7 @@ export class GuestPrediction {
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
       platforms, cover: structuredClone(state.cover), chunks: structuredClone(state.chunks),
+      cables: structuredClone(state.cables || []),
       players: [this.player], projectiles: [],
       projectileCount:state.projectiles.length,
       attack(p,alternate) { World.prototype.attack.call(this,p,alternate); },

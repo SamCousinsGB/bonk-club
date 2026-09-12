@@ -4,7 +4,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Unified Play lobby - 12 September 2026
 
-- v0.25.0, protocol 48. Refresh every player and create a new room.
+- v0.25.0, protocol 49. Refresh every player and create a new room.
 - Main menu contains Play and Customise (plus Quit in the desktop build).
   Settings and Controls screens are removed; sound/fullscreen controls remain.
   The autonomous fighting background continues unchanged.
@@ -27,7 +27,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   shows OFFLINE and disables invite copying. Steam networking remains unavailable;
   the desktop build makes no browser/Pi service requests.
 - Release worktree: ../bonk-club-qa/play-lobby-release, codex/play-lobby, based on
-  current main and merged with e673390. The canonical checkout's unfinished edits
+  current main and merged with 4af6da8. The canonical checkout's unfinished edits
   are preserved. No new dependencies, production debug hooks or Pi changes.
 - Initial full suite: 863 passing tests. After integrating pickup/leak changes,
   43 option/network/pacing checks and 24 option/pacing/leak checks passed; full
@@ -42,6 +42,53 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Checked QA: desktop/tests/browser-online.mjs and desktop/tests/smoke.mjs.
   The browser script accepts --public for the published release. External source
   observer: ../bonk-club-qa/play-observe.mjs, port 5457; never packaged.
+
+
+## Heavy hanging cables and enlarged pylons - 12 September 2026
+
+- v0.24.5, protocol 48. Refresh every player and create a new room.
+- Sam corrected the initial interpretation: intact tower wires must be walkable,
+  cut wires must be non-blocking and must keep electrifying. The added centre
+  maintenance bridges are removed. The v0.24.1 workflow was cancelled before
+  deployment; this section supersedes its bridge and disabled-circuit rules.
+- Both maps use `heavy-cables.js`: host-owned 120 Hz Verlet gravity, strongly
+  damped motion, 24 constrained links per wire and small powered forces. Actors
+  do not feed force back into this heavy background simulation. Intact tower
+  wires derive a thin walking top from their live curve; a cut or lost mount
+  removes the whole span's supporting collision immediately, including guests.
+  Furnace cables remain pass-through. Surviving tower tails still use the normal
+  safe/warning/live cycle, visible arcs and host-owned electrical contact damage.
+- `cable-layout.js` owns the exact mount coordinates for simulation and art.
+  Tower conductors meet the lower insulator clamps at x=960/1600, 70 units
+  below each cross-arm. Furnace cables retain wall mounts when the machine ends
+  fall. Losing both mounts drops the whole surviving span; cuts leave independent
+  tails. Cables drape over surviving structure and persist through round results.
+- Pylons extend from y=75 to y=1380 with wider tapered legs, double steel braces,
+  gussets, rivets and broader cross-arms at y=350/830. Access gaps beside the
+  bodies and staggered lower steps preserve climbing and descent. The centre
+  crossings are wires alone. Navigation treats adjacent wire tiles as a curve,
+  caches their stable routes and spreads route rebuilding across ticks.
+- Explosions, nukes and PHASER cut current cable segments; dead links never draw
+  connecting curves or live arcs. No vanished cable is recreated. The next round
+  restores the original layout. Positions, links and attachments are bounded,
+  validated and interpolated by stable ID, including hot join after destruction.
+- Integrated main e673390: preserves bullet-hole barrel leaks, slower weapon
+  refills, independent grenade timing and nukes every third round.
+- Release integration: `../bonk-club-qa/heavy-cables-release`, branch
+  `codex/heavy-hanging-cables`, based on main 7b2b3b7. Preserve the canonical
+  checkout's older concurrent edits; do not replace newer shared platform code.
+- Twenty dedicated cable/transmission checks cover small powered displacement,
+  impulse damping, intact walking, four crossing directions/routes, cut support
+  release, guest prediction, one/two lost mounts, live cut tails, PHASER, nukes,
+  continuing result physics, reset, hot-join geometry and malformed wire data.
+  All pass. All spawns can reach the enlarged map's contested pickups. Full
+  integrated suite and publication verification follow below.
+- Actual tower/furnace gameplay and detached-wire art inspected in the browser.
+  A host, guest and third player joining after furnace destruction all selected
+  relay/relay and retained six matching wall-held cables, without page errors.
+  External observer: `../bonk-club-qa/heavy-cables-observe.mjs` (port 5431).
+  This fixture is outside the release; no production debug hooks or Pi changes.
+
 
 ## Barrel impact leaks - 12 September 2026
 
@@ -89,36 +136,6 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Regression coverage checks every arena's unarmed starts, actual timed drops,
   grenade exceptions, countdown/reset, compact hot-join pickup state and nuke
   scheduling/random-pool exclusions. Final publication evidence follows.
-
-## Heavy hanging cables - 12 September 2026
-
-- v0.24.1, protocol 46. Refresh every player and create a new room.
-- Both maps use `heavy-cables.js`: host-owned 120 Hz Verlet gravity, strongly
-  damped motion, 24 constrained links per wire and small powered forces. No
-  fighter contacts or supporting cable colliders. Transmission's two original
-  crossing routes remain as foreground steel maintenance walkways.
-- `cable-layout.js` owns the exact mount coordinates for simulation and art.
-  Tower conductors meet the lower insulator clamps at x=770/1790, 70 units
-  below each cross-arm. Furnace cables retain wall mounts when the machine ends
-  fall. Losing both mounts drops the whole surviving span; cuts leave independent
-  tails. Cables drape over surviving structure and persist through round results.
-- Explosions, nukes and PHASER cut current cable segments; dead links never draw
-  connecting curves or live arcs. No vanished cable is recreated. The next round
-  restores the original layout. Positions, links and attachments are bounded,
-  validated and interpolated by stable ID, including hot join after destruction.
-- Release integration: `../bonk-club-qa/heavy-cables-release`, branch
-  `codex/heavy-hanging-cables`, based on main 7b2b3b7. Preserve the canonical
-  checkout's older concurrent edits; do not replace newer shared platform code.
-- Nine dedicated regressions cover small powered displacement, impulse damping,
-  pass-through collision, one/two lost mounts, cut tails, PHASER, prediction,
-  continuing result physics, reset, exact hot-join geometry and malformed wire
-  data. Initial full suite: 852/854; two obsolete solid-wire map assumptions
-  were corrected and all 52 affected checks passed. Publication checks follow.
-- Actual tower/furnace gameplay and detached-wire art inspected in the browser.
-  A host, guest and third player joining after furnace destruction all selected
-  relay/relay and retained six matching wall-held cables, without page errors.
-  External observer: `../bonk-club-qa/heavy-cables-observe.mjs` (port 5431).
-  This fixture is outside the release; no production debug hooks or Pi changes.
 
 ## Arc furnace arena - 12 September 2026
 
