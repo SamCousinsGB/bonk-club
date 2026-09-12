@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "releaseNotes": "Power fist launches ragdolls that smash through terrain on impact",
   "private": true,
   "type": "module",

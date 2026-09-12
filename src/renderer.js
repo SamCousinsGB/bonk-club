@@ -5,6 +5,7 @@ import { drawDeath, drawStatus } from "./death-art.js";
 import { DeathCues, drawDeathCue, DEATH_CUE_DURATION } from "./death-cue.js";
 import { drawWreckage, drawRifts, drawBlackhole } from "./blackhole-art.js";
 import { warmBlackholeLens } from "./blackhole-lens.js";
+import { warmSpacetimeWarp, drawSpacetimeWarp } from "./spacetime-warp.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
 import { drawTransmissionTowers, drawPowerlines } from "./transmission-art.js";
 import { PARRY } from "./impact.js";
@@ -39,6 +40,7 @@ export class Renderer {
   constructor(canvas) {
     warmNuclearArt();
     warmBlackholeLens(this);
+    warmSpacetimeWarp(this);
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.particles = [];
@@ -1123,6 +1125,7 @@ export class Renderer {
     // bullets and particles instead of letting them draw over the black core.
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
+    drawSpacetimeWarp(this, state.fields);
     if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     if (!menuArena) drawChat(c, state, this.chatMessages || []);
     c.restore();
