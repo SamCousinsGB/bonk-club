@@ -4,7 +4,7 @@ import { carveRectangle } from "./nuclear.js";
 // circular explosion cuts, including structural supports and lifts.
 export function preparePlatforms(arena, arenaIndex) {
   // Machinery floors resist bullets but still use the same circular blast cuts.
-  if (arena.survival) return arena.platforms.map(p => ({ ...p }));
+  if (arena.survival || arena.transmission) return arena.platforms.map(p => ({ ...p }));
   const candidates = arena.platforms
     .map((p, i) => ({ p, i }))
     .filter(

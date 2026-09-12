@@ -5,6 +5,7 @@ import { DeathCues, drawDeathCue, DEATH_CUE_DURATION } from "./death-cue.js";
 import { drawWreckage, drawRifts, drawBlackhole } from "./blackhole-art.js";
 import { warmBlackholeLens } from "./blackhole-lens.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
+import { drawTransmissionTowers, drawPowerlines } from "./transmission-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawAppearance } from "./identity.js";
@@ -406,6 +407,10 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    if (p.material === "cable") {
+      const c=this.ctx;c.fillStyle="#263641";c.fillRect(p.x,p.y,p.w,p.h);
+      c.fillStyle="#a1b0b6";c.fillRect(p.x,p.y,p.w,2);return;
+    }
     if (p.destructible) {
       const c = this.ctx,
         glass = p.panel === "glass",
@@ -918,6 +923,7 @@ export class Renderer {
     }
     drawRifts(this,state);
     c.save(); clipCraters(c,state);
+    if(arena.transmission)drawTransmissionTowers(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
@@ -987,6 +993,7 @@ export class Renderer {
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme, "front");
+    if(arena.transmission)drawPowerlines(c,state,time);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);

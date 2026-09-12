@@ -32,7 +32,7 @@ import {
   validAppearance,
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
-export const PROTOCOL = 43;
+export const PROTOCOL = 44;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -770,6 +770,8 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) && validReactionObject(p) &&
+        (p.circuit === undefined || (integer(p.circuit,0,1) && p.material === "cable")) &&
+        (p.material !== "cable" || integer(p.circuit,0,1)) &&
         (p.waterId === undefined || (integer(p.waterId, 1, 10000000) && p.ice === true && p.material === "ice")) &&
         typeof p.id === "string" && p.id.length <= 160 &&
         (p.sourceId === undefined || (typeof p.sourceId === "string" && p.sourceId.length <= 160)) &&
@@ -804,11 +806,12 @@ export function validSnapshot(s) {
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
+        (h.type !== "powerline" || integer(h.circuit,0,1)) &&
         [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= (h.type === "saw" ? 2400 : 400) &&
+        h.w <= (h.type === "saw" ? 2400 : h.type === "powerline" ? 1000 : 400) &&
         (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
         (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
         (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&
@@ -819,7 +822,7 @@ export function validSnapshot(s) {
         h.warning <= 2 &&
         h.age >= 0 &&
         h.duration >= -0.02 &&
-        h.duration <= 6 &&
+        h.duration <= (h.type === "powerline" ? 7 : 6) &&
         (h.dir === 1 || h.dir === -1) &&
         typeof h.done === "boolean" &&
         typeof h.active === "boolean" &&
