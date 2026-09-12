@@ -31,6 +31,7 @@ function scannerFront(c,h) {
 export function drawHazards(c,hazards,time,theme,layer="all",reduced=false){
   for(const h of hazards||[]){
     if(h.done)continue;
+    if(h.assemblyStation)continue;
     if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced);continue;}
     if(h.type==="powerline")continue;
     if(layer==="back"&&!isScanner(h))continue;

@@ -20,6 +20,7 @@ export function createHazards(world) {
   }));
 }
 export function hazardZone(h) {
+  if (h.assemblyStation > 1) return { x: h.bodyX - 16, y: h.bodyY - 16, w: 32, h: 32 };
   if(h.type==="furnace")return {x:h.x-h.w/2,y:h.y-h.h,w:h.w,h:h.h+420};
   if(h.type==="pendulum"||h.type==="saw") {
     const r=h.type==="pendulum"?32:25;
@@ -49,6 +50,7 @@ export function updateHazards(world,dt) {
   if(world.phase!=="fight")return;
   for(const h of world.hazards) {
     if(h.done)continue;
+    if(h.assemblyStation)continue; // The production clock owns these machines.
     if(h.type==="furnace"||h.type==="slag"){updateFurnace(world,h,dt);continue;}
     if(h.type==="powerline"){updatePowerline(world,h,dt);continue;}
     // The renderer breaks the casing apart when this fixture loses its mounting.

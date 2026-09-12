@@ -1,4 +1,6 @@
 import { FURNACE_ARENA } from "./furnace-arena.js";
+import { ASSEMBLY_ARENA } from "./assembly-arena.js";
+import { createAssembly, updateAssembly, assemblySnapshot } from "./assembly.js";
 import { createCables, updateCables, cableSnapshot, cableSolids } from "./heavy-cables.js";
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
@@ -73,7 +75,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -196,6 +198,7 @@ export class World {
     this.debris = [];
     this.hazards = createHazards(this);
     resetReactions(this);
+    createAssembly(this);
     this.ragdolls = [];
     this.blood = [];
     this.phase = "countdown";
@@ -404,6 +407,7 @@ export class World {
       return;
     }
     this.movePlatforms();
+    updateAssembly(this, dt);
     cleanCarriedObjects(this);
     this.updateCover(dt);
     updateReactions(this, dt);
@@ -1468,6 +1472,7 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
+      assembly: assemblySnapshot(this.assembly),
       cables: cableSnapshot(this.cables),
       spikes: this.spikes(),
       cover: this.cover,

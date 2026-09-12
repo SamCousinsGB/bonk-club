@@ -77,7 +77,7 @@ export function resetReactions(world) {
   }
   // Electrical fixtures can reach small existing puddles when they cycle on.
   // The puddle is safe while the fixture is off, and can be frozen or drained.
-  for (const h of world.hazards.filter(h => h.type === "tesla").slice(0, 2))
+  for (const h of world.hazards.filter(h => h.type === "tesla" && !h.assemblyStation).slice(0, 2))
     addWater(world, h.x, h.y - 3, 64);
 }
 

@@ -1,4 +1,5 @@
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
+import { drawAssemblyHall, drawAssembly } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
@@ -410,6 +411,7 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
     if (p.material === "cable") {
       const c=this.ctx;c.fillStyle="#263641";c.fillRect(p.x,p.y,p.w,p.h);
       c.fillStyle="#a1b0b6";c.fillRect(p.x,p.y,p.w,2);return;
@@ -903,6 +905,7 @@ export class Renderer {
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
+        if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);
@@ -948,6 +951,7 @@ export class Renderer {
     }
     c.restore();
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
+    if (arena.assembly) drawAssembly(c, state);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);

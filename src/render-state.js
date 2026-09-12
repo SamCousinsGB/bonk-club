@@ -96,6 +96,9 @@ export function interpolateStates(a, b, t, mode = "all") {
   });
   out.time = lerp(a.time,b.time,t);
   if (mode !== "actors") {
+    if (a.assembly && b.assembly) out.assembly = { ...b.assembly,
+      clock: lerp(a.assembly.clock, b.assembly.clock, t),
+      cars: b.assembly.cars.map(car => blend(a.assembly.cars.find(old => old.id === car.id), car, t)) };
     const platforms = new Map(a.platforms.map(p => [p.id,p]));
     out.platforms = a.platforms === b.platforms ? b.platforms : b.platforms.map(p => {
       const old = platforms.get(p.id);

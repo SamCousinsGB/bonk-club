@@ -4,6 +4,7 @@ import { blastCables, releaseCableMounts } from "./heavy-cables.js";
 // Marked wood and glass panels can be shot out. Every surface also supports
 // circular explosion cuts, including structural supports and lifts.
 export function preparePlatforms(arena, arenaIndex) {
+  if (arena.assembly) return arena.platforms.map(p => ({ ...p }));
   if (arena.furnace) return arena.platforms.map(p => ({ ...p }));
   // Machinery floors resist bullets but still use the same circular blast cuts.
   if (arena.survival || arena.transmission) return arena.platforms.map(p => ({ ...p }));

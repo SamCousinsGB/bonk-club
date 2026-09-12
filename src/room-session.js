@@ -1,4 +1,5 @@
 import { validVictoryCause } from "./victory.js";
+import { validAssembly } from "./assembly.js";
 import { validPowerFlight } from "./power-fist.js";
 import { validCables } from "./heavy-cables.js";
 import { validReactions, validReactionObject } from "./reactions.js";
@@ -35,7 +36,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 51;
+export const PROTOCOL = 52;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -760,6 +761,7 @@ export function validSnapshot(s) {
     typeof s === "object" &&
     validReactions(s) &&
     validCables(s.cables, ARENAS[s.arenaIndex]) &&
+    (ARENAS[s.arenaIndex]?.assembly ? s.assembly != null && validAssembly(s.assembly) : s.assembly == null) &&
     ["countdown", "fight", "result"].includes(s.phase) &&
     integer(s.arenaIndex, 0, ARENAS.length - 1) &&
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
@@ -822,6 +824,11 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) && validReactionObject(p) &&
+        (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
+          s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
+        (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&
+        (p.assemblyHead === undefined || (p.assemblyHead === true && !!s.assembly)) &&
+        (p.assemblyMount === undefined || (integer(p.assemblyMount, 1, 3) && !!s.assembly)) &&
         (p.circuit === undefined || (integer(p.circuit,0,1) && p.material === "cable")) &&
         (p.material !== "cable" || integer(p.circuit,0,1)) &&
         (p.waterId === undefined || (integer(p.waterId, 1, 10000000) && p.ice === true && p.material === "ice")) &&
@@ -858,6 +865,8 @@ export function validSnapshot(s) {
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
+        (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 3) && !!s.assembly &&
+          h.type === (h.assemblyStation === 1 ? "crusher" : "tesla"))) &&
         (h.type !== "powerline" || integer(h.circuit,0,1)) &&
         [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
           finite,

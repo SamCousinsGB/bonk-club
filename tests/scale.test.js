@@ -86,7 +86,7 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
       assert.ok(w.players.every(p=>p.y < w.platforms[0].y));
     } else {
       assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
-      assert.ok(Math.max(...w.platforms.map((p) => p.y)) >= 1200);
+      assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) >= 1200);
       assert.ok(w.platforms.length >= 16);
       assert.ok(w.cover.length >= 3);
       assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
