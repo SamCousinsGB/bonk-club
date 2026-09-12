@@ -4,7 +4,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Character cosmetics - 12 September 2026
 
-- Release **v0.21.0**, protocol **43**. Refresh every player before creating a room.
+- Release **v0.22.0**, protocol **43**. Refresh every player before creating a room.
 - Character now has Body, Hair, Gear and Effects tabs. Seven new finishes
   (Chrome, Gold leaf, Iridescent, Opal, Carbon fibre, Starfield and Magma), five
   capes (Royal, Split, Starlight, Holographic and Ember), six movement trails,
@@ -22,8 +22,9 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   desktop preferences use the same schema. No dependencies or Pi changes.
 - Implemented in the canonical checkout while preserving concurrent work; the
   isolated release is `../bonk-club-qa/cosmetics-release`, branch `codex/cosmetics`.
-  Integrated main's bubble-pop release `51ffb29` and Tesla release `8a6d3a4`.
-  Do not copy the older canonical engine over main.
+  Integrated main's bubble-pop release `51ffb29`, Tesla release `8a6d3a4` and
+  shared Steam platform foundation `693eef6`. Protocol now lives in
+  `src/room-session.js`. Do not copy the older canonical engine over main.
 - Verification: all 796 tests passed before bubble integration, then all 52
   affected identity, cosmetic, bubble, network and interpolation tests passed.
   Desktop editor and actual gameplay inspected; 390px editor has no horizontal
