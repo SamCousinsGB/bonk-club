@@ -182,7 +182,7 @@ export class Sound {
     }
     if (shooting) { this.sample(shot, detail); return; }
     if (detail.effect && ['hit', 'ko', 'explosion'].includes(type)) {
-      const effect = ({ ice: 'ice', tesla: 'tesla', plasma: 'plasma', phaser: 'phaser',
+      const effect = ({ bubble: 'bubble', ice: 'ice', tesla: 'tesla', plasma: 'plasma', phaser: 'phaser',
         slice: 'slice', singularity: 'singularity', burn: 'burn', jelly: 'jelly', gold: 'gold', tangle: 'tangle' })[detail.effect];
       if (effect) { this.sample(effect, detail, { priority: type === 'ko' }); return; }
     }

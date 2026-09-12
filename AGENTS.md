@@ -162,6 +162,10 @@ Keep this constitution for durable rules and the handoff for current work.
 - Give weapons distinct, forceful effects. Sawblades and railguns cut in one
   unblocked hit; plasma/Tesla expose skeletons; ice freezes and can shatter; fire
   chars. Preserve weapon identities rather than using one generic explosion.
+- Bubble shots lift for 2.4 seconds. Expiry, heavy hits and capture/transformation
+  bursts deal 32 additional damage once. Lethal pops scatter the head, torso,
+  arms and legs with continuous gravity and solid contacts. Keep pop damage
+  host-authoritative and wait for the last fighter's bubble before scoring.
 - Sam explicitly wants stylized stick-figure blood, impalement and dismemberment.
   Implement these as readable game effects with bounded particles and physical
   consequences. Spikes hold bodies at their contact point; heavy ballistic kills

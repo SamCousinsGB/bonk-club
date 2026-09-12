@@ -1,4 +1,5 @@
 import { recordWreckStep } from "./wreck-motion.js";
+import { popBubble } from "./weird-weapons.js";
 import { trackKillSource } from "./kill-credit.js";
 import { carveRectangle, inBlast } from "./nuclear.js";
 import { captureFighter } from "./singularity-body.js";
@@ -228,7 +229,11 @@ export function updateBlackhole(world, f, dt) {
   });
   for (const p of world.players.filter(p => p.alive)) {
     const d = Math.hypot(p.x - f.x, p.y - f.y);
-    if (!p.capturedBy && d < f.radius * .88) captureFighter(p, f);
+    if (!p.capturedBy && d < f.radius * .88) {
+      popBubble(world, p);
+      if (!p.alive) continue;
+      captureFighter(p, f);
+    }
     if (p.capturedBy !== f.riftId) continue;
     if (f.life <= .7 || (f.life < 1.1 && d < 85)) {
       collectMatter(world, f, p, "fighter");

@@ -28,7 +28,7 @@ import { drawChunks } from "./prop-art.js";
 import { drawReactiveProp, drawGas, drawReactions } from "./reaction-art.js";
 import { meleePose, SWING_START } from "./melee-pose.js";
 import { drawPhaser } from "./phaser-art.js";
-import { drawBurning, drawBubble } from "./weird-art.js";
+import { drawBurning, drawBubble, drawBubblePop } from "./weird-art.js";
 import { W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
@@ -119,6 +119,12 @@ export class Renderer {
           : e.type,
         e,
       );
+      if (e.type === "hit" && e.effect === "bubble") {
+        this.impacts.push({ x:e.x, y:e.y, age:0, life:.42, bubble:true });
+        if (this.impacts.length > 32) this.impacts.shift();
+        this.shake = Math.max(this.shake, 5);
+        continue;
+      }
       if (e.type === "hit" || e.type === "parry") {
         this.impacts.push({ x:e.x, y:e.y, age:0, life:e.melee ? 0.24 : 0.15,
           size:e.move === "spin" ? 65 : e.melee ? 48 : Math.min(46,23+(e.damage||0)*.2), color:e.type === "parry" ? "#d5fa43" : "#fff1ce" });
@@ -1047,6 +1053,7 @@ export class Renderer {
     }
     for (const hit of this.impacts) {
       hit.age += dt;
+      if (hit.bubble) { drawBubblePop(this, hit.x, hit.y, hit.age); continue; }
       const t = Math.min(1, hit.age / hit.life), radius = hit.size * (hit.blast ? Math.sqrt(t) : 0.35 + t);
       c.globalAlpha = 1 - t;
       c.strokeStyle = hit.color; c.lineWidth = 3 * (1 - t) + 1;
