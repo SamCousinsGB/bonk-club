@@ -57,7 +57,8 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Turbine Hall - 12 September 2026
 
-- v0.31.0, protocol 53. Refresh every player and create a new room.
+- Introduced as v0.31.0 / protocol 53; published in integrated v0.32.0 /
+  protocol 54. Refresh every player and create a new room.
 - Six large rotating blade sweeps cover the bottom edge and all rotor seams.
   Contact blends living fighters or fallen corpses into six physical body parts,
   with blood, tangential impulses, gravity and solid contacts. Prone, frozen and
@@ -82,7 +83,27 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   no browser errors. Seeded four-bot play reached round two in 38.6 seconds.
 - External evidence: ../bonk-club-qa/turbine-online.mjs, turbine-online.json,
   turbine-online-*.png and turbine-bot-play.json. No dependencies, production
-  hooks or Pi changes. Release validation is recorded below after completion.
+  hooks or Pi changes.
+
+- Published gameplay revision: `9ddd7076568fde48dc543684b48b2d34a4465a1e`.
+  [Release run 34717105128](https://github.com/SamCousinsGB/bonk-club/actions/runs/34717105128)
+  passed all 997 shared/game tests, three server tests, Windows/Linux desktop
+  unit, executable smoke and packaging checks, source consistency and Pages deploy.
+- The initial full local suite passed 991/992; its sole failure was the older
+  industrial-material/cable whitelist. Both assertions now include Turbine Hall.
+  All 49 focused turbine, assembly and material checks then passed; the complete
+  integrated suite passed in CI. Car assembly refinement from concurrent main is
+  preserved in this release.
+- All 17 public files match the exact committed build and CI artifact by SHA-256.
+  Shared source hash: dc8fead536a69147c04183febd3cd4c7948927cbf6673a93013728c03bf9d17d.
+  Exact LF build: ../bonk-club-qa/turbine-exact; artifact: turbine-ci;
+  manifest: turbine-live-verification.json. Public v0.32.0 passed normal map
+  selection, actual guest input, hot join and host departure with relay/relay
+  candidates and no browser errors. Public desktop and phone gameplay inspected.
+- Public evidence: turbine-public.mjs, turbine-public-verification.json and
+  turbine-public-*.png. Browser checks share one QA PC; they do not measure
+  cross-ISP latency or establish Steam connectivity. Preview ports 5551/5552
+  are stopped. No production debug hooks, dependencies or Pi changes.
 
 ## Car assembly arena - 12 September 2026
 
