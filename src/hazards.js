@@ -22,7 +22,8 @@ export function createHazards(world) {
 }
 export function hazardZone(h) {
   if(h.type==="turbine")return turbineZone(h);
-  if (h.assemblyStation > 1) return { x: h.bodyX - 16, y: h.bodyY - 16, w: 32, h: 32 };
+  if (h.assemblyStation > 1) return { x: h.bodyX - 48, y: h.bodyY - 62, w: 96, h: 90 };
+  if (h.assemblyStation === 1) return { x: h.x - 245, y: Math.min(h.bodyY - 38, 1050), w: 490, h: 1150 - Math.min(h.bodyY - 38, 1050) };
   if(h.type==="furnace")return {x:h.x-h.w/2,y:h.y-h.h,w:h.w,h:h.h+420};
   if(h.type==="pendulum"||h.type==="saw") {
     const r=h.type==="pendulum"?32:25;

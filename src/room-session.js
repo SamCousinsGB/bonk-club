@@ -36,7 +36,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 53;
+export const PROTOCOL = 54;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -866,7 +866,9 @@ export function validSnapshot(s) {
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 3) && !!s.assembly &&
-          h.type === (h.assemblyStation === 1 ? "crusher" : "tesla"))) &&
+          h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
+          integer(h.assemblyWork, 0, 10000000) &&
+          ["none", "empty", "damaged", "stage", "jam", "broken"].includes(h.assemblyFault))) &&
         (h.type !== "powerline" || integer(h.circuit,0,1)) &&
         [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
           finite,

@@ -954,7 +954,7 @@ export class Renderer {
     }
     c.restore();
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
-    if (arena.assembly) drawAssembly(c, state);
+    if (arena.assembly) drawAssembly(c, state, this.reduced);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);

@@ -1,28 +1,28 @@
-import { LINE_Y, LINE_CYCLE, LINE_DWELL, LINE_PITCH, LINE_SPEED, STATIONS } from "./assembly-arena.js";
+import { LINE_Y, LINE_CYCLE, LINE_DWELL, LINE_PITCH, LINE_SPEED } from "./assembly-arena.js";
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
+import { carParts, robotPose, pressPosition, PRESS_HOME, PRESS_HALF_HEIGHT, steamStrength, steamZones, welding } from "./assembly-geometry.js";
+export { robotPose } from "./assembly-geometry.js";
 
+const hitTimes = new WeakMap();
 const live = p => p.hp !== 0 && !p.wreckId;
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 export const carTiles = (world, id) => world.platforms.filter(p => p.assemblyCar === id && live(p));
 const area = tiles => tiles.reduce((sum, p) => sum + p.w * p.h, 0);
-function part(world, car, name, x, y, w, h) {
-  world.platforms.push({ id: `car${car.id}:${name}`, assemblyCar: car.id, assemblyPart: name,
+function part(world, car, name, x, y, w, h, index) {
+  world.platforms.push({ id: `car${car.id}:${name}:${index}`, assemblyCar: car.id, assemblyPart: name,
     x: car.x + x, y, w, h, baseX: car.x + x, baseY: y, dx: 0, dy: 0, material: "metal" });
 }
 function buildStage(world, car, stage) {
-  if (stage === 0) part(world, car, "chassis", -125, 1158, 250, 18);
-  if (stage === 1) part(world, car, "body", -125, 1120, 250, 38);
-  if (stage === 2) part(world, car, "cabin", -65, 1050, 140, 70);
-  if (stage === 3) {
-    part(world, car, "rearWheel", -102, 1148, 42, 42);
-    part(world, car, "frontWheel", 60, 1148, 42, 42);
-  }
+  carParts(stage).forEach((p, i) => part(world, car, p.name, p.x, p.y, p.w, p.h, i));
   car.stage = stage;
   car.area = area(carTiles(world, car.id));
-  // Installing a cabin lifts a rider onto the new roof instead of enclosing them.
-  for (const p of world.players) if (p.alive) for (const tile of carTiles(world, car.id)) {
-    if (!overlap(playerBox(p), tile)) continue;
+  // Install the whole silhouette atomically, so a surviving rider is lifted
+  // clear of every new strip, including the sloped cabin shoulders.
+  const tiles = carTiles(world, car.id);
+  for (const p of world.players) if (p.alive && tiles.some(tile => overlap(playerBox(p), tile))) {
+    const box = playerBox(p);
+    const tile = tiles.filter(t => box.x < t.x+t.w && box.x+box.w > t.x).sort((a,b)=>a.y-b.y)[0];
     const dy = tile.y - 30 - p.y;
     p.y += dy; p.vy = Math.min(0, p.vy); p.support = tile.id; p.ground = true;
     for (const q of p.rig || []) { q.y += dy; q.py += dy; }
@@ -30,7 +30,7 @@ function buildStage(world, car, stage) {
   world.terrainVersion++;
 }
 function addCar(world, x, stage = 0) {
-  const car = { id: ++world.assembly.serial, x, stage: 0, damaged: false, area: 0 };
+  const car = { id: ++world.assembly.serial, x, stage: 0, damaged: false, blocked: false, area: 0 };
   world.assembly.cars.push(car);
   for (let n = 0; n <= stage; n++) buildStage(world, car, n);
   return car;
@@ -40,55 +40,55 @@ export function createAssembly(world) {
   if (!world.assembly) return;
   // Work already in progress makes the first finished car visible in this round.
   for (const [x, stage] of [[40, 0], [640, 0], [1240, 1], [1840, 2]]) addCar(world, x, stage);
-  world.hazards[0].bodyY = 894;
-  world.platforms.push({ id: "assembly-head", assemblyHead: true, x: 500, y: 880, w: 280, h: 28,
-    baseX: 500, baseY: 880, dx: 0, dy: 0, material: "metal" });
-}
-
-export function robotPose(h, phase) {
-  const side = h.assemblyStation === 2 ? -1 : 1;
-  const reach = h.active ? Math.sin(Math.max(0, phase - 1) * Math.PI) : 0;
-  const base = { x: h.x + side * 152, y: 873 };
-  const elbow = { x: h.x + side * (130 + reach * 38), y: 955 };
-  const tip = { x: h.x + side * (20 + Math.cos(phase * 5) * 42), y: h.active ? 1064 + reach * 52 : 940 };
-  return [base, elbow, tip];
-}
-
-function machine(world, h, phase, dt) {
-  if (h.done) return;
-  if (!world.platforms.some(p => live(p) && p.assemblyMount === h.assemblyStation && p.x <= h.x && p.x + p.w >= h.x) ||
-      h.assemblyStation === 1 && !world.platforms.some(p => live(p) && p.assemblyHead)) {
-    h.done = true; h.active = false; h.warning = 0; return;
+  for (const h of world.hazards) {
+    h.assemblyWork = 0; h.assemblyFault = "none";
+    hitTimes.set(h, {});
   }
+  world.hazards[0].bodyY = PRESS_HOME;
+  world.platforms.push({ id: "assembly-head", assemblyHead: true, x: 500, y: PRESS_HOME - PRESS_HALF_HEIGHT, w: 280, h: PRESS_HALF_HEIGHT * 2,
+    baseX: 500, baseY: PRESS_HOME - PRESS_HALF_HEIGHT, dx: 0, dy: 0, material: "metal" });
+}
+
+function machine(world, h, phase) {
+  if (!world.platforms.some(p => live(p) && p.assemblyMount === h.assemblyStation && p.x <= h.x && p.x + p.w >= h.x) ||
+      h.assemblyStation === 1 && !world.platforms.some(p => live(p) && p.assemblyHead)) h.done = true;
+  const car = world.assembly.cars.find(c => Math.abs(c.x - h.x) < 3);
+  if (phase < 1) h.assemblyWork = car?.stage === h.assemblyStation - 1 ? car.id : 0;
+  const latched = car && car.id === h.assemblyWork;
+  h.assemblyFault = h.done ? "broken" : car?.blocked ? "jam" : car?.damaged ? "damaged" : !car ? "empty" :
+    !latched && car.stage !== h.assemblyStation - 1 ? "stage" : "none";
+  const working = latched && h.assemblyFault === "none";
   h.age = world.assembly.clock;
   const wasActive = h.active;
-  h.warning = phase < 1 ? 1 - phase : 0;
-  h.active = phase >= 1 && phase < 2.5;
-  if (h.active && !wasActive) { h.hitIds = []; world.event("hazard", { x: h.x, y: h.y, kind: h.type }); }
+  h.warning = working && phase < 1 ? 1 - phase : 0;
+  h.active = !!working && phase >= 1 && phase < 2.55;
+  if (h.active && !wasActive) { hitTimes.set(h, {}); world.event("hazard", { x: h.x, y: h.y, kind: h.type }); }
+  if (h.done) { h.assemblyWork = 0; return; }
   const oldY = h.bodyY;
-  h.bodyX = h.x;
-  h.bodyY = h.assemblyStation === 1
-    ? phase < 1 ? 894 : phase < 1.55 ? 894 + (phase - 1) / .55 * 214 : phase < 2 ? 1108 : phase < 3 ? 1108 - (phase - 2) * 214 : 894
-    : robotPose(h, phase)[2].y;
-  if (h.assemblyStation > 1) h.bodyX = robotPose(h, phase)[2].x;
+  const pose = robotPose(h, phase);
+  h.bodyX = h.assemblyStation === 1 ? h.x : pose[2].x;
+  h.bodyY = h.assemblyStation === 1 ? pressPosition(phase, working) : pose[2].y;
   if (h.assemblyStation === 1) {
     for (const p of world.platforms.filter(p => p.assemblyHead && live(p))) {
       const dy = h.bodyY - oldY; p.y += dy; p.baseY += dy; p.dy = dy;
     }
   }
   if (!h.active || world.prediction) return;
-  const pose = robotPose(h, phase);
   for (const p of world.players) {
-    if (!p.alive || h.hitIds.includes(p.id)) continue;
-    const box = playerBox(p);
-    const touching = h.assemblyStation === 1
-      ? overlap(box, { x: h.x - 140, y: Math.min(oldY, h.bodyY) - 14, w: 280, h: Math.abs(oldY - h.bodyY) + 28 })
-      : segmentBox(pose[1].x, pose[1].y, pose[2].x, pose[2].y, box, 12);
-    if (!touching) continue;
-    h.hitIds.push(p.id);
-    const press = h.assemblyStation === 1;
-    world.hit(p, { x: h.x, y: h.bodyY, vx: 0, vy: 0 }, press ? 1000 : 38, press ? 700 : 380,
-      Math.sign(p.x - h.x) || 1, -.4, { blast: true, effect: press ? "blast" : "tesla", cause: press ? "crusher" : "electrified" });
+    if (!p.alive || (hitTimes.get(h)[p.id] ?? -1) > world.assembly.clock - .22) continue;
+    const box = playerBox(p), press = h.assemblyStation === 1;
+    const crushed = press && overlap(box, { x: h.x - 140, y: Math.min(oldY, h.bodyY) - PRESS_HALF_HEIGHT,
+      w: 280, h: Math.abs(oldY - h.bodyY) + PRESS_HALF_HEIGHT * 2 });
+    const steam = press && steamStrength(h, phase) > .15 && steamZones(h).some(zone => overlap(box, zone));
+    const arm = !press && segmentBox(pose[1].x, pose[1].y, pose[2].x, pose[2].y, box, 18);
+    const tool = !press && phase >= 1.3 && phase < 2.3 && overlap(box,
+      { x: pose[2].x - 48, y: pose[2].y - 62, w: 96, h: 90 });
+    if (!crushed && !steam && !arm && !tool) continue;
+    hitTimes.get(h)[p.id] = world.assembly.clock;
+    const electric = welding(h, phase);
+    world.hit(p, { x: h.bodyX, y: h.bodyY, vx: 0, vy: 0 }, crushed ? 1000 : tool ? 110 : 65,
+      crushed ? 700 : 430, Math.sign(p.x - h.x) || 1, -.4,
+      { blast: true, effect: electric ? "tesla" : "blast", cause: electric ? "electrified" : steam ? "burn" : "crusher" });
   }
 }
 
@@ -100,8 +100,6 @@ export function updateAssembly(world, dt) {
   const phase = (line.clock + 1e-9) % LINE_CYCLE;
   const travel = t => Math.floor((t + 1e-9) / LINE_CYCLE) * LINE_PITCH + Math.max(0, (t + 1e-9) % LINE_CYCLE - LINE_DWELL) * LINE_SPEED;
   const dx = travel(line.clock) - travel(before);
-  for (const h of world.hazards.filter(h => h.assemblyStation)) machine(world, h, phase, dt);
-  if (world.hazards[0].done) world.platforms = world.platforms.filter(p => !p.assemblyHead);
   const belts = world.platforms.filter(p => p.assemblyBelt && live(p));
   for (const b of belts) b.dx = dx;
   const supported = x => x < 0 || x > 2560 || belts.some(b => x >= b.x && x <= b.x + b.w && Math.abs(b.y - LINE_Y) < 2);
@@ -111,15 +109,19 @@ export function updateAssembly(world, dt) {
     // Pallets are clamped to the line. A severed rail stops them at the break.
     const moving = supported(car.x - 80) && supported(car.x + 80) && supported(car.x + 80 + dx);
     const jammed = line.cars.some(other => other !== car && other.x > car.x && other.x - car.x < 280);
-    const shift = moving && !jammed ? dx : 0;
+    car.blocked = !moving || jammed;
+    const shift = !car.blocked ? dx : 0;
     car.x += shift;
     for (const p of tiles) { p.x += shift; p.baseX += shift; p.dx = shift; }
-    if (phase >= 1.55 && phase < 2.5 && !car.damaged) {
-      const station = world.hazards.find(h => h.assemblyStation === car.stage + 1 && !h.done && Math.abs(h.x - car.x) < 3);
-      if (station) {
-        buildStage(world, car, car.stage + 1);
-        if (car.stage === 3) line.completed++;
-      }
+  }
+  for (const h of world.hazards.filter(h => h.assemblyStation)) machine(world, h, phase);
+  if (world.hazards[0].done) world.platforms = world.platforms.filter(p => !p.assemblyHead);
+  for (const car of line.cars) {
+    const station = world.hazards.find(h => h.assemblyStation === car.stage + 1 && h.assemblyWork === car.id &&
+      h.assemblyFault === "none" && h.active && Math.abs(h.x - car.x) < 3);
+    if (station && phase >= (station.assemblyStation === 1 ? 1.55 : 2.3) && phase < 2.55) {
+      buildStage(world, car, car.stage + 1);
+      if (car.stage === 3) line.completed++;
     }
   }
   // Feed only into a clear entry. IDs never wrap, and queues remain bounded.
@@ -137,12 +139,12 @@ export function updateAssembly(world, dt) {
 
 export function assemblySnapshot(line) {
   return line && { clock: line.clock, serial: line.serial, completed: line.completed,
-    cars: line.cars.map(({ id, x, stage, damaged }) => ({ id, x, stage, damaged })) };
+    cars: line.cars.map(({ id, x, stage, damaged, blocked }) => ({ id, x, stage, damaged, blocked })) };
 }
 export function validAssembly(line) {
   const int = n => Number.isSafeInteger(n) && n >= 0 && n <= 10000000;
   return line === null || !!line && Number.isFinite(line.clock) && line.clock >= 0 && line.clock <= 1e8 &&
     int(line.serial) && int(line.completed) && line.completed <= line.serial && Array.isArray(line.cars) && line.cars.length <= 6 &&
     new Set(line.cars.map(c => c?.id)).size === line.cars.length && line.cars.every(c => c && int(c.id) && c.id > 0 && c.id <= line.serial &&
-      Number.isFinite(c.x) && c.x >= -150 && c.x <= 2700 && int(c.stage) && c.stage <= 3 && typeof c.damaged === "boolean");
+      Number.isFinite(c.x) && c.x >= -150 && c.x <= 2700 && int(c.stage) && c.stage <= 3 && typeof c.damaged === "boolean" && typeof c.blocked === "boolean");
 }

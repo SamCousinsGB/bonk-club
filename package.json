@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.31.0",
-  "releaseNotes": "Turbine Hall: narrow jumps, spinning blades and physical high-voltage cables",
+  "version": "0.32.0",
+  "releaseNotes": "Reworked car assembly machinery, car bodies, fault lights and lethal steam/work zones",
   "private": true,
   "type": "module",
   "scripts": {

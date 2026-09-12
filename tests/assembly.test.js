@@ -6,6 +6,7 @@ import { carveExplosion } from "../src/terrain.js";
 import { validSnapshot } from "../src/network.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
+import { welding, steamStrength } from "../src/assembly-geometry.js";
 import { nuclearField, updateNuclear } from "../src/nuclear.js";
 
 function fixture() {
@@ -20,18 +21,18 @@ function advance(w, seconds) {
 test("a chassis travels through three working stations to become a complete car", () => {
   const w = fixture(), car = w.assembly.cars[0];
   assert.equal(car.stage, 0); assert.equal(carTiles(w, car.id).length, 1);
-  advance(w, 9.6); assert.equal(car.stage, 1); assert.ok(Math.abs(car.x - 640) < .01);
+  advance(w, 10.4); assert.equal(car.stage, 1); assert.ok(Math.abs(car.x - 640) < .01);
   advance(w, 8); assert.equal(car.stage, 2); assert.ok(carTiles(w, car.id).some(p => p.assemblyPart === "cabin"));
-  advance(w, 8); assert.equal(car.stage, 3); assert.equal(carTiles(w, car.id).length, 5);
+  advance(w, 8); assert.equal(car.stage, 3); assert.deepEqual([...new Set(carTiles(w, car.id).map(p=>p.assemblyPart))], ["chassis","body","cabin","rearWheel","frontWheel"]);
   assert.equal(w.assembly.completed, 4); assert.ok(validSnapshot(w.snapshot()));
 });
 
 test("preloaded work finishes during a short round, belt dwells and bounded feed continues", () => {
-  const w = fixture(); advance(w, 1.6); assert.equal(w.assembly.completed, 1);
-  assert.equal(w.assembly.cars[0].x, 40); advance(w, 1.4); assert.ok(Math.abs(w.assembly.cars[0].x - 40) < .01);
+  const w = fixture(); advance(w, 2.4); assert.equal(w.assembly.completed, 1);
+  assert.equal(w.assembly.cars[0].x, 40); advance(w, .6); assert.ok(Math.abs(w.assembly.cars[0].x - 40) < .01);
   advance(w, 2); assert.ok(Math.abs(w.assembly.cars[0].x - 280) < .01);
   advance(w, 115); assert.ok(w.assembly.completed >= 14); assert.ok(w.assembly.cars.length <= 6);
-  assert.ok(w.platforms.filter(p => p.assemblyCar).length <= 30); assert.ok(validSnapshot(w.snapshot()));
+  assert.ok(w.platforms.filter(p => p.assemblyCar).length <= 96); assert.ok(validSnapshot(w.snapshot()));
 });
 
 test("fighters ride both the running belt and a car roof, and can jump off", () => {
@@ -47,19 +48,19 @@ test("fighters ride both the running belt and a car roof, and can jump off", () 
   }
 });
 
-test("body welding lifts an existing rider to the new solid roof", () => {
+test("installing a cabin lifts a surviving rider clear of its complete sloped collision", () => {
   const w = fixture(), car = w.assembly.cars[2], p = w.players[0];
-  Object.assign(p, { x: car.x + 55, y: 1090, ground: true, rig: null });
-  advance(w, 1.6); assert.equal(car.stage, 2); assert.equal(p.y, 1020); assert.ok(p.alive);
+  Object.assign(p, { x: car.x, y: 1090, ground: true, rig: null, hp: 10000 });
+  advance(w, 2.4); assert.equal(car.stage, 2); assert.equal(p.y, 1026); assert.ok(p.alive);
 });
 
 test("stamping warns safely, then its descending physical head crushes only contact", () => {
   const w = fixture();
   Object.assign(w.players[0], { x: 640, y: 1090, rig: null });
-  Object.assign(w.players[1], { x: 840, y: 1090, rig: null });
+  Object.assign(w.players[1], { x: 930, y: 1090, rig: null });
   advance(w, .9); assert.ok(w.hazards[0].warning > 0); assert.ok(w.players[0].alive);
   advance(w, .7); assert.equal(w.players[0].alive, false); assert.equal(w.players[1].hp, 100);
-  assert.equal(w.lastDeathCause, "crusher"); assert.ok(w.platforms.some(p => p.assemblyHead && p.y > 1090));
+  assert.equal(w.lastDeathCause, "crusher"); assert.ok(w.platforms.some(p => p.assemblyHead && p.y > 1040));
 });
 
 test("robot welders damage at their moving arm and tool rather than across the entire station", () => {
@@ -67,8 +68,8 @@ test("robot welders damage at their moving arm and tool rather than across the e
   const h = w.hazards[1], tip = robotPose(h, w.assembly.clock % 8)[2];
   Object.assign(w.players[0], { x: tip.x, y: tip.y, rig: null });
   Object.assign(w.players[1], { x: h.x + 140, y: 1150, rig: null });
-  advance(w, STEP); assert.equal(w.players[0].hp, 62); assert.equal(w.players[1].hp, 100);
-  advance(w, .05); assert.equal(w.players[0].hp, 62);
+  advance(w, STEP); assert.equal(w.players[0].hp, 35); assert.equal(w.players[1].hp, 100);
+  advance(w, .05); assert.equal(w.players[0].hp, 35);
 });
 
 test("normal welding does not electrify the connected conveyor or distant riders", () => {
@@ -143,9 +144,67 @@ test("wire validation rejects invalid production state and orphan car collision"
   for (const patch of [{ clock: NaN }, { completed: -1 }, { completed: 99 }, { serial: Infinity }, { cars: Array(7).fill(w.snapshot().assembly.cars[0]) }]) {
     const s = structuredClone(w.snapshot()); Object.assign(s.assembly, patch); assert.equal(validSnapshot(s), false);
   }
-  for (const patch of [{ stage: 4 }, { x: Infinity }, { damaged: "yes" }, { id: 0 }]) {
+  for (const patch of [{ stage: 4 }, { x: Infinity }, { damaged: "yes" }, { blocked: 1 }, { id: 0 }]) {
     const s = structuredClone(w.snapshot()); Object.assign(s.assembly.cars[0], patch); assert.equal(validSnapshot(s), false);
   }
   const s = structuredClone(w.snapshot()); s.platforms.find(p => p.assemblyCar).assemblyCar = 999; assert.equal(validSnapshot(s), false);
   const missing = structuredClone(w.snapshot()); delete missing.assembly; assert.equal(validSnapshot(missing), false);
+});
+
+
+test("empty stations stay parked without sparks, steam, work or damage", () => {
+  const w=fixture();
+  w.platforms=w.platforms.filter(p=>!p.assemblyCar);w.assembly.cars=[];
+  const home=robotPose(w.hazards[1],0);
+  Object.assign(w.players[0],{x:640,y:1090,rig:null});
+  Object.assign(w.players[1],{x:1185,y:1106,rig:null});
+  for(let i=0;i<360;i++){
+    advance(w,STEP);
+    assert.deepEqual(robotPose(w.hazards[1],w.assembly.clock),home);
+    assert.ok(w.hazards.every(h=>h.assemblyFault==='empty'&&!h.active&&!h.warning));
+    assert.equal(welding(w.hazards[1],w.assembly.clock),false);
+    assert.equal(steamStrength(w.hazards[0],w.assembly.clock),0);
+  }
+  assert.equal(w.assembly.completed,0);assert.equal(w.players[0].hp,100);assert.equal(w.players[1].hp,100);
+});
+
+test("robot links stay rigid, hold both welds, and return to the same parked pose", () => {
+  const w=fixture();advance(w,.1);const h=w.hazards[1],home=robotPose(h,0);
+  for(let phase=0;phase<8;phase+=.01){
+    const [a,b,c]=robotPose(h,phase);
+    assert.ok(Math.abs(Math.hypot(b.x-a.x,b.y-a.y)-190)<1e-6);
+    assert.ok(Math.abs(Math.hypot(c.x-b.x,c.y-b.y)-200)<1e-6);
+  }
+  assert.deepEqual(robotPose(h,1.35),robotPose(h,1.65));
+  assert.deepEqual(robotPose(h,2),robotPose(h,2.25));
+  assert.deepEqual(robotPose(h,3),home);assert.deepEqual(robotPose(h,7),home);
+});
+
+test("damage immediately cuts welding, reports a fault and cannot rebuild the shell", () => {
+  const w=fixture();advance(w,1.4);const h=w.hazards[1],car=w.assembly.cars[2];
+  assert.ok(welding(h,w.assembly.clock));
+  carveExplosion(w,{x:car.x+95,y:1130,radius:35});advance(w,STEP);
+  assert.equal(h.assemblyFault,'damaged');assert.equal(h.active,false);assert.equal(welding(h,w.assembly.clock),false);
+  advance(w,1);assert.equal(car.stage,1);assert.ok(validSnapshot(w.snapshot()));
+});
+
+test("press vents and both robot work points are lethal while elevated bypasses are safe", () => {
+  for(const station of [1,2,3]){
+    const w=fixture();advance(w,1.4);
+    const h=w.hazards[station-1],tip=robotPose(h,w.assembly.clock)[2];
+    Object.assign(w.players[0],{x:station===1?840:tip.x,y:station===1?1120:tip.y,rig:null});
+    Object.assign(w.players[1],{x:h.x,y:700,rig:null});
+    advance(w,.7);assert.equal(w.players[0].alive,false,station);assert.equal(w.players[1].hp,100,station);
+    assert.equal(w.lastDeathCause,station===1?'burn':station===2?'electrified':'crusher');
+  }
+});
+
+test("machine faults and jam state survive hot join and reject malformed wire values", () => {
+  const w=fixture();carveExplosion(w,{x:560,y:1190,radius:45});advance(w,.1);
+  assert.ok(w.assembly.cars[1].blocked);assert.equal(w.hazards[0].assemblyFault,'jam');
+  const snap=w.snapshot(),received=expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(snap))),validSnapshot);
+  assert.equal(received.hazards[0].assemblyFault,'jam');assert.ok(received.assembly.cars[1].blocked);
+  for(const patch of [{assemblyWork:-1},{assemblyWork:Infinity},{assemblyFault:'boom'},{assemblyFault:null}]){
+    const bad=structuredClone(snap);Object.assign(bad.hazards[0],patch);assert.equal(validSnapshot(bad),false);
+  }
 });

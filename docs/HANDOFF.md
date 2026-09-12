@@ -23,6 +23,38 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   protocol changes, Pi changes or production debug hooks.
 
 
+## Car assembly refinement - 12 September 2026
+
+- v0.32.0, protocol 54. Refresh every player and create a new room.
+- Replaced clock-only robot wiggling with fixed-length, two-link arms and a
+  programmed approach, two held work points and retract sequence. A station
+  latches a correctly aligned car during the warning; missing or damaged work
+  cannot weld, vent or gain parts. Stamping commits at 1.55 seconds, welding and
+  final fitting at 2.3 seconds, before the existing three-second dwell ends.
+- Heavy hydraulic rams, a deep striped press die, soft steam jets, weld sparks,
+  grippers and three-colour signal stacks replace the original simple fixtures.
+  Empty stations wait amber; damaged cars, mismatched stages, broken machines and
+  blocked pallets report red faults. Reduced-motion fault lights remain steady.
+- Cars have sloped sheet-metal bodies and cabins, pressed details, wheel arches,
+  rims, glass and finished paint. Conservative eight-unit collision strips follow
+  the shared silhouettes; surviving riders are lifted clear of an installed roof.
+  Partial destruction clips the artwork and travels with the car.
+- Press contact is lethal, hot steam deals 65 damage per 0.22 seconds, and robot
+  tool zones deal 110 damage. Arm contacts deal 65 per 0.22 seconds. Warning phases
+  remain safe, upper bypasses stay clear, and bots see expanded danger footprints.
+  Welding never powers the connected belt. Only the host advances work or damage.
+- New car blocked flags and station work/fault state survive validated snapshots
+  and changed-map hot join. Regressions cover empty stations, rigid link lengths,
+  stationary weld holds, fault interruption, lethal steam/tools and malformed data.
+- Isolated source: ../bonk-club-qa/car-assembly, branch codex/assembly-refinement.
+  The canonical checkout's unrelated older work remains untouched. External QA:
+  assembly-refined-online.mjs/json, assembly-refined-visual.mjs and screenshots.
+  Real Edge host/guest and late join passed with selected relay/relay candidates,
+  actual guest movement/jump, moving cars and permanent car/machine destruction.
+  Source visuals were inspected in active, parked, damaged and completed states.
+- Rebased on the concurrent Turbine Hall release, retaining its arena, collision,
+  cable and blade behavior. Combined validation and public proof follow below.
+
 ## Turbine Hall - 12 September 2026
 
 - v0.31.0, protocol 53. Refresh every player and create a new room.

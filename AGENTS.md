@@ -162,6 +162,13 @@ Keep this constitution for durable rules and the handoff for current work.
   alternate overhead routes, permanent car/station cuts, stopped pallets at broken
   rails, bounded feed queues, validated hot joins and full round reset. Do not
   replace production with decorative car animation or rebuild damaged bodywork.
+  Machines latch an aligned, undamaged car before operating. Empty stations stay
+  parked without welding or steam; amber means warning/waiting, red means active
+  work or a labelled damaged-car, rejected-stage, jam or broken-machine fault.
+  Robot links have fixed lengths and hold programmed weld points. Keep the heavy
+  press die, timed steam jets, shaped car collision and distinct assembly stages.
+  Active tool contact and lingering in press steam are lethal; never electrify
+  the entire belt as a side effect of welding. Raised bypasses remain safe.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by
