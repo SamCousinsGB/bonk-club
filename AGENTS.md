@@ -253,6 +253,11 @@ Keep this constitution for durable rules and the handoff for current work.
   Keep capture violent: retain incoming momentum, fast eccentric orbits, elastic
   strands and independent limb flailing. Loose matter tumbles until compression;
   do not restore continuous steering to a fixed orbital speed or early packing.
+- Active black holes subtly warp the entire rendered arena and background with
+  animated spacetime refraction. This global warp is visual only: it adds no damage,
+  forces or collision changes outside the existing local effect. Ease it in/out
+  with field lifetime, clear it on closure/reset, keep the HUD readable and respect
+  reduced motion. Retain the stronger circular local lens and physical capture.
 - Do not assume the latest requested effects already exist; use the handoff to
   distinguish implemented behavior from requested changes.
 

@@ -2,6 +2,38 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Whole-arena spacetime warp - 12 September 2026
+
+- v0.26.0, protocol 49 unchanged, gameplay revision
+  `471507af052841a654aeb988da8bd1f09c3d0f37`. Published and verified.
+- Active black holes subtly refract the complete rendered arena: broad radial
+  bending, slow travelling ripples, tangential drift and fine chromatic fringes.
+  The existing local horizon stays circular. The effect eases in over 0.85 seconds
+  and settles over the final 1.1 seconds. Closed matter balls retain no screen warp.
+- This is a final scene pass only: no new damage, forces, collisions or wire state.
+  Age/life from existing snapshots drive host, guest and hot-join presentation.
+  Menus, scoreboard and chat remain legible. Reduced motion uses a gentler static bend.
+- Reuses one full-resolution GPU texture; at most four sources blend within one
+  amplitude budget. Canvas fallback, graphics-context recovery and resizing checked.
+- Scoped renderer/module/tests are also applied in the canonical checkout, retaining
+  its older unfinished work. Release worktree: ../bonk-club-qa/spacetime-warp,
+  branch codex/blackhole-spacetime, based on current main b0a1fda.
+- All 910 shared/game tests, seven desktop tests, production browser/desktop builds
+  and Windows executable smoke passed. Actual active/closing gameplay, overlap,
+  reduced motion, graphics loss/recovery and 844x390 rendering were inspected.
+- Real relay/relay host, guest and small-screen hot join shared the active warp,
+  existing destroyed terrain and complete clearing on closure, without page errors.
+  The unmodified production bundle also passed lobby, controls, hot join and departure.
+  Browser drawing CPU p95 was 1.4 ms at 1600x900 on this machine; this is not FPS,
+  GPU timing or internet latency. External evidence: ../bonk-club-qa/spacetime-warp-*.
+  No dependencies, production debug hooks or Pi changes.
+
+- [Release run 34706783590](https://github.com/SamCousinsGB/bonk-club/actions/runs/34706783590)
+  passed shared/server tests, both desktop executable/packaging checks, source
+  consistency and Pages deployment. All 17 public files match the exact committed
+  build and CI artifact by SHA-256. Public relay host/guest/hot join/departure and
+  normal-menu black-hole pickup/fire/warp/closing checks passed without page errors.
+
 ## Power fist - 12 September 2026
 
 - v0.28.0, protocol 51. Refresh every player and create a new room.
