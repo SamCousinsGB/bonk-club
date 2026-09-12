@@ -40,6 +40,28 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   suite and publication verification follow below. No dependencies or Pi changes.
 
 
+- **Published and verified:** gameplay revision
+  22070a52d538b875c2bcff143e0c305a66c7d976, v0.24.0, protocol 45.
+  [Release run 34698722080](https://github.com/SamCousinsGB/bonk-club/actions/runs/34698722080)
+  passed all **846 game/shared tests**, three server tests, Windows/Linux desktop
+  unit tests, executable smoke, packaging and shared-source verification.
+- All **17 public files** matched both the clean committed build and CI artifact
+  by SHA-256. JS: index-DkqliOrt.js; CSS: index-B58EEvZH.css. Exact build:
+  ../bonk-club-qa/furnace-exact-build; CI artifact: ../bonk-club-qa/furnace-ci.
+  Evidence: furnace-live-verification.json and verify-furnace-live.mjs in that
+  QA directory. No observer/debug controls are in the production bundle.
+- The final unmodified production bundle passed solo rounds and live public
+  host/guest hot join. Public gameplay, cable motion, smoke, cooling displays
+  and destruction were visually inspected; the public guest console had no
+  errors. Source QA also verified destroyed-machine hot join with two guests
+  through selected relay/relay candidates. The final active guest drawing cost
+  was about 1.3 ms at p95 on this machine (CPU draw cost, not FPS or internet
+  latency). Screenshots: furnace-final-guest.png and furnace-public.png.
+- A final art correction keeps smoke billowing during round results; all 21
+  focused furnace/destruction effects checks passed after that change. Local
+  previews on 5421, 5422 and 5423 are stopped after verification.
+
+
 ## Transmission Towers - 12 September 2026
 
 - Release **v0.23.0**, protocol **44**. Refresh all players' tabs and create a
