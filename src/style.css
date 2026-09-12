@@ -13,6 +13,15 @@
 }
 * {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+input:not([readonly]),
+textarea:not([readonly]) {
+  -webkit-user-select: text;
+  user-select: text;
 }
 html,
 body {
