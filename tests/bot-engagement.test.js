@@ -50,7 +50,7 @@ for (const separation of [500, 1150]) {
   test(`black hole AI deploys a real field against an opponent ${separation} units away`, () => {
     const world = islands("blackhole", separation);
     advance(world, 0.2);
-    assert.equal(world.players[1].ammo, 2, "Easy still waits for its reaction delay");
+    assert.equal(world.players[1].ammo, WEAPONS.blackhole.ammo, "Easy still waits for its reaction delay");
     let field = false;
     advance(world, 2, w => { field ||= w.fields.some(f => f.kind === "blackhole"); });
     assert.ok(world.events.some(e => e.type === "shoot"));
@@ -70,7 +70,7 @@ test("black hole AI does not deploy into a wall immediately in front of its muzz
   const world = islands("blackhole", 850);
   world.platforms.push({ id: "wall", x: 220, y: 1000, w: 80, h: 200 });
   advance(world, 2);
-  assert.equal(world.players[1].ammo, 2);
+  assert.equal(world.players[1].ammo, WEAPONS.blackhole.ammo);
   assert.ok(!world.events.some(e => e.type === "shoot"));
 });
 
