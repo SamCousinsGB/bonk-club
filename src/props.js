@@ -203,7 +203,7 @@ function resolve(a, b, hit, dt, dynamic = false) {
 export function damageProp(world, b, damage, vx = 0, vy = 0, point) {
   if (b.hp <= 0) return;
   prepareProp(b);
-  damage = world.reactPropDamage?.(b, damage) ?? damage;
+  damage = world.reactPropDamage?.(b, damage, point) ?? damage;
   impulseProp(b, vx * 22, vy * 22, point?.x, point?.y);
   b.hp = Math.max(0, b.hp - damage);
   world.event(b.hp ? "coverhit" : "break", { ...center(b), color: PROP_MATERIALS[b.material].color });

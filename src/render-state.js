@@ -4,7 +4,7 @@ import { flightRecipe } from "./flight-replay.js";
 import { matterRecipe } from "./matter-replay.js";
 const simulationOnly = new Set([
   "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
-  "gasAt", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
+  "gasAt", "gasPort", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
   "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",

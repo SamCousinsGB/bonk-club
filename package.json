@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.24.2",
+  "version": "0.24.5",
   "releaseNotes": "Larger pylons, walkable wires and live hanging cable cuts",
   "private": true,
   "type": "module",

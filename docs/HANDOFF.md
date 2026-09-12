@@ -2,9 +2,10 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+
 ## Heavy hanging cables and enlarged pylons - 12 September 2026
 
-- v0.24.2, protocol 47. Refresh every player and create a new room.
+- v0.24.5, protocol 48. Refresh every player and create a new room.
 - Sam corrected the initial interpretation: intact tower wires must be walkable,
   cut wires must be non-blocking and must keep electrifying. The added centre
   maintenance bridges are removed. The v0.24.1 workflow was cancelled before
@@ -30,6 +31,8 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   connecting curves or live arcs. No vanished cable is recreated. The next round
   restores the original layout. Positions, links and attachments are bounded,
   validated and interpolated by stable ID, including hot join after destruction.
+- Integrated main e673390: preserves bullet-hole barrel leaks, slower weapon
+  refills, independent grenade timing and nukes every third round.
 - Release integration: `../bonk-club-qa/heavy-cables-release`, branch
   `codex/heavy-hanging-cables`, based on main 7b2b3b7. Preserve the canonical
   checkout's older concurrent edits; do not replace newer shared platform code.
@@ -44,6 +47,54 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   relay/relay and retained six matching wall-held cables, without page errors.
   External observer: `../bonk-club-qa/heavy-cables-observe.mjs` (port 5431).
   This fixture is outside the release; no production debug hooks or Pi changes.
+
+
+## Barrel impact leaks - 12 September 2026
+
+- v0.24.3, protocol 47. Refresh every player and create a new room.
+- Actual projectile entry points now reach container damage before ignition.
+  Up to four small punctures stay in casing-local coordinates; nearby repeat hits
+  reuse an opening. Gas, oil, glue, tar and water emit from those locations as
+  their containers translate and rotate. Gas pressure acts opposite each opening.
+- Gas starts as a small puff beside the hole, then expands. Spray length and hole
+  size follow container dimensions; warning swell and outlet artwork agree.
+  Multiple openings share the existing finite fuel and output budgets. Cryo still
+  temporarily seals leaks, destruction consumes contents once, and rounds reset.
+- Leak positions/normals are bounded and validated in shared protocol state.
+  Guests and hot joiners retain them through transport and interpolation.
+- Implemented with scoped edits in the canonical checkout, preserving its earlier
+  unfinished work. Release integration is ../bonk-club-qa/barrel-leaks-release,
+  branch codex/barrel-impact-leaks, based on current main 7358bda.
+- All 67 focused container/reaction/ignition checks passed, including seven new
+  regressions for actual left/right/top/bottom shots, ignition ordering, rotation,
+  finite multi-hole leaks, freezing, hot join/reset and invalid wire data.
+  Production build and all 861 tests passed before merging main's newer weapon
+  pacing update (2033af1). Integrated and publication verification follow.
+- Actual host, guest and third-player hot join passed using selected relay/relay
+  routes. Entry side, small gas size, attached punctures during physical tumbling
+  and matching late-join holes were verified without page errors. Normal gameplay
+  and enlarged actual Canvas artwork were inspected. External QA/evidence:
+  ../bonk-club-qa/barrel-leaks-browser.cjs, barrel-leaks-browser.json and
+  barrel-leaks-{game,detail,hotjoin}.png. No production debug hooks or Pi changes.
+## Slower pickup pacing - 12 September 2026
+
+- v0.24.4, protocol 47 from the integrated barrel-leak release. Refresh every
+  player to use the new host-side pacing and matching shared protocol.
+- Removed all four spawn-side starter guns. Existing contested arena pickups
+  and the featured rare/exotic rotation remain. Movement/combat speed is unchanged.
+- Standard refill rolls wait six seconds initially, then 6–8 seconds. Independent
+  grenade rolls keep the original two-second first delay, 3–5-second repeat delay
+  and weighted selection chances. Each clock admits only its own category, so
+  slowing weapon rolls cannot reduce grenade availability or duplicate drops. Survival arenas and the
+  autonomous menu fight retain their own existing pickup cadence.
+- Nukes appear once in the opening pickups of standard rounds 3, 6, 9, etc.
+  They are excluded from all random pickup pools, including exclusion fallbacks.
+  Survival arenas retain their non-nuclear restricted arsenal.
+- Release worktree: `../bonk-club-qa/slower-pickups`, branch `codex/slower-pickups`,
+  based on current main's heavy-cable release. Canonical concurrent work is preserved.
+- Regression coverage checks every arena's unarmed starts, actual timed drops,
+  grenade exceptions, countdown/reset, compact hot-join pickup state and nuke
+  scheduling/random-pool exclusions. Final publication evidence follows.
 
 ## Arc furnace arena - 12 September 2026
 
