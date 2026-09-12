@@ -85,7 +85,7 @@ export class Room extends RoomSession {
       });
       p.on("disconnected", () => {
         if (!this.closed) {
-          this.emit("onStatus", "Reconnectingâ€¦");
+          this.emit("onStatus", "Reconnecting...");
           this.reconnect();
         }
       });
@@ -152,7 +152,7 @@ export class Room extends RoomSession {
         return;
       } catch (e) {
         if (this.closed || attempt || e.type !== "connection-timeout") throw e;
-        this.emit("onStatus", "Retrying connectionâ€¦");
+        this.emit("onStatus", "Retrying connection...");
       }
     }
   }
