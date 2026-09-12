@@ -5,6 +5,7 @@ import { drawTransformedBody } from "./transmutation-art.js";
 import { deathJoints, deathSegments } from "./death-effects.js";
 import { drawAshSkeleton } from "./nuclear-art.js";
 import { drawAppearance } from "./identity.js";
+import { drawCape, materialPaint, drawFinish } from "./cosmetic-art.js";
 import { drawSingularityBody } from "./singularity-art.js";
 import { scannerFlicker } from "./scanner.js";
 function energy(r, points, color, time) {
@@ -127,6 +128,8 @@ export function drawDeath(r, rag, time) {
     c.globalAlpha = Math.min(1, rag.life);
     const joints = deathJoints(rag);
     const width = 5.5;
+    drawCape(c, { ...rag, rig: pts }, null, time);
+    const finish = materialPaint(c, rag, pts[0].x, pts[0].y - 10, 24, 80, time);
     for (const [a, b] of joints) {
       r.line(
         [
@@ -141,12 +144,13 @@ export function drawDeath(r, rag, time) {
           [pts[a].x, pts[a].y],
           [pts[b].x, pts[b].y],
         ],
-        rag.color,
+        finish,
         width,
       );
     }
     {
-      r.circle(pts[0].x, pts[0].y, 10, rag.color);
+      r.circle(pts[0].x, pts[0].y, 10, finish);
+      drawFinish(c, rag, pts, time);
       drawAppearance(
         c,
         rag,

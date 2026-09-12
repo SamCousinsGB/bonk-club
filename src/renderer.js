@@ -8,6 +8,8 @@ import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmN
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawAppearance } from "./identity.js";
+import { CosmeticMotion } from "./cosmetics.js";
+import { materialPaint, drawFinish, drawCape, drawTrail, drawAura } from "./cosmetic-art.js";
 import { drawChat } from "./chat-art.js";
 import { HazardBreaks, drawHazardBreaks } from "./hazard-break-art.js";
 import {
@@ -44,6 +46,7 @@ export class Renderer {
     this.lastEvent = 0;
     this.deathCues = new DeathCues();
     this.hazardBreaks = new HazardBreaks();
+    this.cosmetics = new CosmeticMotion();
     this.scenery = new Map();
     this.pickupArt = new Map();
     this.localId = null;
@@ -722,11 +725,13 @@ export class Renderer {
       return;
     }
     const c = this.ctx,
-      col = p.flash > 0 ? "#fff" : p.color || COLORS[p.id],
       rig = p.rig;
     c.save();
     c.translate(p.x, p.y);
     c.scale(scale, scale);
+    const col = p.flash > 0 ? "#fff" : materialPaint(c, p, 0, -44, 24, 80, time);
+    drawAura(c, p, time, p.x, p.y);
+    drawCape(c, p, this.cosmetics.entries.get(p.id), time, p.x, p.y);
     if (p.ground) {
       c.fillStyle="#030e1b70"; c.beginPath(); c.ellipse(0,p.prone?11:31,p.prone?37:24,4,0,0,TAU); c.fill();
     }
@@ -744,6 +749,7 @@ export class Renderer {
     const head = rig[0];
     this.circle(head.x - p.x, head.y - p.y, 13, "#081626dd");
     this.circle(head.x - p.x, head.y - p.y, 10.5, col);
+    drawFinish(c, p, rig, time, p.x, p.y);
     const neck = rig[1];
     drawAppearance(
       c,
@@ -841,6 +847,7 @@ export class Renderer {
     c.restore();
   }
   draw(state, dt, time, menuArena = null) {
+    this.cosmetics.update(state, dt, this.reduced);
     const deathCues = this.deathCues.update(state);
     const hazardBreaks = this.hazardBreaks.update(state);
     const c = this.ctx;
@@ -952,16 +959,19 @@ export class Renderer {
       if (r.ash || r.effect) continue;
       c.globalAlpha = Math.min(1, r.life);
       const pts = r.points;
+      drawCape(c, { ...r, rig: pts }, null, time);
+      const finish = materialPaint(c, r, pts[0].x, pts[0].y - 10, 24, 80, time);
       for (const [a, b] of JOINTS)
         this.line(
           [
             [pts[a].x, pts[a].y],
             [pts[b].x, pts[b].y],
           ],
-          r.color,
+          finish,
           7,
         );
-      this.circle(pts[0].x, pts[0].y, 11, r.color);
+      this.circle(pts[0].x, pts[0].y, 11, finish);
+      drawFinish(c, r, pts, time);
       drawAppearance(
         c,
         r,
@@ -973,6 +983,7 @@ export class Renderer {
       c.globalAlpha = 1;
     }
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
+    for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme, "front");

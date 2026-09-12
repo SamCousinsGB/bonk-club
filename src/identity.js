@@ -1,3 +1,4 @@
+import { FINISHES, CAPES, TRAILS, AURAS, COSMETIC_DEFAULTS } from "./cosmetics.js";
 export const PALETTE = [
   { name: "Blue", value: "#55baff" },
   { name: "Yellow", value: "#f7d747" },
@@ -53,15 +54,16 @@ export const HAIR_COLOURS = [
   { name: "Peach", value: "#ffbca0" },
 ];
 export const FACIAL_HAIR = ["None", "Stubble", "Moustache", "Goatee", "Short beard", "Full beard"];
-export const ACCESSORIES = ["None", "Glasses", "Sunglasses", "Goggles", "Visor", "Eyepatch", "Headband", "Headphones"];
+export const ACCESSORIES = ["None", "Glasses", "Sunglasses", "Goggles", "Visor", "Eyepatch", "Headband", "Headphones", "Crown", "Halo", "Horns", "Cat ears", "Antenna"];
 const APPEARANCE_CHOICES = {
   color: PALETTE.map(c => c.value), hair: HAIRSTYLES,
   hairColor: HAIR_COLOURS.map(c => c.value), facialHair: FACIAL_HAIR, accessory: ACCESSORIES,
+  finish: FINISHES, cape: CAPES, capeColor: PALETTE.map(c => c.value), trail: TRAILS, aura: AURAS,
 };
 export function defaultProfile(id = 0) {
   const color = PALETTE[id % PALETTE.length];
   return { name: color.name.toUpperCase(), color: color.value, hair: "None",
-    hairColor: HAIR_COLOURS[0].value, facialHair: "None", accessory: "None" };
+    hairColor: HAIR_COLOURS[0].value, facialHair: "None", accessory: "None", ...COSMETIC_DEFAULTS };
 }
 export function cleanProfile(value, fallback = defaultProfile()) {
   const name =
@@ -294,6 +296,21 @@ export function drawAppearance(c, p, x, y, angle = 0, facing = 1) {
       c.fillStyle=dark; c.beginPath(); c.roundRect(px-3,-5,6,12,3); c.fill();
       line([[px,-1],[px,3]], "#acd5e7", 2);
     }
+  } else if (p.accessory === "Crown") {
+    const gold=c.createLinearGradient(-12,-22,10,-7);gold.addColorStop(0,"#a76a22");gold.addColorStop(.4,"#fff1b0");gold.addColorStop(.55,"#d29d36");gold.addColorStop(1,"#ffe2a0");
+    c.fillStyle=gold;c.strokeStyle="#714b26";c.lineWidth=1.1;
+    c.beginPath();c.moveTo(-11,-8);c.lineTo(-14,-22);c.lineTo(-5,-16);c.lineTo(0,-26);c.lineTo(5,-16);c.lineTo(14,-22);c.lineTo(11,-8);c.closePath();c.fill();c.stroke();
+    line([[-9,-10],[9,-10]],"#fff3c9",1);
+    for(const x of [-7,0,7]) {c.fillStyle=x?p.color:"#f36c9d";c.beginPath();c.arc(x,x?-13:-16,1.8,0,Math.PI*2);c.fill();}
+  } else if (p.accessory === "Halo") {
+    c.beginPath();c.ellipse(0,-23,14,4,-.12,0,Math.PI*2);c.strokeStyle="#f6da8260";c.lineWidth=6;c.stroke();c.strokeStyle="#fff1b8";c.lineWidth=2;c.stroke();
+  } else if (p.accessory === "Horns") {
+    for(const sign of [-1,1]) {c.fillStyle="#6e355c";c.strokeStyle="#ffc4d8";c.lineWidth=1;
+      c.beginPath();c.moveTo(sign*5,-9);c.quadraticCurveTo(sign*20,-13,sign*12,-28);c.quadraticCurveTo(sign*11,-18,sign*1,-12);c.closePath();c.fill();c.stroke();}
+  } else if (p.accessory === "Cat ears") {
+    for(const sign of [-1,1]) {c.fillStyle=p.hairColor;c.strokeStyle="#cbd4e3";c.lineWidth=1.2;c.beginPath();c.moveTo(sign*3,-10);c.lineTo(sign*13,-25);c.lineTo(sign*15,-5);c.closePath();c.fill();c.stroke();line([[sign*7,-11],[sign*12,-19],[sign*12,-9]],"#f3a1bd",1.8);}
+  } else if (p.accessory === "Antenna") {
+    line([[0,-10],[-3,-22],[3,-29]],"#cad6df",1.8);c.fillStyle=p.color;c.beginPath();c.arc(3,-29,4,0,Math.PI*2);c.fill();c.fillStyle="#fff";c.beginPath();c.arc(2,-30,1.3,0,Math.PI*2);c.fill();
   }
   c.restore();
 }
