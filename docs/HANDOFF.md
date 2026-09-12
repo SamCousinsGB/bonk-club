@@ -76,6 +76,25 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   and enlarged actual Canvas artwork were inspected. External QA/evidence:
   ../bonk-club-qa/barrel-leaks-browser.cjs, barrel-leaks-browser.json and
   barrel-leaks-{game,detail,hotjoin}.png. No production debug hooks or Pi changes.
+
+- **Published and verified:** included in combined v0.24.4 revision
+  `e673390dade299b7ee36d583e59b404a25259bdd`, protocol 47. Release
+  [34703363111](https://github.com/SamCousinsGB/bonk-club/actions/runs/34703363111)
+  passed all **871 game/shared tests**, three server tests, seven desktop tests
+  per OS, Windows/Linux executable smoke and packaging, and shared-source checks.
+  The preceding v0.24.3 combined source passed 875 tests locally; after the
+  final pickup-timing follow-up, all 77 affected checks passed locally too.
+- All **17 public files** matched the exact committed build and CI browser
+  artifact by SHA-256. The unmodified public v0.24.4 bundle passed solo,
+  host/guest controls, a third player joining mid-round, leave and small-menu
+  checks with selected relay/relay candidates and no page errors. Public
+  gameplay was visually inspected. Newer cable/pylon work on main is separate
+  from this verified release record.
+- Final exact source/build: `../bonk-club-qa/barrel-leaks-current-exact`;
+  CI artifact: `barrel-leaks-ci`; hashes: `barrel-leaks-live-verification.json`.
+  Public observer: `barrel-leaks-public.cjs`; test log: `barrel-leaks-ci.log`.
+  Local previews for this task used ports 5441, 5442 and 5443 and are stopped.
+
 ## Slower pickup pacing - 12 September 2026
 
 - v0.24.4, protocol 47 from the integrated barrel-leak release. Refresh every
