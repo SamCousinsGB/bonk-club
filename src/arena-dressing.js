@@ -6,6 +6,7 @@ export const PROP_SIZES = {
   generator:[88,66],planter:[70,58],pallet:[104,34],
 };
 const palettes = {
+  furnace:["generator","pallet","barrel"],
   jungle:["log","planter","crate"],temple:["stone","planter","log"],
   desert:["stone","barrel","crate"],ruins:["stone","crate","planter"],
   houses:["sofa","planter","table"],mansion:["cabinet","sofa","planter"],

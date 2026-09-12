@@ -1,3 +1,5 @@
+import { FurnaceCables } from "./furnace-cables.js";
+import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
@@ -894,6 +896,7 @@ export class Renderer {
         layer.height = H;
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
+        if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);
@@ -916,6 +919,11 @@ export class Renderer {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
     }
+    if (arena.furnace) {
+      this.furnaceCables ||= new FurnaceCables();
+      const cables = this.furnaceCables.update(state, dt, this.reduced);
+      drawFurnaceCables(c, cables, state.hazards.find(h => h.type === "furnace"), time);
+    }
     drawRifts(this,state);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
@@ -934,7 +942,7 @@ export class Renderer {
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);
-    drawHazards(c, state.hazards, time, arena.theme, "back");
+    drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -986,7 +994,7 @@ export class Renderer {
     for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
-    drawHazards(c, state.hazards, time, arena.theme, "front");
+    drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);

@@ -3,6 +3,7 @@ import { carveRectangle } from "./nuclear.js";
 // Marked wood and glass panels can be shot out. Every surface also supports
 // circular explosion cuts, including structural supports and lifts.
 export function preparePlatforms(arena, arenaIndex) {
+  if (arena.furnace) return arena.platforms.map(p => ({ ...p }));
   // Machinery floors resist bullets but still use the same circular blast cuts.
   if (arena.survival) return arena.platforms.map(p => ({ ...p }));
   const candidates = arena.platforms

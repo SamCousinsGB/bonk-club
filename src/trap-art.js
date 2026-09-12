@@ -1,3 +1,4 @@
+import { drawFurnaceFixture } from "./furnace-art.js";
 import { isScanner } from "./scanner.js";
 const line=(c,points,color,width=3)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=color;c.fill();};
@@ -27,9 +28,10 @@ function scannerFront(c,h) {
 }
 // Default draws the complete fixture for destruction artwork. Gameplay splits
 // scanners around the fighters: left/rear post first, right/front post last.
-export function drawHazards(c,hazards,time,theme,layer="all"){
+export function drawHazards(c,hazards,time,theme,layer="all",reduced=false){
   for(const h of hazards||[]){
     if(h.done)continue;
+    if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced);continue;}
     if(layer==="back"&&!isScanner(h))continue;
     if(layer==="front"&&isScanner(h)){
       c.save();scannerFront(c,h);c.restore();continue;

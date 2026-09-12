@@ -808,13 +808,13 @@ export function validSnapshot(s) {
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= (h.type === "saw" ? 2400 : 400) &&
+        h.w <= (h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : 400) &&
         (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
         (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
         (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&
         (h.motionPhase === undefined || (h.type === "saw" && finite(h.motionPhase) && Math.abs(h.motionPhase) <= Math.PI)) &&
         h.h > 0 &&
-        h.h <= 300 &&
+        h.h <= (h.type === "furnace" ? 1300 : 300) &&
         h.warning >= 0 &&
         h.warning <= 2 &&
         h.age >= 0 &&
