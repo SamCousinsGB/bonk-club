@@ -43,8 +43,8 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Source: ../bonk-club-qa/car-assembly, branch codex/car-assembly, based on current
   main including bot firing clearance, furnace audio and text-selection fixes.
   The canonical checkout's older overlapping work is preserved.
-- Fourteen focused assembly regressions and existing route/scale/material checks
-  pass. Seeded four-bot play completed the new arena's first round in 23.7 seconds.
+- Fifteen focused assembly regressions and existing route/scale/material checks
+  pass. Seeded four-bot play completed the new arena's first round in 46.6 seconds.
   Real Edge host/guest and changed-map hot join passed with selected relay/relay
   candidates, including actual guest movement/jump and permanent machine/car cuts.
   Rendered gameplay inspected at 1600x900 and 844x390; no browser errors.
@@ -52,6 +52,24 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   assembly-online-active.png and assembly-online-hotjoin.png. No debug hooks,
   new dependencies or Pi changes ship. Full integrated suite and release proof
   are recorded below after completion.
+
+- Published gameplay revision: c39a02d38f8fc0b399ef43e1427bac573b75cf0e.
+  [Release run 34713382938](https://github.com/SamCousinsGB/bonk-club/actions/runs/34713382938)
+  passed all 977 shared/game tests, three server tests, Windows/Linux desktop
+  unit, executable smoke and packaging checks, source consistency and Pages deploy.
+- All 17 public files match both the exact committed build and CI artifact by
+  SHA-256. Shared source hash:
+  300d5467a59fcfe98487a9426f0f64d9e92271451f0b277e1934cd528d76423a.
+  Exact LF build: ../bonk-club-qa/assembly-exact; artifact: assembly-ci;
+  manifest: assembly-live-verification.json. The unmodified public v0.30.0 passed
+  normal map selection, continuing car production, actual guest controls, host
+  departure and a real hot join, with selected relay/relay candidates and no page
+  errors. Actual public gameplay was visually inspected at 1600x900 and 844x390.
+- Public evidence: ../bonk-club-qa/assembly-public.mjs, assembly-public.json,
+  assembly-public-active.png and assembly-public-hotjoin.png. The local production
+  bot-play recording is assembly-gameplay.webm. These browsers share one QA PC;
+  this does not establish cross-ISP latency or Steam connectivity. Preview ports
+  5523/5524 are stopped. No credentials, dependencies or debug hooks were added.
 
 ## Arc furnace environmental warning and electricity - 12 September 2026
 
