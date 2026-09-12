@@ -2,6 +2,41 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Character cosmetics - 12 September 2026
+
+- Release **v0.21.0**, protocol **43**. Refresh every player before creating a room.
+- Character now has Body, Hair, Gear and Effects tabs. Seven new finishes
+  (Chrome, Gold leaf, Iridescent, Opal, Carbon fibre, Starfield and Magma), five
+  capes (Royal, Split, Starlight, Holographic and Ember), six movement trails,
+  three auras, and Crown, Halo, Horns, Cat ears and Antenna headwear. Cape colour
+  is independent of body colour. Every choice is configured in Character.
+- The animated Stand/Run/Jump preview shares the actual fighter artwork, finishes,
+  cloth and trail renderer. Cloth follows a nine-point gravity/drag/constraint
+  simulation; trails expire within 0.48 seconds and cap at 26 samples per fighter.
+  Cosmetic histories are render-only, reset on round/occupant/teleport/death and
+  capture, and never alter collision, controls, inventory, damage or scores.
+  Reduced motion uses a static pose/cloth and omits trails.
+- Validated profiles preserve old saved choices and add defaults. New selections
+  survive lobby updates, in-game edits, death bodies, captured heads, interpolation
+  and hot join. Special death artwork still takes priority. Both browser and
+  desktop preferences use the same schema. No dependencies or Pi changes.
+- Implemented in the canonical checkout while preserving concurrent work; the
+  isolated release is `../bonk-club-qa/cosmetics-release`, branch `codex/cosmetics`.
+  Integrated main's bubble-pop release `51ffb29` and Tesla release `8a6d3a4`.
+  Do not copy the older canonical engine over main.
+- Verification: all 796 tests passed before bubble integration, then all 52
+  affected identity, cosmetic, bubble, network and interpolation tests passed.
+  Desktop editor and actual gameplay inspected; 390px editor has no horizontal
+  overflow and saved choices survive reload. Three real browser players selected
+  relay/relay candidates and received identical cosmetic profiles, including a
+  mid-round edit and hot join. No page errors in those final runs.
+- External local observer `../bonk-club-qa/cosmetics-observe.mjs` forces relay and
+  exposes a DOM QA report. Its development proxy supplies the normal public Origin
+  for signaling/temporary ICE requests. None of that observer is in the release.
+  Full test log: `../bonk-club-qa/cosmetics-tests.log`. Publication verification
+  follows below; do not report the initial local v0.19.0/protocol41 fixture as live.
+
+
 ## Shared releases and Steam platform preparation - 12 September 2026
 
 - Sam selected one shared game/release pipeline, Steam-only desktop networking,

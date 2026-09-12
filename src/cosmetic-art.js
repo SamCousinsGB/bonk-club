@@ -32,11 +32,11 @@ export function materialPaint(c, p, x, y, width = 24, height = 72, time = 0) {
   for (const [at, color] of stops) g.addColorStop(at, color);
   return g;
 }
-export function drawFinish(c, p, rig, time, ox = 0, oy = 0) {
+export function drawFinish(c, p, rig, time, ox = 0, oy = 0, joints = [[1,2],[1,3],[3,4],[1,5],[5,6],[2,7],[7,8],[2,9],[9,10]]) {
   if (!p.finish || p.finish === "Matte" || p.flash > 0) return;
   c.save(); c.translate(-ox, -oy);
   // Follow each limb, so the weave/facets move with the physical pose.
-  for (const [a, b] of [[1,2],[1,3],[3,4],[1,5],[5,6],[2,7],[7,8],[2,9],[9,10]]) {
+  for (const [a, b] of joints) {
     const u = rig[a], v = rig[b], dx = v.x-u.x, dy = v.y-u.y, d = Math.hypot(dx,dy) || 1;
     for (let i = 0; i < 4; i++) {
       const t = (i+.5)/4, x = u.x+dx*t, y=u.y+dy*t;

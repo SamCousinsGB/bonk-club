@@ -150,7 +150,7 @@ export function drawDeath(r, rag, time) {
     }
     {
       r.circle(pts[0].x, pts[0].y, 10, finish);
-      drawFinish(c, rag, pts, time);
+      drawFinish(c, rag, pts, time, 0, 0, joints);
       drawAppearance(
         c,
         rag,
