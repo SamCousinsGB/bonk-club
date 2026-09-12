@@ -47,7 +47,22 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   The four fixtures fired at 613-685 units after creating space; no page errors.
   External evidence: ../bonk-club-qa/bot-safe-range-browser.mjs, its JSON record
   and bot-safe-range-*.png. No observer hooks ship. Preview port 5512 is stopped.
-- Full-suite, publication and live artifact verification follow below when complete.
+- Published and verified: `b0294a59874d71f3184cfc2528366cd5f83e8ec0`.
+  All **955 shared/game tests passed** locally. The existing Garden Houses nuke
+  climb regression remains covered: grenade positioning favours clear firing
+  ledges without treating every nearby wall as an immediate impact.
+- [Release run 34712554369](https://github.com/SamCousinsGB/bonk-club/actions/runs/34712554369)
+  passed the shared/server tests, Windows/Linux desktop unit and executable
+  smoke/packaging checks, shared-source verification and Pages deployment.
+- All **17 public files** match the exact clean build and CI artifact by SHA-256.
+  Shared source hash: `96f3c7184d96453d7e550bc9a8e37c20bb0664172a71fdce6bdb5d2818915921`.
+  Exact build: ../bonk-club-qa/bot-safe-range-exact; CI artifact: bot-safe-range-ci;
+  verifier/evidence: verify-bot-safe-range-live.mjs and bot-safe-range-live-verification.json.
+- The unmodified public v0.28.3 game passed host/guest controls, hot join and host
+  departure with selected relay/relay routes and no page errors. Normal-menu bot
+  pickup/fire and the resulting black-hole effect also passed; actual public
+  gameplay was visually inspected. These browsers run on one QA machine and do
+  not measure cross-ISP latency. No Pi changes or production debug hooks.
 
 
 ## Heavy whole-arena distortion - 12 September 2026
