@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.24.2",
+  "version": "0.24.3",
   "releaseNotes": "Barrels leak from bullet holes with correctly sized gas jets",
   "private": true,
   "type": "module",

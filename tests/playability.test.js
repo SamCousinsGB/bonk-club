@@ -52,7 +52,7 @@ test('the eight original maps have distinct main routes and retain large world d
 });
 test('featured nuclear pickup rotates among contested interior locations',()=>{
  const positions=new Set();
- for(let seed=1;seed<=12;seed++) {let n=seed*914;const random=()=> (n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296;const w=new World({arena:8,random});const d=w.drops.find(d=>d.type==='nuke');assert.ok(d);assert.ok(d.x>=650&&d.x<=1910);assert.ok(w.arena.spawns.every(([x,y])=>Math.hypot(d.x-x,d.y-y)>=300));positions.add(`${d.x},${d.y}`);}
+ for(let seed=1;seed<=12;seed++) {let n=seed*914;const random=()=> (n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296;const w=new World({arena:8,random});w.round=3;w.startRound();const d=w.drops.find(d=>d.type==='nuke');assert.ok(d);assert.ok(d.x>=650&&d.x<=1910);assert.ok(w.arena.spawns.every(([x,y])=>Math.hypot(d.x-x,d.y-y)>=300));positions.add(`${d.x},${d.y}`);}
  assert.ok(positions.size>=2, 'the featured pickup must not remain on one perch');
 });
 test('pickup text avoids fighters and other weapon labels',()=>{
