@@ -11,7 +11,7 @@ function empty() {
 }
 test("every airborne weapon retains its projectile beyond its old timeout and outside the map",()=>{
   for(const [type,definition] of Object.entries(WEAPONS)) {
-    if(["melee","grenade","phaser"].includes(definition.kind))continue;
+    if(["melee","grenade","phaser","tesla"].includes(definition.kind))continue;
     const w=empty(),p=w.players[0];p.weapon=type;p.ammo=definition.ammo;p.aimAngle=0;
     w.attack(p);const b=w.projectiles[0];assert.ok(b,type);
     // No owner to catch the boomerang and no target for homing shots.

@@ -35,6 +35,7 @@ import {
 } from "./arsenal.js";
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms, carveExplosion } from "./terrain.js";
+import { fireTesla, updateTesla } from "./tesla.js";
 import { firePhaser } from "./phaser.js";
 import { BURN_DAMAGE, popBubble } from "./weird-weapons.js";
 import { projectileMuzzle } from "./weapon-mount.js";
@@ -401,6 +402,7 @@ export class World {
     this.updateDebris(dt);
     updateBlood(this,dt);
     if (this.phase === "result") {
+      updateTesla(this, {});
       updateFields(this, dt);
       for (const p of this.players)
         if (p.alive) {
@@ -475,6 +477,7 @@ export class World {
         collideRigs(this.players[a], this.players[b]);
     for (const p of this.players)
       if (active && p.alive) updateMelee(this, p);
+    updateTesla(this, active ? inputs : {});
     updateFields(this, dt);
     this.updateProjectiles(dt);
     this.updateDrops(dt);
@@ -741,8 +744,10 @@ export class World {
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
     const w = alternate ? { ...base, ...base.alt } : base;
-    if (w.kind !== "melee" && w.kind !== "phaser" &&
+    if (w.kind !== "melee" && w.kind !== "phaser" && w.kind !== "tesla" &&
         !canSpawnProjectiles(this, w.count || (w.kind === "pellet" ? 5 : 1))) return;
+    if (w.kind === "tesla" && !this.prediction && this.fields.length >= 12 &&
+        !this.fields.some(f => f.kind === "tesla" && f.owner === p.id)) return;
     if (w.proneOnly && (!p.prone || !p.ground)) return;
     const action = `${this.round}:${p.occupant}:${p.id}:${p.actionSerial = (p.actionSerial || 0) + 1}`;
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI),
@@ -759,7 +764,8 @@ export class World {
       const count = w.count || (w.kind === "pellet" ? 5 : 1);
       const muzzle = projectileMuzzle(this, p, p.weapon, ax, ay);
       if (w.kind === "phaser") firePhaser(this, p, ax, ay, action);
-      for (let n = 0; n < (w.kind === "phaser" || this.prediction && !this.previewShot ? 0 : count); n++) {
+      if (w.kind === "tesla") fireTesla(this, p, action);
+      for (let n = 0; n < (["phaser", "tesla"].includes(w.kind) || this.prediction && !this.previewShot ? 0 : count); n++) {
         const spread =
           count > 1
             ? (n - (count - 1) / 2) *
@@ -837,8 +843,8 @@ export class World {
     if (p.weapon) {
       p.ammo -= w.ammoCost || 1;
       if (p.ammo <= 0) {
-        // Keep the final melee swing or phase discharge visible until it finishes.
-        if (!["melee", "phaser"].includes(w.kind)) p.weapon = null;
+        // Keep the final swing or sustained discharge visible until it finishes.
+        if (!["melee", "phaser", "tesla"].includes(w.kind)) p.weapon = null;
         p.ammo = 0;
       }
     }

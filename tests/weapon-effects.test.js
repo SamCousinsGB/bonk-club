@@ -96,7 +96,7 @@ test("plasma and Tesla reveal living skeletons; lethal hits and Tesla chains lea
     assert.ok(q.xray > 0);
     assert.equal(q.xrayType, type);
     const next = fixture();
-    shoot(next, type, 15);
+    shoot(next, type, type === "tesla" ? 4 : 15);
     assert.equal(next.players[1].alive, false);
     assert.equal(next.ragdolls[0].effect, type);
     assert.equal(next.ragdolls[0].ash, true);
@@ -104,8 +104,8 @@ test("plasma and Tesla reveal living skeletons; lethal hits and Tesla chains lea
   }
   const w = fixture();
   w.players[2].x = 970;
-  w.players[2].hp = 10;
-  shoot(w, "tesla", 10);
+  w.players[2].hp = 4;
+  shoot(w, "tesla", 4);
   assert.equal(w.players[2].alive, false);
   assert.ok(w.ragdolls.every((r) => r.effect === "tesla"));
 });

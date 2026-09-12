@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "releaseNotes": "Shared release pipeline and Steam desktop preparation",
   "private": true,
   "type": "module",

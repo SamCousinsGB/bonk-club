@@ -75,46 +75,7 @@ export function impactSpecial(world, b, target, hurt) {
       target.freezePose=target.rig?.map(q=>({x:q.x-target.x,y:q.y-target.y}));
     }
   }
-  if (b.kind !== "tesla") return;
-  const hit = new Set([b.owner, target.id]);
-  let from = target;
-  for (let hop = 0; hop < 2; hop++) {
-    const next = world.players
-      .filter(
-        (p) =>
-          p.alive &&
-          !hit.has(p.id) &&
-          Math.hypot(p.x - from.x, p.y - from.y) < 240 &&
-          clear(world, from, p),
-      )
-      .sort(
-        (a, c) =>
-          Math.hypot(a.x - from.x, a.y - from.y) -
-          Math.hypot(c.x - from.x, c.y - from.y),
-      )[0];
-    if (!next) break;
-    world.fields.push({
-      kind: "arc",
-      x: from.x,
-      y: from.y - 10,
-      ex: next.x,
-      ey: next.y - 10,
-      radius: 0,
-      life: 0.16,
-      owner: b.owner,
-    });
-    world.hit(
-      next,
-      { x: from.x, y: from.y, vx: 0, vy: 0 },
-      b.damage * (0.75 - hop * 0.15),
-      b.force,
-      Math.sign(next.x - from.x) || 1,
-      -0.2,
-      { projectile: true, stun: 0.09, effect:"tesla", source: b },
-    );
-    hit.add(next.id);
-    from = next;
-  }
+
 }
 
 export function expireSpecial(world, b) {

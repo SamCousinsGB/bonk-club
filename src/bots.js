@@ -32,12 +32,12 @@ const idle = () => ({
 // Use the projectile's useful travel distance, rather than the old close-range
 // preference, to decide whether a bot can engage across a broken arena.
 function engagementRange(w) {
-  if (["phaser", "boomerang", "duck"].includes(w.kind)) return w.range;
+  if (["phaser", "tesla", "boomerang", "duck"].includes(w.kind)) return w.range;
   if (["melee", "grenade"].includes(w.kind)) return w.range;
   return W;
 }
 const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type,{
-  range:engagementRange(w), speed:w.kind === "melee" ? undefined : w.speed,
+  range:engagementRange(w), speed:w.kind === "melee" ? undefined : w.kind === "tesla" ? 12000 : w.speed,
   value:{common:5,uncommon:7,rare:9,exotic:11}[w.rarity], damage:w.damage,
   recoil:firingRecoil(w,{prone:!!w.proneOnly,ground:true}),
   blast:["rocket","grenade","plasma","duck"].includes(w.kind)?w.radius||145:0,

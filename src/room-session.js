@@ -32,7 +32,7 @@ import {
   validAppearance,
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
-export const PROTOCOL = 41;
+export const PROTOCOL = 42;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -855,7 +855,11 @@ export function validSnapshot(s) {
         xy(f) &&
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
         action(f.action) &&
-        ["arc", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
+        ["arc", "tesla", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
+        (f.kind !== "tesla" || (integer(f.owner,0,3) && f.radius === 0 && f.life <= .14 &&
+          list(f.links,7,l => xy(l) && [l.ex,l.ey].every(finite) &&
+            Math.abs(l.ex) <= 100000 && Math.abs(l.ey) <= 100000 &&
+            typeof l.key === "string" && l.key.length <= 192) && f.links.length >= 1)) &&
         (!["tether", "cryo", "firework"].includes(f.kind) ||
           (integer(f.owner, 0, 3) && f.radius === {tether: 0, cryo: 210, firework: 120}[f.kind] &&
            f.life <= {tether: .18, cryo: .55, firework: .45}[f.kind])) &&
