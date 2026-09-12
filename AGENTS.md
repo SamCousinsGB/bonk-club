@@ -196,6 +196,9 @@ Keep this constitution for durable rules and the handoff for current work.
   Validate traversal and dodge landings, brake at edges and allow for recoil.
   Retry safe routes or wait for a reachable pickup. A last-ditch unsafe escape is
   reserved for imminent lethal danger with no safe route, never boredom or low HP.
+- Bots carrying explosive weapons or black-hole generators create safe firing distance,
+  using reachable retreat platforms when needed. Keep separation during stalemates,
+  retain the weapon, and never use an unchecked fatal jump to gain clearance.
 - Tesla is a held electrical cast from the physical muzzle, with bounded chains
   through fighters, props and connected unfrozen water. Release ends the arc;
   charge drains during use. Preserve cover blocking, short shocks, electrical

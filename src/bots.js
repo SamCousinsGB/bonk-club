@@ -42,6 +42,8 @@ const weapons = Object.fromEntries(Object.entries(WEAPONS).map(([type,w])=>[type
   recoil:firingRecoil(w,{prone:!!w.proneOnly,ground:true}),
   blast:["rocket","grenade","plasma","duck"].includes(w.kind)?w.radius||145:0,
   singularity:w.kind === "singularity",
+  clearance:w.kind === "singularity" ? w.radius + 90 :
+    ["rocket","grenade","plasma","duck"].includes(w.kind) ? (w.radius || 145) + 100 : 0,
 }]));
 const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
@@ -60,6 +62,55 @@ function firstObstacle(solids, p, point) {
     .map((s) => ({ s, hit: segmentBox(p.x, p.y - 10, point.x, point.y, s) }))
     .filter((o) => o.hit)
     .sort((a, b) => a.hit.t - b.hit.t)[0]?.s;
+}
+// Find space to use a dangerous weapon, including across checked platform routes.
+// Score every opponent so backing away from one does not run into another.
+function firingPosition(world, p, enemy, weapon, paths, solids, here, aim) {
+  const desired = weapon.clearance + 80;
+  const opponents = world.players.filter(q => q.alive && q.id !== p.id);
+  const nearest = point => Math.min(...opponents.map(q => distance(point, q)));
+  const current = nearest(p);
+  // Grenades can arc over close cover; walls are a positioning cost below.
+  const impactShot = WEAPONS[p.weapon].kind !== "grenade";
+  const obstruction = firstObstacle(solids, p, {x:enemy.x, y:enemy.y - 10});
+  const blockedClose = obstruction && segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, obstruction);
+  if (current > desired + 100 && !(impactShot && blockedClose && distance(p, enemy) * blockedClose.t < weapon.clearance)) return null;
+  const options = [];
+  for (const [id, path] of paths) {
+    const s = solids.find(s => s.id === id);
+    if (!s || s.hp === 0 || s.chunk) continue;
+    const span = walkingSpan(s, solids);
+    const margin = Math.max(30, weapon.recoil * Math.abs(Math.cos(aim)) * .38 + 24);
+    if (span.w < margin * 2 + 10) continue;
+    const left = span.x + margin, right = span.x + span.w - margin;
+    const y = s.y - 30;
+    const dx = Math.sqrt(Math.max(0, desired * desired - (y - enemy.y) ** 2));
+    for (const x of new Set([clamp(p.x,left,right), left, right,
+      clamp(enemy.x - dx,left,right), clamp(enemy.x + dx,left,right)])) {
+      const point = {x,y};
+      if (!path.edge && firstObstacle(solids,p,{x,y:y - 10})) continue;
+      if (world.spikes().some(t => x > t.x - 22 && x < t.x + t.w + 22 && Math.abs(s.y - t.y) < 45) ||
+          reactionDanger(world,x,y) || world.hazards.some(h => {
+            if (!dangerous(h)) return false;
+            const z = hazardZone(h);
+            return x > z.x - 30 && x < z.x + z.w + 30 && y + 30 > z.y && y - 28 < z.y + z.h;
+          })) continue;
+      const separation = nearest(point);
+      const wall = firstObstacle(solids, point, {x:enemy.x,y:enemy.y - 10});
+      const hit = wall && segmentBox(x,y - 10,enemy.x,enemy.y - 10,wall);
+      const clearance = distance(point,enemy) * (hit?.t ?? 1);
+      const cost = Math.max(0,desired - separation) * 6 +
+        (!impactShot && wall ? weapon.clearance * 3 : 0) +
+        (impactShot
+          ? Math.max(0,weapon.clearance - clearance) * 4 : 0) +
+        path.cost * 60 + Math.abs(path.x - x) * .25 +
+        Math.max(0,distance(point,enemy) - weapon.range * .85) * 2;
+      options.push({point,s,path,cost});
+    }
+  }
+  options.sort((a,b) => a.cost - b.cost || (p.id % 2 ? a.point.x - b.point.x : b.point.x - a.point.x));
+  // A stranded bot still keeps the greatest available clearance on its ledge.
+  return options[0] || (here && {point:{x:p.x,y:p.y},s:here,path:paths.get(here.id)});
 }
 function intercept(p, q, speed) {
   const dx = q.x - p.x,
@@ -345,8 +396,7 @@ export class BotController {
     i.attack =
       range < weapon.range &&
       (!obstacle || breakable(obstacle)) &&
-      (!weapon.blast || range > weapon.blast + 90) &&
-      (!weapon.singularity || range > 300);
+      (!weapon.clearance || range > weapon.clearance);
     let clearing = !!obstacle && breakable(obstacle);
     if (obstacle && breakable(obstacle))
       i.aim = Math.atan2(
@@ -366,7 +416,6 @@ export class BotController {
       if (recoilX < footing.x + 18 || recoilX > footing.x + footing.w - 18)
         i.attack = false;
     }
-    if (weapon.blast && range < 150 && !obstacle) i.throw = true;
     if (grenade) {
       const saved = b.grenade;
       if (
@@ -387,16 +436,15 @@ export class BotController {
           plan: grenadePlan(p, enemy, WEAPONS[p.weapon], solids),
         };
       }
-      i.attack = !!b.grenade.plan;
+      i.attack = range > weapon.clearance && !!b.grenade.plan;
       if (i.attack) i.aim = b.grenade.plan.angle;
     }
     if (weapon.singularity) {
-      // The orb arms a pulling field at impact. Its field radius is
-      // useful reach, not an instant explosion requiring 710 units of clearance.
+      // Stay outside the pulling field when the seed hits cover or its target.
       const definition = WEAPONS[p.weapon];
       const hit = obstacle && segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, obstacle, 10);
       const travel = range * (hit?.t ?? 1);
-      i.attack = travel > 300 && range - travel < definition.radius * 0.75;
+      i.attack = travel > weapon.clearance && range - travel < definition.radius * 0.75;
       i.aim = Math.atan2(aim.y - (p.y - 10), aim.x - p.x);
       // Retain the normal reaction delay even when deploying against a wall.
       clearing = false;
@@ -459,9 +507,18 @@ export class BotController {
     } else {
       b.pickup = null;
     }
+    const spacing = !fetching && weapon.clearance && here
+      ? firingPosition(world,p,enemy,weapon,paths,solids,here,i.aim) : null;
+    if (spacing) {
+      goal = spacing.point;
+      destination = spacing.s;
+      path = spacing.path;
+      b.recovery = null;
+      i.throw = false;
+    }
     // A gun can engage across a gap from its current footing. Do not take an
     // unrelated route off that firing position merely to reach the enemy's floor.
-    if (!fetching && weapon.speed && !obstacle && range < weapon.range && here) {
+    if (!fetching && !spacing && weapon.speed && !obstacle && range < weapon.range && here) {
       destination = here;
       path = paths.get(here.id);
     }
@@ -530,7 +587,7 @@ export class BotController {
         weapon.speed &&
         !obstacle &&
         range < weapon.range * 0.85 &&
-        !staleAttack
+        (!staleAttack || weapon.clearance)
       ) {
         const desired = weapon.blast
           ? Math.max(420, weapon.blast + 140)
@@ -650,7 +707,6 @@ export class BotController {
       i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
       i.attack = distance(p, point) < weapon.range && !weapon.blast && !weapon.singularity;
       // Use the planned jump onto/over furniture; never jump blindly under a ceiling.
-      if (weapon.blast) i.throw = true;
     }
     if (b.stuck > 1.2 && b.edge && !b.flight) {
       b.failures.set(b.edge.key, world.time + 9);
@@ -659,7 +715,7 @@ export class BotController {
     }
     // Explore only flights with a real landing. A stale fight is never a reason
     // to jump into a fatal gap; wait for a reachable pickup or a changed route.
-    if (!b.flight && !ride && !fetching && p.ground && here && staleAttack && !b.recovery &&
+    if (!b.flight && !ride && !fetching && !spacing && p.ground && here && staleAttack && !b.recovery &&
         (world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
       const attempt = b.recoveryAttempts || 0;
       let direction = Math.sign(enemy.x - p.x) || (p.id % 2 ? 1 : -1);

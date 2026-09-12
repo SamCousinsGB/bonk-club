@@ -2,6 +2,29 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Bot firing distance - 12 September 2026
+
+- v0.28.3, protocol 51 unchanged. Bots carrying nukes, black-hole generators,
+  rockets, grenades, plasma and explosive ducks retreat to usable firing space.
+  They choose reachable platforms, retain their weapon at close range, and keep
+  separation through stale fights. Existing jump, spike and recoil checks remain.
+- Black-hole impact clearance includes the 465-unit field and a 90-unit margin;
+  explosive clearance uses the blast radius plus 100. Grenades still require a
+  safe predicted landing. Retreat choices account for other living opponents and
+  nearby cover. No damage, weapon physics, wire state or dependencies changed.
+- Scoped source/tests are mirrored in the canonical checkout, preserving its
+  older work. Release integration: ../bonk-club-qa/bot-safe-range on
+  codex/bot-safe-range, based on current main including doubled spacetime warp.
+- Sixteen new behavior tests cover each weapon, overlapping bot pairs, actual
+  shots, safe retreat jumps, stranded ledges, spikes and close walls. Eleven fail
+  on the previous AI and all pass with the change. The 68 focused AI checks pass.
+- Actual rendered pair retreats and platform jumps were inspected in Edge.
+  The four fixtures fired at 613-685 units after creating space; no page errors.
+  External evidence: ../bonk-club-qa/bot-safe-range-browser.mjs, its JSON record
+  and bot-safe-range-*.png. No observer hooks ship. Preview port 5512 is stopped.
+- Full-suite, publication and live artifact verification follow below when complete.
+
+
 ## Heavy whole-arena distortion - 12 September 2026
 
 - v0.28.2, protocol 51 unchanged. Whole-scene geometric displacement is doubled

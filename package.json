@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.28.2",
-  "releaseNotes": "Black holes distort the entire arena with twice the screen-warp strength",
+  "version": "0.28.3",
+  "releaseNotes": "Bots retreat to safe firing distance for explosive weapons and black holes",
   "private": true,
   "type": "module",
   "scripts": {
