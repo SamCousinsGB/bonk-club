@@ -33,7 +33,19 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   integrated map/hazard/network/render/cosmetic checks passed 76 tests.
 - External QA: `../bonk-club-qa/transmission-*`. No debug hooks, dependencies,
   desktop-shell changes or Pi configuration changes are part of this feature.
-  Final full-suite and publication verification are recorded below when complete.
+  All **832 game/shared tests and 3 server tests passed** in CI. Windows and Linux
+  each passed their seven desktop tests, executable smoke, packaging and the
+  shared-source release gate.
+- **Published and verified:** gameplay revision
+  `aee63241cc137edfd763a8ffaaa3f0ce5ffd5c83`, Pages run
+  `https://github.com/SamCousinsGB/bonk-club/actions/runs/34697763622`.
+  All **17 public files** match the exact committed production build and CI
+  browser artifact byte for byte. Build metadata reports v0.23.0, a clean source
+  tree and game hash `aa09c0f01d1db76418bd8efcd1fbf8f331a919ebfc66cbb092cfa1207c9ce881`.
+  The unmodified public bundle passed arena selection, solo, host/guest controls,
+  third-player hot join, leave and the 568-by-320 menu, with selected relay pairs
+  and no browser errors. Public gameplay and menu screenshots were inspected.
+  Only the task's two local preview servers were stopped; other previews remain.
 
 ## Character cosmetics - 12 September 2026
 
