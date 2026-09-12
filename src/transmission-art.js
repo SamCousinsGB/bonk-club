@@ -1,6 +1,7 @@
 import { electricArc } from "./electricity-art.js";
 import { wireCable } from "./powerlines.js";
-import { cableRuns, drawCableStroke } from "./cable-art.js";
+import { drawCableStroke } from "./cable-art.js";
+import { powerlineCircuit } from "./powerline-circuit.js";
 import { TOWER_MOUNTS, TOWER_LEVELS, PYLON_CENTRES, TOWER_TOP, TOWER_BASE, towerHalfWidth } from "./cable-layout.js";
 
 const line=(c,pts,color,width)=>{c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
@@ -80,15 +81,26 @@ export function drawTransmissionTowers(c,state) {
 
 export function drawPowerlines(c,state,time) {
   c.save();c.lineCap="round";c.lineJoin="round";
+  const circuit=powerlineCircuit(state);
   for(const cable of state.cables||[])if(cable.id.startsWith("tower")) {
-    const runs=cableRuns(cable),h=state.hazards?.find(h=>h.type==="powerline"&&"tower"+h.circuit===cable.id);
-    for(const run of runs) {
+    const runs=circuit.runs.filter(r=>r.cable===cable.id),h=state.hazards?.find(h=>h.type==="powerline"&&"tower"+h.circuit===cable.id);
+    for(const r of runs) {
+      const run=r.points;
       drawCableStroke(c,run,"#18232d",11);drawCableStroke(c,run,"#899b9f",6);
       drawCableStroke(c,run,"#c4ceca",1.4,-1.5);
       // Energize each surviving run independently, never across a cut gap.
-      if(h?.active&&!h.done)for(let i=0;i<run.length-1;i+=2)
-        electricArc(c,run[i],run[Math.min(i+2,run.length-1)],time,h.id*109+i,1.1,i%4===0);
-      if(h?.warning>0)drawCableStroke(c,run,"#efb965",2);
+      if(r.powered)for(let i=0;i<run.length-1;i+=2)
+        electricArc(c,run[i],run[Math.min(i+2,run.length-1)],time,h.id*109+i,r.shorted?1.9:1.1,r.shorted||i%4===0);
+      if(h?.warning>0&&r.supplied)drawCableStroke(c,run,"#efb965",2);
+    }
+  }
+  for(const [i,p] of circuit.arcs.entries()) {
+    const glow=c.createRadialGradient(p.x,p.y,2,p.x,p.y,80);
+    glow.addColorStop(0,"#edffffbb");glow.addColorStop(.2,"#73e9ff66");glow.addColorStop(1,"#537dff00");
+    c.fillStyle=glow;c.beginPath();c.arc(p.x,p.y,80,0,Math.PI*2);c.fill();
+    for(let j=0;j<5;j++) {
+      const angle=j*Math.PI*2/5+Math.sin(time*9+i)*.35,reach=45+18*Math.sin(time*17+j*3+i);
+      electricArc(c,p,{x:p.x+Math.cos(angle)*reach,y:p.y+Math.sin(angle)*reach},time,701+i*31+j,1.8,true);
     }
   }
   for(const h of state.hazards||[]) {

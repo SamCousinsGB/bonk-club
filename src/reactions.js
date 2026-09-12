@@ -7,6 +7,7 @@ import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
+import { poweredWirePieces } from "./powerline-circuit.js";
 
 // The host owns finite water and fuel. Guests receive only the bounded visible
 // state; neither fluid motion nor damage is re-simulated by a guest.
@@ -50,7 +51,7 @@ export function resetReactions(world) {
   const floors = world.platforms.filter(p => p.w >= 290 && p.h <= 65 && p.y > 320 &&
     !p.move && !p.travel && !p.waterId && !p.destructible);
   const used = new Set();
-  const kinds = ["canister", "waterTank", "canister",
+  const kinds = ["canister", ...(world.arena.transmission?[]:["waterTank"]), "canister",
     variants[world.arenaIndex % 4], variants[(world.arenaIndex + 1) % 4]];
   for (const [index, kind] of kinds.entries()) {
     const size = kind === "canister" ? [44, 72] : kind === "waterTank" ? [64, 76] : [54, 68];
@@ -367,10 +368,12 @@ function moveWater(world, dt, key = "water") {
 
 function conduction(world, dt) {
   const nodes=conductorNodes(world);
+  const wires=poweredWirePieces(world);
   const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
-    const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2));
+    const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
+      wires.some(s=>segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
     if(powered){live.add(i);queue.push(i);}
   }
   // No propagated stored charge: breaking a metal contact or draining a gap

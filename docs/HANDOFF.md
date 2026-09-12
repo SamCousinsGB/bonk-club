@@ -4,7 +4,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Power fist - 12 September 2026
 
-- v0.27.0, protocol 50. Refresh every player and create a new room.
+- v0.28.0, protocol 51. Refresh every player and create a new room.
 - POWER FIST is an exotic melee pickup with four punches. A hit launches a
   curled living ragdoll along the aim, including downward punches. Extra limb
   constraints retain tumbling, gravity and momentum. Survivors regain control;
@@ -15,7 +15,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   use physical extents; empty danger areas cannot trigger a smash. Other fighters
   can be struck once by the body, with host-owned damage and puncher credit.
 - Source: ../bonk-club-qa/power-fist, branch codex/power-fist, based on current main
-  and including 471507a's spacetime distortion. The canonical checkout retains
+  and including the spacetime and pylon-water releases. The canonical checkout retains
   its older overlapping work; use this worktree/current main for this release.
 - New regression cases cover directions, misses/parries, successive thin/thick
   walls, curling, props/containers/cables/traps, bubble damage, secondary hits,
@@ -30,6 +30,38 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Production browser controls/lobby/hot join/departure and Windows executable
   smoke passed, with seven desktop unit tests. Full suite and final publication
   verification are recorded below when complete. Preview port: 5487.
+
+## Pylon water and crossing shorts - 12 September 2026
+
+- v0.27.0, protocol 50. Refresh every player and create a new room.
+- Eight finite physical water jugs cover the inner/outer cross-arms of both
+  pylons. Removed all four centre weapon ledges. The original service landings
+  extend inward within the towers, with clear takeoffs and a 20-unit higher lower
+  landing; both actual wire crossings remain the only routes between pylons.
+- Each mounted cable run keeps the seven-second safe/live cycle through cuts
+  and destruction. Runs with no surviving supply are dead. Touching upper/lower
+  runs short continuously, including during safe/warning phases, while their
+  connected circuit has a surviving mount. Separating restores the existing clock.
+  Heavy branching arcs follow the real contact; powered wires conduct into water.
+- Short state is derived from existing validated cable geometry and attachments.
+  No extra snapshot fields or dependencies. Protocol 50 protects changed static
+  map reconstruction. Black holes cannot discard the virtual wire controller.
+- Scoped implementation is mirrored in the canonical checkout, preserving its
+  older unfinished work. Release integration: ../bonk-club-qa/pylon-water-arcs,
+  branch codex/pylon-water-arcs, from current main b0a1fda. Use the release worktree
+  or current main for the integrated game. Browser fixtures remain outside Git.
+- Focused checks cover every jug and pickup route, mounted/loose fragments, real
+  gravity-driven contact, water conduction, prediction, hot join and round reset.
+  All 32 route/pickup regressions, 31 cable/electricity checks and 78 related
+  network/reaction/black-hole checks passed. Real host/guest controls, the 7/14
+  second transitions, gravity-driven shorts in the safe interval, damaged-map
+  hot join (within 0.01-unit wire precision) and round reset passed through
+  selected relay/relay routes. Actual initial, live, shorted and late-join
+  gameplay was visually inspected without browser errors. Evidence:
+  ../bonk-club-qa/pylon-water-arcs-browser.{mjs,json} and corresponding PNGs.
+  Integrated concurrent main 471507a (v0.26.0 spacetime refraction) without
+  changing its renderer or effect. Final full-suite and publication evidence
+  follows on completion.
 
 ## Bot weapon priorities and survival - 12 September 2026
 

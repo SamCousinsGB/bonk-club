@@ -1,6 +1,7 @@
 import { playerBox, segmentBox } from "./collision.js";
 import { POWER_INTERVAL } from "./transmission-arena.js";
 import { cableIntact, releaseCableMounts } from "./heavy-cables.js";
+import { powerlineCircuit } from "./powerline-circuit.js";
 
 export const wireCable = (state, h) => state.cables?.find(c => c.id === `tower${h.circuit}`);
 export const wirePieces = (state, h) => {
@@ -14,13 +15,14 @@ export function intactPowerline(world,h) {
 export function updatePowerline(world,h,dt) {
   releaseCableMounts(world);
   const cable = wireCable(world,h);
-  if(!cable || !cable.links.some(Boolean)) {h.done=true;h.active=false;h.warning=0;return;}
+  if(!cable || !cable.links.some(Boolean)) {h.done=true;h.active=false;h.warning=0;h.duration=0;h.cooldown=0;return;}
   h.age+=dt;
   const phase=(h.age+1e-9)%(POWER_INTERVAL*2),wasActive=h.active;
-  h.active=phase>=POWER_INTERVAL;
-  h.warning=!h.active&&phase>=POWER_INTERVAL-1?POWER_INTERVAL-phase:0;
-  h.duration=h.active?POWER_INTERVAL*2-phase:0;
-  h.cooldown=h.active?0:POWER_INTERVAL-phase;
+  const runs=powerlineCircuit(world).runs.filter(r=>r.cable===cable.id);
+  h.active=runs.some(r=>r.powered);
+  h.warning=!h.active&&runs.some(r=>r.supplied)&&phase>=POWER_INTERVAL-1&&phase<POWER_INTERVAL?POWER_INTERVAL-phase:0;
+  h.duration=h.active?(phase>=POWER_INTERVAL?POWER_INTERVAL*2-phase:POWER_INTERVAL):0;
+  h.cooldown=!h.active&&runs.some(r=>r.supplied)&&phase<POWER_INTERVAL?POWER_INTERVAL-phase:0;
   if(h.active!==wasActive) {
     h.hitIds=[];h.hitTimer=0;
     if(h.active)world.event("hazard",{x:h.x,y:h.y,kind:"tesla"});
@@ -28,7 +30,7 @@ export function updatePowerline(world,h,dt) {
   if(!h.active||world.prediction)return;
   h.hitTimer-=dt;
   if(h.hitTimer<=0){h.hitIds=[];h.hitTimer=.8;}
-  const pieces=wirePieces(world,h);
+  const pieces=runs.flatMap(r=>r.powered?r.points.slice(1).map((b,i)=>({a:r.points[i],b})):[]);
   for(const p of world.players) {
     if(!p.alive||h.hitIds.includes(p.id))continue;
     const box=playerBox(p);
