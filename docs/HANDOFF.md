@@ -2,6 +2,26 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Accidental text selection - 12 September 2026
+
+- v0.29.1, protocol unchanged. Published gameplay revision
+  `0e19ff8754aee2ace30d9ed6a6c8e90a85c8f915`.
+- Text and artwork across the game are non-selectable and non-draggable, including
+  WebKit long-press callouts. Writable name, room-code and chat fields retain normal
+  text selection; read-only invite and diagnostic fields remain non-selectable.
+- [Release run 34712915219](https://github.com/SamCousinsGB/bonk-club/actions/runs/34712915219)
+  passed 961 shared/game tests, three server tests, browser build, exact revision
+  verification, Windows/Linux desktop tests, executable smoke, packaging and Pages
+  deployment.
+- All 16 public content files match the exact LF build by SHA-256, and public
+  `build-metadata.json` names v0.29.1, the exact clean revision and source hash.
+  The unmodified public game reports `user-select: none` for the menu, heading and
+  canvas; dragging across the release line selects no text. The writable name field
+  reports `user-select: text`, with no browser warnings or errors.
+- Isolated source: `../bonk-club-qa/unselectable`, branch `codex/unselectable`.
+  Exact archive/build: `../bonk-club-qa/unselectable-exact`. No dependencies,
+  protocol changes, Pi changes or production debug hooks.
+
 
 ## Car assembly arena - 12 September 2026
 
