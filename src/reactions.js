@@ -372,7 +372,7 @@ function conduction(world, dt) {
   const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
-    const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
+    const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
       wires.some(s=>segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
     if(powered){live.add(i);queue.push(i);}
   }

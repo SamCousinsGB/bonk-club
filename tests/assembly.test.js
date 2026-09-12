@@ -71,6 +71,14 @@ test("robot welders damage at their moving arm and tool rather than across the e
   advance(w, .05); assert.equal(w.players[0].hp, 62);
 });
 
+test("normal welding does not electrify the connected conveyor or distant riders", () => {
+  const w = fixture(), p = w.players[0];
+  Object.assign(p, { x: 920, y: 1160, ground: true, rig: null });
+  for (let i = 0; i < 240; i++) w.step(STEP);
+  assert.equal(p.hp, 100);
+  assert.ok(w.platforms.filter(p => p.assemblyBelt).every(p => !(p.charge > 0)));
+});
+
 test("station destruction prevents its build operation permanently and does not restore a press head", () => {
   for (const station of [1, 2, 3]) {
     const w = fixture(), h = w.hazards[station - 1], car = w.assembly.cars[station];
