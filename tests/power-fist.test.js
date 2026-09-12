@@ -115,6 +115,16 @@ test("bubble pop damage is still applied once when a power fist launches its occ
   advance(w,q,5);assert.equal(q.hp,34);
 });
 
+test("moving traps break on their physical head, without treating a wide travel area as solid",()=>{
+  for(const x of [900,1750]){
+    const w=fixture(),[p,q]=w.players;
+    const h={id:1,type:"saw",x:1280,y:1200,w:1600,h:100,bodyX:x,bodyY:685,
+      age:0,duration:1,warning:0,active:false,done:false,vy:0};w.hazards=[h];
+    w.attack(p);advance(w,q,25);
+    assert.equal(h.done,x===900);assert.ok(validSnapshot(packed(w)));
+  }
+});
+
 test("the body can hit another fighter once, crediting its puncher",()=>{
   const w=fixture(),[p,q,r]=w.players;
   Object.assign(r,{x:1000,y:680,hp:40});r.rig=makeRig(r);

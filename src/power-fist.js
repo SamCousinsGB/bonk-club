@@ -13,6 +13,23 @@ export const POWER_FIST = { speed: 2200, duration: 1.5, radius: 54, minSpeed: 38
 const CURL = [...JOINTS, [0, 2, 31], [1, 4, 13], [1, 6, 13],
   [1, 7, 23], [1, 9, 23], [2, 8, 15], [2, 10, 15]];
 const flights = new WeakMap();
+
+function fixtureBoxes(h) {
+  const left = h.x - h.w / 2, top = h.y - h.h;
+  const rect = (x,y,w,height) => ({x,y,w,h:height});
+  const head = r => rect(h.bodyX-r,h.bodyY-r,r*2,r*2);
+  if (h.type === "saw") return [head(29), rect(left,h.y-34,h.w,11)];
+  if (h.type === "pendulum") return [head(36), rect(h.x-20,top-7,40,15)];
+  if (h.type === "crusher") return [rect(left-3,h.bodyY-24,h.w+6,48),
+    rect(left-8,top-12,h.w+16,26), ...[-22,22].map(dx=>rect(h.x+dx-6,top,12,Math.max(1,h.bodyY-top)))];
+  if (["xray","magnet"].includes(h.type)) return [rect(left,top,18,h.h),
+    rect(left+h.w-18,top,18,h.h),rect(left-4,top,h.w+8,22),rect(left-9,h.y-12,h.w+18,12)];
+  if (h.type === "tesla") return [rect(left-12,top,24,h.h),rect(left+h.w-12,top,24,h.h)];
+  if (h.type === "loader") return [rect(left,top,h.w,h.h)];
+  if (h.type === "furnace") return [rect(h.x-220,h.y+60,440,220)];
+  if (["powerline","slag"].includes(h.type)) return [];
+  return [rect(left,h.y-(h.type === "spores" ? 42 : 16),h.w,h.type === "spores" ? 42 : 24)];
+}
 export const powerSource = body => body.powerFlight > 0 ? flights.get(body)?.source : null;
 export const validPowerFlight = body => body.powerFlight === undefined ||
   Number.isFinite(body.powerFlight) && body.powerFlight >= 0 && body.powerFlight <= POWER_FIST.duration;
@@ -95,8 +112,15 @@ export function movePowerFlight(world, body, dt) {
         broken.add(prop);
       }
     }
-    for (const h of world.hazards) if (!h.done && h.type !== "powerline")
-      remember(sweep({ x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32 }));
+    // A saw's travel rail and an electrical field are not its moving head or
+    // casing. Hit the rendered machinery, never the empty danger-area bounds.
+    for (const h of world.hazards) if (!h.done) {
+      const hit = fixtureBoxes(h).map(sweep).find(Boolean);
+      if (hit) {
+        remember(hit); h.done = true; h.active = false; h.warning = 0;
+        world.terrainVersion++;
+      }
+    }
     for (const c of world.cables || []) for (let i = 0; i < c.links.length; i++) if (c.links[i]) {
       const a = c.points[i], b = c.points[i+1], length = Math.hypot(b.x-a.x,b.y-a.y);
       // Short samples cover the actual wire, not the empty box below its sag.
