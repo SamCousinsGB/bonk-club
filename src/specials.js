@@ -2,7 +2,7 @@ import { blackholeField, updateBlackhole, updateWreckage } from "./blackhole.js"
 import { nuclearField, updateNuclear } from "./nuclear.js";
 import { segmentBox } from "./collision.js";
 import { breakable } from "./maps.js";
-import { BUBBLE_TIME, steerBoomerang, igniteFighter } from "./weird-weapons.js";
+import { liftBubble, popBubble, steerBoomerang, igniteFighter } from "./weird-weapons.js";
 import { harpoonImpact, fireworkBurst } from "./expanded-weapons.js";
 import { TRANSMUTATIONS, rigidPose } from "./transmutation.js";
 import { knockDown } from "./knockdown.js";
@@ -53,18 +53,16 @@ export function steerSpecial(world, b, dt) {
 export function impactSpecial(world, b, target, hurt) {
   if (!hurt) return;
   if (TRANSMUTATIONS.includes(b.kind) && target.alive && !target.morphTime) {
+    popBubble(world, target);
+    if (!target.alive) return;
     knockDown(target, b.weapon);
     target.morph = b.kind; target.morphTime = 1.6; target.morphAge = 0;
     target.knockdown = 1.6;
-    target.bubble = 0;
     if (b.kind === "gold") target.morphPose = rigidPose(target.rig);
   }
   if (b.kind === "harpoon") harpoonImpact(world, b, target);
   if (b.burn) igniteFighter(target);
-  if (b.kind === "bubble" && target.alive && !(target.bubble > 0)) {
-    target.bubble = BUBBLE_TIME; target.ground = false; target.support = null;
-    target.vy = Math.min(target.vy, -110);
-  }
+  if (b.kind === "bubble") liftBubble(world, target, b);
   if (b.chill) {
     target.burn = 0;
     target.chill = Math.max(target.chill || 0, b.chill);

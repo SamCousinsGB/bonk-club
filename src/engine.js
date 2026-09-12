@@ -36,7 +36,7 @@ import {
 export { WEAPONS } from "./arsenal.js";
 import { preparePlatforms, carveExplosion } from "./terrain.js";
 import { firePhaser } from "./phaser.js";
-import { BURN_DAMAGE } from "./weird-weapons.js";
+import { BURN_DAMAGE, popBubble } from "./weird-weapons.js";
 import { projectileMuzzle } from "./weapon-mount.js";
 import { equipArena } from "./arena-traps.js";
 import { CLASSIC_ARENAS } from "./classic-arenas.js";
@@ -492,7 +492,8 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
-      const pendingBlast = this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
+      const pendingBlast = alive.some(p=>p.bubble>0) ||
+        this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
         this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
@@ -547,7 +548,10 @@ export class World {
     p.comboTime = Math.max(0, p.comboTime - dt);
     p.rush = Math.max(0, p.rush - dt);
     p.chill = Math.max(0, p.chill - dt);
-    p.bubble = Math.max(0, (p.bubble || 0) - dt);
+    if (p.bubble > 0 && p.bubble <= dt && !this.prediction) {
+      popBubble(this, p);
+      if (!p.alive) return;
+    } else p.bubble = Math.max(0, (p.bubble || 0) - dt);
     if (p.morphTime > 0) {
       p.morphTime = Math.max(0, p.morphTime - dt);
       p.morphAge += dt;
@@ -865,7 +869,7 @@ export class World {
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
-    if (q.bubble > 0 && damage >= 20) q.bubble = 0;
+    const burstBubble = q.bubble > 0 && damage >= 20;
     if(["gib","slice"].includes(options.effect))bloodBurst(this,q.x,q.y-12,dir*force,vertical*force,q.hp?6:22);
     const knockback = dir * force * (1 + (100 - q.hp) / 220);
     // A following low-force pellet must not cancel a launch in the same direction.
@@ -893,6 +897,7 @@ export class World {
     });
     if (q.hp <= 0) this.kill(q,{cause:hitCause(options),effect:options.execute?"slice":options.effect,
       ash:["plasma","tesla","phaser","burn"].includes(options.effect),angle:options.angle||0,sourceX:p.x,sourceY:p.y,source:options.source || p});
+    if (burstBubble) popBubble(this, q);
   }
   kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null, source = null} = {}) {
     if (!p.alive) return;
@@ -925,7 +930,7 @@ export class World {
     });
     deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
     this.ragdolls = this.ragdolls.slice(-4);
-    if(["gib","blast"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
+    if(["gib","blast","bubble"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
     this.event("ko", { x: p.x, y: p.y, color: p.color, ash, effect, at: this.time });
     this.ragdolls.at(-1).deathId = this.nextEvent;
   }

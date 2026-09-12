@@ -9,7 +9,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   backend later. No Steamworks app exists yet. See `docs/PLATFORMS.md`.
 - Shared room state/protocol moved to `src/room-session.js`; `src/network.js`
   retains browser discovery, PeerJS lifecycle and ICE. Existing room behaviour,
-  compression, prediction, hot join and protocol 40 are retained.
+  compression, prediction, hot join and protocol 41 are retained.
 - Build-time platform imports exclude PeerJS/browser networking from desktop.
   Desktop builds require no Pi URLs; renderer external network access is closed.
   Native Steam integration is **not implemented or verified**. Desktop online
@@ -31,6 +31,39 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Work is isolated in `../bonk-club-qa/steam-platform-foundation` on
   `codex/steam-platform-foundation` to preserve the canonical checkout's unrelated
   gameplay edits. Publication and final CI evidence will be added below.
+
+## Bubble pop damage and scattered deaths - 12 September 2026
+
+- Release **v0.19.0**, protocol **41**. All players must refresh and create a
+  new room. Worktree: `../bonk-club-qa/bubble-pop`, branch `codex/bubble-pop`,
+  based on main `8493fd5`; unrelated canonical checkout edits are preserved.
+- The bubble's original 14-damage contact and 2.4-second lift remain. Expiry,
+  a surviving hit of at least 20 damage, transformation or black-hole capture
+  applies one 32-damage pressure hit. Repeated bubbles cannot extend the timer
+  or steal its original occupant's kill credit. An already lethal triggering
+  weapon retains its own death effect and cannot create a second kill.
+- A lethal pop makes a soap-ring burst and separates the head, torso, two arms
+  and two legs. Each part retains incoming motion, receives outward impulse
+  and spin, then falls and hits solid surfaces through the passive-body solver.
+  Appearance, dropped weapons, bounded blood, four-body cap and round reset
+  remain. Guests derive the same five disconnected joints from the new effect.
+- Pop damage is host-only, including expiry during knockdown. The last living
+  fighter's active bubble delays the result, so a lethal final pop is a draw.
+  Help and latest-release text describe the damage and effect.
+- Validation: all 799 tests passed before the final round-wait regression;
+  the final focused tests, production build and browser checks are recorded
+  with the publication evidence below. Nine new regressions cover real shots,
+  expiry, heavy hits, kill credit, capture, prediction authority, scoring,
+  physical contacts, interpolation, invalid state and round reset.
+- Source Edge host/guest browsers received timed and heavy-hit pops, lethal
+  scattering and a third-player hot join into existing moving remains. Selected
+  relay/relay candidates were verified at every browser. Rendered burst/scatter
+  frames and a staged animation sequence were inspected; no page errors in the
+  final run. The unmodified production bundle passed solo, host/guest controls,
+  hot join, leave and the narrow menu. These are one-PC external-relay checks.
+- QA scripts/logs/screenshots are `../bonk-club-qa/bubble-pop-*`. No production
+  hooks, dependencies, desktop shell changes or Pi configuration changes.
+- Publication verification pending.
 
 ## Local combat prediction and replay - 12 September 2026
 

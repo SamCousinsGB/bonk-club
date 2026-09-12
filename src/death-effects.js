@@ -6,6 +6,7 @@ export const DEATH_EFFECTS = [
   ...TRANSMUTATIONS,
   "slice",
   "gib",
+  "bubble",
   "impale",
   "plasma",
   "phaser",
@@ -20,6 +21,8 @@ export const CUT_JOINTS = [
   [1, 11, 11.5],
   [12, 2, 11.5],
 ];
+// A head, torso, two arms and two legs; no constraints reconnect the pieces.
+export const BUBBLE_JOINTS = JOINTS.filter((_, i) => [1, 3, 5, 7, 9].includes(i));
 export function projectileEffect(b) {
   if (TRANSMUTATIONS.includes(b.kind)) return b.kind;
   if (["saw", "rail"].includes(b.kind)) return "slice";
@@ -58,6 +61,19 @@ export function deathPose(rag, effect, angle = 0, target = null) {
       p.px -= Math.sin(n * 4.2) * 2.5;
       p.py += Math.cos(n * 2.1) * 2;
     }
+  } else if (effect === "bubble") {
+    const pieces = [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]];
+    const angles = [-Math.PI / 2, -.3, -2.65, -.7, 2.4, .55];
+    pieces.forEach((ids, i) => {
+      const speed = i === 1 ? 180 : 340 + (i % 3) * 55;
+      const cx = ids.reduce((s, n) => s + rag.points[n].x, 0) / ids.length;
+      const cy = ids.reduce((s, n) => s + rag.points[n].y, 0) / ids.length;
+      for (const n of ids) {
+        const p = rag.points[n], spin = i % 2 ? 11 : -11;
+        p.px -= (Math.cos(angles[i]) * speed - (p.y - cy) * spin) / 120;
+        p.py -= (Math.sin(angles[i]) * speed - 100 + (p.x - cx) * spin) / 120;
+      }
+    });
   } else if (effect === "ice") {
     rag.life = 1.9;
     rag.morphPose = rigidPose(rag.points);
@@ -107,6 +123,7 @@ export function updateDeath(rag, dt) {
 export function deathJoints(rag) {
   if (rag.effect === "ice") return rag.deathAge < .4 ? rag.morphPose : [];
   if (rag.ash) return JOINTS.filter((_, i) => !crumbledBone(rag, i));
+  if (rag.effect === "bubble") return BUBBLE_JOINTS;
   return rag.effect === "slice"
     ? CUT_JOINTS
     : rag.effect === "blast"

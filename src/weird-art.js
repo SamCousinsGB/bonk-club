@@ -10,6 +10,21 @@ export function drawBubble(r, x, y, size, life = 1) {
   c.beginPath(); c.arc(x - 2, y - 2, size - 6, 3.5, 4.45); c.stroke(); c.restore();
 }
 
+export function drawBubblePop(r, x, y, age) {
+  const c = r.ctx, t = Math.min(1, age / .42), radius = 47 + t * 105;
+  const colors = ["#b9f5ff", "#efb4ff", "#ffffff"];
+  c.save(); c.globalAlpha = 1 - t;
+  for (let n = 0; n < 9; n++) {
+    const angle = n * Math.PI * 2 / 9;
+    c.strokeStyle = colors[n % 3]; c.lineWidth = 3.5 * (1 - t) + .5;
+    c.beginPath(); c.arc(x, y, radius, angle + t * .3, angle + .5 - t * .15); c.stroke();
+    const distance = radius + 18 * Math.sin(n * 7) * t;
+    drawBubble(r, x + Math.cos(angle) * distance,
+      y + Math.sin(angle) * distance + t * t * 35, 7 + (n % 3) * 2);
+  }
+  c.restore();
+}
+
 function duck(r, x, y, angle = 0) {
   const c = r.ctx; c.save(); c.translate(x, y); c.rotate(angle);
   c.fillStyle = "#ffe159"; c.beginPath(); c.ellipse(-2, 4, 16, 11, 0, 0, Math.PI * 2); c.fill();
