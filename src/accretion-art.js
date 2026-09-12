@@ -1,4 +1,5 @@
 import { drawAppearance } from "./identity.js";
+import { materialPaint } from "./cosmetic-art.js";
 
 export function drawMatter(r, core) {
   const c = r.ctx, radius = core.w / 2;
@@ -28,7 +29,7 @@ export function drawMatter(r, core) {
       // Compression leaves just the head visible among the collected matter.
       c.scale(.85,.85);
       r.circle(0,0,13,"#11161e");
-      r.circle(0,0,10.5,q.color);
+      r.circle(0,0,10.5,materialPaint(c,q,0,-10,20,20));
       r.line([[2*q.facing,-2],[6*q.facing,-2]],"#18262c",2);
       drawAppearance(c,q,0,0,0,q.facing);
     } else if (q.kind === "prop" && q.sourceKind) {

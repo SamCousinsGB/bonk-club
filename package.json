@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.21.0",
-  "releaseNotes": "Shared release pipeline and Steam desktop preparation",
+  "version": "0.22.0",
+  "releaseNotes": "Capes, textured finishes, movement trails and new headwear in Character customisation",
   "private": true,
   "type": "module",
   "scripts": {

@@ -14,6 +14,7 @@ import {
   randomProfile,
 } from "../src/identity.js";
 import { validSnapshot } from "../src/network.js";
+import { FINISHES, CAPES, TRAILS, AURAS } from "../src/cosmetics.js";
 import { WEAPONS, WeaponRotation } from "../src/arsenal.js";
 
 test("player names and appearance are bounded and accept only supported choices", () => {
@@ -51,12 +52,12 @@ test("old saved profiles gain cosmetic defaults without losing existing choices"
 test("new appearance choices survive edits, death, round reset and wire validation", () => {
   const w = new World({players: [0]});
   const look = {...defaultProfile(), name: "Sam", color: PALETTE.at(-1).value,
-    hair: "Space buns", hairColor: HAIR_COLOURS[9].value, facialHair: "Full beard", accessory: "Goggles"};
+    hair: "Space buns", hairColor: HAIR_COLOURS[9].value, facialHair: "Full beard", accessory: "Crown", finish: "Opal", cape: "Starlight", capeColor: PALETTE[3].value, trail: "Prism", aura: "Satellites"};
   w.setProfiles([{id: 0, ...look}]);
   w.scores[0] = 12;
   w.players[0].hp = 37;
   w.players[0].weapon = "railgun";
-  for (const [field, choices] of Object.entries({hair: HAIRSTYLES, hairColor: HAIR_COLOURS.map(c => c.value), facialHair: FACIAL_HAIR, accessory: ACCESSORIES, color: PALETTE.map(c => c.value)})) {
+  for (const [field, choices] of Object.entries({hair: HAIRSTYLES, hairColor: HAIR_COLOURS.map(c => c.value), facialHair: FACIAL_HAIR, accessory: ACCESSORIES, color: PALETTE.map(c => c.value), finish: FINISHES, cape: CAPES, capeColor: PALETTE.map(c => c.value), trail: TRAILS, aura: AURAS})) {
     for (const choice of choices) {
       w.setProfiles([{id: 0, ...look, [field]: choice}]);
       assert.equal(w.players[0][field], choice);
@@ -69,7 +70,7 @@ test("new appearance choices survive edits, death, round reset and wire validati
   w.setProfiles([{id: 0, ...look}]);
   w.step(1 / 120);
   w.kill(w.players[0]);
-  for (const key of ["color", "hair", "hairColor", "facialHair", "accessory"]) assert.equal(w.ragdolls[0][key], look[key]);
+  for (const key of ["color", "hair", "hairColor", "facialHair", "accessory", "finish", "cape", "capeColor", "trail", "aura"]) assert.equal(w.ragdolls[0][key], look[key]);
   assert.ok(validSnapshot(w.snapshot()));
   w.startRound();
   assert.equal(w.ragdolls.length, 0);
@@ -79,7 +80,7 @@ test("new appearance choices survive edits, death, round reset and wire validati
 
 test("malformed cosmetic metadata is cleaned locally and rejected on the wire, including bodies", () => {
   const profile = {...defaultProfile(), hairColor: HAIR_COLOURS[5].value, accessory: "Glasses"};
-  for (const field of ["hair", "hairColor", "facialHair", "accessory"]) {
+  for (const field of ["hair", "hairColor", "facialHair", "accessory", "finish", "cape", "capeColor", "trail", "aura"]) {
     for (const invalid of ["url(secret)", "x".repeat(10000), {}, [], null, 7, undefined]) {
       assert.equal(cleanProfile({...profile, [field]: invalid}, profile)[field], profile[field]);
       assert.equal(validProfile({...profile, [field]: invalid}), false);

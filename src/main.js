@@ -17,6 +17,9 @@ import {
   cleanProfile,
   drawAppearance,
 } from "./identity.js";
+import { FINISHES, CAPES, TRAILS, AURAS, FINISH_SWATCHES } from "./cosmetics.js";
+import { drawTrail, materialPaint } from "./cosmetic-art.js";
+import { previewFighter } from "./cosmetic-preview.js";
 import { secondaryAction } from "./arsenal.js";
 import { pickupObjectCandidate } from "./object-carry.js";
 import "./style.css";
@@ -374,56 +377,28 @@ function startWorld(ids) {
   setPlaying(true);
   unlock();
 }
+let previewRenderer = null, previewPose = "Run", previewLast = 0;
 function characterHtml() {
   const swatches = (choices, key, title) => `<fieldset class="appearance-swatches"><legend>${title}</legend><div class="colour-options">${choices.map(c => `<button type="button" class="colour-option" data-appearance="${key}" data-value="${c.value}" aria-label="${title}: ${c.name}" title="${c.name}" aria-pressed="${profile[key] === c.value}" style="--colour:${c.value}"></button>`).join("")}</div></fieldset>`;
   const select = (key, title, choices) => `<label>${title}<select id="player-${key}" data-profile-field="${key}">${choices.map(value => `<option ${profile[key] === value ? "selected" : ""}>${value}</option>`).join("")}</select></label>`;
-  return `<div class="character-editor"><div class="character-portrait"><canvas id="character-preview" width="352" height="440" role="img" aria-label="Character preview"></canvas><button type="button" id="random-character" class="button secondary">RANDOMISE</button></div><div class="character-fields"><label>NAME<input id="player-name" maxlength="20" autocomplete="nickname" value="${esc(profile.name)}"></label>${swatches(PALETTE, "color", "Body colour")}${select("hair", "Hairstyle", HAIRSTYLES)}${swatches(HAIR_COLOURS, "hairColor", "Hair colour")}<div class="character-selects">${select("facialHair", "Facial hair", FACIAL_HAIR)}${select("accessory", "Accessory", ACCESSORIES)}</div></div></div>`;
+  const choices = (values, key, title) => `<fieldset class="appearance-swatches"><legend>${title}</legend><div class="cosmetic-options">${values.map(value => `<button type="button" class="cosmetic-option" data-appearance="${key}" data-value="${value}" aria-pressed="${profile[key] === value}" ${key === "finish" ? `style="--finish:${FINISH_SWATCHES[value]}"` : ""}>${key === "finish" ? '<span class="finish-swatch" aria-hidden="true"></span>' : ""}<span>${value}</span></button>`).join("")}</div></fieldset>`;
+  return `<div class="character-editor"><div class="character-portrait"><canvas id="character-preview" width="520" height="560" role="img" aria-label="Character preview"></canvas><div class="preview-controls" role="group" aria-label="Preview movement">${["Stand","Run","Jump"].map(pose=>`<button type="button" data-preview-pose="${pose}" aria-pressed="${previewPose === pose}">${pose}</button>`).join("")}</div><button type="button" id="random-character" class="button secondary">RANDOMISE</button></div><div class="character-fields"><label>NAME<input id="player-name" maxlength="20" autocomplete="nickname" value="${esc(profile.name)}"></label><div class="character-tabs" role="tablist" aria-label="Customisation">${["Body","Hair","Gear","Effects"].map((tab,i)=>`<button type="button" role="tab" id="character-tab-${tab}" aria-controls="character-section-${tab}" aria-selected="${i===0}" tabindex="${i===0?0:-1}" data-character-tab="${tab}">${tab}</button>`).join("")}</div><section id="character-section-Body" class="character-section" role="tabpanel" aria-labelledby="character-tab-Body">${swatches(PALETTE,"color","Body colour")}${choices(FINISHES,"finish","Finish")}</section><section id="character-section-Hair" class="character-section" role="tabpanel" aria-labelledby="character-tab-Hair" hidden>${select("hair","Hairstyle",HAIRSTYLES)}${swatches(HAIR_COLOURS,"hairColor","Hair colour")}${select("facialHair","Facial hair",FACIAL_HAIR)}</section><section id="character-section-Gear" class="character-section" role="tabpanel" aria-labelledby="character-tab-Gear" hidden>${choices(CAPES,"cape","Cape")}${swatches(PALETTE,"capeColor","Cape colour")}${select("accessory","Headwear",ACCESSORIES)}</section><section id="character-section-Effects" class="character-section" role="tabpanel" aria-labelledby="character-tab-Effects" hidden>${choices(TRAILS,"trail","Movement trail")}${choices(AURAS,"aura","Aura")}</section></div></div>`;
 }
-function drawPreview() {
+function drawPreview(now = performance.now()) {
   const canvas = $("#character-preview");
-  if (!canvas) return;
-  const c = canvas.getContext("2d");
-  c.clearRect(0, 0, canvas.width, canvas.height);
-  c.save();
-  c.translate(176, 175);
-  c.scale(4, 4);
-  c.fillStyle = "#060e1455";
-  c.beginPath(); c.ellipse(0, 48, 22, 3, 0, 0, Math.PI * 2); c.fill();
-  c.strokeStyle = profile.color;
-  c.fillStyle = profile.color;
-  c.lineWidth = 4;
-  c.lineCap = "round";
-  c.beginPath();
-  c.arc(0, -15, 10, 0, Math.PI * 2);
-  c.fill();
-  for (const points of [
-    [
-      [0, -4],
-      [0, 20],
-    ],
-    [
-      [-15, 12],
-      [0, 0],
-      [14, 9],
-    ],
-    [
-      [0, 20],
-      [-11, 45],
-    ],
-    [
-      [0, 20],
-      [13, 44],
-    ],
-  ]) {
-    c.beginPath();
-    points.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
-    c.stroke();
-  }
-  c.strokeStyle = "#18262c"; c.lineWidth = 1.5;
-  c.beginPath(); c.moveTo(3, -16); c.lineTo(7, -16); c.stroke();
-  drawAppearance(c, profile, 0, -15);
-  c.restore();
-  canvas.setAttribute("aria-label", `${profile.name}: ${profile.hair}, ${profile.facialHair}, ${profile.accessory}`);
+  if (!canvas) { previewRenderer = null; previewLast = 0; return; }
+  if (previewRenderer?.canvas !== canvas) { previewRenderer = new Renderer(canvas); previewLast = now; }
+  const r = previewRenderer, c = r.ctx, time = renderer.reduced ? 0 : now / 1000;
+  const dt = Math.max(0, Math.min(.05, (now - previewLast) / 1000)); previewLast = now;
+  const p = previewFighter(profile, renderer.reduced ? "Stand" : previewPose, time);
+  r.reduced = renderer.reduced;
+  r.cosmetics.update({round: 0, time, players: [p]}, dt, renderer.reduced);
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,canvas.width,canvas.height);
+  const glow=c.createRadialGradient(260,275,15,260,275,250);glow.addColorStop(0,profile.color+"22");glow.addColorStop(1,profile.color+"00");c.fillStyle=glow;c.fillRect(0,0,520,560);
+  c.save(); c.translate(270,290); c.scale(4.6,4.6);
+  c.strokeStyle="#c5e8e21f";c.lineWidth=.3;c.beginPath();c.ellipse(0,38,41,6,0,0,Math.PI*2);c.stroke();
+  drawTrail(c,p,r.cosmetics.entries.get(0)); r.fighter(p,time,1,false); c.restore();
+  canvas.setAttribute("aria-label", `${profile.name}: ${profile.finish} finish, ${profile.cape} cape, ${profile.trail} trail, ${profile.aura} aura, ${profile.hair}, ${profile.facialHair}, ${profile.accessory}`);
 }
 function submitProfile(overrides = {}) {
   if (!$("#player-name")) return;
@@ -465,6 +440,25 @@ function wireCharacter() {
   $("#random-character").onclick = () => submitProfile(randomProfile(
     { ...profile, name: $("#player-name").value }, room?.roster.filter(p => p.id !== room.id) || [],
   ));
+  const tabs = [...document.querySelectorAll("[data-character-tab]")];
+  const activate = tab => {
+    for (const item of tabs) {
+      const selected = item === tab;
+      item.setAttribute("aria-selected", String(selected)); item.tabIndex = selected ? 0 : -1;
+      document.getElementById(`character-section-${item.dataset.characterTab}`).hidden = !selected;
+    }
+  };
+  for (const [i, tab] of tabs.entries()) {
+    tab.onclick = () => activate(tab);
+    tab.onkeydown = e => {
+      const index = e.key === "ArrowRight" ? (i+1)%tabs.length : e.key === "ArrowLeft" ? (i+tabs.length-1)%tabs.length : e.key === "Home" ? 0 : e.key === "End" ? tabs.length-1 : -1;
+      if(index < 0)return; e.preventDefault(); activate(tabs[index]); tabs[index].focus();
+    };
+  }
+  for(const button of document.querySelectorAll("[data-preview-pose]"))button.onclick = () => {
+    previewPose = button.dataset.previewPose;
+    for(const other of document.querySelectorAll("[data-preview-pose]")) other.setAttribute("aria-pressed", String(other === button));
+  };
   syncColourOptions();
 }
 function characterMenu() {
@@ -514,9 +508,10 @@ function updateLobby() {
   for (const canvas of $("#lobby-players").querySelectorAll("[data-portrait]")) {
     const p = roster.find(p => p.id === Number(canvas.dataset.portrait)), c = canvas.getContext("2d");
     c.translate(32, 40); c.scale(1.2, 1.2);
-    c.strokeStyle = p.color; c.lineWidth = 5; c.lineCap = "round";
+    const finish = materialPaint(c, p, 0, -10, 24, 38);
+    c.strokeStyle = finish; c.lineWidth = 5; c.lineCap = "round";
     c.beginPath(); c.moveTo(0, 11); c.lineTo(0, 28); c.moveTo(-11, 24); c.lineTo(0, 14); c.lineTo(11, 24); c.stroke();
-    c.fillStyle = p.color; c.beginPath(); c.arc(0, 0, 10.5, 0, Math.PI * 2); c.fill();
+    c.fillStyle = finish; c.beginPath(); c.arc(0, 0, 10.5, 0, Math.PI * 2); c.fill();
     drawAppearance(c, p, 0, 0);
   }
   $("#lobby-players").querySelectorAll("[data-slot]").forEach(button => button.onclick = () => {
@@ -1014,6 +1009,7 @@ function frame(now) {
   }
   renderer.draw(state, dt, renderer.reduced ? 0 : now / 1000);
   updateTouchView(state, dt);
+  drawPreview(now);
   requestAnimationFrame(frame);
 }
 $("#solo").onclick = () => {

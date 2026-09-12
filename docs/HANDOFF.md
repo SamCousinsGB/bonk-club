@@ -2,6 +2,42 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Character cosmetics - 12 September 2026
+
+- Release **v0.22.0**, protocol **43**. Refresh every player before creating a room.
+- Character now has Body, Hair, Gear and Effects tabs. Seven new finishes
+  (Chrome, Gold leaf, Iridescent, Opal, Carbon fibre, Starfield and Magma), five
+  capes (Royal, Split, Starlight, Holographic and Ember), six movement trails,
+  three auras, and Crown, Halo, Horns, Cat ears and Antenna headwear. Cape colour
+  is independent of body colour. Every choice is configured in Character.
+- The animated Stand/Run/Jump preview shares the actual fighter artwork, finishes,
+  cloth and trail renderer. Cloth follows a nine-point gravity/drag/constraint
+  simulation; trails expire within 0.48 seconds and cap at 26 samples per fighter.
+  Cosmetic histories are render-only, reset on round/occupant/teleport/death and
+  capture, and never alter collision, controls, inventory, damage or scores.
+  Reduced motion uses a static pose/cloth and omits trails.
+- Validated profiles preserve old saved choices and add defaults. New selections
+  survive lobby updates, in-game edits, death bodies, captured heads, interpolation
+  and hot join. Special death artwork still takes priority. Both browser and
+  desktop preferences use the same schema. No dependencies or Pi changes.
+- Implemented in the canonical checkout while preserving concurrent work; the
+  isolated release is `../bonk-club-qa/cosmetics-release`, branch `codex/cosmetics`.
+  Integrated main's bubble-pop release `51ffb29`, Tesla release `8a6d3a4` and
+  shared Steam platform foundation `693eef6`. Protocol now lives in
+  `src/room-session.js`. Do not copy the older canonical engine over main.
+- Verification: all 796 tests passed before bubble integration, then all 52
+  affected identity, cosmetic, bubble, network and interpolation tests passed.
+  Desktop editor and actual gameplay inspected; 390px editor has no horizontal
+  overflow and saved choices survive reload. Three real browser players selected
+  relay/relay candidates and received identical cosmetic profiles, including a
+  mid-round edit and hot join. No page errors in those final runs.
+- External local observer `../bonk-club-qa/cosmetics-observe.mjs` forces relay and
+  exposes a DOM QA report. Its development proxy supplies the normal public Origin
+  for signaling/temporary ICE requests. None of that observer is in the release.
+  Full test log: `../bonk-club-qa/cosmetics-tests.log`. Publication verification
+  follows below; do not report the initial local v0.19.0/protocol41 fixture as live.
+
+
 ## Shared releases and Steam platform preparation - 12 September 2026
 
 - Sam selected one shared game/release pipeline, Steam-only desktop networking,
@@ -67,7 +103,20 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   15 Tesla/projectile checks passed after expanding the link-key bound to support
   two full-length prop identities. The production build and three-browser staged
   smoke passed without page errors; the narrow menu was visually inspected.
-  Public release verification follows below.
+- **Published and verified:** gameplay revision
+  `8a6d3a4491f55629175c4453fcefb5a3b5e6a213`, v0.20.0, protocol 42.
+  [Pages run 34696931180](https://github.com/SamCousinsGB/bonk-club/actions/runs/34696931180)
+  passed **811 game tests and 3 server tests**, build and deployment. Desktop
+  run 34696931151 also passed Windows/Linux unit, executable and packaging jobs.
+- All **16 public files** match the tested local build and exact CI artifact by
+  SHA-256. JS: `index-BguJJPml.js`; worker: `state-codec-worker-SEYzkwM5.js`;
+  CSS: `index-DSLPu4j9.css`. The unmodified public v0.20.0 build passed solo,
+  real relay host/guest controls, a third-player hot join, leave and narrow-menu
+  checks without browser errors. The public gameplay screenshot was inspected.
+- The concurrent shared-platform release `693eef6` on main retains the same
+  Tesla source/tests and protocol 42. Its separate release verification belongs
+  to that task; the artifact/public checks above prove the Tesla v0.20.0 release.
+  This task's previews on 5411 and 5412 were stopped after verification.
 
 ## Bubble pop damage and scattered deaths - 12 September 2026
 
