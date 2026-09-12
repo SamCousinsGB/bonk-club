@@ -198,14 +198,15 @@ test("wide furniture is attacked at its surface instead of trapping an unarmed A
   assert.equal(w.cover[0].hp, 0);
   assert.ok(w.players[1].x > 950);
 });
-test("all arenas preserve their wood and glass materials alongside structural surfaces", () => {
+test("arena surfaces preserve their material rules and bounded starting geometry", () => {
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena });
     const panels = w.platforms.filter((p) => p.destructible);
-    if(w.arena.survival)assert.equal(panels.length,0,"machinery floors resist bullets");
+    if(w.arena.survival||w.arena.transmission)assert.equal(panels.length,0,"steel structures resist bullets");
     else assert.ok(panels.length > 0 && panels.length <= 6, ARENAS[arena].name);
     assert.ok(w.platforms.some((p) => !p.destructible));
-    assert.ok(w.platforms.length <= 72);
+    assert.ok(w.platforms.filter(p=>p.material!=="cable").length <= 72);
+    assert.equal(w.platforms.filter(p=>p.material==="cable").length,w.arena.transmission?80:0);
     for (const p of panels) {
       assert.equal(p.hp, p.maxHp);
       assert.ok(!p.travel && !p.move && !p.elevator);

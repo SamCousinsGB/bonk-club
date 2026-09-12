@@ -2,6 +2,39 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Transmission Towers - 12 September 2026
+
+- Release **v0.23.0**, protocol **44**. Refresh all players' tabs and create a
+  new room. Integrated in `../bonk-club-qa/transmission-release` on
+  `codex/transmission-towers`, retaining main's survival arenas, shared desktop
+  platform and cosmetics. Canonical checkout changes remain uncommitted alongside
+  its other work; the release worktree is the integrated source of this release.
+- Added Transmission Towers to the arena selector and full rotation: two open
+  steel pylons, staggered climbing platforms, two sagging solid cable crossings,
+  equal starter runs and four reachable contested pickup sites. Steel/cable
+  surfaces resist bullets and use the existing circular terrain destruction.
+- Wires start safe and switch together every seven seconds, with a one-second
+  amber warning before energizing. Live wires reuse Tesla's animated arc renderer
+  and apply host-only 70-damage contact shocks, at most once per fighter per
+  0.8 seconds per circuit. Elevated air outside the cable is safe. Electrical
+  deaths use the existing physical skeleton effect.
+- Cable and insulator-mount damage opens its circuit until round reset. Nukes
+  cut the affected platforms, rear lattice and cable, preserving the opposite
+  tower and background outside the blast. Remaining unpowered cable is still
+  physical. Guest snapshots, interpolation and hot join retain cuts and timing.
+- Source QA: real Edge host/guest controls crossed the safe wire, transmitted
+  live shocks and nuclear destruction; a third browser hot joined the aftermath.
+  Terrain matched at the transport's 0.01-unit precision and all three browsers
+  selected relay/relay candidates. Actual safe/live/nuke frames inspected; no
+  page errors. These are one-PC relay checks, not a cross-ISP measurement.
+- Eight focused regressions cover timing, both crossing directions, contact and
+  electrical death, prediction authority, phase gates, explosion/nuke cuts,
+  reset, snapshot round trips, interpolation and malformed wire fields. The
+  integrated map/hazard/network/render/cosmetic checks passed 76 tests.
+- External QA: `../bonk-club-qa/transmission-*`. No debug hooks, dependencies,
+  desktop-shell changes or Pi configuration changes are part of this feature.
+  Final full-suite and publication verification are recorded below when complete.
+
 ## Character cosmetics - 12 September 2026
 
 - Release **v0.22.0**, protocol **43**. Refresh every player before creating a room.
