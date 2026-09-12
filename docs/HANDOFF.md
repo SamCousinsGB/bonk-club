@@ -4,7 +4,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Pylon water and crossing shorts - 12 September 2026
 
-- v0.26.0, protocol 50. Refresh every player and create a new room.
+- v0.27.0, protocol 50. Refresh every player and create a new room.
 - Eight finite physical water jugs cover the inner/outer cross-arms of both
   pylons. Removed all four centre weapon ledges. The original service landings
   extend inward within the towers, with clear takeoffs and a 20-unit higher lower
@@ -30,7 +30,9 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   selected relay/relay routes. Actual initial, live, shorted and late-join
   gameplay was visually inspected without browser errors. Evidence:
   ../bonk-club-qa/pylon-water-arcs-browser.{mjs,json} and corresponding PNGs.
-  Final full-suite and publication evidence follows on completion.
+  Integrated concurrent main 471507a (v0.26.0 spacetime refraction) without
+  changing its renderer or effect. Final full-suite and publication evidence
+  follows on completion.
 
 ## Bot weapon priorities and survival - 12 September 2026
 

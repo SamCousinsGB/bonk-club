@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "releaseNotes": "Water on every pylon arm, wire-only crossings and continuous arcs when cables touch",
   "private": true,
   "type": "module",
