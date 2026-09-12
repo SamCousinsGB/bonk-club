@@ -111,8 +111,25 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   gameplay was visually inspected without browser errors. Evidence:
   ../bonk-club-qa/pylon-water-arcs-browser.{mjs,json} and corresponding PNGs.
   Integrated concurrent main 471507a (v0.26.0 spacetime refraction) without
-  changing its renderer or effect. Final full-suite and publication evidence
-  follows on completion.
+  changing its renderer or effect.
+- **Published and verified:** gameplay revision
+  9c2f0e5726cd1e7ed9b2414e3acb67ff2d741e64, v0.27.0, protocol 50.
+  [Release run 34707275008](https://github.com/SamCousinsGB/bonk-club/actions/runs/34707275008)
+  passed all **921 shared tests**, three server tests, seven desktop tests per
+  OS, Windows/Linux executable smoke and packaging, shared-source validation
+  and Pages deployment. The interrupted local bot-test worker passed all six
+  checks on its isolated retry, including completed rounds on every arena.
+- All **17 public files** match the clean tested build and CI artifact by SHA-256.
+  Exact build: ../bonk-club-qa/pylon-water-arcs-integrated-exact; artifact:
+  pylon-water-arcs-ci; hashes: pylon-water-arcs-live-verification.json. Shared
+  source hash: d04440d578d17cbba598f18b2f5b071c611f4b847d9027c1f132a4d281d191b5.
+- Unmodified public v0.27.0 pylon gameplay/controls was visually inspected. Public
+  host/guest controls, mid-round joining and host departure passed through
+  selected relay/relay routes without browser errors. This is three contexts on
+  one QA machine, not a cross-ISP or Steam-connectivity claim. Public observer:
+  ../bonk-club-qa/pylon-water-arcs-public.mjs; public PNG/JSON evidence beside it.
+  Fixture port 5483 is stopped. No production hooks, dependencies or Pi changes.
+
 
 ## Bot weapon priorities and survival - 12 September 2026
 
