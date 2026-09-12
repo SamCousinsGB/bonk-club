@@ -2,6 +2,36 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Shared releases and Steam platform preparation - 12 September 2026
+
+- Sam selected one shared game/release pipeline, Steam-only desktop networking,
+  browser WebRTC until eventual browser retirement, and a managed progression
+  backend later. No Steamworks app exists yet. See `docs/PLATFORMS.md`.
+- Shared room state/protocol moved to `src/room-session.js`; `src/network.js`
+  retains browser discovery, PeerJS lifecycle and ICE. Existing room behaviour,
+  compression, prediction, hot join and protocol 40 are retained.
+- Build-time platform imports exclude PeerJS/browser networking from desktop.
+  Desktop builds require no Pi URLs; renderer external network access is closed.
+  Native Steam integration is **not implemented or verified**. Desktop online
+  shows an explicit setup status and solo remains playable. No fallback to the
+  browser/Pi is permitted, and no Pi services were changed.
+- One workflow gates web and both native OS builds on shared tests. Exact
+  revision/version/game-source hashes are compared before Pages publication.
+  SteamPipe preparation also checks app IDs and shared source hashes.
+- Future progression has a read/equip client interface, no local fallback or
+  grant methods. Editable preferences/profile data cannot carry earned state.
+  No XP, levels, inventory, Steam identity, native binding or managed backend is
+  enabled. Strong progression needs trusted outcome verification, not P2P reports.
+- Initial verification: 796 game tests plus the new release-metadata test pass,
+  seven desktop and three server tests pass. Windows executable smoke covers the
+  setup gate, no browser-service requests, offline solo, saves and controls.
+  Windows packaging passes. Three real Edge contexts pass host/guest/hot join
+  through selected public relay routes; screenshots inspected and no page errors.
+  These are one-machine browser tests, not Steam or cross-ISP proof.
+- Work is isolated in `../bonk-club-qa/steam-platform-foundation` on
+  `codex/steam-platform-foundation` to preserve the canonical checkout's unrelated
+  gameplay edits. Publication and final CI evidence will be added below.
+
 ## Local combat prediction and replay - 12 September 2026
 
 - Release **v0.18.1**, protocol **40**. Refresh every player's tab and create a

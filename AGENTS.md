@@ -202,6 +202,17 @@ Keep this constitution for durable rules and the handoff for current work.
 
 ## Architecture, security and performance
 
+- One shared game and release pipeline produces browser and desktop builds.
+  Desktop networking is Steam-only; browsers use WebRTC. Do not silently fall
+  back from desktop to the Pi or build browser/Steam cross-play. The eventual
+  product is a paid Steam desktop release; retire the browser only when Sam asks.
+  Follow `docs/PLATFORMS.md` for the implemented boundary and remaining Steam gates.
+- Future progression, levels, earned stats and cosmetic ownership use a managed
+  backend or Steam Inventory authority. Local settings, client-set Steam stats,
+  player-hosted results and lobby metadata cannot award trusted XP or unlocks.
+  Keep identity/preferences separate from account entitlements. No client or
+  P2P host may hold publisher/signing keys or submit trusted reward totals.
+
 - This is a Vite/JavaScript Canvas game. GitHub Pages hosts static assets; it does
   not run the room service or relay. Preserve relative asset paths for `/bonk-club/`.
 - The host browser is authoritative. Guests send bounded controls, not trusted

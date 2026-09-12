@@ -40,7 +40,7 @@ import {
 import { Renderer } from "./renderer.js";
 import { Sound } from "./audio.js";
 import { RoomPresence } from "./room-presence.js";
-import { Room, validCode } from "./network.js";
+import { createRoom, validCode, network } from "#bonk-platform";
 import { FighterChat, ChatComposer } from "./chat.js";
 import { BotChat } from "./bot-chat.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
@@ -583,6 +583,11 @@ function lobby() {
 }
 function onlineMenu(message = "") {
   unlock();
+  if (!network.available) {
+    showPanel("online", heading("Online multiplayer") + `<p role="status">${esc(network.reason)}</p>`);
+    $("#back").onclick = home;
+    return;
+  }
   showPanel(
     "online",
     heading("Online multiplayer") +
@@ -640,6 +645,7 @@ function connectionDetails(back) {
   };
 }
 async function quickMatch() {
+  if (!network.available) return onlineMenu();
   unlock();
   clearRoomNotices();
   enterGameScreen();
@@ -660,7 +666,7 @@ async function quickMatch() {
   const codes = "ABCDEFGH".split("").map((letter) => "PUB" + letter + "AA");
   for (const code of codes) {
     if (search !== searchId) return;
-    let candidate = new Room(roomCallbacks(), undefined, roomOptions());
+    let candidate = createRoom(roomCallbacks(), roomOptions());
     room = candidate;
     try {
       await candidate.create(code);
@@ -672,7 +678,7 @@ async function quickMatch() {
         onlineMenu(error.message);
         return;
       }
-      candidate = new Room(roomCallbacks(), undefined, roomOptions());
+      candidate = createRoom(roomCallbacks(), roomOptions());
       room = candidate;
       try {
         await candidate.join(code);
@@ -769,6 +775,7 @@ function roomCallbacks() {
   };
 }
 async function connectRoom(code) {
+  if (!network.available) return onlineMenu();
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
@@ -776,7 +783,7 @@ async function connectRoom(code) {
   clearRoomNotices();
   enterGameScreen();
   room?.close();
-  const next = new Room(roomCallbacks(), undefined, roomOptions());
+  const next = createRoom(roomCallbacks(), roomOptions());
   room = next;
   lastDiagnosticRoom = next;
   showPanel(

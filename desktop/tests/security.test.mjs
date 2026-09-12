@@ -19,13 +19,14 @@ test('IPC document trust excludes bundled subresources and remote documents', ()
   assert.equal(gameDocument(GAME_URL + 'index.html'), true);
   for (const url of [GAME_URL + 'assets/evil.js', 'https://evil.test/', 'https://x@samcousinsgb.github.io/bonk-club/', 'about:blank']) assert.equal(gameDocument(url), false);
 });
-test('network endpoints are explicit HTTPS paths; no fallback to remote game code', () => {
-  const policy = networkPolicy({ roomServiceUrl: 'https://service.example/peerjs', turnCredentialsUrl: 'https://service.example/ice' });
-  for (const url of ['https://service.example/peerjs/id?ts=1', 'wss://service.example/peerjs/peerjs?key=x', 'https://service.example/ice']) assert.equal(policy.allowed(url), true, url);
-  for (const url of ['http://service.example/ice', 'https://service.example/ice/private', 'https://service.example/peerjsevil/', 'https://evil.test/ice', GAME_URL, 'file:///etc/passwd']) assert.equal(policy.allowed(url), false, url);
-  assert.match(policy.csp, /script-src 'self'/); assert.doesNotMatch(policy.csp, /unsafe-eval/);
-  assert.throws(() => networkPolicy({ roomServiceUrl: 'https://user:secret@service.example/', turnCredentialsUrl: 'https://service.example/ice' }));
+test('Steam renderer has no signalling, relay or arbitrary external network access', () => {
+  const policy = networkPolicy({ transport: 'steam' });
+  for (const url of ['https://service.example/peerjs/id', 'wss://service.example/peerjs/', 'https://service.example/ice', 'https://evil.test/', GAME_URL]) assert.equal(policy.allowed(url), false);
+  assert.match(policy.csp, /connect-src 'self';/); assert.doesNotMatch(policy.csp, /unsafe-eval/);
+  assert.throws(() => networkPolicy({ transport: 'webrtc' }), /Steam transport/);
+  assert.throws(() => networkPolicy({ roomServiceUrl: 'https://service.example/peerjs' }), /Steam transport/);
 });
+
 test('atomic settings survive restart and preserve corrupt input for recovery', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bonk-save-test-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

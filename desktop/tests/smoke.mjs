@@ -25,6 +25,20 @@ try {
   assert.equal(await page.evaluate(() => isSecureContext), true);
   const prefs = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences());
   assert.equal(prefs.sandbox, true); assert.equal(prefs.contextIsolation, true); assert.equal(prefs.nodeIntegration, false); assert.equal(prefs.webSecurity, true);
+  const status = await page.evaluate(() => window.bonkDesktop.platformStatus());
+  assert.equal(status.platform, 'steam'); assert.equal(status.network.available, false);
+  assert.equal(status.account.subject, null); assert.equal(status.progression.authority, null);
+  const remoteRequests = [];
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && url.origin !== 'https://samcousinsgb.github.io') remoteRequests.push(url.origin);
+  });
+  await page.locator('#online').click();
+  await page.getByText('Steam online play is not configured in this build. Single player is available.').waitFor();
+  assert.equal(await page.locator('#room-code').count(), 0);
+  await page.screenshot({ path: path.join(results, 'steam-unavailable.png') });
+  await page.locator('#back').click();
+  assert.deepEqual(remoteRequests, [], 'Steam setup cannot trigger a browser signalling or relay request');
   await page.screenshot({ path: path.join(results, 'menu.png') });
   await page.locator('#fullscreen').click();
   await page.waitForFunction(() => document.querySelector('#fullscreen').getAttribute('aria-pressed') === 'true');
@@ -91,7 +105,9 @@ try {
   await page.locator('#solo').click(); await page.locator('body.playing').waitFor();
   await page.waitForFunction(() => document.querySelectorAll('.score').length === 4);
   assert.deepEqual(errors, []);
-  await fs.writeFile(path.join(results, 'smoke.json'), JSON.stringify({ ok: true, platform: process.platform, offlineSolo: true, saveRestart: true, controllerMenus: 'emulated standard gamepad', errors }, null, 2));
+  assert.deepEqual(remoteRequests, []);
+  await fs.writeFile(path.join(results, 'smoke.json'), JSON.stringify({ ok: true, platform: process.platform, steamSetupGate: true, browserNetworkRequests: 0,
+    offlineSolo: true, saveRestart: true, controllerMenus: 'emulated standard gamepad', errors }, null, 2));
   console.log('Desktop smoke passed: isolation, bundled offline solo, save/relaunch, controller menus and on-screen keyboard.');
 } finally {
   if (app) await app.close();

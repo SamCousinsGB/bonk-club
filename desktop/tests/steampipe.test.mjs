@@ -22,7 +22,8 @@ test('SteamPipe verifies both depots, defaults to preview and rejects tampering 
       fs.writeFileSync(path.join(dir, file), 'test fixture');
       hashes[file] = createHash('sha256').update('test fixture').digest('hex');
     }
-    fs.writeFileSync(path.join(dir, 'build-manifest.json'), JSON.stringify({ platform, arch: 'x64', dirty: false, version: '0.9.0', revision: 'a'.repeat(40), hashes }));
+    fs.writeFileSync(path.join(dir, 'build-manifest.json'), JSON.stringify({ platform, arch: 'x64', dirty: false, version: '0.9.0', revision: 'a'.repeat(40),
+      transport: 'steam', steamAppId: 123456, gameSourceHash: 'c'.repeat(64), hashes }));
   }
   const run = () => spawnSync(process.execPath, args, { encoding: 'utf8' });
   assert.equal(run().status, 0);
@@ -32,7 +33,12 @@ test('SteamPipe verifies both depots, defaults to preview and rejects tampering 
   fs.writeFileSync(path.join(linux, 'steam_appid.txt'), '480');
   assert.match(run().stderr, /Excluded file/); fs.unlinkSync(path.join(linux, 'steam_appid.txt'));
   const manifestFile = path.join(linux, 'build-manifest.json');
-  const m = JSON.parse(fs.readFileSync(manifestFile)); m.revision = 'b'.repeat(40); fs.writeFileSync(manifestFile, JSON.stringify(m));
+  const m = JSON.parse(fs.readFileSync(manifestFile));
+  m.steamAppId = 123450; fs.writeFileSync(manifestFile, JSON.stringify(m));
+  assert.match(run().stderr, /STEAM_APP_ID matching/);
+  m.steamAppId = 123456; m.gameSourceHash = 'd'.repeat(64); fs.writeFileSync(manifestFile, JSON.stringify(m));
+  assert.match(run().stderr, /same shared game source/);
+  m.gameSourceHash = 'c'.repeat(64); m.revision = 'b'.repeat(40); fs.writeFileSync(manifestFile, JSON.stringify(m));
   assert.match(run().stderr, /same version and source revision/);
   fs.writeFileSync(path.join(linux, 'resources/app.asar'), 'modified');
   assert.match(run().stderr, /Modified\/untracked depot file/);

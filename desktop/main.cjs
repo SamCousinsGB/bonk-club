@@ -1,7 +1,8 @@
-const { app, BrowserWindow, Menu, session, ipcMain, dialog, net, screen } = require('electron');
+const { app, BrowserWindow, Menu, session, ipcMain, dialog, screen } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { GAME_URL, gameDocument, assetPath, networkPolicy } = require('./policy.cjs');
+const { platformStatus } = require('./platform.cjs');
 
 app.setName('Bonk Club');
 // A launch argument also permits isolated support/QA profiles. It is never sent
@@ -46,16 +47,7 @@ async function start() {
         } });
       } catch { return new Response('Game asset unavailable', { status: 404 }); }
     }
-    if (!policy.allowed(request.url)) return new Response('', { status: 403 });
-    if (!['GET', 'OPTIONS'].includes(request.method)) return new Response('', { status: 405 });
-    // Public signalling/temporary relay requests only. Never fetch remote game
-    // scripts, follow redirects to another host, or disable TLS verification.
-    // Electron's protocol Request omits Chromium's generated Origin header.
-    // Restore this app's fixed publisher origin for its two public services.
-    const headers = new Headers(request.headers);
-    headers.set('Origin', new URL(GAME_URL).origin);
-    return net.fetch(request.url, { method: request.method, headers, credentials: 'omit',
-      bypassCustomProtocolHandlers: true, redirect: 'error' });
+    return new Response('', { status: 403 });
   });
   const windowFile = path.join(app.getPath('userData'), 'window.json');
   let windowState = {};
@@ -94,6 +86,7 @@ async function start() {
     if (event.sender !== win.webContents || !event.senderFrame || event.senderFrame !== win.webContents.mainFrame || !gameDocument(event.senderFrame.url)) throw new Error('Untrusted sender');
   }
   ipcMain.handle('preferences:load', event => { trusted(event); return { value: store.value, warning: store.warning }; });
+  ipcMain.handle('platform:status', event => { trusted(event); return platformStatus(config); });
   ipcMain.handle('preferences:save', (event, value) => { trusted(event); return store.save(value); });
   ipcMain.handle('window:fullscreen', async (event, value) => {
     trusted(event);

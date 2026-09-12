@@ -14,6 +14,9 @@ const manifests = [];
 for (const platform of ['win32', 'linux']) {
   const directory = path.join(content, `BonkClub-${platform}-x64`);
   const manifest = JSON.parse(await fs.readFile(path.join(directory, 'build-manifest.json'), 'utf8'));
+  if (manifest.transport !== 'steam' || manifest.steamAppId !== Number(ids[0]))
+    throw new Error('Build both Steam depots with STEAM_APP_ID matching the requested app.');
+  if (!/^[a-f0-9]{64}$/.test(manifest.gameSourceHash)) throw new Error('Missing shared game source hash.');
   if (manifest.dirty || manifest.platform !== platform || manifest.arch !== 'x64' || !/^[a-f0-9]{40}$/.test(manifest.revision))
     throw new Error('Steam depots require clean, matching release builds.');
   const files = new Set();
@@ -36,6 +39,7 @@ for (const platform of ['win32', 'linux']) {
 }
 if (manifests[0].version !== manifests[1].version || manifests[0].revision !== manifests[1].revision)
   throw new Error('Windows and Linux depots must have the same version and source revision.');
+if (manifests[0].gameSourceHash !== manifests[1].gameSourceHash) throw new Error('Windows and Linux depots must contain the same shared game source.');
 const quote = value => '"' + String(value).replaceAll('\\', '/').replaceAll('"', '') + '"';
 await fs.mkdir(output, { recursive: true });
 for (const [index, platform] of ['win32', 'linux'].entries()) {

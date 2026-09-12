@@ -20,7 +20,7 @@ const stage = await fs.mkdtemp(path.join(root, 'desktop/.stage-'));
 try {
   await fs.mkdir(path.join(stage, 'desktop')); await fs.mkdir(path.join(stage, 'src'));
   await fs.cp(path.join(root, 'desktop/assets'), path.join(stage, 'desktop/assets'), { recursive: true });
-  for (const file of ['main.cjs', 'preload.cjs', 'policy.cjs', 'store.mjs', 'build-config.json'])
+  for (const file of ['main.cjs', 'preload.cjs', 'policy.cjs', 'platform.cjs', 'store.mjs', 'build-config.json'])
     await fs.copyFile(path.join(root, 'desktop', file), path.join(stage, 'desktop', file));
   for (const file of ['preferences-data.js', 'identity.js', 'bot-difficulty.js'])
     await fs.copyFile(path.join(root, 'src', file), path.join(stage, 'src', file));
@@ -64,7 +64,9 @@ try {
       }
     }
     await hashDirectory(output);
-    await fs.writeFile(path.join(output, 'build-manifest.json'), JSON.stringify({ version: pkg.version, revision: config.revision, dirty: config.dirty, platform, arch: 'x64', electron: desktopPkg.devDependencies.electron, hashes }, null, 2) + '\n');
+    await fs.writeFile(path.join(output, 'build-manifest.json'), JSON.stringify({ version: pkg.version, revision: config.revision, dirty: config.dirty,
+      transport: config.transport, steamAppId: config.steamAppId, gameSourceHash: config.gameSourceHash,
+      platform, arch: 'x64', electron: desktopPkg.devDependencies.electron, hashes }, null, 2) + '\n');
     console.log(`Packaged ${output}`);
   }
 } finally {

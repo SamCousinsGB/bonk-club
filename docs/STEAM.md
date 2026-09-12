@@ -1,6 +1,6 @@
 # Bonk Club: Steam production and release
 
-Updated 11 September 2026. Target: Windows x64 and native Linux x64, with Steam
+Updated 12 September 2026. Target: Windows x64 and native Linux x64, with Steam
 Deck hardware validation before claiming compatibility. Sam has no Steamworks
 account or App ID yet. This is a working desktop build and release pipeline;
 it is not a Steam-approved commercial release.
@@ -10,7 +10,8 @@ it is not a Steam-approved commercial release.
 Keep the existing Vite/Canvas simulation and authoritative multiplayer protocol.
 Electron provides the installed runtime. All game assets and fonts are included,
 so solo play has no website or login dependency. Windows and Linux use the same
-game code and remain compatible with the browser release when protocols match.
+game code. Desktop networking targets Steam; browser networking remains WebRTC.
+These are separate online populations. See [platform and progression architecture](PLATFORMS.md).
 Steam supplies installation and updates; there is no second auto-updater.
 
 An engine port to Unity/Godot would be a separate project with substantial physics,
@@ -28,16 +29,15 @@ SteamPipe is the upload path. [Valve SDK overview](https://partner.steamgames.co
 | Desktop controls | Fullscreen, F11/Alt+Enter, Quit, single instance, saved window size, renderer-crash recovery | No Steam overlay integration yet |
 | Controller menus | Directional navigation, A accept, B back, Start menu, on-screen name/code keyboard | Standard gamepad mapping tested by emulation; physical devices remain a release gate |
 | Settings | Character, AI difficulty, arena selection, mute and reduced motion persist | No achievements or persistent campaign progression |
-| Online play | Existing browser-compatible room codes, invites, public room discovery and TURN fallback | Existing host disconnect ends the room |
-| Release checks | Behaviour tests, desktop smoke, separate OS packages, licence notices, SHA-256 manifests, source/asset freshness checks | No code-signing identity or Steam account configured |
+| Online play | Browser transport isolated from the shared room protocol; Steam desktop has no browser/Pi fallback | Native Steam integration and App ID pending; desktop online is unavailable |
+| Release checks | One shared test gate, browser and both OS outputs from one revision, common game source hash, executable smoke and package hashes | No code-signing identity or Steam account configured |
 | SteamPipe | Two-depot preparation; validates IDs, matching clean revisions and every packaged file; preview by default | Generates scripts only; never logs in, uploads or publishes |
 
 The app-private Electron session intercepts the game's existing HTTPS publisher
 URL and serves that path from the bundle. It never falls back to downloading game
-HTML or scripts. Only configured signalling/temporary TURN HTTPS endpoints pass
-through to the network; navigation, TLS verification and web security remain
-enabled. This preserves the service's existing origin checks and shareable web
-links without modifying household infrastructure.
+HTML or scripts. The renderer has no external signalling, TURN or WebSocket
+access. Native Steam integration must remain behind narrow main-process IPC,
+with navigation, TLS verification and web security enabled.
 [Electron protocol API](https://www.electronjs.org/docs/latest/api/protocol),
 [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security)
 
@@ -49,29 +49,27 @@ does not acquire Electron dependencies.
 ```powershell
 npm ci
 npm ci --prefix desktop
-$env:VITE_ROOM_SERVICE_URL = 'https://bonk-club.82-28-16-193.sslip.io/peerjs'
-$env:VITE_TURN_CREDENTIALS_URL = 'https://bonk-club.82-28-16-193.sslip.io/ice'
 npm run desktop:build
 npm start --prefix desktop
 ```
 
-These are existing public service URLs, not secrets. GitHub Actions reads the
-corresponding repository variables. Missing or malformed URLs fail the desktop
-build instead of silently using an unrelated public signalling provider.
+Desktop builds need no browser service URLs. Once the real Steam app exists,
+set the non-secret `STEAM_APP_ID` build setting/repository variable. A missing ID
+still permits desktop preparation and solo testing; it never enables Steam
+networking. An ID alone also does not enable the unfinished native integration.
 
 ```powershell
 npm test
 npm test --prefix desktop
 npm run smoke --prefix desktop
-node desktop/tests/online.mjs
 npm run desktop:package -- --platform=win32
 ```
 
-`online.mjs` is an explicit live-service check. It creates temporary rooms and
-forces actual relay candidates in an external test harness. It requires Edge on
-Windows, or Playwright Chromium on Linux. It does not add production debug hooks.
-The normal smoke has no online-service dependency and tests offline solo, settings
-across restart, the sandbox boundary, controller menus and on-screen entry.
+The desktop smoke checks the Steam setup gate, no external browser-service
+requests, offline solo, settings across restart, isolation and controller menus.
+For browser networking, build with the production WebRTC URLs and run
+`node desktop/tests/browser-online.mjs`; `--public` checks Pages after deployment.
+This tests real browser relay connections, not Steam connectivity.
 
 On Linux use the same commands with shell-appropriate environment variables and
 `--platform=linux`. CI uses `xvfb-run` for graphical smoke tests. Do not add
@@ -82,8 +80,8 @@ permissions. Steam launch options must select `BonkClub.exe` for Windows and
 supported and is the intended Deck launch option.
 
 Packages are in `release/BonkClub-win32-x64` and `release/BonkClub-linux-x64`.
-Distribute the entire folder, not just the executable. The `Build desktop game`
-workflow uploads archives named with the exact Git revision. Keep a copy of the
+Distribute the entire folder, not just the executable. The `Test and publish Bonk Club`
+workflow calls the reusable desktop workflow and uploads archives named with the exact Git revision. Keep a copy of the
 last accepted archives and manifests for rollback. Steam branch changes, not
 in-place edits, should promote or roll back releases.
 
@@ -162,14 +160,16 @@ exist. No UI pretends they already work.
   Chromium storage, connection state and recovery copies out of Cloud. Test
   Windows-to-Linux transfer, two local Steam accounts and conflict recovery.
   [Steam Cloud](https://partner.steamgames.com/doc/features/cloud)
-- **Steam networking decision.** Recommended desktop direction: Steam lobbies
-  plus Steam Networking/SDR, preserving the host simulation and bounded snapshot
-  channel. Browser interoperability would still require the existing WebRTC path
-  or a deliberately designed bridge. Steam does not automatically relay existing
-  PeerJS traffic. If shared WebRTC remains the launch transport, move its public
-  service to separately operated infrastructure and measure relay capacity and
-  costs before accepting paying users. No new hosting bill is authorised by this
-  document. [Steam Networking](https://partner.steamgames.com/doc/features/multiplayer/networking)
+- **Steam networking.** Desktop uses native Steam lobbies and modern Steam
+  Networking/SDR; browser WebRTC remains a separate target until browser retirement.
+  The shared room protocol is extracted, but no native driver has been implemented
+  or verified. There is no desktop WebRTC fallback. Prove two real accounts on
+  Windows/Linux before enabling online play. See [PLATFORMS.md](PLATFORMS.md).
+- **Managed progression.** Sam approved planning a managed backend later. Earned
+  XP, levels, gameplay stats and entitlement grants require verified identity and
+  trusted result authority. A player host, local preferences, Cloud save or
+  client-set Steam stat cannot be that authority. No backend or rewards system is
+  enabled yet. The client interface is read/equip only, with no local fallback.
 - **Achievements** are optional, lower priority than reliable joining and good
   controls. Design real gameplay achievements, persist/account-scope events and
   test unlocks before adding store feature flags.
@@ -182,8 +182,8 @@ exist. No UI pretends they already work.
 | Linux distribution | Native package smoke, actual Linux desktop, Steam Linux Runtime compatibility, clean permissions and sandbox | Linux CI runtime smoke and packaging pass; all 73 file hashes and archive executable permissions verified; packaged Steam runtime and physical desktop validation pending |
 | Steam Deck | Real device at 1280×800/720, all menus/gameplay with controls alone, text entry, suspend/resume/reconnect, audio and readable HUD | No hardware test; do not claim Verified or full controller support yet |
 | Performance | Host and guests measured separately; frame-time percentiles, input feel, network bandwidth and 60-minute four-player soak across arenas and extreme effects | Existing regressions are useful, but not retail hardware certification |
-| Networking | Two accounts on separate ISPs; direct and selected relay routes, hot join, packet loss/jitter, host loss, full/version-mismatch rooms and service outage recovery | Desktop host, browser guest and hot join pass through selected public TURN relay candidates on one QA machine; broader launch test matrix pending |
-| Operations | Owned durable endpoint, certificate renewal, service uptime/alerting, relay load/bandwidth budget, abuse limits, backups and rollback runbook | Current Pi service retained; household services unchanged |
+| Networking | Two accounts on separate ISPs; direct and selected relay routes, hot join, packet loss/jitter, host loss, full/version-mismatch rooms and service outage recovery | Historical WebRTC desktop QA does not validate the new Steam target; real Steam-account/SDR testing pending |
+| Operations | Owned durable endpoint, certificate renewal, service uptime/alerting, relay load/bandwidth budget, abuse limits, backups and rollback runbook | Browser Pi service retained; Steam desktop has no Pi dependency; future managed progression service not provisioned |
 | Controls/accessibility | Physical Xbox/PlayStation/Deck controllers, disconnect/reconnect, remapping plan, reduced motion, colour/readability and keyboard-only flow | Standard mapping and menu support implemented; device QA pending |
 | Rights/content | Ownership/licences for every asset and library, content survey, age ratings, appropriate support/privacy wording | Bundled notices generated; publisher sign-off pending |
 | Store | Accurate copy, supported language list, measured minimum specs, screenshots/trailer/capsules, support contact and price | Draft brief in STEAM-STORE.md; public listing not created |
@@ -196,8 +196,8 @@ desktop screenshot is insufficient evidence of handheld compatibility.
 ## Shipping order
 
 Finish account setup while testing the desktop builds. Next, integrate and test
-Steam identity/invites and account saves on a private branch, resolve multiplayer
-service ownership, and test the actual Deck. Then create accurate store assets
+Steam identity/invites and account saves on a private branch, implement and verify native Steam
+networking, and test the actual Deck. Then create accurate store assets
 from the verified build, publish Coming Soon, run a private playtest, and submit
 the final build for review. Publish only when the acceptance gates above have
 evidence. Keep the current browser release available throughout.

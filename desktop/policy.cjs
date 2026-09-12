@@ -1,7 +1,6 @@
 const path = require('node:path');
-// An app-private session serves ONLY the bundled game at its existing publisher
-// origin. No game HTML/JS is downloaded. This keeps CORS and browser invites
-// compatible with the deployed service, without disabling web security.
+// An app-private session serves ONLY the bundled game at its publisher origin.
+// No game HTML/JS is downloaded and web security remains enabled.
 const GAME_URL = 'https://samcousinsgb.github.io/bonk-club/';
 function gameDocument(value) {
   try {
@@ -20,26 +19,13 @@ function assetPath(value, root) {
     return result.startsWith(path.resolve(root) + path.sep) ? result : null;
   } catch { return null; }
 }
-function endpoint(value) {
-  const u = new URL(value);
-  if (u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) throw new Error('Use an HTTPS service URL without credentials or query parameters.');
-  return u;
-}
 function networkPolicy(config) {
-  const room = endpoint(config.roomServiceUrl), relay = endpoint(config.turnCredentialsUrl);
+  if (config.transport !== 'steam') throw new Error('Desktop builds require the Steam transport.');
   return {
-    allowed(value) {
-      try {
-        const u = new URL(value);
-        if (u.username || u.password) return false;
-        return (u.origin === room.origin && (u.pathname === room.pathname || u.pathname.startsWith(room.pathname.replace(/\/$/, '') + '/'))) ||
-          (u.origin === relay.origin && u.pathname === relay.pathname) ||
-          (u.protocol === 'wss:' && u.host === room.host && u.pathname.startsWith(room.pathname.replace(/\/$/, '') + '/'));
-      } catch { return false; }
-    },
-    csp: "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self' " +
-      [...new Set([room.origin, relay.origin, 'wss://' + room.host])].join(' ') +
-      "; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'"
+    // Native Steamworks owns connections. The renderer only fetches its bundle.
+    allowed: () => false,
+    csp: "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self'; connect-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'",
   };
 }
+
 module.exports = { GAME_URL, gameDocument, assetPath, networkPolicy };

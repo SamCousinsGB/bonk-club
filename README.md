@@ -4,6 +4,9 @@ Development rules: [project constitution](AGENTS.md). Current work and next-chat
 context: [handoff](docs/HANDOFF.md).
 
 Desktop builds and Steam release work: [Steam production guide](docs/STEAM.md).
+Shared builds, separate transports and future managed progression:
+[Platform architecture](docs/PLATFORMS.md). Desktop online is currently unavailable
+pending the Steam App ID and native integration; browser WebRTC remains playable.
 Windows and Linux packaging is available; Steam account setup, native Steam
 features and Steam Deck hardware validation are still required before a Steam
 release. The browser game remains supported.

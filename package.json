@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.18.1",
-  "releaseNotes": "Immediate online firing and throwing with local projectile and black-hole motion",
+  "version": "0.19.0",
+  "releaseNotes": "Shared release pipeline and Steam desktop preparation",
   "private": true,
   "type": "module",
   "scripts": {
