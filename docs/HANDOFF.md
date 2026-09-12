@@ -87,9 +87,9 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Pop damage is host-only, including expiry during knockdown. The last living
   fighter's active bubble delays the result, so a lethal final pop is a draw.
   Help and latest-release text describe the damage and effect.
-- Validation: all 799 tests passed before the final round-wait regression;
-  the final focused tests, production build and browser checks are recorded
-  with the publication evidence below. Nine new regressions cover real shots,
+- Validation: all **800 game/shared tests and 3 server tests** passed in CI,
+  along with the production build and deployment. All 87 final focused local
+  tests passed. Nine new regressions cover real shots,
   expiry, heavy hits, kill credit, capture, prediction authority, scoring,
   physical contacts, interpolation, invalid state and round reset.
 - Source Edge host/guest browsers received timed and heavy-hit pops, lethal
@@ -100,7 +100,20 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   hot join, leave and the narrow menu. These are one-PC external-relay checks.
 - QA scripts/logs/screenshots are `../bonk-club-qa/bubble-pop-*`. No production
   hooks, dependencies, desktop shell changes or Pi configuration changes.
-- Publication verification pending.
+- **Published and verified:** gameplay revision
+  `51ffb297c787fb3867cd4a045d76fe47e231fdbd`, v0.19.0, protocol 41.
+  [Pages run 34696572639](https://github.com/SamCousinsGB/bonk-club/actions/runs/34696572639)
+  succeeded. Desktop run `34696572641` passed Windows and Linux.
+- All **16 public files** match the exact CI artifact and tested local build
+  by SHA-256. JS is `index-C34HCEVR.js`, worker
+  `state-codec-worker-SEYzkwM5.js`, CSS `index-DSLPu4j9.css`.
+  The public v0.19.0 game passed solo, real relay host/guest start and controls,
+  third-player hot join, leave and the narrow menu with no page errors.
+- Scoped changes are also merged into the canonical checkout. Its 31 affected
+  bubble/weapon/death tests and 19 combined bubble/Tesla tests passed. Separate
+  Tesla work is preserved and owns its subsequent release; do not roll it back
+  to this release's version or protocol. Only this task's servers on 5397/5398
+  were stopped.
 
 ## Local combat prediction and replay - 12 September 2026
 
