@@ -31,7 +31,8 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   barrel-leaks-{game,detail,hotjoin}.png. No production debug hooks or Pi changes.
 ## Slower pickup pacing - 12 September 2026
 
-- v0.24.2, protocol 46 unchanged. Refresh to use the new host-side pacing.
+- v0.24.4, protocol 47 from the integrated barrel-leak release. Refresh every
+  player to use the new host-side pacing and matching shared protocol.
 - Removed all four spawn-side starter guns. Existing contested arena pickups
   and the featured rare/exotic rotation remain. Movement/combat speed is unchanged.
 - Standard refill rolls wait six seconds initially, then 6–8 seconds. Independent

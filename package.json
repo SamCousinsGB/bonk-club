@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.24.3",
-  "releaseNotes": "Barrels leak from bullet holes with correctly sized gas jets",
+  "version": "0.24.4",
+  "releaseNotes": "Slower weapon drops, unchanged grenade cadence and nukes every third round",
   "private": true,
   "type": "module",
   "scripts": {
