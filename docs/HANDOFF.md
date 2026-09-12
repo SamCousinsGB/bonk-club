@@ -2,6 +2,24 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Heavy whole-arena distortion - 12 September 2026
+
+- v0.28.2, protocol 51 unchanged. Whole-scene geometric displacement is doubled
+  from v0.28.1 (100% stronger), including the Canvas fallback. The screen-edge
+  fade now uses a wider, aspect-correct band to prevent clamped pixel smearing.
+- Existing active-field lifetime, smooth opening/closing, reduced motion and
+  bounded overlap remain intact. The global warp remains visual only; the
+  generator retains its one-shot load. No new damage, forces or wire state.
+- Actual rendered arena and diagnostic grid inspected at 1600x900 and 844x390;
+  overlapping fields, reduced motion, WebGL loss/recovery and closure pass.
+  Real relay host/guest/hot join share the effect and existing terrain state;
+  actual pickup/fire consumes the generator, and all clients clear on closure.
+- Production browser/desktop builds, seven desktop unit checks and Windows
+  executable smoke passed. Full game tests and publication verification pending.
+- Scoped changes also applied to the canonical checkout while preserving its
+  older work. Release worktree: ../bonk-club-qa/spacetime-warp. External browser
+  evidence and six-second gameplay video: ../bonk-club-qa/spacetime-heavy-*.
+
 ## Stronger, single-shot black holes - 12 September 2026
 
 - v0.28.1, protocol 51 unchanged from the integrated power-fist release.

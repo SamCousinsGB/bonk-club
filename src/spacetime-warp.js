@@ -51,11 +51,13 @@ void main() {
     total += holes[i].z;
   }
   // Overlapping holes blend into one bounded bend, never multiply the amplitude.
-  displacement *= 1.5 / max(1., total);
+  displacement *= 3.0 / max(1., total);
   fringe *= 1.2 / max(1., total);
-  // Settle the normal component at the border to prevent exposed canvas edges.
-  vec2 border = smoothstep(vec2(0.), vec2(.025), uv) *
-                smoothstep(vec2(0.), vec2(.025), 1. - uv);
+  // Fade over more than the maximum displacement in screen-height units.
+  // Heavy refraction must not repeatedly sample a clamped outer pixel.
+  vec2 borderWidth = vec2(.075) / aspect;
+  vec2 border = smoothstep(vec2(0.), borderWidth, uv) *
+                smoothstep(vec2(0.), borderWidth, 1. - uv);
   vec2 sampleUV = uv + displacement / aspect * border;
   vec2 chroma = fringe / aspect * border;
   vec2 low = .5 / resolution, high = 1. - low;
@@ -138,11 +140,11 @@ function drawFallback(renderer, sources) {
   const offset = (position, axis) => sources.reduce((sum, f) => {
     const centre = axis ? f.x : 1 - f.y;
     const distance = position - centre;
-    return sum + f.strength * Math.sin(distance * 8 - f.time * .9) * .009 * height;
+    return sum + f.strength * Math.sin(distance * 8 - f.time * .9) * .018 * height;
   }, 0) / total;
   // A slight overscan fills the displaced sides without stretched edge bands.
   const activity = sources.reduce((sum, f) => sum + f.strength, 0) / total;
-  const margin = .012 * height * activity;
+  const margin = .024 * height * activity;
   for (let y = 0; y < height; y += 8) {
     const h = Math.min(8, height - y), dx = offset((y + h / 2) / height, 0);
     buffers[1].context.drawImage(buffers[0].canvas, 0, y, width, h,

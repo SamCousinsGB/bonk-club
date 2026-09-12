@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.28.1",
-  "releaseNotes": "Stronger spacetime distortion and single-shot black hole generators",
+  "version": "0.28.2",
+  "releaseNotes": "Black holes distort the entire arena with twice the screen-warp strength",
   "private": true,
   "type": "module",
   "scripts": {
