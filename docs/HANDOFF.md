@@ -2,6 +2,24 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Slower pickup pacing - 12 September 2026
+
+- v0.24.2, protocol 46 unchanged. Refresh to use the new host-side pacing.
+- Removed all four spawn-side starter guns. Existing contested arena pickups
+  and the featured rare/exotic rotation remain. Movement/combat speed is unchanged.
+- Standard refills wait six seconds initially, then 6–8 seconds. The next type
+  is selected before its delay, so grenade/cluster/cryo drops retain their
+  two-second first delay and 3–5-second repeat delay. Survival arenas and the
+  autonomous menu fight retain their own existing pickup cadence.
+- Nukes appear once in the opening pickups of standard rounds 3, 6, 9, etc.
+  They are excluded from all random pickup pools, including exclusion fallbacks.
+  Survival arenas retain their non-nuclear restricted arsenal.
+- Release worktree: `../bonk-club-qa/slower-pickups`, branch `codex/slower-pickups`,
+  based on current main's heavy-cable release. Canonical concurrent work is preserved.
+- Regression coverage checks every arena's unarmed starts, actual timed drops,
+  grenade exceptions, countdown/reset, compact hot-join pickup state and nuke
+  scheduling/random-pool exclusions. Final publication evidence follows.
+
 ## Heavy hanging cables - 12 September 2026
 
 - v0.24.1, protocol 46. Refresh every player and create a new room.

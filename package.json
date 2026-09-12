@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.24.1",
-  "releaseNotes": "Heavy hanging wires with subtle powered movement",
+  "version": "0.24.2",
+  "releaseNotes": "Fewer weapon drops, unarmed starts and nukes every third round",
   "private": true,
   "type": "module",
   "scripts": {

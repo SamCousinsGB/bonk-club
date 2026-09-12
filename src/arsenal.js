@@ -430,6 +430,8 @@ export function firingRecoil(weapon, player) {
 }
 // Non-featured pickups use weighted tiers and avoid duplicate weapons when possible.
 export function chooseWeapon(random = Math.random, exclude = new Set()) {
+  // Nukes belong only to the scheduled opening round, never random refills.
+  const eligible = Object.keys(WEAPONS).filter(k => k !== "nuke");
   const roll = random();
   const tier =
     roll < 0.4
@@ -439,12 +441,11 @@ export function chooseWeapon(random = Math.random, exclude = new Set()) {
         : roll < 0.92
           ? "rare"
           : "exotic";
-  let pool = Object.keys(WEAPONS).filter(
+  let pool = eligible.filter(
     (k) => WEAPONS[k].rarity === tier && !exclude.has(k),
   );
-  if (!pool.length) pool = Object.keys(WEAPONS).filter((k) => !exclude.has(k));
-  if (!pool.length) pool = Object.keys(WEAPONS);
-  if (pool.includes("nuke")) pool.push("nuke");
+  if (!pool.length) pool = eligible.filter((k) => !exclude.has(k));
+  if (!pool.length) pool = eligible;
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
 export const PROJECTILE_KINDS = [
@@ -475,7 +476,7 @@ export class WeaponRotation {
     return this.bag.pop();
   }
   opening(round) {
-    return [round % 3 === 1 ? "nuke" : this.next(), this.next()];
+    return [round % 3 === 0 ? "nuke" : this.next(), this.next()];
   }
 }
 

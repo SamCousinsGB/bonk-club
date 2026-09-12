@@ -8,26 +8,20 @@ import {validSnapshot} from "../src/network.js";
 import {combatFloor} from "./helpers.js";
 import {prepareProp,updateProps} from "../src/props.js";
 
-test("every spawn has the same unobstructed first weapon run, away from every fixture sweep",()=>{
+test("round starts are unarmed with only contested pickups away from starting positions",()=>{
   for(let arena=0;arena<ARENAS.length;arena++)for(const round of [1,2,3,4]){
-    if(ARENAS[arena].survival)continue; // Survival starts deliberately have no guns.
     const w=new World({arena,players:[0,1,2,3],shuffle:false,random:()=>.35});
-    w.round=round;w.startRound();w.phase="fight";w.weaponTimer=999;
-    const starts=w.players.map(p=>p.x),weapons=w.drops.slice(-4);
-    assert.equal(new Set(weapons.map(d=>d.type)).size,1,w.arena.name);
+    w.round=round;w.startRound();
+    assert.equal(w.drops.length,w.arena.weapons.length,w.arena.name);
     for(const p of w.players){
-      assert.equal(Math.round(Math.abs(weapons[p.id].x-p.x)),100,`${w.arena.name} ${p.id}`);
-      assert.ok(!nearFixture(p.x,p.y,w.hazards,100));
-      assert.ok(!nearFixture(weapons[p.id].x,weapons[p.id].y,w.hazards,45));
+      assert.equal(p.weapon,null);assert.equal(p.ammo,0);
+      if(!w.arena.survival)assert.ok(!nearFixture(p.x,p.y,w.hazards,100),w.arena.name);
+      for(const d of w.drops){
+        assert.ok(Math.hypot(d.x-p.x,d.y-p.y)>=250,`${w.arena.name}: pickup at slot ${p.id}`);
+        assert.ok(!nearFixture(d.x,d.y,w.hazards,45));
+      }
     }
-    for(let n=0;n<95;n++){
-      const inputs=Object.fromEntries(w.players.map(p=>[p.id,{left:starts[p.id]>1280,right:starts[p.id]<1280}]));
-      w.step(STEP,inputs);
-    }
-    for(const p of w.players){
-      assert.equal(p.weapon,weapons[p.id].type,`${w.arena.name} round ${round}, slot ${p.id} cannot collect`);
-      assert.equal(p.ammo,WEAPONS[p.weapon].ammo);assert.equal(p.hp,100);
-    }
+    assert.ok(validSnapshot(w.snapshot()));
   }
 });
 
