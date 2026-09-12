@@ -53,7 +53,26 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   actual guest movement/jump, moving cars and permanent car/machine destruction.
   Source visuals were inspected in active, parked, damaged and completed states.
 - Rebased on the concurrent Turbine Hall release, retaining its arena, collision,
-  cable and blade behavior. Combined validation and public proof follow below.
+  cable and blade behavior. Published revision: 9ddd7076568fde48dc543684b48b2d34a4465a1e.
+  Assembly implementation commit: 7ac9016eb3774c4159de9efca9accc41ca00e989.
+- [Release run 34717105128](https://github.com/SamCousinsGB/bonk-club/actions/runs/34717105128)
+  passed 997 shared/game tests, three server tests, browser build, Windows/Linux
+  desktop unit tests, executable smoke, packaging, source consistency and Pages.
+  The initial local suite passed 982 tests; 71 focused integration checks covered
+  both assembly and turbines. A seeded assembly bot round completed in 58.6 seconds.
+- All 17 public content files match both the exact LF committed build and the CI
+  artifact by SHA-256. Shared source hash:
+  dc8fead536a69147c04183febd3cd4c7948927cbf6673a93013728c03bf9d17d.
+  Exact build: ../bonk-club-qa/assembly-refined-exact; artifact: assembly-refined-ci;
+  manifest: assembly-refined-live-verification.json.
+- The unmodified public v0.32.0 passed map selection, repeated production, actual
+  guest controls, departure and a real hot join with selected relay/relay pairs
+  and no browser errors. Public 1600x900 and 844x390 rendering was inspected.
+  Evidence: assembly-refined-public.mjs/json and assembly-refined-public-*.png.
+  A 20-second actual production-build bot match is assembly-refined-gameplay.webm.
+  These browser peers ran on one QA PC; this is not a cross-ISP latency test.
+- Task preview ports 5523/5524 are stopped. No dependencies, production debug hooks
+  or Pi changes were introduced. The canonical checkout retains unrelated work.
 
 ## Turbine Hall - 12 September 2026
 
