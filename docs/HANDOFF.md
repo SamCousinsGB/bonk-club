@@ -2,6 +2,33 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Barrel impact leaks - 12 September 2026
+
+- v0.24.2, protocol 47. Refresh every player and create a new room.
+- Actual projectile entry points now reach container damage before ignition.
+  Up to four small punctures stay in casing-local coordinates; nearby repeat hits
+  reuse an opening. Gas, oil, glue, tar and water emit from those locations as
+  their containers translate and rotate. Gas pressure acts opposite each opening.
+- Gas starts as a small puff beside the hole, then expands. Spray length and hole
+  size follow container dimensions; warning swell and outlet artwork agree.
+  Multiple openings share the existing finite fuel and output budgets. Cryo still
+  temporarily seals leaks, destruction consumes contents once, and rounds reset.
+- Leak positions/normals are bounded and validated in shared protocol state.
+  Guests and hot joiners retain them through transport and interpolation.
+- Implemented with scoped edits in the canonical checkout, preserving its earlier
+  unfinished work. Release integration is ../bonk-club-qa/barrel-leaks-release,
+  branch codex/barrel-impact-leaks, based on current main 7358bda.
+- All 67 focused container/reaction/ignition checks passed, including seven new
+  regressions for actual left/right/top/bottom shots, ignition ordering, rotation,
+  finite multi-hole leaks, freezing, hot join/reset and invalid wire data.
+  Production build passed. Full-suite and publication verification follow.
+- Actual host, guest and third-player hot join passed using selected relay/relay
+  routes. Entry side, small gas size, attached punctures during physical tumbling
+  and matching late-join holes were verified without page errors. Normal gameplay
+  and enlarged actual Canvas artwork were inspected. External QA/evidence:
+  ../bonk-club-qa/barrel-leaks-browser.cjs, barrel-leaks-browser.json and
+  barrel-leaks-{game,detail,hotjoin}.png. No production debug hooks or Pi changes.
+
 ## Heavy hanging cables - 12 September 2026
 
 - v0.24.1, protocol 46. Refresh every player and create a new room.

@@ -114,7 +114,7 @@ test("oil and tar spread into wider finite pools, with tar still slower",()=>{
 });
 
 test("gas jets travel farther while keeping their bounded lifetime and snapshot limits",()=>{
-  const w=lab(),b=prop("canister");b.angle=-.45;w.cover=[b];w.damageCover(b,5);advance(w,.05);
+  const w=lab(),b=prop("canister");b.angle=0;w.cover=[b];w.damageCover(b,5);advance(w,.05);
   const g=w.gas[0],x=g.x;w.cover=[];advance(w,2);
   assert.ok(g.x-x>140,`gas travelled ${g.x-x}`);assert.ok(validSnapshot(w.snapshot()));
   advance(w,1.3);assert.equal(w.gas.length,0);

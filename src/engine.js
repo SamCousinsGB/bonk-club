@@ -1175,7 +1175,7 @@ export class World {
       });
     this.debris = this.debris.slice(-90);
   }
-  reactPropDamage(b, damage) { return propReactionDamage(this, b, damage); }
+  reactPropDamage(b, damage, point) { return propReactionDamage(this, b, damage, point); }
   inheritPropReaction(parent, child) { inheritReaction(parent, child); }
   updateCover(dt) {
     updateProps(this, dt);
