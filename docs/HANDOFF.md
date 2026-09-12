@@ -103,7 +103,20 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   15 Tesla/projectile checks passed after expanding the link-key bound to support
   two full-length prop identities. The production build and three-browser staged
   smoke passed without page errors; the narrow menu was visually inspected.
-  Public release verification follows below.
+- **Published and verified:** gameplay revision
+  `8a6d3a4491f55629175c4453fcefb5a3b5e6a213`, v0.20.0, protocol 42.
+  [Pages run 34696931180](https://github.com/SamCousinsGB/bonk-club/actions/runs/34696931180)
+  passed **811 game tests and 3 server tests**, build and deployment. Desktop
+  run 34696931151 also passed Windows/Linux unit, executable and packaging jobs.
+- All **16 public files** match the tested local build and exact CI artifact by
+  SHA-256. JS: `index-BguJJPml.js`; worker: `state-codec-worker-SEYzkwM5.js`;
+  CSS: `index-DSLPu4j9.css`. The unmodified public v0.20.0 build passed solo,
+  real relay host/guest controls, a third-player hot join, leave and narrow-menu
+  checks without browser errors. The public gameplay screenshot was inspected.
+- The concurrent shared-platform release `693eef6` on main retains the same
+  Tesla source/tests and protocol 42. Its separate release verification belongs
+  to that task; the artifact/public checks above prove the Tesla v0.20.0 release.
+  This task's previews on 5411 and 5412 were stopped after verification.
 
 ## Bubble pop damage and scattered deaths - 12 September 2026
 
