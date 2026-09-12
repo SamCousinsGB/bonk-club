@@ -1,5 +1,7 @@
 import { electricArc } from "./electricity-art.js";
-import { wirePieces } from "./powerlines.js";
+import { wirePieces, wireCable } from "./powerlines.js";
+import { cableRuns, drawCableStroke } from "./cable-art.js";
+import { TOWER_MOUNTS } from "./cable-layout.js";
 
 const line=(c,points,color,width)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 // Rear lattice is open to fighters, like the rear walls in building arenas.
@@ -29,8 +31,15 @@ export function drawTransmissionTowers(c,state) {
       const end=x+side*300;
       if(!state.platforms.some(p=>p.hp!==0&&!p.wreckId&&p.x<=end&&p.x+p.w>=end&&p.y===y))continue;
       line(c,[[x+side*half(y-75),y-75],[end,y]],"#819aa4",5);
-      line(c,[[end,y+20],[end,y+63]],"#574337",6);
-      for(let i=0;i<5;i++)line(c,[[end-15,y+28+i*7],[end+15,y+28+i*7]],"#d3935c",5);
+      const mount = TOWER_MOUNTS.flat().find(m => m.x === end && m.supportY === y);
+      const cable = mount && state.cables?.find(q => q.id === `tower${y === 440 ? 0 : 1}`);
+      const attached = !mount || cable?.attached[end < 1280 ? 0 : 1];
+      if (attached) {
+        const tip = mount?.y ?? y + 70;
+        line(c,[[end,y+20],[end,tip]],"#574337",6);
+        for(let i=0;i<5;i++)line(c,[[end-15,y+28+i*7],[end+15,y+28+i*7]],"#d3935c",5);
+        line(c,[[end-8,tip],[end+8,tip]],"#a9b9bb",6);
+      }
     }
     if(state.platforms.some(p=>p.hp!==0&&p.x<x&&p.x+p.w>x&&p.y===230))
       line(c,[[x-150,230],[x,140],[x+150,230]],"#a1b3b9",6);
@@ -39,19 +48,29 @@ export function drawTransmissionTowers(c,state) {
 }
 export function drawPowerlines(c,state,time) {
   c.save();c.lineCap="round";
+  c.lineJoin = "round";
+  for (const cable of state.cables || []) if (cable.id.startsWith("tower")) {
+    for (const run of cableRuns(cable)) {
+      drawCableStroke(c, run, "#18232d", 11);
+      drawCableStroke(c, run, "#768b92", 6);
+      drawCableStroke(c, run, "#b1bdb9", 1.4, -1.5);
+    }
+  }
   for(const h of state.hazards||[]) {
     if(h.type!=="powerline"||h.done)continue;
-    const pieces=wirePieces(state,h).sort((a,b)=>a.x-b.x);
+    const pieces=wirePieces(state,h);
     if(h.active)for(let i=0;i<pieces.length;i+=3) {
       const a=pieces[i],b=pieces[Math.min(i+2,pieces.length-1)];
-      electricArc(c,{x:a.x,y:a.y+2},{x:b.x+b.w,y:b.y+2},time,h.id*109+i,1.1,i%2===0);
+      electricArc(c,a.a,b.b,time,h.id*109+i,1.1,i%2===0);
     }
     const color=h.active?"#bcfaff":h.warning>0&&Math.sin(time*18)>0?"#ffc565":"#526c6b";
-    for(const p of [pieces[0],pieces.at(-1)].filter(Boolean)) {
-      c.fillStyle="#182732";c.fillRect(p.x-7,p.y-24,14,18);
-      c.fillStyle=color;c.fillRect(p.x-4,p.y-21,8,10);
+    const cable = wireCable(state, h);
+    for(const p of [cable?.points[0],cable?.points.at(-1)].filter(Boolean)) {
+      // Indicators sit on the cross-arm, above the hanging insulator.
+      c.fillStyle="#182732";c.fillRect(p.x-7,p.y-95,14,18);
+      c.fillStyle=color;c.fillRect(p.x-4,p.y-92,8,10);
     }
-    if(h.warning>0)for(const p of pieces)line(c,[[p.x,p.y],[p.x+p.w,p.y]],"#efb965",2);
+    if(h.warning>0)for(const p of pieces)line(c,[[p.a.x,p.a.y],[p.b.x,p.b.y]],"#efb965",2);
   }
   c.restore();
 }

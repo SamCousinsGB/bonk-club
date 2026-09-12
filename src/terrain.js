@@ -1,4 +1,5 @@
 import { carveRectangle } from "./nuclear.js";
+import { blastCables, releaseCableMounts } from "./heavy-cables.js";
 
 // Marked wood and glass panels can be shot out. Every surface also supports
 // circular explosion cuts, including structural supports and lifts.
@@ -50,6 +51,7 @@ export function preparePlatforms(arena, arenaIndex) {
 }
 
 export function carveExplosion(world, blast) {
+  blastCables(world, blast);
   const cut = { ...blast, id: `blast${++world.terrainSerial}` };
   let changed = false;
   const removedWreck = new Set();
@@ -86,6 +88,7 @@ export function carveExplosion(world, blast) {
       h.done = true; h.active = false; h.warning = 0; changed = true;
     }
   }
+  releaseCableMounts(world);
   if (!changed) return;
   world.terrainVersion++;
   const ids = new Set(world.solids().map(s => s.id));

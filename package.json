@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.24.0",
-  "releaseNotes": "Arc furnace arena with dancing cables, electrical surges and molten metal",
+  "version": "0.24.1",
+  "releaseNotes": "Heavy hanging wires with subtle powered movement",
   "private": true,
   "type": "module",
   "scripts": {

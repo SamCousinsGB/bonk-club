@@ -2,6 +2,7 @@ import { playerBox } from "./collision.js";
 import { WEAPONS } from "./arsenal.js";
 import { bodyPoints } from "./props.js";
 import { weaponMuzzle } from "./weapon-mount.js";
+import { cutCables, releaseCableMounts } from "./heavy-cables.js";
 
 // Clip convex polygons to a half-plane. The same beam footprint drives player
 // hits and terrain removal, including the triangular flare from the muzzle.
@@ -82,6 +83,7 @@ export function firePhaser(world, player, ax, ay, action) {
     ey: y + ay * weapon.range, radius: weapon.radius, flare: weapon.flare,
     life: weapon.life, age: 0, owner: player.id, ...(action ? {action} : {}) };
   if (world.prediction) { world.previewField?.(beam); return beam; }
+  cutCables(world, polygon => beamIntersection(null, beam, polygon).length > 0);
   const id = s => `${s.sourceId || s.id || "spike"}:cph${++world.terrainSerial}`;
   world.water = (world.water || []).filter(q => !beamTouches(q, beam));
   world.spills = (world.spills || []).filter(q => !beamTouches(q, beam));
@@ -110,6 +112,7 @@ export function firePhaser(world, player, ax, ay, action) {
   world.ragdolls = world.ragdolls.filter(r => !r.points.some(p =>
     beamTouches({ x: p.x - 5, y: p.y - 5, w: 10, h: 10 }, beam)));
   world.terrainVersion++;
+  releaseCableMounts(world);
   const supports = new Set(world.solids().map(s => s.id));
   for (const p of world.players) {
     if (p.support && !supports.has(p.support)) { p.support = null; p.ground = false; }

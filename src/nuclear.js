@@ -1,4 +1,5 @@
 import { NUCLEAR } from "./impact.js";
+import { blastCables } from "./heavy-cables.js";
 import { trackKillSource } from "./kill-credit.js";
 import { consumeReactionArea } from "./reactions.js";
 import { bodyInBlast } from "./props.js";
@@ -122,6 +123,7 @@ export function updateNuclear(world, f, dt) {
     consumeReactionArea(world, { x:f.x, y:f.y, radius:NUCLEAR.coreRadius });
     f.melted = true;
     const crater = world.craters.find((c) => c.id === f.craterId);
+    blastCables(world, crater);
     world.wreckage = world.wreckage.filter((w) => {
       if (!w.outline)
         return (

@@ -1,15 +1,15 @@
 import { playerBox, segmentBox } from "./collision.js";
-import { POWER_INTERVAL, WIRE_LEFT, WIRE_RIGHT } from "./transmission-arena.js";
+import { POWER_INTERVAL } from "./transmission-arena.js";
+import { cableIntact, releaseCableMounts } from "./heavy-cables.js";
 
-export const wirePieces = (state,h) => state.platforms.filter(p=>p.material==="cable"&&p.circuit===h.circuit&&p.hp!==0&&!p.wreckId);
+export const wireCable = (state, h) => state.cables?.find(c => c.id === `tower${h.circuit}`);
+export const wirePieces = (state, h) => {
+  const c = wireCable(state, h);
+  return c ? c.links.flatMap((live, i) => live ? [{ a: c.points[i], b: c.points[i + 1] }] : []) : [];
+};
 export function intactPowerline(world,h) {
-  const pieces=wirePieces(world,h).sort((a,b)=>a.x-b.x);
-  let end=WIRE_LEFT;
-  for(const p of pieces) {if(p.x>end+.1)return false;end=Math.max(end,p.x+p.w);}
-  if(end<WIRE_RIGHT-.1)return false;
-  // Losing either insulator's mounting also opens the circuit.
-  return [WIRE_LEFT-8,WIRE_RIGHT+8].every(x=>world.platforms.some(p=>
-    p.hp!==0&&p.material!=="cable"&&!p.wreckId&&p.x<=x&&p.x+p.w>=x&&Math.abs(p.y-(h.y-28))<2));
+  releaseCableMounts(world);
+  return cableIntact(wireCable(world, h));
 }
 export function updatePowerline(world,h,dt) {
   if(!intactPowerline(world,h)) {h.done=true;h.active=false;h.warning=0;return;}
@@ -30,10 +30,10 @@ export function updatePowerline(world,h,dt) {
   for(const p of world.players) {
     if(!p.alive||h.hitIds.includes(p.id))continue;
     const box=playerBox(p);
-    const contact=pieces.find(s=>segmentBox(s.x,s.y+3,s.x+s.w,s.y+3,box,7));
+    const contact=pieces.find(s=>segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,box,7));
     if(!contact)continue;
     h.hitIds.push(p.id);
-    world.hit(p,{x:p.x,y:contact.y+4,vx:0,vy:0},70,650,h.dir,-.8,
+    world.hit(p,{x:p.x,y:(contact.a.y+contact.b.y)/2,vx:0,vy:0},70,650,h.dir,-.8,
       {blast:true,effect:"tesla",cause:"electrified",stun:.18,hitstop:.012});
   }
 }

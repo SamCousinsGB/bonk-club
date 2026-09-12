@@ -2,6 +2,36 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Heavy hanging cables - 12 September 2026
+
+- v0.24.1, protocol 46. Refresh every player and create a new room.
+- Both maps use `heavy-cables.js`: host-owned 120 Hz Verlet gravity, strongly
+  damped motion, 24 constrained links per wire and small powered forces. No
+  fighter contacts or supporting cable colliders. Transmission's two original
+  crossing routes remain as foreground steel maintenance walkways.
+- `cable-layout.js` owns the exact mount coordinates for simulation and art.
+  Tower conductors meet the lower insulator clamps at x=770/1790, 70 units
+  below each cross-arm. Furnace cables retain wall mounts when the machine ends
+  fall. Losing both mounts drops the whole surviving span; cuts leave independent
+  tails. Cables drape over surviving structure and persist through round results.
+- Explosions, nukes and PHASER cut current cable segments; dead links never draw
+  connecting curves or live arcs. No vanished cable is recreated. The next round
+  restores the original layout. Positions, links and attachments are bounded,
+  validated and interpolated by stable ID, including hot join after destruction.
+- Release integration: `../bonk-club-qa/heavy-cables-release`, branch
+  `codex/heavy-hanging-cables`, based on main 7b2b3b7. Preserve the canonical
+  checkout's older concurrent edits; do not replace newer shared platform code.
+- Nine dedicated regressions cover small powered displacement, impulse damping,
+  pass-through collision, one/two lost mounts, cut tails, PHASER, prediction,
+  continuing result physics, reset, exact hot-join geometry and malformed wire
+  data. Initial full suite: 852/854; two obsolete solid-wire map assumptions
+  were corrected and all 52 affected checks passed. Publication checks follow.
+- Actual tower/furnace gameplay and detached-wire art inspected in the browser.
+  A host, guest and third player joining after furnace destruction all selected
+  relay/relay and retained six matching wall-held cables, without page errors.
+  External observer: `../bonk-club-qa/heavy-cables-observe.mjs` (port 5431).
+  This fixture is outside the release; no production debug hooks or Pi changes.
+
 ## Arc furnace arena - 12 September 2026
 
 - Release v0.24.0, protocol 45. Refresh every player and create a new room.

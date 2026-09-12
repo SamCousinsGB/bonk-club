@@ -1,4 +1,3 @@
-import { FurnaceCables } from "./furnace-cables.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
 import { drawBlood } from "./gore.js";
@@ -925,13 +924,15 @@ export class Renderer {
       c.fillRect(0, 0, W, H);
     }
     if (arena.furnace) {
-      this.furnaceCables ||= new FurnaceCables();
-      const cables = this.furnaceCables.update(state, dt, this.reduced);
-      drawFurnaceCables(c, cables, state.hazards.find(h => h.type === "furnace"), time);
+      drawFurnaceCables(c, state.cables || [], state.hazards.find(h => h.type === "furnace"), time);
     }
     drawRifts(this,state);
     c.save(); clipCraters(c,state);
     if(arena.transmission)drawTransmissionTowers(c,state);
+    c.restore();
+    // Both wire systems occupy the rear layer, behind platforms and fighters.
+    if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
+    c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
@@ -1001,7 +1002,6 @@ export class Renderer {
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced);
-    if(arena.transmission)drawPowerlines(c,state,time);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);

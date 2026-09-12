@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards } from "../src/hazards.js";
 import { furnaceHeat } from "../src/furnace.js";
-import { FurnaceCables, FURNACE_CABLE_COUNT } from "../src/furnace-cables.js";
+
 import { carveExplosion } from "../src/terrain.js";
 import { validSnapshot } from "../src/network.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
@@ -114,30 +114,4 @@ test("late joins retain active, cooling and destroyed furnace state; malformed d
     const s = structuredClone(w.snapshot()); Object.assign(s.hazards[0], patch); assert.equal(validSnapshot(s), false);
   }
   const s = structuredClone(w.snapshot()); s.hazards[1].w = 901; assert.equal(validSnapshot(s), false);
-});
-
-test("six loose cables retain endpoints and bounded lengths, gain motion under current and never add collision", () => {
-  const w = arena(), idle = new FurnaceCables(), live = new FurnaceCables();
-  const solids = w.solids().map(p => p.id), snapshotKeys = Object.keys(w.snapshot());
-  let idleMotion = 0, liveMotion = 0;
-  for (let i = 0; i < 480; i++) {
-    const beforeIdle = idle.cables[0].points.map(p => [p.x, p.y]);
-    const beforeLive = live.cables[0].points.map(p => [p.x, p.y]);
-    idle.step(i * STEP, 0); live.step(i * STEP, 1);
-    if (i > 360) for (let n = 1; n < 24; n++) {
-      idleMotion += Math.hypot(idle.cables[0].points[n].x - beforeIdle[n][0], idle.cables[0].points[n].y - beforeIdle[n][1]);
-      liveMotion += Math.hypot(live.cables[0].points[n].x - beforeLive[n][0], live.cables[0].points[n].y - beforeLive[n][1]);
-    }
-  }
-  assert.equal(live.cables.length, FURNACE_CABLE_COUNT); assert.ok(liveMotion > idleMotion * 1.4, `${liveMotion}/${idleMotion}`);
-  for (const cable of live.cables) {
-    assert.equal(cable.points[0].x, cable.a.x); assert.equal(cable.points.at(-1).y, cable.b.y);
-    for (const [i, p] of cable.points.slice(1).entries()) {
-      const q = cable.points[i]; assert.ok(Number.isFinite(p.x + p.y));
-      assert.ok(Math.hypot(p.x - q.x, p.y - q.y) < cable.lengths[i] * 1.2);
-    }
-  }
-  assert.deepEqual(w.solids().map(p => p.id), solids); assert.deepEqual(Object.keys(w.snapshot()), snapshotKeys);
-  const state = w.snapshot(); assert.equal(live.update(state, STEP).length, 6);
-  state.hazards[0].done = true; assert.equal(live.update(state, STEP).length, 0);
 });

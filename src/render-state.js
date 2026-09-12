@@ -107,6 +107,11 @@ export function interpolateStates(a, b, t, mode = "all") {
       const old = a.hazards.find(q => q.id === h.id);
       return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
     });
+    out.cables = (b.cables || []).map(c => {
+      const old = a.cables?.find(q => q.id === c.id);
+      // Use the new cut/attachment topology immediately; only positions blend.
+      return old ? blend(old, c, t) : c;
+    });
   }
   for (const key of movingLists) {
     const actor = key === "projectiles" || key === "drops";

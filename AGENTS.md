@@ -122,11 +122,18 @@ Keep this constitution for durable rules and the handoff for current work.
 
 - Maintain varied themes and layouts: jungle, desert, homes, hospitals, industrial
   sites, ice, volcanoes and skyscrapers. Do not turn every arena into a tower.
-- Transmission Towers has two steel pylons and two solid, sagging wire crossings.
+- Transmission Towers has two steel pylons, two foreground maintenance walkways
+  and two pass-through, heavy physical wires in the background. Wires hang from
+  the lower insulator clamps; their mounts and artwork share the same coordinates.
   Both circuits alternate seven seconds safe and seven seconds live, with a safe
   one-second amber warning before activation. Live wires use Tesla arcs and
   host-owned electrical contact damage. Cutting a cable or either mounting opens
   that circuit until round reset; nukes remove affected tower and wire sections.
+  Both tower and furnace cables use host-owned gravity, length constraints and
+  strong damping, with only a subtle powered wiggle. Fighters pass through them.
+  Broken spans fall, drape over surviving structure and remain attached only at
+  surviving mounts. Keep cable cuts, attachments and moving geometry in validated
+  guest snapshots and hot joins; never clear all wires when a machine breaks.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by

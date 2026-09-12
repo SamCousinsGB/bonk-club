@@ -1,4 +1,5 @@
 import { FURNACE_ARENA } from "./furnace-arena.js";
+import { createCables, updateCables, cableSnapshot } from "./heavy-cables.js";
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
 import { trackKillSource } from "./kill-credit.js";
@@ -137,6 +138,8 @@ export class World {
     this.arena = ARENAS[this.arenaIndex];
     this.terrainVersion = 0;
     this.terrainSerial = 0;
+    this.cables = createCables(this.arena);
+    this.cableAccumulator = 0;
     this.spikeTerrain = null;
     this.craters = [];
     this.craterSerial = 0;
@@ -393,6 +396,7 @@ export class World {
   step(dt, inputs = {}) {
     dt = clamp(dt, 0, 0.025);
     this.time += dt;
+    updateCables(this, dt);
     if (this.hitstop > 0) {
       this.hitstop -= dt;
       return;
@@ -1432,6 +1436,7 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
+      cables: cableSnapshot(this.cables),
       spikes: this.spikes(),
       cover: this.cover,
       debris: this.debris,

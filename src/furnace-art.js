@@ -1,6 +1,8 @@
 import { electricArc } from "./electricity-art.js";
 import { furnaceHeat } from "./furnace.js";
 import { FURNACE_CYCLE, FURNACE_ON } from "./furnace-arena.js";
+import { cableLayout } from "./cable-layout.js";
+import { cableRuns, drawCableStroke } from "./cable-art.js";
 
 const line = (c, pts, color, width = 3) => {
   c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p));
@@ -25,14 +27,6 @@ function smoke(c, x, y, radius) {
     paint.fillStyle = g; paint.fillRect(0, 0, 160, 160);
   }
   c.drawImage(smokeArt, x - radius, y - radius, radius * 2, radius * 2);
-}
-function rope(c, points, color, width) {
-  c.beginPath(); c.moveTo(...points[0]);
-  for (let i = 1; i < points.length - 1; i++) {
-    const p = points[i], q = points[i + 1];
-    c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2);
-  }
-  c.lineTo(...points.at(-1)); c.strokeStyle = color; c.lineWidth = width; c.stroke();
 }
 function glow(c, x, y, radius, color) {
   const g = c.createRadialGradient(x, y, 0, x, y, radius);
@@ -80,21 +74,27 @@ export function drawFurnaceHall(c) {
 }
 
 export function drawFurnaceCables(c, cables, h, time) {
-  if (!h || h.done) return;
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
   for (const cable of cables) {
-    const pts = cable.points.map(p => [p.x, p.y]);
-    rope(c, pts, "#090e16", 20);
-    rope(c, pts, ["#b73738", "#de4842", "#973040"][cable.index], 12);
-    rope(c, pts.map(([x, y]) => [x, y - 2]), h.active ? "#ff9671" : "#f56e5b", 3);
-    for (const end of [cable.a, cable.b]) {
+    const spec = cableLayout(cable.id);
+    if (spec?.kind !== "furnace") continue;
+    for (const run of cableRuns(cable)) {
+      drawCableStroke(c, run, "#090e16", 20);
+      drawCableStroke(c, run, ["#b73738", "#de4842", "#973040"][spec.index], 12);
+      drawCableStroke(c, run, h?.active && !h.done && cable.attached.every(Boolean) && cable.links.every(Boolean)
+        ? "#ff9671" : "#f56e5b", 3, -2);
+    }
+    for (const [i, end] of [spec.a, spec.b].entries()) {
+      if (!cable.attached[i]) continue;
       line(c, [[end.x, end.y - 17], [end.x, end.y + 17]], "#263740", 25);
       for (let i = -1; i <= 1; i++) line(c, [[end.x - 17, end.y + i * 11], [end.x + 17, end.y + i * 11]], "#bd9980", 5);
       circle(c, end.x, end.y, 5, "#ece5c9");
     }
-    const p = cable.b;
-    line(c, [[p.x, p.y], [p.x, 805]], "#292e37", 22);
-    line(c, [[p.x - 5, p.y + 10], [p.x - 5, 800]], "#6c7777", 4);
+    if (cable.attached[1]) {
+      const p = spec.b;
+      line(c, [[p.x, p.y], [p.x, 805]], "#292e37", 22);
+      line(c, [[p.x - 5, p.y + 10], [p.x - 5, 800]], "#6c7777", 4);
+    }
   }
   c.restore();
 }
