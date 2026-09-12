@@ -35,7 +35,29 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   exposes a DOM QA report. Its development proxy supplies the normal public Origin
   for signaling/temporary ICE requests. None of that observer is in the release.
   Full test log: `../bonk-club-qa/cosmetics-tests.log`. Publication verification
-  follows below; do not report the initial local v0.19.0/protocol41 fixture as live.
+  is recorded below; initial local v0.19.0/protocol41 fixtures were never published.
+
+- **Published and verified:** v0.22.0, protocol 43, gameplay revision
+  `30801b7a78effefda807a318991cbb265f06c581`. Release workflow
+  [34697523471](https://github.com/SamCousinsGB/bonk-club/actions/runs/34697523471)
+  passed shared/server tests, Windows and Linux unit/executable/package checks,
+  matching revision/version/source manifests, and Pages deployment.
+- Final integrated local suite: **822 tests passed**; 39 focused cosmetic,
+  identity and network tests also passed after advancing the shared protocol.
+  The final tooltip fix was checked in the exact production bundle and CI.
+- All **17 public files** match the clean tested build and CI artifact by SHA-256.
+  JS: `index-2F57jmJv.js`; CSS: `index-B58EEvZH.css`; shared source fingerprint:
+  `8f675383954b04a0825f1c3048da4138b85c0ceeb2eefecb4504a2182dca057a`.
+  Exact clean build: `../bonk-club-qa/cosmetics-build`; downloaded CI artifact:
+  `../bonk-club-qa/cosmetics-ci`; parity record: `../bonk-club-qa/cosmetics-live-parity.json`.
+- The unmodified public game passed cosmetic selection, solo start, real host/
+  guest start, hot join into a nuclear-damaged arena, round continuation and leave.
+  Public diagnostics showed protocol 43 and a selected direct host/host connection;
+  the earlier three-browser source test selected relay/relay at every end.
+  Actual rendered editor/gameplay and 390px layout were inspected; saved selections
+  survived reload and reduced motion rendered a static preview. No final page errors.
+- Only this task's servers on 5405/5406/5407/5408/5409 were stopped. External QA
+  observers never entered the shipped bundle. Refresh all players before joining.
 
 
 ## Shared releases and Steam platform preparation - 12 September 2026
