@@ -79,14 +79,15 @@ try {
   // this external harness, never by a shipped debug hook. Physical Deck QA remains.
   await page.evaluate(() => {
     window.qaPad = { buttons: Array.from({ length: 16 }, () => ({ pressed: false })), axes: [0, 0] };
-    navigator.getGamepads = () => [window.qaPad];
+    window.qaPolls = 0;
+    navigator.getGamepads = () => { window.qaPolls++; return [window.qaPad]; };
     document.querySelector('#play').focus();
   });
   async function press(n) {
-    await page.evaluate(n => window.qaPad.buttons[n].pressed = true, n);
-    await page.waitForTimeout(250);
-    await page.evaluate(n => window.qaPad.buttons[n].pressed = false, n);
-    await page.waitForTimeout(250);
+    const down = await page.evaluate(n => { window.qaPad.buttons[n].pressed = true; return window.qaPolls; }, n);
+    await page.waitForFunction(before => window.qaPolls >= before + 4, down);
+    const up = await page.evaluate(n => { window.qaPad.buttons[n].pressed = false; return window.qaPolls; }, n);
+    await page.waitForFunction(before => window.qaPolls >= before + 4, up);
   }
   await press(13);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'character');

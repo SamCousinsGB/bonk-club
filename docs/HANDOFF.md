@@ -2,6 +2,47 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Unified Play lobby - 12 September 2026
+
+- v0.25.0, protocol 48. Refresh every player and create a new room.
+- Main menu contains Play and Customise (plus Quit in the desktop build).
+  Settings and Controls screens are removed; sound/fullscreen controls remain.
+  The autonomous fighting background continues unchanged.
+- Play creates an invite room even with only bots. Four character cards expose
+  Player / bot, Bots only, Players only and Closed slot modes. The host chooses
+  weapons, maps and AI difficulty; all maps and weapons are selected initially.
+  Map thumbnails show actual platform layouts. All/None controls edit a draft;
+  Done requires at least one choice and applies the selection atomically.
+- Guests open Customise separately, save back into the same lobby, then ready up.
+  Host start checks actual guest readiness, including room-option revisions.
+  Option/slot changes clear readiness; appearance edits clear that guest's ready
+  state. Forged identities, stale ready clicks and malformed options are rejected.
+  Hot join into a running match retains its existing immediate entry behaviour.
+- Weapon restrictions apply to opening and subsequent drops, both standard and
+  survival arenas, and persist between rounds. Map rotation stays inside the
+  selected pool. Integrated main's slower refills, independent grenade clock,
+  every-third-round nuke schedule and impact-attached barrel leaks. A nuke-only
+  selection waits for scheduled nuclear rounds; no excluded fallback is spawned.
+- Desktop/offline uses the same host lobby and bot rules. Its code field explicitly
+  shows OFFLINE and disables invite copying. Steam networking remains unavailable;
+  the desktop build makes no browser/Pi service requests.
+- Release worktree: ../bonk-club-qa/play-lobby-release, codex/play-lobby, based on
+  current main and merged with e673390. The canonical checkout's unfinished edits
+  are preserved. No new dependencies, production debug hooks or Pi changes.
+- Initial full suite: 863 passing tests. After integrating pickup/leak changes,
+  43 option/network/pacing checks and 24 option/pacing/leak checks passed; full
+  integrated results and publication verification follow below.
+- Production browser QA exercises bot-only slots retaining an invite, guest
+  customisation/readiness, option reset, chosen maps/weapons/difficulty, 390px and
+  568x320 menus, controls, hot join and departure. Three independent real browser
+  contexts selected relay/relay without page errors. Windows executable smoke
+  covers offline play, persisted preferences, controller menus and toggling the
+  selection checkboxes without opening the text keyboard. Actual rendered menu,
+  character cards, map previews and gameplay were inspected.
+- Checked QA: desktop/tests/browser-online.mjs and desktop/tests/smoke.mjs.
+  The browser script accepts --public for the published release. External source
+  observer: ../bonk-club-qa/play-observe.mjs, port 5457; never packaged.
+
 ## Barrel impact leaks - 12 September 2026
 
 - v0.24.3, protocol 47. Refresh every player and create a new room.
