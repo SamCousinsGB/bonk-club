@@ -2,6 +2,35 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Power fist - 12 September 2026
+
+- v0.27.0, protocol 50. Refresh every player and create a new room.
+- POWER FIST is an exotic melee pickup with four punches. A hit launches a
+  curled living ragdoll along the aim, including downward punches. Extra limb
+  constraints retain tumbling, gravity and momentum. Survivors regain control;
+  lethal punches keep the corpse flying and destructive.
+- Destruction follows swept limb contacts: local terrain holes, moving prop and
+  container fracture, rubble clearance, cut cables and broken fixture casings.
+  No beam or advance corridor is created. Mechanical heads and scanner casings
+  use physical extents; empty danger areas cannot trigger a smash. Other fighters
+  can be struck once by the body, with host-owned damage and puncher credit.
+- Source: ../bonk-club-qa/power-fist, branch codex/power-fist, based on current main
+  and including 471507a's spacetime distortion. The canonical checkout retains
+  its older overlapping work; use this worktree/current main for this release.
+- New regression cases cover directions, misses/parries, successive thin/thick
+  walls, curling, props/containers/cables/traps, bubble damage, secondary hits,
+  lethal bodies, recovery, prediction isolation, reset, invalid wire state and
+  every arena's geometry limits. Also fixed an empty melted-water parcel that
+  seeded bot play exposed between explosion and the next fluid tick.
+- Real host/guest and changed-map hot join passed with selected relay/relay
+  candidates. Actual glove, curled pose and sequential impact holes were visually
+  inspected. External fixtures/evidence: ../bonk-club-qa/power-fist-browser.mjs,
+  power-fist-browser.json and power-fist-{before,impact,detail,hotjoin}.png.
+  The fixture uses source-only observation; no debug hooks or dependencies ship.
+- Production browser controls/lobby/hot join/departure and Windows executable
+  smoke passed, with seven desktop unit tests. Full suite and final publication
+  verification are recorded below when complete. Preview port: 5487.
+
 ## Bot weapon priorities and survival - 12 September 2026
 
 - v0.25.1, protocol 49 unchanged. Bots prioritise reachable weapons while unarmed,
