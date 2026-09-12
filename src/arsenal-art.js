@@ -15,6 +15,20 @@ export function drawNewWeapon(r, type) {
   const w = WEAPONS[type],
     c = r.ctx;
   if (drawWeirdWeapon(r, type)) return;
+  if (type === "powerfist") {
+    // Armoured wrist, four blunt knuckles and a thumb: readable as a gauntlet.
+    c.fillStyle = "#25323e"; c.fillRect(-17, -12, 18, 24);
+    c.fillStyle = "#788c9b"; c.fillRect(-15, -11, 7, 22);
+    c.fillStyle = "#bc7540"; c.fillRect(-5, -16, 23, 30);
+    c.fillStyle = "#ffcd80"; c.fillRect(-3, -15, 17, 6);
+    for (let y = -14; y <= 10; y += 8) {
+      c.fillStyle = "#ffe1a0"; c.fillRect(14, y, 11, 7);
+      c.fillStyle = "#925734"; c.fillRect(23, y + 1, 3, 5);
+    }
+    r.line([[-3, 9], [5, 18], [14, 14]], "#ffbd68", 9);
+    r.circle(-8, 0, 5, "#64edff"); r.circle(-8, 0, 2, "#f0ffff");
+    return;
+  }
   if (type === "phaser") {
     c.fillStyle = "#233d43"; c.fillRect(-23, -15, 67, 30);
     c.fillStyle = "#789f9f"; c.fillRect(-18, -15, 55, 6);

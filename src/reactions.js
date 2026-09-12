@@ -293,6 +293,9 @@ export function explosionReaction(world, b) {
     if (cold) freezeWater(world, q);
     else if (q.frozen) { q.h = 0; thawWater(world, q); }
   }
+  // Explosions may run after the fluid tick. Remove consumed ice now so the
+  // same frame's snapshot cannot contain an empty water parcel.
+  world.water = world.water.filter(q => q.h > 0);
   for (const c of bodies(world)) if (near(c,b.x,b.y,radius) && clear(world,b,centre(c))) {
     if (cold) { c.cold = 3.2; c.fire = 0; }
     else ignite(c);

@@ -198,6 +198,10 @@ Keep this constitution for durable rules and the handoff for current work.
 - Give weapons distinct, forceful effects. Sawblades and railguns cut in one
   unblocked hit; plasma/Tesla expose skeletons; ice freezes and can shatter; fire
   chars. Preserve weapon identities rather than using one generic explosion.
+- Power fist punches launch a curled physical ragdoll in the aimed direction.
+  Its swept body contacts carve terrain and smash props, fixtures and cables
+  only when reached. Preserve gravity, momentum, living recovery, lethal-body
+  flight, host authority and hot-join destruction; never carve a beam in advance.
 - Bubble shots lift for 2.4 seconds. Expiry, heavy hits and capture/transformation
   bursts deal 32 additional damage once. Lethal pops scatter the head, torso,
   arms and legs with continuous gravity and solid contacts. Keep pop damage

@@ -3,6 +3,7 @@ import { passiveBody } from "./body-physics.js";
 import { moveTransformed } from "./transmutation.js";
 
 export const THROW_MASS = {
+  powerfist: 3.2,
   jelly: 1.6, midas: 3.3, tangle: 1.4,
   hammer: 3, crossbow: 1.2, harpoon: 2.1, shrapnel: 2.8, firework: 1.7, cryo: .9,
   blaster: 0.7,

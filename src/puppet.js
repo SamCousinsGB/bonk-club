@@ -147,7 +147,7 @@ export function updateRig(p, dt, platforms, time) {
       neck[1] + Math.sin(melee.armAngle) * 32];
     handA = [handB[0] - Math.cos(melee.angle) * 9,
       handB[1] - Math.sin(melee.angle) * 9];
-  } else if (p.weapon) {
+  } else if (p.weapon && p.weapon !== "powerfist") {
     handA = [neck[0] + dx * 29 - dy * 5, neck[1] + dy * 29 + dx * 5];
     handB = [neck[0] + dx * (32 + swing * 4), neck[1] + dy * (32 + swing * 4)];
   } else {

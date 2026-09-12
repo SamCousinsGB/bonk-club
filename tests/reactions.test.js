@@ -22,6 +22,15 @@ function lab(){
   w.players.forEach((p,i)=>Object.assign(p,{x:1800+i*300,y:970,vx:0,vy:0,ground:true,support:"floor"}));
   return w;
 }
+
+test("an explosion clears melted water before the next snapshot, without waiting for a fluid tick",()=>{
+  const w=lab();addWater(w,900,1000,12);w.water.forEach(q=>q.grounded=true);
+  explosionReaction(w,{x:910,y:985,radius:100,weapon:"cryo"});
+  assert.ok(w.water.some(q=>q.frozen));
+  explosionReaction(w,{x:910,y:985,radius:100,weapon:"grenade"});
+  assert.equal(w.water.length,0);
+  assert.ok(!w.platforms.some(p=>p.waterId));assert.ok(validSnapshot(w.snapshot()));
+});
 function advance(w,t,physics=false){for(let n=0;n<Math.ceil(t/.05);n++){
   w.time+=.05;if(physics)for(let i=0;i<6;i++)w.updateCover(STEP);updateReactions(w,.05);
 }}

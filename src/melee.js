@@ -8,10 +8,11 @@ const swings = new WeakMap();
 
 export function meleeAttack(world, p, weapon) {
   const unarmed = !p.weapon;
+  const punch = unarmed || p.weapon === "powerfist";
   const index = unarmed && p.comboTime > 0 ? p.comboStep : 0;
   const w = unarmed
     ? COMBO[index]
-    : { ...weapon, move: "weapon", duration: MELEE_SWINGS[p.weapon].duration };
+    : { ...weapon, move: punch ? "punch" : "weapon", duration: punch ? weapon.duration : MELEE_SWINGS[p.weapon].duration };
   p.cooldown = w.cooldown;
   p.swing = w.duration;
   p.swingDuration = w.duration;
@@ -33,7 +34,7 @@ export function meleeAttack(world, p, weapon) {
   }
   impulseRig(p, p.x + ax * 30, p.y - 10 + ay * 30, ax * 100, ay * 100);
   if (world.prediction) return;
-  const strike = { w, unarmed, weapon: p.weapon, previous: meleeBlade(p),
+  const strike = { w, unarmed, punch, weapon: p.weapon, previous: meleeBlade(p),
     effect: p.weapon === "sword" ? "slice" : null, occupant: p.occupant,
     hits: new Set(), cover: new Set(), rewarded: false };
   swings.set(p, strike);
@@ -45,7 +46,8 @@ export function meleeAttack(world, p, weapon) {
 export function updateMelee(world, p) {
   const strike = swings.get(p);
   if (!strike || !p.alive || p.stun > 0.15 || p.block || p.occupant !== strike.occupant ||
-      (strike.unarmed ? p.swing <= strike.w.duration * 0.3 :
+      (!strike.unarmed && p.weapon !== strike.weapon) ||
+      (strike.punch ? p.swing <= strike.w.duration * 0.3 :
         p.weapon !== strike.weapon || strike.previous.progress >= SWING_END) ||
       p.meleeMove !== strike.w.move) {
     swings.delete(p);
@@ -55,7 +57,7 @@ export function updateMelee(world, p) {
 }
 
 function resolveMelee(world, p, strike) {
-  if (!strike.unarmed) return resolveWeaponSwing(world, p, strike);
+  if (!strike.punch) return resolveWeaponSwing(world, p, strike);
   const { w, unarmed } = strike;
   const angle = p.aimAngle, ax = Math.cos(angle), ay = Math.sin(angle);
   const solids = world.solids();
@@ -91,10 +93,11 @@ function resolveMelee(world, p, strike) {
       unarmed && w.move !== "spin"
         ? Math.min(-0.13, ay * 0.35)
         : ay * 0.6 - 0.45,
-      { effect:strike.effect,angle, stun: w.stun, finisher: w.move === "spin", melee: true, move: w.move, hitstop: w.move === "spin" ? 0.075 : 0.05 },
+      { effect:strike.effect, weapon:strike.weapon, angle, stun: w.stun, finisher: w.move === "spin", melee: true, move: w.move, hitstop: w.move === "spin" ? 0.075 : 0.05 },
     );
     connected = true;
     rewarded ||= q.hp < hp;
+    if (p.stun > .15) return connected;
   }
   // Strike the first solid surface in each direction, never through a wall.
   const angles =

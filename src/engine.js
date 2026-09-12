@@ -3,6 +3,7 @@ import { createCables, updateCables, cableSnapshot, cableSolids } from "./heavy-
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
 import { trackKillSource } from "./kill-credit.js";
+import { launchPowerFist, movePowerFlight, inheritPowerFlight, powerSource } from "./power-fist.js";
 import { explosiveBarrel } from "./barrels.js";
 import { resetReactions, updateReactions, propReactionDamage, inheritReaction, surfaceReaction,
   reactionContacts, contactReaction, explosionReaction } from "./reactions.js";
@@ -500,7 +501,7 @@ export class World {
     if (active) {
       for (const p of this.players) {
         if (!p.alive) continue;
-        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p, { cause: "fall" });
+        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p, { cause: "fall", source: powerSource(p) });
         for (const s of this.spikes()) impale(this,p,s);
         if (this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
@@ -586,6 +587,7 @@ export class World {
     if(p.knockdown>0){
       p.cooldown=Math.max(0,p.cooldown-dt);p.flash=Math.max(0,p.flash-dt);p.swing=0;p.block=false;
       if (moveCaptured(p,this,solids,dt)) return;
+      if (movePowerFlight(this,p,dt)) return;
       moveKnocked(p,solids,dt);return;
     }
     if (p.ground) p.airLunge = false;
@@ -908,6 +910,8 @@ export class World {
       q.stun = Math.min(q.stun, 0.035);
     if (q.stun > 0.2) q.comboTime = 0;
     impulseRig(q, q.x - dir * 10, q.y - 12, dir * force, force * vertical);
+    if (options.melee && options.weapon === "powerfist")
+      launchPowerFist(this, q, p, Math.cos(options.angle), Math.sin(options.angle));
     q.flash = 0.15;
     q.block = false;
     this.hitstop = Math.max(
@@ -958,6 +962,7 @@ export class World {
       ...(ash ? {ash:true, ashAge:0, ashDirection:Math.sign(p.x-sourceX)||1} : {}),
     });
     deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
+    inheritPowerFlight(p, this.ragdolls.at(-1));
     this.ragdolls = this.ragdolls.slice(-4);
     if(["gib","blast","bubble"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
     this.event("ko", { x: p.x, y: p.y, color: p.color, ash, effect, at: this.time });
@@ -1444,6 +1449,7 @@ export class World {
       if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
       if (rag.ash) rag.ashAge += dt;
+      if (movePowerFlight(this,rag,dt)) continue;
       passiveBody(rag.points, deathJoints(rag), this.solids(), dt, {
         restitution: rag.effect === "ice" ? .3 : .15,
       });

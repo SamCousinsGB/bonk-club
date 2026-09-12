@@ -133,7 +133,7 @@ test("all weapons have a working attack and consume ammunition", () => {
     if (WEAPONS[type].proneOnly) p.prone = true;
     w.attack(p);
     assert.equal(p.ammo, 3);
-    if (WEAPONS[type].kind === "melee") {
+    if (WEAPONS[type].kind === "melee" && type !== "powerfist") {
       assert.equal(w.players[1].hp, 100, "melee begins with a wind-up");
       for (let n = 0; n < 45; n++) w.step(STEP);
     }

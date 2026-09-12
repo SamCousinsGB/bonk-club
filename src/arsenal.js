@@ -164,6 +164,10 @@ export const COMBO = [
   },
 ];
 const additions = {
+  powerfist: {
+    name: "POWER FIST", kind: "melee", range: 94, damage: 34, force: 2200,
+    cooldown: .9, duration: .3, ammo: 4, rarity: "exotic", color: "#ffc777",
+  },
   bubble: {
     name: "BUBBLE GUN", kind: "bubble", damage: 14, force: 60,
     cooldown: .55, ammo: 10, speed: 660, life: 1.4, r: 14,

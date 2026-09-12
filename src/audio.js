@@ -187,7 +187,7 @@ export class Sound {
       if (effect) { this.sample(effect, detail, { priority: type === 'ko' }); return; }
     }
     if (type === 'hit') {
-      this.sample(detail.move === 'spin' || detail.move === 'kick' || detail.damage > 35 ? 'heavy-impact' : 'impact', detail,
+      this.sample(detail.move === 'spin' || detail.move === 'kick' || detail.force >= 2000 || detail.damage > 35 ? 'heavy-impact' : 'impact', detail,
         { priority: !!detail.melee }); return;
     }
     if (type === 'explosion') {
@@ -198,7 +198,7 @@ export class Sound {
       if(detail.urgent)this.tone(940,1250,.08,.12,'triangle');
       return;
     }
-    const swing = ['bat', 'sword', 'hammer'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
+    const swing = ['bat', 'sword', 'hammer', 'powerfist'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
     const name = { hazard: 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];
     if (name) this.sample(name, detail);

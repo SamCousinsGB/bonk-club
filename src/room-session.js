@@ -1,4 +1,5 @@
 import { validVictoryCause } from "./victory.js";
+import { validPowerFlight } from "./power-fist.js";
 import { validCables } from "./heavy-cables.js";
 import { validReactions, validReactionObject } from "./reactions.js";
 import {BLOOD_LIMIT} from "./gore.js";
@@ -34,7 +35,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 49;
+export const PROTOCOL = 50;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -773,6 +774,7 @@ export function validSnapshot(s) {
         (p.motion === undefined || validMotion(p.motion)) &&
         validProfile(p) &&
         validReactionObject(p) &&
+        validPowerFlight(p) &&
         typeof p.bot === "boolean" &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
         integer(p.actionSerial, 0, Number.MAX_SAFE_INTEGER) &&
@@ -950,6 +952,7 @@ export function validSnapshot(s) {
       4,
       (r) =>
         finite(r.life) &&
+        validPowerFlight(r) &&
         (r.deathId === undefined || integer(r.deathId, 0, 10000000)) &&
         (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
         validAppearance(r) &&
