@@ -135,6 +135,11 @@ Keep this constitution for durable rules and the handoff for current work.
   supports and lifts resist bullets. Keep cover useful and destructible.
   Destruction must update collision, navigation and guest state, including hot
   join and spikes. Restore the original terrain at the next round.
+- ARC FURNACE uses six pass-through physical cable simulations, a central grated
+  crossing and a 16-second cycle (nine open, two warning, five active). Keep
+  its overhead arcs/smoke/electrodes as scenery, never platforms. Active arcs
+  block the whole centre, the grate cools over 2.5 seconds, and molten metal
+  remains dangerous below. Preserve host-only damage and destruction/reset.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
   saw rails and electrical traps. They may cycle unpredictably with readable
   warnings. Do not restore arbitrary randomly appearing hazard zones.

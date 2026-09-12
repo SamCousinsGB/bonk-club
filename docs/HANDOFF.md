@@ -2,6 +2,44 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Arc furnace arena - 12 September 2026
+
+- Release v0.24.0, protocol 45. Refresh every player and create a new room.
+- ARC FURNACE is a selectable level in the normal arena rotation. Its central
+  grate is the only traversable connection between the two side galleries.
+  It cycles through nine open seconds, two warning seconds and five active
+  seconds. Active arcs kill throughout the central column, including below
+  the grate; the grate retains mild contact heat for 2.5 seconds afterward.
+  The molten trough below is always dangerous. Side displays show the phase
+  and countdown. Spawns and contested pickups pass navigation/clearance checks.
+- Six red cables have fixed endpoints, Verlet inertia, gravity and iterative
+  length constraints. Current excites their loose spans; fighter contact can
+  displace them visually. They and the rear furnace/roof/electrode art never
+  enter collision or navigation. No cable points are sent over the network.
+  Cable histories are bounded and reset on late join, discontinuity or round.
+- Branching blue-white arcs, bounded rising smoke, sparks, a refractory vessel,
+  tapping stream and molten trough use Canvas art. Reduced motion softens the
+  cables and freezes electrical flicker. Electrical and burning deaths use
+  existing physical skeleton/char effects. Destruction disables the furnace,
+  clears its cables and breaks its casing briefly; next round restores it.
+- Implemented in the canonical checkout with scoped changes, preserving other
+  unfinished work. Release integration: ../bonk-club-qa/arc-furnace-release,
+  branch codex/arc-furnace. Includes current main's shared platforms, cosmetics,
+  survival arenas and transmission towers; do not overwrite main with the older
+  canonical engine or network module. Protocol validation lives in room-session.js.
+- All 89 focused integrated checks passed. Eleven furnace regressions cover
+  timings, both crossing directions, jumping through cables, lower-route arc
+  damage, cooling/slag, prediction authority, destruction/reset, hot join,
+  malformed wire data, fixed endpoints and current-driven motion. The initial
+  full suite exposed three map assumptions (slag always active, starting distance
+  and steel floors); these were corrected and the focused checks passed.
+- Source browser QA used a real host and two guests with selected relay/relay
+  candidates. Active/cooling states, matching cut platform IDs, destroyed-machine
+  hot join and visual clearing passed without page errors. External observer:
+  ../bonk-club-qa/furnace-observe.mjs (port 5421, never shipped). Full integrated
+  suite and publication verification follow below. No dependencies or Pi changes.
+
+
 ## Transmission Towers - 12 September 2026
 
 - Release **v0.23.0**, protocol **44**. Refresh all players' tabs and create a
