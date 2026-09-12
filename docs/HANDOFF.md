@@ -5,6 +5,7 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 ## Stronger, single-shot black holes - 12 September 2026
 
 - v0.28.1, protocol 51 unchanged from the integrated power-fist release.
+  Published and verified gameplay revision: `24cdf165a4bf70938f1f6b4b7f0ee9e1aa1604fa`.
 - Whole-arena displacement is 50% stronger and chromatic fringes are 20% stronger.
   Canvas fallback matches the stronger bend. Existing field lifetime, fade-in/out,
   reduced motion, bounded overlap and purely visual global effect remain intact.
@@ -18,8 +19,25 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - 23 focused ammo/lifecycle/effects checks passed. Stronger actual rendered gameplay,
   overlap, reduced motion, WebGL loss/recovery, 844x390 and real relay host/guest/hot
   join passed without browser errors. Browser/desktop builds, seven desktop tests
-  and Windows executable smoke passed. Full suite and publication checks follow.
+  and Windows executable smoke passed. All 939 tests pass on the exact revision;
+  three older AI ammo-preservation assertions were updated for the one-round load.
+  Real network checks also exercised actual pickup/fire: one seed, empty hands,
+  continued field effect and matching guest/hot-join ammo.
 - External evidence uses ../bonk-club-qa/spacetime-stronger-*; no debug hooks ship.
+
+- [Release run 34707820057](https://github.com/SamCousinsGB/bonk-club/actions/runs/34707820057)
+  passed all 939 shared tests, server tests, Windows/Linux unit and executable
+  smoke/packaging checks, shared-source comparison and Pages deployment.
+- All 17 public files match the exact clean revision and CI artifact by SHA-256.
+  Shared source hash: `f438ac4f4a3423dd3694336799223077ba110ad5a333261ea95cbe27742a0611`.
+  The unmodified public v0.28.1 game passed normal-menu bot pickup/fire and active/
+  closing warp checks. Actual published gameplay was visually inspected.
+- Public host/guest/hot join/departure passed with selected relay/relay routes
+  and no page errors. One immediate route-stat assertion was transiently empty;
+  a fresh rerun completed with nominated relay pairs at all three browsers.
+- Exact source/build: ../bonk-club-qa/spacetime-stronger-exact; CI browser artifact:
+  spacetime-stronger-ci; hashes and browser evidence: spacetime-stronger-*.
+  Ports 5499/5500/5501 are stopped. No Pi changes or production debug hooks.
 
 ## Whole-arena spacetime warp - 12 September 2026
 
