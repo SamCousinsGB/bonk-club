@@ -37,11 +37,25 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   overlapping fields, reduced motion, WebGL loss/recovery and closure pass.
   Real relay host/guest/hot join share the effect and existing terrain state;
   actual pickup/fire consumes the generator, and all clients clear on closure.
-- Production browser/desktop builds, seven desktop unit checks and Windows
-  executable smoke passed. Full game tests and publication verification pending.
+- All 939 shared tests, production browser/desktop builds, seven desktop unit
+  checks and Windows executable smoke passed. The production browser bundle
+  passed host/guest controls, hot join and departure with selected relay routes.
+  Published and verified gameplay revision:
+  `1f124da838fff1e640f1e5ea2c5f786c4db29adf`.
 - Scoped changes also applied to the canonical checkout while preserving its
   older work. Release worktree: ../bonk-club-qa/spacetime-warp. External browser
   evidence and six-second gameplay video: ../bonk-club-qa/spacetime-heavy-*.
+- [Release run 34712071584](https://github.com/SamCousinsGB/bonk-club/actions/runs/34712071584)
+  passed shared/server tests, Windows/Linux unit and executable smoke/packaging,
+  shared-source verification and Pages deployment. All 17 published files match
+  the exact clean revision and CI artifact by SHA-256. Shared source hash:
+  `c1fb427caed1020c196531a4dcada2dc268b5985abe61c468800e54bbf56361d`.
+- Public v0.28.2 passed normal-menu bot pickup/fire and active/closing warp
+  observation; actual published gameplay was visually inspected. Public
+  host/guest controls, hot join and departure passed with selected relay/relay
+  pairs and no browser errors. These are real TURN checks on one QA machine.
+- Exact build: ../bonk-club-qa/spacetime-heavy-exact; CI browser artifact:
+  spacetime-heavy-ci. Ports 5502/5503/5504 are stopped. No production debug hooks.
 
 ## Stronger, single-shot black holes - 12 September 2026
 
