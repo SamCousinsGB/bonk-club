@@ -145,16 +145,38 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - Standard refill rolls wait six seconds initially, then 6–8 seconds. Independent
   grenade rolls keep the original two-second first delay, 3–5-second repeat delay
   and weighted selection chances. Each clock admits only its own category, so
-  slowing weapon rolls cannot reduce grenade availability or duplicate drops. Survival arenas and the
-  autonomous menu fight retain their own existing pickup cadence.
+  slowing weapon rolls cannot reduce grenade availability or duplicate drops.
+  Survival arenas and the autonomous menu fight retain their existing cadence.
 - Nukes appear once in the opening pickups of standard rounds 3, 6, 9, etc.
   They are excluded from all random pickup pools, including exclusion fallbacks.
   Survival arenas retain their non-nuclear restricted arsenal.
 - Release worktree: `../bonk-club-qa/slower-pickups`, branch `codex/slower-pickups`,
-  based on current main's heavy-cable release. Canonical concurrent work is preserved.
+  based on main's heavy-cable release and integrated with the concurrent barrel
+  leak changes. Canonical concurrent source edits are preserved.
 - Regression coverage checks every arena's unarmed starts, actual timed drops,
   grenade exceptions, countdown/reset, compact hot-join pickup state and nuke
-  scheduling/random-pool exclusions. Final publication evidence follows.
+  scheduling/random-pool exclusions. All 864 tests passed on the independent
+  timer change; 32 focused integrated barrel, pacing and render-state checks
+  passed after merging main. Final publication evidence follows.
+- **Published and verified:** gameplay revision
+  `e673390dade299b7ee36d583e59b404a25259bdd`, v0.24.4, protocol 47.
+  [Release run 34703363111](https://github.com/SamCousinsGB/bonk-club/actions/runs/34703363111)
+  passed all **871 game/shared tests**, three server tests, Windows/Linux desktop
+  unit tests, executable smoke, packaging, shared-source verification and Pages.
+- All **17 public files** match the clean committed build and CI browser artifact
+  by SHA-256. Shared game source hash:
+  `dc6d6cae812a8486f691cdb1b93eb38495eb2306b4efba2a95f7c49ffb9bd9ad`.
+  Evidence: `../bonk-club-qa/slower-pickups-live-verification.json`, exact build
+  `slower-pickups-exact`, browser artifact `slower-pickups-ci` and verifier
+  `verify-slower-pickups-live.mjs` in the same external QA directory.
+- Final production solo ran eight rounds without browser errors. Public v0.24.4
+  host/guest start and third-player hot join passed, with matching unarmed starts,
+  advancing rounds and no browser errors in all three tabs. Actual start and guest
+  gameplay were visually inspected. These were local browser tabs, with no new
+  TURN/cross-network latency claim. No debug hooks or Pi changes were shipped.
+- The initial v0.24.2 candidate used one shared queue; it was superseded before
+  this verification by independent grenade rolls. Treat the v0.24.4 evidence above
+  as the delivered result. Only this task's local preview on 5467 was stopped.
 
 ## Arc furnace arena - 12 September 2026
 
