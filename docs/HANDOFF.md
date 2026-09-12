@@ -91,15 +91,28 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   grant methods. Editable preferences/profile data cannot carry earned state.
   No XP, levels, inventory, Steam identity, native binding or managed backend is
   enabled. Strong progression needs trusted outcome verification, not P2P reports.
-- Initial verification: 796 game tests plus the new release-metadata test pass,
-  seven desktop and three server tests pass. Windows executable smoke covers the
-  setup gate, no browser-service requests, offline solo, saves and controls.
-  Windows packaging passes. Three real Edge contexts pass host/guest/hot join
-  through selected public relay routes; screenshots inspected and no page errors.
-  These are one-machine browser tests, not Steam or cross-ISP proof.
+- Released as **v0.21.0**, protocol **42**, at
+  `693eef6085bb07e97f7398a69f91bc4bb7e3d895`. Unified Actions run
+  [34697008362](https://github.com/SamCousinsGB/bonk-club/actions/runs/34697008362)
+  passed all 817 shared tests, three server tests, seven desktop tests on each
+  OS, executable smoke, native packaging, shared-source verification and Pages
+  publication. Both OS smoke results show the Steam setup gate, zero browser
+  service requests, offline solo, saved preferences after restart and no errors.
+- All 17 published browser files matched the exact CI artifact by SHA-256.
+  The published game passed host/guest controls, hot join and host departure in
+  three real Edge contexts with selected public relay/relay routes. Actual
+  gameplay and desktop setup screens were inspected. These are one-machine
+  browser tests, not Steam or cross-ISP proof.
+- Downloaded Windows/Linux archives match every packaged manifest hash (74/73
+  files respectively); Linux executable bits and licence notices are preserved.
+  Both packages have no Steam app ID. Evidence is in
+  `../bonk-club-qa/steam-platform-ci`; local/live browser results are in the
+  worktree's ignored `desktop/test-results` directory. The verified shared source
+  hash is `729cc57732f3c1d44b43f1cd8598e7d64c589cc04f8de063e02df3c245f08347`.
 - Work is isolated in `../bonk-club-qa/steam-platform-foundation` on
   `codex/steam-platform-foundation` to preserve the canonical checkout's unrelated
-  gameplay edits. Publication and final CI evidence will be added below.
+  gameplay edits. Subsequent releases already build on this foundation; retain
+  newer gameplay when integrating it and do not restore protocol 42 over them.
 
 ## Sustained Tesla arcs - 12 September 2026
 
