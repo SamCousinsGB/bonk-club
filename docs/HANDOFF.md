@@ -43,6 +43,24 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   The browser script accepts --public for the published release. External source
   observer: ../bonk-club-qa/play-observe.mjs, port 5457; never packaged.
 
+- **Published and verified:** a859ab8922e2583f6448590285c89f02198a8789,
+  v0.25.0, protocol 49. [Release run 34704016574](https://github.com/SamCousinsGB/bonk-club/actions/runs/34704016574)
+  passed all **885 shared tests**, three server tests, Windows/Linux unit tests,
+  executable smoke, native packaging, source-revision comparison and deployment.
+  The exact committed revision also passed all 885 tests locally.
+- All **17 public files** match the clean committed build and CI artifact by
+  SHA-256. JS: index-DVi9cKLk.js; CSS: index-DVfHqH0S.css; source hash:
+  66c033844dc196287132141ff0ab6bfe5156ab10bc72bc68358239231844cf76.
+  Build/artifact/evidence: ../bonk-club-qa/play-exact-build, play-ci,
+  play-live-verification.json and play-ci-complete.log.
+- The unmodified public bundle passed the full checked browser scenario above:
+  host/guest menus, guest Customise and readiness reset, selected pools/difficulty,
+  both responsive sizes, controls, hot join and host departure. All three browsers
+  selected relay/relay with zero page errors. Actual public menu and gameplay
+  pixels were inspected. This is one-machine browser/relay evidence, not Steam,
+  physical phone orientation or cross-ISP validation. Source port 5457 is stopped;
+  the canonical handoff records where the newer shared release lives.
+
 
 ## Heavy hanging cables and enlarged pylons - 12 September 2026
 
