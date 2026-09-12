@@ -1,3 +1,4 @@
+import { previewTesla } from "./tesla.js";
 import { World, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
@@ -142,6 +143,8 @@ export class GuestPrediction {
         ...held, x: held.x + local.x - authoritative.x, y: held.y + local.y - authoritative.y,
       } : b);
     }
-    return this.weapons.sample(out,now);
+    const sampled = this.weapons.sample(out,now);
+    return previewTesla(sampled, {...local, weapon:this.player.weapon, ammo:this.player.ammo},
+      this.input, now - this.lastAt <= STALE_MS && this.latest.phase === "fight");
   }
 }

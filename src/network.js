@@ -42,7 +42,7 @@ export const validCode = (value) =>
 // Keep discovery IDs stable; negotiate compatibility explicitly instead of making
 // a room appear missing every time the game is updated.
 const PREFIX = "bonkclub-v9-";
-export const PROTOCOL = 41;
+export const PROTOCOL = 42;
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Leave room under TURN's 128 KiB/s allocation cap for SCTP/DTLS, controls and
 // relay overhead. The same ceiling also protects the host's Wi-Fi upload.
@@ -1041,7 +1041,11 @@ export function validSnapshot(s) {
         xy(f) &&
         [f.ex, f.ey, f.radius, f.life].every(finite) &&
         action(f.action) &&
-        ["arc", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
+        ["arc", "tesla", "blackhole", "shockwave", "phaser", "tether", "cryo", "firework"].includes(f.kind) &&
+        (f.kind !== "tesla" || (integer(f.owner,0,3) && f.radius === 0 && f.life <= .14 &&
+          list(f.links,7,l => xy(l) && [l.ex,l.ey].every(finite) &&
+            Math.abs(l.ex) <= 100000 && Math.abs(l.ey) <= 100000 &&
+            typeof l.key === "string" && l.key.length <= 192) && f.links.length >= 1)) &&
         (!["tether", "cryo", "firework"].includes(f.kind) ||
           (integer(f.owner, 0, 3) && f.radius === {tether: 0, cryo: 210, firework: 120}[f.kind] &&
            f.life <= {tether: .18, cryo: .55, firework: .45}[f.kind])) &&

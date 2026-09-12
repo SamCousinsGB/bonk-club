@@ -138,7 +138,12 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
   } else if (name === 'crossbow') {
     noise(0, .08, .8, 4400, 500);
     modes(.004, .19, .24, [147, 293, 589, 1253]); mechanics(.025, .23);
-  } else if (['rail', 'tesla', 'plasma', 'phaser', 'force', 'singularity'].includes(name)) {
+  } else if (name === 'tesla') {
+    // Overlapping short electrical fizz makes one held channel, without a gunshot attack.
+    noise(0, .13, .25, 5300, 800, .012, 1500);
+    modes(.002, .12, .055, [93, 187, 375]);
+    for (let n = 0; n < 3; n++) noise(.01 + random() * .085, .018, .1, 8500, 2200, .003);
+  } else if (['rail', 'plasma', 'phaser', 'force', 'singularity'].includes(name)) {
     const length = name === 'phaser' ? .78 : name === 'singularity' ? 1.3 : name === 'tesla' ? .3 : .5;
     noise(0, .024, .9, 9500, 2200, .0002);
     noise(.005, length, name === 'tesla' ? .9 : 2.2, name === 'tesla' ? 5800 : 650, 35, .003, name === 'tesla' ? 890 : 97);

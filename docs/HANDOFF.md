@@ -2,6 +2,43 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Sustained Tesla arcs - 12 September 2026
+
+- Release **v0.20.0**, protocol **42**. Refresh every player's tab and create a
+  new room. Integrated from main's separate bubble-pop update `51ffb29` in
+  `../bonk-club-qa/tesla-release`, branch `codex/tesla-arcs`. The canonical
+  checkout also has the Tesla changes; unrelated edits are preserved.
+- Tesla casts one continuous animated electrical channel while attack is held.
+  It follows the physical gun tip and current aim, stops on release or incapacity,
+  and creates no projectile. A 100-cell magazine drains one cell per 0.1-second
+  pulse, for about ten seconds of firing. Empty casts also consume charge.
+- Each pulse deals 6 direct damage, with weaker subsequent hops and brief shocks.
+  Chains can pass through fighters, props of any material and unfrozen water, up
+  to seven visible links with 240-unit jumps. A connected pool occupies one hop
+  and can relay from its far edge. Metal and water energize the existing contact
+  circuit. Walls and intervening props block arcs; targets are hit once per pulse.
+- Skeleton reveals/deaths, parries, physical prop impulses, finite containers,
+  round reset and Easy bot reaction/firing breaks remain. The electrical sound
+  uses short overlapping fizz; the art reuses the existing animated arc renderer.
+- Host-only damage and charge use shared tracing with display-only guest previews.
+  Guests cast and release immediately; validated bounded links have stable field
+  identities and interpolate only matching connections. Hot joins receive an
+  ongoing cast and its charged world state. Physical fields are never evicted to
+  admit a cosmetic cast. No dependencies, desktop shell or Pi services changed.
+- Three real Edge pages selected TURN relay/relay candidates. Host held fire,
+  fighter-to-crate-to-water chains, charge drain, ongoing damage, release and hot
+  join passed. With 80 ms added each way, the guest preview appeared in 13 ms
+  versus 242 ms for host confirmation in the initial run. This is controlled
+  one-PC testing, not a cross-ISP latency claim. Actual host/guest art inspected.
+- Regression coverage includes holds/releases, water connectivity, cover, aim,
+  parries, zero ammo, incapacity, reset, invalid wire links, guest authority and AI.
+  External scripts, screenshots and logs are `../bonk-club-qa/tesla-*`.
+- All **810 integrated tests** passed. The final 93 focused regressions and
+  15 Tesla/projectile checks passed after expanding the link-key bound to support
+  two full-length prop identities. The production build and three-browser staged
+  smoke passed without page errors; the narrow menu was visually inspected.
+  Public release verification follows below.
+
 ## Bubble pop damage and scattered deaths - 12 September 2026
 
 - Release **v0.19.0**, protocol **41**. All players must refresh and create a

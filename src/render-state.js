@@ -68,6 +68,12 @@ export function blend(a, b, t) {
     out.swing = lerp(a.swing, b.swing, t);
   if (a.fuse > 0 && b.fuse > 0 && b.fuse <= a.fuse) out.fuse = lerp(a.fuse,b.fuse,t);
   if (a.matter && b.matter && a.matter.id === b.matter.id) out.matter = blend(a.matter,b.matter,t);
+  if (a.kind === "tesla" && b.kind === "tesla")
+    out.links = b.links.map(link => {
+      const old = a.links.find(l => l.key === link.key);
+      return old ? {...link, x:lerp(old.x,link.x,t), y:lerp(old.y,link.y,t),
+        ex:lerp(old.ex,link.ex,t), ey:lerp(old.ey,link.ey,t)} : link;
+    });
   if (a.items && b.items) {
     const items = new Map(a.items.map(p => [p.id,p]));
     out.items = b.items.map(p => blend(items.get(p.id),p,t));

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.19.0",
-  "releaseNotes": "Bubble pops deal damage and scatter limbs on lethal bursts",
+  "version": "0.20.0",
+  "releaseNotes": "Hold Tesla to cast electrical arcs through fighters, props and water",
   "private": true,
   "type": "module",
   "scripts": {

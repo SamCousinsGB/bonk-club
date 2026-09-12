@@ -1,3 +1,4 @@
+import { electricArc } from "./electricity-art.js";
 import { drawBlackhole } from "./blackhole-art.js";
 import { drawNuclear } from "./nuclear-art.js";
 import { NUKE_FUSE, sirenCycle } from "./sound-design.js";
@@ -291,6 +292,12 @@ export function drawSpecialProjectile(r, b, time) {
 export function drawFields(r, fields, time) {
   const c = r.ctx;
   for (const f of fields || []) {
+    if (f.kind === "tesla") {
+      c.save(); c.lineCap = "round"; c.lineJoin = "round";
+      for (const [i, link] of f.links.entries()) electricArc(c,
+        {x:link.x,y:link.y}, {x:link.ex,y:link.ey}, time, f.owner * 97 + i * 31, i ? .85 : 1.3);
+      c.restore(); continue;
+    }
     if (drawExpandedField(r, f)) continue;
     if (f.kind === "shockwave") {
       drawNuclear(r, f, time);

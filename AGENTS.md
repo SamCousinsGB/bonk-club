@@ -159,6 +159,11 @@ Keep this constitution for durable rules and the handoff for current work.
 - Unarmed and melee-weapon bots close distance or seek a reachable ranged upgrade.
   They must not stand at range attempting to shoot a bat or endlessly jump into a
   ceiling. Detect failed routes/stalemates and choose another action.
+- Tesla is a held electrical cast from the physical muzzle, with bounded chains
+  through fighters, props and connected unfrozen water. Release ends the arc;
+  charge drains during use. Preserve cover blocking, short shocks, electrical
+  skeleton deaths and immediate display-only guest casting. Never restore Tesla
+  single-shot projectiles.
 - Give weapons distinct, forceful effects. Sawblades and railguns cut in one
   unblocked hit; plasma/Tesla expose skeletons; ice freezes and can shatter; fire
   chars. Preserve weapon identities rather than using one generic explosion.

@@ -62,7 +62,7 @@ function channel(c,points,power=1) {
   stroke(c,points,"#70ebff",2.9*power);
   stroke(c,points,"#f1ffff",1.25*power);
 }
-function arc(c,a,b,time,seed,power=1,branches=true) {
+export function electricArc(c,a,b,time,seed,power=1,branches=true) {
   const points=arcPoints(a,b,time,seed,Math.min(17,5+Math.hypot(b.x-a.x,b.y-a.y)*.15));
   channel(c,points,power);
   if(branches)for(let i=0;i<2;i++) {
@@ -90,7 +90,7 @@ export function drawElectricity(c,state,time) {
   const {runs,joined}=poolRuns(nodes,links),connected=new Set(links.flat());
   c.save();c.lineCap="round";c.lineJoin="round";
   for(const link of links)if(!joined.has(link)) {
-    const [a,b]=link;arc(c,anchor(a),anchor(b),time,seedOf(a)+seedOf(b),1,true);
+    const [a,b]=link;electricArc(c,anchor(a),anchor(b),time,seedOf(a)+seedOf(b),1,true);
   }
   for(const run of runs) {
     const points=run.flatMap((b,i)=>i?arcPoints(anchor(run[i-1]),anchor(b),time,seedOf(run[0])+i,11).slice(1):[anchor(b)]);
@@ -99,7 +99,7 @@ export function drawElectricity(c,state,time) {
     // Their roots slide across the water instead of repeating a bolt per cell.
     const index=Math.floor((time*.9+noise(seedOf(run[0])))%1*(run.length-1));
     const a=anchor(run[index]),b=anchor(run[Math.min(run.length-1,index+3)]);
-    arc(c,a,b,time,seedOf(run[0])+177,1.15);
+    electricArc(c,a,b,time,seedOf(run[0])+177,1.15);
   }
   for(const b of nodes) {
     const seed=seedOf(b);
@@ -107,26 +107,26 @@ export function drawElectricity(c,state,time) {
       // Discharge IN the fluid, with a reflected cyan glow beneath the surface.
       if(b.grounded){
         c.fillStyle="#9beaff28";c.fillRect(b.x,b.y,b.w,Math.min(b.h,12));
-        if(!connected.has(b))arc(c,{x:b.x+2,y:b.y},{x:b.x+b.w-2,y:b.y},time,seed,.9);
-      }else arc(c,{x:b.x+b.w/2,y:b.y-10},{x:b.x+b.w/2,y:b.y+b.h},time,seed,.8);
+        if(!connected.has(b))electricArc(c,{x:b.x+2,y:b.y},{x:b.x+b.w-2,y:b.y},time,seed,.9);
+      }else electricArc(c,{x:b.x+b.w/2,y:b.y-10},{x:b.x+b.w/2,y:b.y+b.h},time,seed,.8);
     }else {
       const poly=conductorPolygon(b),start=time*.7+noise(seed),points=[];
       // Multiple corner-following segments crawl around the rotating silhouette.
       for(let i=0;i<9;i++)points.push(perimeterPoint(poly,start+i*.065));
       const writhing=points.flatMap((p,i)=>i?arcPoints(points[i-1],p,time,seed+i,5).slice(1):[p]);
       channel(c,writhing,b.chunk?.6:1);
-      arc(c,perimeterPoint(poly,start+.65),perimeterPoint(poly,start+.87),time,seed+89,b.chunk?.5:.8,false);
+      electricArc(c,perimeterPoint(poly,start+.65),perimeterPoint(poly,start+.87),time,seed+89,b.chunk?.5:.8,false);
     }
   }
   for(const h of state.hazards||[])if(h.type==="tesla"&&h.active&&!h.done) {
     const z=hazardZone(h),near=nodes.filter(b=>{const a=conductorBounds(b);return a.x<z.x+z.w+2&&a.x+a.w>z.x-2&&a.y<z.y+z.h+2&&a.y+a.h>z.y-2;});
-    for(const b of near.slice(0,2))arc(c,{x:h.x,y:h.y-12},anchor(b),time,seedOf(b)+h.id,1.15);
+    for(const b of near.slice(0,2))electricArc(c,{x:h.x,y:h.y-12},anchor(b),time,seedOf(b)+h.id,1.15);
   }
   for(const p of state.players||[])if(p.alive&&p.xray>0&&p.xrayType==="tesla"&&p.rig) {
     const closest=nodes.map(b=>({b,a:anchor(b)})).sort((a,b)=>Math.hypot(a.a.x-p.x,a.a.y-p.y)-Math.hypot(b.a.x-p.x,b.a.y-p.y))[0];
     if(Math.hypot(closest.a.x-p.x,closest.a.y-p.y)<130)
-      arc(c,closest.a,p.rig[8],time,p.id+59,1.2);
-    for(const [i,[a,b]] of JOINTS.entries())if(i%2===0)arc(c,p.rig[a],p.rig[b],time,p.id*19+i,.75,false);
+      electricArc(c,closest.a,p.rig[8],time,p.id+59,1.2);
+    for(const [i,[a,b]] of JOINTS.entries())if(i%2===0)electricArc(c,p.rig[a],p.rig[b],time,p.id*19+i,.75,false);
   }
   c.restore();
 }

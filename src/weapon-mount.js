@@ -7,7 +7,7 @@ export function weaponMuzzle(player, length = 54, angle = player.aimAngle ?? (pl
 }
 
 export function projectileMuzzle(world, player, type, ax, ay) {
-  const length = { flame: 47, bubble: 42, duck: 46, boomerang: 20,
+  const length = { tesla: 46, flame: 47, bubble: 42, duck: 46, boomerang: 20,
     crossbow: 51, harpoon: 59, shrapnel: 48, firework: 48 }[type];
   if (!length) return { x: player.x + ax * 12, y: player.y - 10 + ay * 12 };
   const muzzle = weaponMuzzle(player, length, Math.atan2(ay, ax));
