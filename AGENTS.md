@@ -33,8 +33,8 @@ Keep this constitution for durable rules and the handoff for current work.
   “Small sticks. Big grudges”, “Tonight's bad idea”, “Bring fists to a rocket
   fight”, “Headphones encouraged”, “Physics prototype / 01”, “Take a breather”
   and “Reconsider your friendships”. Do not replace them with similar filler.
-- Use direct labels such as Single player, Online multiplayer, Start match,
-  Character, Settings and Leave room. Express personality through play and art.
+- Use direct labels such as Play, Customise, Ready up, Start match and Leave room.
+  Express personality through play and art. Settings and Controls menus are removed.
 - Bots may occasionally use terse trash talk after spectacular kills, as Sam
   explicitly requested. Keep it lowercase, sparse and tied to the actual killer.
   Retire spoken lines and avoid nearby synonymous phrases.
@@ -52,9 +52,15 @@ Keep this constitution for durable rules and the handoff for current work.
 - Support solo play against AI and online multiplayer for up to four fighters.
   **Local/couch multiplayer is removed.** Earlier “no single player” requirements
   were superseded and must not be restored.
-- Clicking Online creates a pregame lobby with an invite code and shareable link.
-  The host starts once; no individual ready checks. Allow hot joining during play.
-- Preserve slot modes: AI/Player, AI only, Player only and Closed. The host controls
+- Play combines solo and online into one pregame lobby. Online rooms always show
+  an invite code and shareable link, including when all opponents are bots.
+  Keep desktop/offline bot play available with an honest unavailable-invite status.
+- Guests open Customise separately and must ready up before the host starts.
+  The host owns readiness and match options; option/slot changes clear readiness.
+  Allow hot joining during play. Do not embed the character editor in the lobby.
+- The host chooses weapon and map pools (all selected by default) and AI difficulty.
+  Apply those pools to opening and later pickups and every subsequent round.
+- Preserve slot modes: Player / bot, Bots only, Players only and Closed. The host controls
   them in the lobby. Joining replaces AI only where the chosen slot allows it.
 - Let players set their name, colour and hairstyle. Preserve saved preferences,
   validate profiles, and keep identities consistent between lobby and gameplay.

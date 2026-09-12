@@ -1,8 +1,8 @@
 export const SLOT_MODES = ["mixed", "ai", "player", "closed"];
 export const SLOT_LABELS = {
-  mixed: "AI/Player",
-  ai: "AI only",
-  player: "Player only",
+  mixed: "Player / bot",
+  ai: "Bots only",
+  player: "Players only",
   closed: "Closed",
 };
 export const defaultSlots = () => ["player", "mixed", "mixed", "mixed"];

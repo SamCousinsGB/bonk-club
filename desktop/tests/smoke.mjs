@@ -33,9 +33,10 @@ try {
     const url = new URL(request.url());
     if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && url.origin !== 'https://samcousinsgb.github.io') remoteRequests.push(url.origin);
   });
-  await page.locator('#online').click();
-  await page.getByText('Steam online play is not configured in this build. Single player is available.').waitFor();
-  assert.equal(await page.locator('#room-code').count(), 0);
+  await page.locator('#play').click();
+  await page.getByText(/Steam online play is not configured/).waitFor();
+  assert.equal(await page.locator('#room-code').inputValue(), 'OFFLINE');
+  assert.equal(await page.locator('#copy-link').isDisabled(), true);
   await page.screenshot({ path: path.join(results, 'steam-unavailable.png') });
   await page.locator('#back').click();
   assert.deepEqual(remoteRequests, [], 'Steam setup cannot trigger a browser signalling or relay request');
@@ -54,11 +55,10 @@ try {
   let name = page.locator('#panel input:not([readonly])').first();
   await name.fill('Desktop Tester'); await name.dispatchEvent('input'); await name.dispatchEvent('change');
   await page.locator('#back').click();
-  await page.locator('#arenas').click();
+  await page.locator('#sound').click();
+  await page.locator('#play').click();
   await page.locator('#difficulty').selectOption('normal');
-  await page.locator('#settings-sound').selectOption('off');
-  await page.locator('#arena-close').click();
-  await page.locator('#solo').click();
+  await page.locator('#start-match').click();
   await page.locator('body.playing').waitFor();
   await page.waitForFunction(() => document.querySelector('#scoreboard').textContent.includes('Desktop Tester'));
   await page.screenshot({ path: path.join(results, 'solo.png') });
@@ -80,15 +80,15 @@ try {
   await page.evaluate(() => {
     window.qaPad = { buttons: Array.from({ length: 16 }, () => ({ pressed: false })), axes: [0, 0] };
     navigator.getGamepads = () => [window.qaPad];
-    document.querySelector('#solo').focus();
+    document.querySelector('#play').focus();
   });
   async function press(n) {
     await page.evaluate(n => window.qaPad.buttons[n].pressed = true, n);
-    await page.waitForTimeout(130);
+    await page.waitForTimeout(250);
     await page.evaluate(n => window.qaPad.buttons[n].pressed = false, n);
-    await page.waitForTimeout(130);
+    await page.waitForTimeout(250);
   }
-  await press(13); await press(13);
+  await press(13);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'character');
   await press(0);
   await name.waitFor();
@@ -96,13 +96,20 @@ try {
   await page.locator('#controller-keyboard').waitFor();
   await page.screenshot({ path: path.join(results, 'keyboard.png') });
   await press(1); await press(1);
-  await page.locator('#solo').focus(); await press(0);
+  await page.locator('#play').focus(); await press(0);
+  await page.locator('#choose-weapons').click();
+  const choice = page.locator('[data-choice]').first();
+  await choice.focus(); await press(0);
+  assert.equal(await choice.isChecked(), false);
+  assert.equal(await page.locator('#controller-keyboard').count(), 0, 'controller toggles weapon checkboxes directly');
+  await page.locator('#select-all').click(); await page.locator('#selection-done').click();
+  await page.locator('#start-match').focus(); await press(0);
   await page.locator('body.playing').waitFor(); await press(9);
   await page.locator('#resume').waitFor(); await press(9);
   assert.equal(await page.locator('#panel').isVisible(), false);
   // Disconnect all network access: bundled assets and solo still start.
   await page.context().setOffline(true); await page.reload();
-  await page.locator('#solo').click(); await page.locator('body.playing').waitFor();
+  await page.locator('#play').click(); await page.locator('#start-match').click(); await page.locator('body.playing').waitFor();
   await page.waitForFunction(() => document.querySelectorAll('.score').length === 4);
   assert.deepEqual(errors, []);
   assert.deepEqual(remoteRequests, []);

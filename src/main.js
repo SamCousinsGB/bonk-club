@@ -3,6 +3,9 @@ import { loadPreferences } from "./preferences.js";
 import { ControllerMenu } from "./controller-menu.js";
 import { version, releaseNotes } from "../package.json";
 import { SLOT_MODES, SLOT_LABELS, activeSlots } from "./slots.js";
+import { defaultMatchOptions } from './match-options.js';
+import { createOfflineRoom } from './offline-room.js';
+import { defaultProfile } from './identity.js';
 import { cleanDifficulty } from "./bot-difficulty.js";
 import { GuestFrames } from "./render-state.js";
 import { mergeMotion } from "./motion-stream.js";
@@ -139,10 +142,9 @@ function saveProfile(value) {
   profile = cleanProfile(value, profile);
   void persist({ profile });
 }
-const roomOptions = () => ({ profile });
+const roomOptions = () => ({ profile, difficulty });
 
-let selectedArena = ["city", "random", "survival"].includes(preferences.value.arena) || Number(preferences.value.arena) < ARENAS.length ? preferences.value.arena : "random",
-  ping = 0;
+let ping = 0;
 let searchId = 0;
 const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
 const keyboardMaps = {
@@ -274,7 +276,10 @@ function showPanel(name, html) {
   if ($("#panel").classList.contains("hidden"))
     returnFocus = document.activeElement;
   view = name;
+  $("#menu").inert = true;
+  $("#panel").dataset.view = name;
   $("#panel").innerHTML = html;
+  $("#panel").scrollTop = 0;
   $("#panel").classList.remove("hidden");
   $("#panel").setAttribute("role", "dialog");
   $("#panel").setAttribute("aria-modal", "true");
@@ -287,6 +292,8 @@ function showPanel(name, html) {
 function hidePanel() {
   controllerMenu.closeKeyboard();
   view = "";
+  $("#menu").inert = playing;
+  delete $("#panel").dataset.view;
   $("#panel").classList.add("hidden");
   $("#panel").innerHTML = "";
   $("#panel").removeAttribute("role");
@@ -298,10 +305,11 @@ const heading = (title) =>
   `<div class="dialog-head"><div><h2 id="panel-title">${title}</h2></div><button id="back" class="icon-button" aria-label="Back">×</button></div>`;
 function setPlaying(value) {
   playing = value;
+  $("#menu").inert = value || !!view;
   if (!value) { chatComposer.close(); soloChat.reset(); }
   document.body.classList.toggle("playing", value);
   $("#hud").classList.toggle("hidden", !value);
-  $("#invite").classList.toggle("hidden", !value || !room);
+  $("#invite").classList.toggle("hidden", !value || !room || room.offline);
   setHtml($("#announcement"), "");
   syncTouchUi();
 }
@@ -319,48 +327,47 @@ function home() {
   hidePanel();
   history.replaceState(null, "", location.pathname);
 }
-function settingsHtml() {
-  return `<div class="settings"><label>ARENAS<select id="arena"><option value="random" ${selectedArena === "random" ? "selected" : ""}>All ${ARENAS.length} arenas</option><option value="city" ${selectedArena === "city" ? "selected" : ""}>Skyscrapers</option><option value="survival" ${selectedArena === "survival" ? "selected" : ""}>Survival arenas</option>${ARENAS.map((a, i) => `<option value="${i}" ${selectedArena === String(i) ? "selected" : ""}>${a.name}</option>`).join("")}</select></label><label>AI DIFFICULTY<select id="difficulty">${["easy", "normal", "hard"].map(value => `<option value="${value}" ${difficulty === value ? "selected" : ""}>${value[0].toUpperCase() + value.slice(1)}</option>`).join("")}</select></label></div>`;
+function matchOptionsHtml() {
+  const options = room.options;
+  const count = (key, total) => options[key].length === total ? 'All' : options[key].length + ' selected';
+  return `<div class="match-options"><h3>Match options</h3><button id="choose-weapons" class="option-row"><span>Weapons</span><b id="weapon-count">${count('weapons', Object.keys(WEAPONS).length)}</b><span aria-hidden="true">↗</span></button><button id="choose-maps" class="option-row"><span>Maps</span><b id="map-count">${count('maps', ARENAS.length)}</b><span aria-hidden="true">↗</span></button><label class="difficulty-row" for="difficulty">AI difficulty<select id="difficulty" ${room.host ? '' : 'disabled'}>${['easy','normal','hard'].map(value=>`<option value="${value}" ${options.difficulty === value ? 'selected' : ''}>${value[0].toUpperCase()+value.slice(1)}</option>`).join('')}</select></label></div>`;
 }
-function wireSettings() {
-  $("#difficulty")?.addEventListener("change", e => {
-    difficulty = cleanDifficulty(e.target.value);
-    void persist({ difficulty });
-    if (world) world.difficulty = difficulty;
-  });
-  $("#arena")?.addEventListener(
-    "change",
-    (e) => { selectedArena = e.target.value; void persist({ arena: selectedArena }); },
-  );
+function selectionMenu(kind) {
+  if (!room || room.running) return;
+  const current = room, draft = new Set(room.options[kind]);
+  const weapons = kind === 'weapons', title = weapons ? 'Weapons' : 'Maps';
+  const entries = weapons ? Object.entries(WEAPONS).map(([id,w])=>({id,name:w.name})) : ARENAS.map((a,id)=>({id,name:a.name}));
+  showPanel('selection', heading(title) + `<div class="selection-toolbar"><span id="selection-count" role="status"></span>${room.host ? '<div><button id="select-all" class="text-button">All</button><button id="select-none" class="text-button">None</button></div>' : '<span>Chosen by host</span>'}</div><div class="selection-grid ${weapons ? 'weapon-selection' : 'map-selection'}">${entries.map(entry=>`<label class="selection-card"><input type="checkbox" data-choice="${entry.id}" ${room.options[kind].includes(entry.id) ? 'checked' : ''} ${room.host ? '' : 'disabled'}>${weapons ? '' : `<canvas data-map-preview="${entry.id}" width="220" height="124" aria-hidden="true"></canvas>`}<span>${esc(entry.name)}</span></label>`).join('')}</div><div class="selection-footer"><p id="selection-status" role="status">${room.host ? 'Choose at least one. Changes apply to this room.' : ''}</p><button id="selection-done" class="button primary">DONE</button></div>`);
+  const sync = () => { $('#selection-count').textContent = draft.size + ' / ' + entries.length + ' selected'; $('#selection-done').disabled = !draft.size; };
+  for (const input of document.querySelectorAll('[data-choice]')) input.onchange = () => {
+    if (room !== current || !current.host) return;
+    const id = weapons ? input.dataset.choice : Number(input.dataset.choice);
+    if (input.checked) draft.add(id); else draft.delete(id); sync();
+  };
+  if ($('#select-all')) $('#select-all').onclick = () => { for (const e of entries) draft.add(e.id); for (const input of document.querySelectorAll('[data-choice]')) input.checked=true; sync(); };
+  if ($('#select-none')) $('#select-none').onclick = () => { draft.clear(); for (const input of document.querySelectorAll('[data-choice]')) input.checked=false; sync(); };
+  for (const canvas of document.querySelectorAll('[data-map-preview]')) {
+    const arena=ARENAS[Number(canvas.dataset.mapPreview)], c=canvas.getContext('2d');
+    c.fillStyle='#101d25'; c.fillRect(0,0,220,124); c.scale(220/W,124/H);
+    c.fillStyle='#839aa4'; for(const p of arena.platforms || []) c.fillRect(p.x,p.y,p.w,Math.max(18,p.h));
+    c.fillStyle='#d5fa43'; for(const [x,y] of arena.spawns || []) { c.beginPath();c.arc(x,y-20,28,0,Math.PI*2);c.fill(); }
+  }
+  $('#back').onclick = lobby; $('#selection-done').onclick = () => { if(current.host) current.setOptions({...current.options,[kind]:[...draft]}); lobby(); }; sync();
 }
-function arenaMenu() {
-  showPanel(
-    "arenas",
-    heading("Settings") +
-      settingsHtml() +
-      `<div class="settings"><label>SOUND<select id="settings-sound"><option value="on" ${!sound.muted ? "selected" : ""}>On</option><option value="off" ${sound.muted ? "selected" : ""}>Off</option></select></label><label>REDUCED MOTION<select id="settings-motion"><option value="off" ${!renderer.reduced ? "selected" : ""}>Off</option><option value="on" ${renderer.reduced ? "selected" : ""}>On</option></select></label></div><button id="settings-fullscreen" class="button secondary">FULLSCREEN</button>` +
-      '<button id="arena-close" class="button primary">CLOSE</button>',
-  );
-  wireSettings();
-  $("#settings-sound").onchange = e => { if ((e.target.value === "off") !== sound.muted) $("#sound").click(); };
-  $("#settings-motion").onchange = e => { renderer.reduced = e.target.value === "on"; void persist({ reducedMotion: renderer.reduced }); };
-  $("#settings-fullscreen").onclick = toggleFullscreen;
-  $("#back").onclick = hidePanel;
-  $("#arena-close").onclick = hidePanel;
+function offlineLobby(reason = network.reason) {
+  home(); solo = true;
+  room = createOfflineRoom(roomCallbacks(), roomOptions(), reason);
+  lobby();
 }
 function startWorld(ids) {
   enterGameScreen();
-  const pool = selectedArena === "city" ? CITY_ARENAS : selectedArena === "survival" ? ARENAS.flatMap((a,i)=>a.survival?[i]:[]) : ARENAS.map((_, i) => i);
+  const options = room?.options || defaultMatchOptions(difficulty), pool = options.maps;
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
-    bots: room ? activeSlots(room.slots, room.roster).filter(p => p.bot).map(p => p.id) : [0, 1, 2, 3].filter((id) => !ids.includes(id)),
-    fillSolo: false,
-    difficulty,
-    arena: ["city", "random", "survival"].includes(selectedArena)
-      ? pool[Math.floor(Math.random() * pool.length)]
-      : Number(selectedArena),
-    shuffle: ["city", "random", "survival"].includes(selectedArena),
-    arenaPool: pool,
+    bots: room ? activeSlots(room.slots, room.roster).filter(p => p.bot).map(p => p.id) : [1, 2, 3],
+    fillSolo: false, difficulty: options.difficulty,
+    arena: pool[Math.floor(Math.random() * pool.length)],
+    shuffle: pool.length > 1, arenaPool: pool, weaponPool: options.weapons,
   });
   world.setProfiles(room ? room.roster : [{ id: 0, ...profile }]);
   botChat.attach(world);
@@ -462,16 +469,18 @@ function wireCharacter() {
   syncColourOptions();
 }
 function characterMenu() {
+  const fromLobby = !!room && !room.running;
+  if (fromLobby && !room.host) room.setReady(false);
   showPanel(
     "character",
-    heading("Character") +
+    heading("Customise") +
       characterHtml() +
       '<button id="character-close" class="button primary">SAVE</button>',
   );
   wireCharacter();
   const close = () => {
     submitProfile();
-    hidePanel();
+    if (fromLobby && room && !room.running) lobby(); else hidePanel();
   };
   $("#back").onclick = close;
   $("#character-close").onclick = close;
@@ -488,114 +497,78 @@ function wireJoin() {
     if (e.key === "Enter") $("#join-room").click();
   };
 }
-let openSlot = null;
-function slotOptionsHtml() {
-  if (!room.host || openSlot === null) return "";
-  const id = openSlot, p = room.roster.find(q => q.id === id), mode = room.slots[id];
-  return `<div class="slot-options" aria-label="Slot ${id + 1} mode">${SLOT_MODES.map(value => `<button type="button" data-slot-mode="${value}" data-slot-id="${id}" aria-pressed="${value === mode}">${SLOT_LABELS[value]}${p && ["ai", "closed"].includes(value) ? `<small>Remove ${esc(p.name)}</small>` : ""}</button>`).join("")}</div>`;
-}
 function updateLobby() {
-  if (view !== "lobby" || !room) return;
-  const roster = room.roster;
-  $("#lobby-players").innerHTML = [0, 1, 2, 3].map(id => {
-    const p = roster.find(q => q.id === id), mode = room.slots[id];
-    const title = p ? esc(p.name) : mode === "closed" ? "Closed" : mode === "player" ? "Waiting for player" : "AI";
-    const label = id === 0 ? "Host" : SLOT_LABELS[mode];
-    const content = `${p ? `<canvas class="player-portrait" data-portrait="${id}" width="64" height="80" aria-hidden="true"></canvas>` : '<span class="player-dot" style="background:#73817b"></span>'}<span>${title}<small>${label}</small></span>`;
-    const editable = room.host && id !== 0;
-    return `<div class="lobby-slot">${editable ? `<button type="button" class="lobby-player ${p ? "" : "empty"}" data-slot="${id}" aria-label="Slot ${id + 1}: ${label}" aria-expanded="${openSlot === id}">${content}</button>` : `<div class="lobby-player ${p ? "" : "empty"}">${content}</div>`}</div>`;
-  }).join("") + slotOptionsHtml();
-  for (const canvas of $("#lobby-players").querySelectorAll("[data-portrait]")) {
-    const p = roster.find(p => p.id === Number(canvas.dataset.portrait)), c = canvas.getContext("2d");
-    c.translate(32, 40); c.scale(1.2, 1.2);
-    const finish = materialPaint(c, p, 0, -10, 24, 38);
-    c.strokeStyle = finish; c.lineWidth = 5; c.lineCap = "round";
-    c.beginPath(); c.moveTo(0, 11); c.lineTo(0, 28); c.moveTo(-11, 24); c.lineTo(0, 14); c.lineTo(11, 24); c.stroke();
-    c.fillStyle = finish; c.beginPath(); c.arc(0, 0, 10.5, 0, Math.PI * 2); c.fill();
-    drawAppearance(c, p, 0, 0);
+  if (view !== 'lobby' || !room) return;
+  const roster=room.roster, options=room.options;
+  $('#lobby-players').innerHTML = [0,1,2,3].map(id=>{
+    const p=roster.find(q=>q.id===id), mode=room.slots[id], bot=!p && ['mixed','ai'].includes(mode);
+    const title=p ? p.name : bot ? 'Bot' : mode==='closed' ? 'Closed' : 'Open place';
+    const status=id===0 ? 'Host' : p ? room.ready.has(id) ? 'Ready' : 'Not ready' : bot ? options.difficulty[0].toUpperCase()+options.difficulty.slice(1) : mode==='closed' ? 'Unused slot' : 'Waiting for player';
+    const color=p?.color || (bot ? COLORS[id] : '#73818a');
+    return `<article class="fighter-card ${p ? 'human' : bot ? 'bot' : 'vacant'}" style="--fighter:${color}"><div class="fighter-card-top"><span>${String(id+1).padStart(2,'0')}</span><span class="fighter-status ${id===0 || room.ready.has(id) ? 'is-ready' : ''}">${status}</span></div>${p || bot ? `<canvas data-portrait="${id}" width="240" height="220" aria-hidden="true"></canvas>` : '<div class="empty-portrait" aria-hidden="true">+</div>'}<h4>${esc(title)}${p?.id===room.id ? '<small>You</small>' : ''}</h4>${room.host && id!==0 ? `<select data-slot="${id}" aria-label="Slot ${id+1} type">${SLOT_MODES.map(value=>`<option value="${value}" ${value===mode?'selected':''}>${SLOT_LABELS[value]}</option>`).join('')}</select>` : `<span class="slot-label">${id===0?'Player':SLOT_LABELS[mode]}</span>`}</article>`;
+  }).join('');
+  for(const canvas of $('#lobby-players').querySelectorAll('[data-portrait]')) {
+    const id=Number(canvas.dataset.portrait), p=roster.find(p=>p.id===id) || defaultProfile(id);
+    const r=new Renderer(canvas), c=r.ctx; r.reduced=true;
+    c.translate(120,103);c.scale(2.4,2.4);r.fighter(previewFighter(p,'Stand',0),0,1,false);
   }
-  $("#lobby-players").querySelectorAll("[data-slot]").forEach(button => button.onclick = () => {
-    const id = Number(button.dataset.slot);
-    openSlot = openSlot === id ? null : id;
-    updateLobby();
-    $("#lobby-players").querySelector(`[data-slot="${id}"]`)?.focus();
-  });
-  $("#lobby-players").querySelectorAll("[data-slot-mode]").forEach(button => button.onclick = () => {
-    const id = Number(button.dataset.slotId);
-    openSlot = null;
-    room.setSlot(id, button.dataset.slotMode);
-    $("#lobby-players").querySelector(`[data-slot="${id}"]`)?.focus();
-  });
-  const capacity = room.slots.filter(mode => ["mixed", "player"].includes(mode)).length;
-  $("#lobby-count").textContent = `${roster.length}/${capacity} players`;
-  const start = $("#start-match");
-  if (start) {
-    start.disabled = activeSlots(room.slots, roster).length < 2;
-    $("#start-status").textContent = start.disabled ? "Add AI or wait for another player to start." : "";
+  for(const select of $('#lobby-players').querySelectorAll('[data-slot]')) select.onchange=()=>{
+    const id=select.dataset.slot; room.setSlot(Number(id),select.value);
+    $('#lobby-players').querySelector('[data-slot="'+id+'"]').focus();
+  };
+  $('#lobby-count').textContent=roster.length+' / '+room.slots.filter(mode=>['mixed','player'].includes(mode)).length+' players';
+  $('#weapon-count').textContent=options.weapons.length===Object.keys(WEAPONS).length?'All':options.weapons.length+' selected';
+  $('#map-count').textContent=options.maps.length===ARENAS.length?'All':options.maps.length+' selected';
+  $('#difficulty').value=options.difficulty;
+  const start=$('#start-match');
+  if(start) {
+    start.disabled=!room.canStart();
+    const waiting=roster.filter(p=>p.id!==0 && !room.ready.has(p.id)).length;
+    $('#start-status').textContent=waiting ? 'Waiting for '+waiting+' player'+(waiting===1?'':'s')+' to ready up.' : activeSlots(room.slots,roster).length<2 ? 'Add a bot or wait for another player.' : 'Everyone is ready.';
+  } else {
+    const ready=room.ready.has(room.id);
+    $('#ready-up').textContent=ready?'NOT READY':'READY UP';
+    $('#ready-up').setAttribute('aria-pressed',String(ready));
+    $('#start-status').textContent=ready?'Ready. Waiting for the host to start.':'Customise your character, then ready up.';
   }
-  syncColourOptions(true);
 }
 function lobby() {
-  if (!room || room.closed || room.running) return;
+  if(!room || room.closed || room.running) return;
   setPlaying(false);
-  openSlot = null;
-  showPanel(
-    "lobby",
-    heading("Online lobby") +
-      `<div class="lobby-invite"><div><label for="room-code">INVITE CODE</label><input id="room-code" class="room-input" value="${esc(room.code)}" readonly><span id="lobby-count"></span></div><div class="invite-actions"><button id="copy-code" class="button secondary">COPY CODE</button><button id="copy-link" class="button secondary">COPY LINK</button></div></div><div id="lobby-players" class="lobby-players"></div>` +
-      characterHtml() +
-      (room.host
-        ? settingsHtml() +
-          '<button id="start-match" class="button primary">START MATCH</button><p id="start-status" class="subtle" role="status"></p>'
-        : '<p class="waiting-host" role="status">Waiting for the host to start.</p>') +
-      '<p class="subtle">Friends can join open player slots after the match starts.</p><details class="join-other"><summary>Join another room</summary>' +
-      joinHtml() +
-      '<button id="quick-match" class="button secondary">QUICK MATCH</button></details><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>',
-  );
-  $("#back").onclick = home;
-  wireCharacter();
-  wireJoin();
-  wireSettings();
-  $("#connection-details").onclick = () => connectionDetails(lobby);
-  if ($("#quick-match")) $("#quick-match").onclick = quickMatch;
-  $("#room-code").onclick = (e) => e.target.select();
-  $("#copy-code").onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(room.code);
-      toast("Invite code copied.");
-    } catch {
-      $("#room-code").select();
-      toast("Select and copy the invite code.");
-    }
-  };
-  $("#copy-link").onclick = copyInvite;
-  if ($("#start-match"))
-    $("#start-match").onclick = () => {
-      submitProfile();
-      room.start();
-    };
+  showPanel('lobby', heading('Play') +
+    `<div class="lobby-invite"><div class="invite-code-block"><label for="room-code">Invite code</label><input id="room-code" value="${esc(room.code)}" readonly aria-label="Invite code"><span id="lobby-count"></span></div><div class="invite-actions"><button id="copy-code" class="text-button" ${room.offline?'disabled':''}>Copy code</button><button id="copy-link" class="text-button" ${room.offline?'disabled':''}>Copy link</button></div></div>${room.offline ? `<p class="offline-status" role="status">${esc(room.offlineReason)} Invites are unavailable offline.</p>` : ''}<div class="lobby-layout"><section class="fighters-section" aria-label="Players"><div class="section-heading"><h3>Players</h3></div><div id="lobby-players" class="lobby-players"></div></section><aside class="lobby-sidebar">${matchOptionsHtml()}${room.host ? '' : '<button id="lobby-customise" class="button secondary">CUSTOMISE</button>'}${!room.offline ? '<details class="join-other"><summary>Join another room</summary>'+joinHtml()+'</details>' : ''}</aside></div><div class="lobby-footer"><div><p id="start-status" role="status" aria-live="polite"></p><button id="leave-lobby" class="text-button">Leave room</button></div>${room.host ? '<button id="start-match" class="button primary">START MATCH <span aria-hidden="true">→</span></button>' : '<button id="ready-up" class="button primary" aria-pressed="false">READY UP</button>'}</div>`);
+  $('#back').onclick=home; $('#leave-lobby').onclick=home;
+  if($('#join-room')) wireJoin();
+  $('#choose-weapons').onclick=()=>selectionMenu('weapons');
+  $('#choose-maps').onclick=()=>selectionMenu('maps');
+  $('#difficulty').onchange=e=>{ if(!room.host)return; difficulty=cleanDifficulty(e.target.value); void persist({difficulty}); room.setOptions({...room.options,difficulty}); };
+  if($('#lobby-customise')) $('#lobby-customise').onclick=characterMenu;
+  if($('#ready-up')) $('#ready-up').onclick=()=>room.setReady(!room.ready.has(room.id));
+  $('#room-code').onclick=e=>e.target.select();
+  $('#copy-code').onclick=async()=>{try{await navigator.clipboard.writeText(room.code);toast('Invite code copied.');}catch{$('#room-code').select();toast('Select and copy the invite code.');}};
+  $('#copy-link').onclick=copyInvite;
+  if($('#start-match')) $('#start-match').onclick=()=>{enterGameScreen();room.start();};
   updateLobby();
 }
 function onlineMenu(message = "") {
   unlock();
   if (!network.available) {
-    showPanel("online", heading("Online multiplayer") + `<p role="status">${esc(network.reason)}</p>`);
-    $("#back").onclick = home;
-    return;
+    return offlineLobby();
   }
   showPanel(
     "online",
-    heading("Online multiplayer") +
+    heading("Join room") +
       (message ? `<p class="error" role="alert">${esc(message)}</p>` : "") +
       '<button id="create-room" class="button primary">CREATE A ROOM</button>' +
       joinHtml() +
-      '<button id="quick-match" class="button secondary">QUICK MATCH</button>' +
+      '<button id="quick-match" class="button secondary">QUICK MATCH</button><button id="play-offline" class="button secondary">PLAY OFFLINE</button>' +
       (lastDiagnosticRoom
         ? '<button id="connection-details" class="button secondary">CONNECTION DETAILS</button>'
         : ""),
   );
   $("#back").onclick = home;
   $("#create-room").onclick = () => connectRoom();
+  $("#play-offline").onclick = () => offlineLobby("The room service could not be reached.");
   $("#quick-match").onclick = quickMatch;
   if ($("#connection-details"))
     $("#connection-details").onclick = () =>
@@ -770,7 +743,7 @@ function roomCallbacks() {
   };
 }
 async function connectRoom(code) {
-  if (!network.available) return onlineMenu();
+  if (!network.available) return offlineLobby();
   solo = false;
   if (code !== undefined && !validCode(code))
     return toast("Enter the six-character code from your friend.");
@@ -830,16 +803,6 @@ function showInvite(link = location.href) {
   $("#copy-link").onclick = copyInvite;
   $("#invite-link").onclick = (e) => e.target.select();
 }
-function help(back = hidePanel) {
-  showPanel(
-    "help",
-    heading("Controls") +
-      `<div class="touch-help"><h3>TOUCH</h3><p><b>Move:</b> drag the left side left or right. Release to stop. Swipe up to jump while moving; swipe up again for a second jump. Drag down and hold to lie down.</p><p><b>Aim / fire:</b> drag the right side in the direction you want to shoot. Hold to keep firing; release to stop. You can move and fire at the same time. The joystick guides hide while held and return when you lift your fingers.</p><p><b>Jump:</b> tap Jump, then tap again to double jump.</p><p><b>Throw:</b> double-tap the right side to throw your weapon or carried object.</p><p><b>Pick up / drop:</b> the action button picks up a nearby physical object or drops the object you hold. Aim and fire to throw it. Otherwise the button parries with empty hands or uses alternate fire. Weapon pickups are automatic.</p><p>Play with your phone sideways. Joining or starting requests fullscreen and landscape where supported. If fullscreen closes, open Game menu and tap Fullscreen. The game continues while you rotate or use menus.</p></div>` +
-      `<details class="keyboard-help" ${touchDevice ? "" : "open"}><summary>Keyboard controls</summary><div class="controls-grid"><div><h3 style="color:${COLORS[0]}">KEYBOARD + MOUSE</h3><p><span class="key">A</span><span class="key">D</span> Move</p><p><span class="key">W</span> / Space · Jump twice</p><p>Left click / <span class="key">E</span> Punch / fire / throw object</p><p>Right click / <span class="key">G</span> Pick up / drop / parry / alternate fire</p><p><span class="key">F</span> Throw weapon / object</p><p><span class="key">S</span> Hold to lie down</p><p><span class="key">Enter</span> Chat · Enter to send · Esc to cancel</p><p>Mouse aims arms and weapons.</p></div></div></details><p><b>Controller:</b> left stick / D-pad move. A / cross jumps. X / square or RT attacks. B / circle or LT picks up or drops an object, otherwise parries with fists or uses alternate fire. Y / triangle throws the weapon or object. Right stick aims. Hold LB or D-pad down to lie down.</p><p><b>Physical objects:</b> right-click or press G to pick up the nearest object in front of you. Your weapon is set down with its ammunition. Right-click again to drop the object; left-click or F throws it towards your aim. Heavy objects slow movement and travel less far. Walls block pickup. Objects keep their collisions, damage, fire and fuses while held. You cannot punch, fire or parry while carrying.</p><p>With empty hands and no reachable object, press just before impact for a 0.16-second parry window. It stops one melee hit or reflects one bullet, then closes. The cooldown is 0.85 seconds from activation. Release before pressing again; holding does not guard or repeat. The bar under your fighter shows recovery. Explosions cannot be parried. Weapons, including bats and swords, prevent parrying.</p><p><b>Alternate fire:</b> right-click, G, B / circle, LT or the touch action button. Shotgun: double shot, using two shells. Plasma cannon: a larger charged orb, using two rounds. Both share the primary fire cooldown.</p><p><b>Melee:</b> keep attacking while unarmed for punch, kick, then a spinning finisher. Aim the attack to lunge in that direction; one air lunge is available before landing. Landing unarmed hits restores a little health and stamina. Bullets, shotgun pellets, fire and ice deal bonus damage up close. Each strike carries you forward even without holding movement. Early hits keep the opponent within reach; the finisher launches them.</p><p><b>Heavy weapons:</b> recoil pushes you opposite the firing direction, on the ground and in the air. Standing or lying down does not cancel the impulse. Aim downward to launch yourself upward; rapid minigun fire can sustain lift. Holding movement counters recoil gradually. The heavy machine gun requires lying down on a floor to fire and stays braced while deployed. Blue weapon glows indicate rare weapons; purple indicates the rarest. Fire burns for three seconds after the last exposure. Water and ice extinguish it immediately. Bubble shots lift opponents for 2.4 seconds. Expiry or a heavy hit pops the bubble for 32 damage. A lethal pop scatters the fighter’s limbs. Boomerangs return and can hit again on the way back. Rubber ducks bounce and explode on contact or when their fuse ends. Ice slows, sawblades and ricochet shots bounce, and Tesla shots chain between nearby opponents. Black holes pull in players, loose weapons and shots, including your own.</p><p><b>Grenades:</b> aim slightly upward for a longer throw, up to about half the arena where the arc is clear. Nuclear grenades are single-use pickups: attack or throw to launch one. Its 2.8-second fuse triggers a circular blast that removes nearby terrain and kills anyone inside, including you. Walls do not shield the nuclear flash. The mushroom cloud clears within 12 seconds; the hole remains until the next round. Leaving the arena also triggers detonation.</p><p>The last player alive wins the round. Walk near a weapon to pick it up automatically when unarmed. Throw the current weapon to collect another. Furniture, crates and rocks have weight. Push them, hit them or blast them apart; loose pieces can hit fighters. TNT barrels count down and explode. Gas cylinders leak flammable gas. Oil spills are slippery and flammable. Glue grips your feet; jump to escape. Tar slows movement and burns longer than oil. Water washes off glue and extinguishes fire. Shoot containers to release their contents. Bullets have a 30% chance to ignite gas, oil or tar on contact, including at the container. Elevators carry players between floors. Explosions hurt everyone, including you. Explosions carve holes in every platform, wall and lift. Repeated blasts dig further through terrain. Marked wood and glass panels can also be shot out; structural supports and lifts resist bullets. Destroyed floors drop players and loose objects. Cut lifts stop moving. Terrain resets each round. Traps are fixed parts of each map. Flame vents warn before a lethal eruption. Conveyors carry you toward their ends; jump clear. Swinging spike balls, crushers, moving saws and electrical traps guard different routes. Breaking a trap's mounting floor disables it.</p><p class="subtle">Rounds become sudden death after 120 seconds. Escape opens the menu while the game continues. Switching tabs does not pause the game. AI/Player slots use AI until a friend joins. AI only slots cannot be joined. Player only slots remain empty until someone joins. Closed slots are unused. Scores continue between rounds and reset when a slot changes player. Touch controls work in single player and online rooms. Each device controls one player.</p><button id="got-it" class="button primary">CLOSE</button>`,
-  );
-  $("#back").onclick = back;
-  $("#got-it").onclick = back;
-}
 function gameMenu(forceOpen = false) {
   if (!playing) return;
   if (view && forceOpen !== true) {
@@ -849,7 +812,7 @@ function gameMenu(forceOpen = false) {
   showPanel(
     "game-menu",
     heading("Game menu") +
-      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CHARACTER</button><button id="pause-help" class="button secondary">CONTROLS</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
+      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room && !room.offline ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CUSTOMISE</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {
@@ -860,7 +823,7 @@ function gameMenu(forceOpen = false) {
     $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
     $("#game-fullscreen").onclick = toggleFullscreen;
   }
-  $("#pause-help").insertAdjacentHTML("beforebegin", `<button id="game-sound" class="button secondary">${sound.muted ? "UNMUTE SOUND" : "MUTE SOUND"}</button>`);
+  $("#edit-character").insertAdjacentHTML("beforebegin", `<button id="game-sound" class="button secondary">${sound.muted ? "UNMUTE SOUND" : "MUTE SOUND"}</button>`);
   $("#game-sound").onclick = () => $("#sound").click();
   if (room && !room.host) {
     const currentRoom = room;
@@ -874,7 +837,6 @@ function gameMenu(forceOpen = false) {
   }
   syncFullscreenUi();
   $("#leave").onclick = home;
-  $("#pause-help").onclick = () => help(hidePanel);
   $("#edit-character").onclick = characterMenu;
   if ($("#menu-invite")) $("#menu-invite").onclick = () => showInvite();
   if ($("#connection-details"))
@@ -1012,17 +974,7 @@ function frame(now) {
   drawPreview(now);
   requestAnimationFrame(frame);
 }
-$("#solo").onclick = () => {
-  solo = true;
-  startWorld([0]);
-};
-$("#arenas").onclick = arenaMenu;
-$("#arenas").textContent = "SETTINGS";
-$("#menu-controls").onclick = () => {
-  unlock();
-  help();
-};
-$("#online").onclick = () => connectRoom();
+$("#play").onclick = () => connectRoom();
 $("#character").onclick = characterMenu;
 $("#pause").onclick = gameMenu;
 $("#invite").onclick = copyInvite;
@@ -1045,7 +997,7 @@ $("#sound").setAttribute("aria-label", sound.muted ? "Unmute sound" : "Mute soun
 $("#sound").setAttribute("aria-pressed", String(sound.muted));
 if (desktop) {
   desktop.onFullscreenChange(syncFullscreenUi);
-  $("#menu-controls").insertAdjacentHTML("afterend", '<button id="quit-game" class="button secondary">QUIT GAME</button>');
+  $("#character").insertAdjacentHTML("afterend", '<button id="quit-game" class="button secondary">QUIT GAME</button>');
   $("#quit-game").onclick = () => { home(); void desktop.quit(); };
   $(".brand").onclick = event => { event.preventDefault(); home(); };
 }
@@ -1055,7 +1007,7 @@ window.addEventListener("keydown", (e) => {
   if (chatComposer.handleKey(e)) return;
   if (e.code === "Escape") {
     if ($("#controller-keyboard")) { e.preventDefault(); controllerMenu.closeKeyboard(); return; }
-    if (view === "connection-details") {
+    if (["connection-details", "character", "selection"].includes(view)) {
       e.preventDefault();
       $("#back").click();
       return;

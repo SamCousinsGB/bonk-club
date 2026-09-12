@@ -33,7 +33,8 @@ import {
   validAppearance,
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
-export const PROTOCOL = 46;
+import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
+export const PROTOCOL = 47;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -53,6 +54,9 @@ export class RoomSession {
     this.code = "";
     this.roster = [];
     this.slots = defaultSlots();
+    this.options = defaultMatchOptions(options.difficulty);
+    this.revision = 0;
+    this.ready = new Set();
     this.renderSnapshots = new RenderSnapshots();
     this.snapshots = new SnapshotHistory();
     this.motionSnapshots = new SnapshotHistory();
@@ -199,18 +203,53 @@ export class RoomSession {
     if (Number.isInteger(seq) && seq > (c[key] || 0) && sent?.has(seq)) c[key] = seq;
   }
   start() {
-    if (!this.host || this.closed || this.running || activeSlots(this.slots, this.roster).length < 2) return false;
+    if (!this.canStart()) return false;
     this.running = true;
     this.broadcast({ t: "start" });
     this.emit("onStart");
     return true;
+  }
+  canStart() {
+    return this.host && !this.closed && !this.running && activeSlots(this.slots, this.roster).length >= 2 &&
+      this.roster.every(p => p.id === 0 || this.ready.has(p.id));
+  }
+  setReady(value) {
+    if (this.host || this.closed || this.running || typeof value !== 'boolean' || this.id === null) return false;
+    this.send(this.connection, { t: 'ready', value, revision: this.revision });
+    return true;
+  }
+  acceptReady(id, value, revision) {
+    if (!this.host || this.closed || this.running || typeof value !== 'boolean' || revision !== this.revision ||
+      id === 0 || !this.roster.some(p => p.id === id)) return false;
+    if (this.ready.has(id) === value) return true;
+    if (value) this.ready.add(id); else this.ready.delete(id);
+    this.publishRoster();
+    return true;
+  }
+  setOptions(value) {
+    if (!this.host || this.closed || this.running || !validMatchOptions(value)) return false;
+    if (JSON.stringify(this.options) === JSON.stringify(value)) return true;
+    this.options = copyMatchOptions(value);
+    this.revision++; this.ready.clear();
+    this.publishRoster();
+    return true;
+  }
+  lobbyState() {
+    return { options: copyMatchOptions(this.options), revision: this.revision, ready: [...this.ready] };
+  }
+  receiveLobbyState(message) {
+    this.options = copyMatchOptions(message.options);
+    this.revision = message.revision;
+    this.ready = new Set(message.ready);
   }
   setSlot(id, mode) {
     if (!this.host || this.running || this.closed || !Number.isInteger(id) || id < 1 || id > 3) return false;
     const slots = [...this.slots];
     slots[id] = mode;
     if (!validSlots(slots)) return false;
+    if (this.slots[id] === mode) return true;
     this.slots = slots;
+    this.revision++; this.ready.clear();
     const c = this.connections.get(id);
     if (c && !allowsPlayer(mode)) {
       this.connections.delete(id);
@@ -260,6 +299,7 @@ export class RoomSession {
         defaultProfile(id),
       );
       this.roster.push({ id, ...profile });
+      this.ready.delete(id);
       this.syncChatRoles();
       c.frameSequence = 0;
       c.frameAck = 0;
@@ -274,6 +314,7 @@ export class RoomSession {
         running: this.running,
         players: this.roster,
         slots: this.slots,
+        ...this.lobbyState(),
         chatRound: this.chat.round,
         chat: this.chat.snapshot(),
       });
@@ -298,6 +339,7 @@ export class RoomSession {
         this.inputTimes[id] = performance.now();
       }
       if (m.t === "profile") this.assignProfile(id, m.profile);
+      if (m.t === "ready") this.acceptReady(id, m.value, m.revision);
       if (m.t === "chat") this.acceptChat(id, m.text);
       if (m.t === "ack" && Number.isInteger(m.seq) && m.seq > c.frameAck && m.seq <= c.frameSequence) {
         this.acknowledgeState(c, m.stateAck);
@@ -315,6 +357,7 @@ export class RoomSession {
       delete this.lastInputs[id];
       delete this.inputTimes[id];
       this.roster = this.roster.filter((p) => p.id !== id);
+      this.ready.delete(id);
       this.publishRoster();
     });
     c.on("error", () => c.close());
@@ -364,10 +407,12 @@ export class RoomSession {
             m.id < 1 ||
             m.id > 3 ||
             !validSlots(m.slots) ||
+            !validLobbyState(m) ||
             !this.receiveRoster(m.players)
           )
             return fail(new Error("Invalid room response."));
           this.slots = [...m.slots];
+          this.receiveLobbyState(m);
           this.syncChatRoles();
           welcomed = settled = true;
           this.clear(t);
@@ -390,8 +435,9 @@ export class RoomSession {
           this.emit("onError", typeof m.reason === "string" ? m.reason.slice(0, 120) : "The host removed your slot.");
           return;
         }
-        if (m.t === "roster" && validSlots(m.slots) && this.receiveRoster(m.players)) {
+        if (m.t === "roster" && validSlots(m.slots) && validLobbyState(m) && this.receiveRoster(m.players)) {
           this.slots = [...m.slots];
+          this.receiveLobbyState(m);
           this.syncChatRoles();
           this.profile = cleanProfile(
             this.roster.find((p) => p.id === this.id),
@@ -445,7 +491,7 @@ export class RoomSession {
       players.length > 4 ||
       players.some(
         (p) =>
-          !Number.isInteger(p.id) || p.id < 0 || p.id > 3 || !validProfile(p),
+          !p || !Number.isInteger(p.id) || p.id < 0 || p.id > 3 || !validProfile(p),
       ) ||
       new Set(players.map((p) => p.id)).size !== players.length
     )
@@ -457,6 +503,7 @@ export class RoomSession {
   assignProfile(id, value) {
     const player = this.roster.find((p) => p.id === id);
     if (!player) return;
+    const before = JSON.stringify(player);
     Object.assign(
       player,
       availableProfile(
@@ -466,6 +513,7 @@ export class RoomSession {
       ),
     );
     if (id === this.id) this.profile = cleanProfile(player);
+    if (!this.running && before !== JSON.stringify(player)) this.ready.delete(id);
     this.publishRoster();
   }
   setProfile(value) {
@@ -476,7 +524,7 @@ export class RoomSession {
   publishRoster() {
     this.roster.sort((a, b) => a.id - b.id);
     this.syncChatRoles();
-    this.broadcast({ t: "roster", players: this.roster, slots: this.slots });
+    this.broadcast({ t: "roster", players: this.roster, slots: this.slots, ...this.lobbyState() });
     this.emit("onRoster", this.roster);
   }
   syncChatRoles() {

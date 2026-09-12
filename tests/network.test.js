@@ -12,10 +12,75 @@ import {
 import { World, STEP } from "../src/engine.js";
 import { pack, unpack } from "peerjs-js-binarypack";
 const tick = () => new Promise((r) => setImmediate(r));
+test('guest readiness is owned by the sender and gates the host start', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), third = new Room({}, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); await third.join(host.code);
+    assert.equal(host.start(), false);
+    guest.connection.send({t:'ready',value:'true',revision:host.revision}); await tick();
+    assert.equal(host.ready.size, 0);
+    guest.connection.send({t:'ready',id:2,value:true,revision:host.revision}); await tick();
+    assert.deepEqual([...host.ready], [1]); assert.equal(host.start(), false);
+    assert.equal(third.setOptions({...third.options,difficulty:'hard'}),false);
+    third.setReady(true); await tick(); assert.equal(host.canStart(),true);
+    guest.setReady(false); await tick(); assert.equal(host.canStart(),false);
+    guest.setReady(true); await tick(); assert.equal(host.start(),true); await tick();
+    assert.equal(guest.running,true); assert.equal(third.running,true);
+    assert.equal(guest.setReady(false),false);
+    assert.equal(host.setOptions({...host.options,difficulty:'hard'}),false);
+  } finally { third.close(); guest.close(); host.close(); }
+});
+test('match changes clear readiness and reject a ready click for obsolete options', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); guest.setReady(true); await tick();
+    const revision=host.revision;
+    assert.equal(host.setOptions({...host.options,maps:[0,2],weapons:['bat','nuke'],difficulty:'hard'}),true);
+    guest.connection.send({t:'ready',value:true,revision}); await tick();
+    assert.equal(host.canStart(),false); assert.equal(guest.ready.size,0);
+    assert.deepEqual(guest.options,host.options);
+    guest.setReady(true); await tick(); assert.equal(host.canStart(),true);
+    host.setSlot(3,'closed'); await tick(); assert.equal(host.canStart(),false);
+    guest.setReady(true); await tick();
+    guest.setProfile({...guest.profile,name:'Changed'}); await tick();
+    assert.equal(host.canStart(),false);
+    guest.setReady(true); await tick(); guest.setProfile(guest.profile); await tick();
+    assert.equal(host.canStart(),true,'saving an unchanged appearance retains readiness');
+  } finally {guest.close();host.close();}
+});
+test('late arrivals receive chosen match pools and replacement players never inherit readiness', async () => {
+  const host=new Room({},FakePeer),guest=new Room({},FakePeer),replacement=new Room({},FakePeer);
+  try {
+    await host.create();host.setOptions({...host.options,maps:[1],weapons:['bubble']});
+    await guest.join(host.code);assert.deepEqual(guest.options,host.options);
+    guest.setReady(true);await tick();guest.close();await tick();
+    assert.equal(host.ready.size,0);await replacement.join(host.code);
+    assert.equal(host.start(),false);replacement.setReady(true);await tick();
+    assert.equal(host.start(),true);
+  } finally {replacement.close();guest.close();host.close();}
+});
+test('invalid or forged match options cannot replace host choices', async () => {
+  const host=new Room({},FakePeer),guest=new Room({},FakePeer);
+  try {
+    await host.create();await guest.join(host.code);const before=structuredClone(host.options);
+    for(const patch of [{maps:[]},{maps:[-1]},{maps:[99999]},{maps:[0,0]},{weapons:[]},{weapons:['fake']},{weapons:['bat','bat']},{difficulty:'impossible'}])
+      assert.equal(host.setOptions({...before,...patch}),false);
+    guest.connection.send({t:'options',options:{...before,weapons:['bat']}});await tick();
+    assert.deepEqual(host.options,before);
+    for(const patch of [{options:{...before,weapons:[]}},{ready:[0]},{ready:[1,1]},{ready:[3]},{revision:-1}]) {
+      host.send(host.connections.get(1),{t:'roster',players:host.roster,slots:host.slots,...host.lobbyState(),...patch});await tick();
+      assert.deepEqual(guest.options,before);assert.equal(guest.ready.size,0);
+    }
+  } finally {guest.close();host.close();}
+});
+async function readyGuests(host) {
+  for (const c of host.connections.values()) c.other.send({ t: 'ready', value: true, revision: host.revision });
+  await tick();
+}
 test("host acknowledges applied inputs, rejects stale sequences and never accepts guest movement authority", async () => {
   const states = [], host = new Room({}, FakePeer), guest = new Room({ onState: s => states.push(s) }, FakePeer);
   try {
-    await host.create(); await guest.join(host.code); host.start(); await tick();
+    await host.create(); await guest.join(host.code); await readyGuests(host); host.start(); await tick();
     const seq = guest.sendInput({ right: true, x: 999, hp: 1000 }); await tick();
     assert.equal(host.appliedInputs[1], 0, "receiving is not an application acknowledgement");
     assert.equal(host.getInputs(performance.now(), false)[1].right, true);
@@ -46,7 +111,7 @@ test("host and guest chat is attributed by the host and shared with late arrival
   try {
     await host.create(); await guest.join(host.code);
     assert.equal(guest.sendChat("lobby"), false);
-    host.start(); await host.sendState(new World().snapshot()); await tick();
+    await readyGuests(host); host.start(); await host.sendState(new World().snapshot()); await tick();
     assert.equal(host.sendChat("from host"), true);
     // A guest cannot choose another fighter's id, lifetime or round.
     guest.send(guest.connection, { t: "chat", text: "from guest", id: 0, life: 999999, round: 99 });
@@ -70,7 +135,7 @@ test("host and guest chat is attributed by the host and shared with late arrival
 test("invalid guest chat cannot inject payloads or unbounded speech", async () => {
   const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
   try {
-    await host.create(); await guest.join(host.code); host.start();
+    await host.create(); await guest.join(host.code); await readyGuests(host); host.start();
     await host.sendState(new World().snapshot()); await tick();
     for (const text of [null, {}, "x".repeat(121), "\u0000\u202e"]) guest.send(guest.connection, { t: "chat", text });
     await tick(); assert.deepEqual(host.chat.snapshot(), []);
@@ -84,7 +149,7 @@ test("invalid guest chat cannot inject payloads or unbounded speech", async () =
 test("bot speech reaches guests and hot joins without inheriting a replaced occupant's bubble", async () => {
   const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), hot = new Room({}, FakePeer);
   try {
-    await host.create(); await guest.join(host.code); host.start();
+    await host.create(); await guest.join(host.code); await readyGuests(host); host.start();
     const world = new World({ players: [0, 1, 2, 3], bots: [2, 3] });
     await host.sendState(world.snapshot()); await tick();
     assert.equal(guest.sendBotChat(2, "forged"), false);
@@ -296,7 +361,7 @@ test("rooms start with one human, hot joins replace AI and departures preserve t
   try {
     const code = await host.create();
     assert.equal(host.running, false);
-    host.start();
+    await readyGuests(host); host.start();
     assert.ok(host.running);
     assert.equal(world.players.filter((p) => p.bot).length, 3);
     world.phase = "fight";
@@ -354,7 +419,7 @@ test("a late join gets the current snapshot immediately without a start or ready
     guest = new Room({ onState: (s) => (received = s) }, FakePeer);
   try {
     const code = await host.create();
-    host.start();
+    await readyGuests(host); host.start();
     const world = new World({ players: [0] });
     world.round = 14;
     world.phase = "fight";
@@ -381,7 +446,7 @@ test("public table claims are exclusive and other visitors can join the claimed 
     guest = new Room({}, FakePeer);
   try {
     await host.create("PUBAAA");
-    host.start();
+    await readyGuests(host); host.start();
     await assert.rejects(
       () => claim.create("PUBAAA"),
       (error) => error.type === "unavailable-id",
@@ -423,7 +488,7 @@ test("large combat snapshots survive the binary wire format and still pass valid
   );
 });
 
-test("pregame lobby shares profiles, reserves colours and starts all guests without ready checks", async () => {
+test("pregame lobby shares profiles, reserves colours and starts all guests after they ready up", async () => {
   let started = 0;
   const host = new Room({ onStart: () => started++ }, FakePeer, {
     profile: { name: "Sam", color: "#bc9bff", hair: "Mohawk" },
@@ -462,7 +527,7 @@ test("pregame lobby shares profiles, reserves colours and starts all guests with
     assert.equal(host.roster[0].name, "Sam");
     assert.equal(host.roster[1].hp, undefined);
     assert.equal(guest.start(), false);
-    host.start();
+    await readyGuests(host); host.start();
     await tick();
     assert.equal(started, 2);
     assert.ok(guest.running);
@@ -492,7 +557,7 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
     guest = new Room({ onState: (s) => got.push(s.round) }, FakePeer);
   try {
     const code = await host.create();
-    host.start();
+    await readyGuests(host); host.start();
     await guest.join(code);
     await tick();
     const send = guest.connection.send.bind(guest.connection);
@@ -531,7 +596,7 @@ test("slow guest acknowledgements prevent an unbounded snapshot queue and the ne
 test("bandwidth pacing sends current state at the next opportunity instead of accumulating frames", async t => {
   const got=[],host=new Room({},FakePeer),guest=new Room({onState:s=>got.push(s.round)},FakePeer);
   try {
-    await host.create();host.start();await guest.join(host.code);await tick();
+    await host.create();await readyGuests(host); host.start();await guest.join(host.code);await tick();
     let now=1000;t.mock.method(performance,"now",()=>now);
     const w=new World();await host.sendState(w.snapshot());await tick();
     const c=host.connections.get(1);assert.ok(c.nextFrameAt>now);
@@ -544,7 +609,7 @@ test("bandwidth pacing sends current state at the next opportunity instead of ac
 test("negotiated disposable stream carries validated state and sequenced bounded controls, with reliable fallback", async () => {
   const got=[],host=new Room({},FakePeer),guest=new Room({onState:s=>got.push(s.round)},FakePeer);
   try {
-    await host.create();host.start();await guest.join(host.code);await tick();
+    await host.create();await readyGuests(host); host.start();await guest.join(host.code);await tick();
     const h=host.connections.get(1),g=guest.connection;
     const channels=[0,1].map(i=>({readyState:"open",bufferedAmount:0,close(){this.readyState="closed";},send(data){
       const copy=ArrayBuffer.isView(data)?data.slice().buffer:structuredClone(data);
@@ -582,7 +647,7 @@ test("host slot modes reserve bots, skip closed slots and admit hot joins only t
     assert.equal(host.setSlot(0, "closed"), false);
     assert.equal(host.setSlot(1, "invalid"), false);
     host.setSlot(1,"ai");host.setSlot(2,"closed");host.setSlot(3,"player");
-    host.start();
+    await readyGuests(host); host.start();
     await guest.join(code);await tick();
     assert.equal(guest.id,3);
     assert.deepEqual(guest.slots,["player","ai","closed","player"]);

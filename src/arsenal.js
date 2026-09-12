@@ -429,7 +429,7 @@ export function firingRecoil(weapon, player) {
   );
 }
 // Non-featured pickups use weighted tiers and avoid duplicate weapons when possible.
-export function chooseWeapon(random = Math.random, exclude = new Set()) {
+export function chooseWeapon(random = Math.random, exclude = new Set(), allowed = Object.keys(WEAPONS)) {
   const roll = random();
   const tier =
     roll < 0.4
@@ -439,11 +439,11 @@ export function chooseWeapon(random = Math.random, exclude = new Set()) {
         : roll < 0.92
           ? "rare"
           : "exotic";
-  let pool = Object.keys(WEAPONS).filter(
+  let pool = allowed.filter(
     (k) => WEAPONS[k].rarity === tier && !exclude.has(k),
   );
-  if (!pool.length) pool = Object.keys(WEAPONS).filter((k) => !exclude.has(k));
-  if (!pool.length) pool = Object.keys(WEAPONS);
+  if (!pool.length) pool = allowed.filter((k) => !exclude.has(k));
+  if (!pool.length) pool = [...allowed];
   if (pool.includes("nuke")) pool.push("nuke");
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
@@ -458,13 +458,14 @@ export const PROJECTILE_KINDS = [
 
 // Keep the featured rotation between rounds so brief fights still expose the arsenal.
 export class WeaponRotation {
-  constructor(random = Math.random) {
+  constructor(random = Math.random, allowed = Object.keys(WEAPONS)) {
     this.random = random;
+    this.allowed = allowed;
     this.bag = [];
   }
   next() {
     if (!this.bag.length) {
-      this.bag = Object.keys(WEAPONS).filter(
+      this.bag = this.allowed.filter(
         (k) => k !== "nuke" && ["rare", "exotic"].includes(WEAPONS[k].rarity),
       );
       for (let n = this.bag.length - 1; n > 0; n--) {
@@ -475,7 +476,7 @@ export class WeaponRotation {
     return this.bag.pop();
   }
   opening(round) {
-    return [round % 3 === 1 ? "nuke" : this.next(), this.next()];
+    return [round % 3 === 1 && this.allowed.includes('nuke') ? "nuke" : this.next(), this.next()];
   }
 }
 

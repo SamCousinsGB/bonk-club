@@ -51,7 +51,7 @@ export class ControllerMenu {
         item.selectedIndex = (item.selectedIndex + step + item.options.length) % item.options.length;
         item.dispatchEvent(new Event('change', { bubbles: true }));
       } else if (action === 'accept') {
-        if (item.tagName === 'INPUT' && !item.readOnly) this.keyboard(item);
+        if (item.tagName === 'INPUT' && !item.readOnly && !['checkbox', 'radio', 'button', 'submit'].includes(item.type)) this.keyboard(item);
         else item.click();
       } else if (['up', 'down', 'left', 'right'].includes(action)) {
         const stride = root.id === 'controller-keyboard' && ['up', 'down'].includes(action) ? 10 : 1;

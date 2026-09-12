@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.24.1",
-  "releaseNotes": "Heavy hanging wires with subtle powered movement",
+  "version": "0.25.0",
+  "releaseNotes": "Unified Play lobby, match options and guest ready-up",
   "private": true,
   "type": "module",
   "scripts": {

@@ -101,6 +101,7 @@ export class World {
     shuffle = true,
     random = Math.random,
     arenaPool = null,
+    weaponPool = null,
     difficulty = "easy",
     fillSolo = true,
   } = {}) {
@@ -119,7 +120,9 @@ export class World {
     );
     this.occupants = [0, 0, 0, 0];
     this.profiles = {};
-    this.weaponRotation = new WeaponRotation(random);
+    this.weaponPool = weaponPool === null ? Object.keys(WEAPONS) : [...new Set(weaponPool)].filter(key => Object.hasOwn(WEAPONS, key));
+    if (!this.weaponPool.length) throw new Error('Choose at least one weapon.');
+    this.weaponRotation = new WeaponRotation(random, this.weaponPool);
     this.difficulty = cleanDifficulty(difficulty);
     this.ai = new BotController();
     this.arenaIndex = arena;
@@ -167,7 +170,7 @@ export class World {
       [positions[i], positions[j]] = [positions[j], positions[i]];
     }
     this.drops = positions.map(([x, y], index) => {
-      const type = featured[index] || chooseWeapon(this.random, seenWeapons);
+      const type = featured[index] || chooseWeapon(this.random, seenWeapons, this.weaponPool);
       seenWeapons.add(type);
       return {
         x,
@@ -180,7 +183,8 @@ export class World {
       };
     });
     // Equal first pickup, equal distance and full ammunition for all four starts.
-    const starter = ["blaster","smg","shotgun","burst"][(this.round-1)%4];
+    const preferredStarter = ["blaster","smg","shotgun","burst"][(this.round-1)%4];
+    const starter = this.weaponPool.includes(preferredStarter) ? preferredStarter : chooseWeapon(this.random, new Set(), this.weaponPool);
     this.drops.push(...this.arena.starterWeapons.map(([x,y])=>({x,y,type:starter,
       ammo:WEAPONS[starter].ammo,vx:0,vy:0,life:SUDDEN_DEATH})));
     this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0; this.cargoSerial = 0;
@@ -1025,7 +1029,8 @@ export class World {
           !this.players.some(p => p.alive && Math.hypot(p.x - q.x, p.y - q.y) < 130));
       if (!candidates.length) return;
       const point = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))];
-      const type = ["bat", "blaster", "sword", "smg"][(this.round - 1 + Math.floor(this.random() * 4)) % 4];
+      const preferred = ["bat", "blaster", "sword", "smg"][(this.round - 1 + Math.floor(this.random() * 4)) % 4];
+      const type = this.weaponPool.includes(preferred) ? preferred : chooseWeapon(this.random, new Set(), this.weaponPool);
       this.drops.push({ ...point, type, ammo: Math.max(1, Math.ceil(WEAPONS[type].ammo * .45)), vx: 0, vy: 0, life: 25 });
       return;
     }
@@ -1048,6 +1053,7 @@ export class World {
     const type = chooseWeapon(
       this.random,
       new Set(this.drops.map((d) => d.type)),
+      this.weaponPool,
     );
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
