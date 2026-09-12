@@ -73,7 +73,8 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 ## Power fist - 12 September 2026
 
-- v0.28.0, protocol 51. Refresh every player and create a new room.
+- Introduced in v0.28.0, protocol 51; published and verified in integrated v0.28.1
+  at `24cdf165a4bf70938f1f6b4b7f0ee9e1aa1604fa`. Refresh every player and create a new room.
 - POWER FIST is an exotic melee pickup with four punches. A hit launches a
   curled living ragdoll along the aim, including downward punches. Extra limb
   constraints retain tumbling, gravity and momentum. Survivors regain control;
@@ -96,9 +97,19 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   inspected. External fixtures/evidence: ../bonk-club-qa/power-fist-browser.mjs,
   power-fist-browser.json and power-fist-{before,impact,detail,hotjoin}.png.
   The fixture uses source-only observation; no debug hooks or dependencies ship.
-- Production browser controls/lobby/hot join/departure and Windows executable
-  smoke passed, with seven desktop unit tests. Full suite and final publication
-  verification are recorded below when complete. Preview port: 5487.
+- All 939 shared/game tests passed locally on that revision.
+  [Release run 34707820057](https://github.com/SamCousinsGB/bonk-club/actions/runs/34707820057)
+  passed the same suite, three server tests, seven desktop tests per OS, Windows
+  and Linux executable/packaging checks, shared-source comparison and Pages deploy.
+- All 17 public files match the exact committed build and CI artifact by SHA-256.
+  Exact LF checkout/build: ../bonk-club-qa/power-fist-exact; CI artifact: power-fist-ci;
+  verification: power-fist-live-verification.json. Windows checkout SVG line endings
+  change its asset hash, so use the exact LF checkout when comparing with Linux CI.
+- The unmodified public v0.28.1 game passed lobby, guest controls, hot join and host
+  departure with selected relay/relay routes and no page errors. Actual public
+  gameplay was visually inspected. These browsers share one QA machine; this does
+  not measure cross-ISP latency or validate Steam connectivity.
+- Preview port 5487 is stopped. No dependencies, production debug hooks or Pi changes.
 
 ## Pylon water and crossing shorts - 12 September 2026
 
