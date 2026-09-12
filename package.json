@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.28.3",
-  "releaseNotes": "Bots retreat to safe firing distance for explosive weapons and black holes",
+  "version": "0.29.0",
+  "releaseNotes": "Arc furnace amber beacons and electrical sound",
   "private": true,
   "type": "module",
   "scripts": {

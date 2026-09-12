@@ -2,6 +2,31 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+
+## Arc furnace environmental warning and electricity - 12 September 2026
+
+- v0.29.0, protocol 51 unchanged. Removed both furnace countdown/status screens
+  and their coloured crossing line. Caged amber beacons pulse at 1.5 Hz during
+  warning/live phases, cast approach light and stay steady under reduced motion.
+  Electrode tips warm during the existing two-second warning.
+- New original PCM: rising transformer strain, five seconds of low electrical
+  roar/irregular cracks and a fading cooling hiss/ring. One bounded phase voice
+  seeks on hot join/unmute and follows clock corrections; mute, stale state,
+  destruction, round results/reset and leaving cannot sustain/restart an arc.
+  Electrical hazard events use the existing Tesla voice instead of a fire sound.
+- Existing furnace damage, cycle, geometry and wire protocol remain intact.
+- Scoped code mirrored in canonical checkout, preserving its older overlapping
+  work. Release worktree: ../bonk-club-qa/furnace-atmosphere, from current main.
+- Focused 27 audio/furnace tests passed. Actual host/guest/hot join, all phases,
+  mute/unmute, destruction and 844x390 reduced-motion rendering passed with
+  selected relay/relay candidates and no browser errors. Actual mixer PCM has
+  peak 0.64; this checks output/headroom, not subjective listening quality.
+- External evidence: ../bonk-club-qa/furnace-atmosphere-browser.{mjs,json},
+  furnace-atmosphere-*.png and furnace-atmosphere-audio.wav. No debug hooks ship.
+  Full-suite and public-release verification follow below when complete.
+
+
+
 ## Bot firing distance - 12 September 2026
 
 - v0.28.3, protocol 51 unchanged. Bots carrying nukes, black-hole generators,

@@ -1,6 +1,7 @@
 import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
 import { W } from './scale.js';
 import { Landings } from './landings.js';
+import { FurnaceSound, FURNACE_SOUNDS, synthesizeFurnace } from './furnace-sound.js';
 
 export class Sound {
   constructor() {
@@ -14,12 +15,13 @@ export class Sound {
     this.nextNukeId = 0;
     this.alarm = null;
     this.landings = new Landings();
+    this.furnace = new FurnaceSound();
   }
   get muted() { return this._muted; }
   set muted(value) {
     this._muted = !!value;
     if (this.master?.gain) this.master.gain.setTargetAtTime(value ? 0 : .8, this.context.currentTime, .008);
-    if (value) this.stopAlarm();
+    if (value) { this.stopAlarm(); this.furnace.stop(this); }
   }
   connect() {
     const c = this.context;
@@ -53,6 +55,7 @@ export class Sound {
       this.connect();
       // Warm one recording at a time outside the simulation/render callback.
       const queue = SOUND_NAMES.flatMap(name => name === 'siren' ? [[name, 0]] : [0, 1, 2].map(v => [name, v]));
+      queue.unshift(...Object.keys(FURNACE_SOUNDS).map(name => [name, 0]));
       const schedule = globalThis.requestIdleCallback
         ? fn => globalThis.requestIdleCallback(fn, { timeout: 1500 })
         : fn => globalThis.setTimeout(fn, 25);
@@ -69,7 +72,7 @@ export class Sound {
   buffer(name, variant = 0) {
     const key = name + ':' + variant;
     if (!this.buffers.has(key)) {
-      const samples = synthesizeSound(name, variant);
+      const samples = Object.hasOwn(FURNACE_SOUNDS, name) ? synthesizeFurnace(name, SOUND_RATE) : synthesizeSound(name, variant);
       const buffer = this.context.createBuffer(1, samples.length, SOUND_RATE);
       buffer.getChannelData(0).set(samples);
       this.buffers.set(key, buffer);
@@ -134,6 +137,7 @@ export class Sound {
     this.alarm = null;
   }
   update(state) {
+    this.furnace.update(this, state);
     for (const contact of this.landings.update(state)) this.sample(contact.name, contact);
     const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
       .reduce((first, b) => !first || b.life < first.life ? b : first, null);
@@ -199,7 +203,7 @@ export class Sound {
       return;
     }
     const swing = ['bat', 'sword', 'hammer', 'powerfist'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
-    const name = { hazard: 'burn', parry: 'parry', swing, throw: 'whoosh',
+    const name = { hazard: detail.kind === 'tesla' ? 'tesla' : 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];
     if (name) this.sample(name, detail);
   }

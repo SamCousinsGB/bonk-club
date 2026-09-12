@@ -162,6 +162,9 @@ Keep this constitution for durable rules and the handoff for current work.
   its overhead arcs/smoke/electrodes as scenery, never platforms. Active arcs
   block the whole centre, the grate cools over 2.5 seconds, and molten metal
   remains dangerous below. Preserve host-only damage and destruction/reset.
+  Warn through caged amber beacons, electrode glow and rising transformer strain;
+  never restore countdown screens or status signs. Live arcs have sustained
+  electrical roar/cracks and a cooling tail, tied to the existing hazard phase.
 - Hazards are physical map fixtures: vents, conveyors, spike balls, crushers,
   saw rails and electrical traps. They may cycle unpredictably with readable
   warnings. Do not restore arbitrary randomly appearing hazard zones.

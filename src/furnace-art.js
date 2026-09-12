@@ -99,21 +99,34 @@ export function drawFurnaceCables(c, cables, h, time) {
   c.restore();
 }
 
-function status(c, h, time) {
-  const hot = furnaceHeat(h) > 0 && !h.active;
-  const color = h.active ? "#9ef4ff" : h.warning > 0 ? "#ffc15a" : hot ? "#ff8750" : "#8ed8af";
-  const seconds = Math.ceil(h.active ? h.duration : FURNACE_ON - (h.age % FURNACE_CYCLE));
+function beacons(c, h, time, reduced) {
+  const powered = h.active || h.warning > 0;
+  const sweep = reduced ? 1 : .35 + .65 * Math.pow(.5 + .5 * Math.cos(time * Math.PI * 3), 3);
   for (const side of [-1, 1]) {
     const x = h.x + side * (h.w / 2 + 64);
-    line(c, [[x, h.y], [x, h.y - 118]], "#364750", 12);
-    c.fillStyle = "#101822"; c.fillRect(x - 80, h.y - 158, 160, 66);
-    c.strokeStyle = "#59646a"; c.lineWidth = 2; c.strokeRect(x - 80, h.y - 158, 160, 66);
-    c.font = "bold 18px sans-serif"; c.textAlign = "center"; c.fillStyle = color;
-    c.fillText(h.active ? "ARC ACTIVE" : h.warning > 0 ? "STAND CLEAR" : hot ? "GRATE HOT" : "CROSSING OPEN", x, h.y - 135);
-    c.font = "bold 23px monospace"; c.fillText(`${seconds}s`, x, h.y - 108);
-    circle(c, x, h.y - 177, 9, h.warning > 0 && Math.sin(time * 12) < 0 ? "#6e4828" : color);
+    const y = h.y - 155;
+    line(c, [[x, h.y], [x, y + 22]], "#26333d", 12);
+    line(c, [[x - 3, h.y - 4], [x - 3, y + 22]], "#677077", 3);
+    // Caged amber lamps cast light onto the approach and electrode casings.
+    if (powered) {
+      glow(c, x, y, 165, `rgba(255,166,35,${sweep * .35})`);
+      glow(c, x, h.y - 8, 100, `rgba(255,157,30,${sweep * .2})`);
+    }
+    c.fillStyle = "#101821"; c.fillRect(x - 25, y + 16, 50, 12);
+    const glass = c.createLinearGradient(x - 19, y, x + 19, y);
+    glass.addColorStop(0, "#694018");
+    glass.addColorStop(.45, powered ? "#ffc45c" : "#986025");
+    glass.addColorStop(1, "#59361b");
+    c.fillStyle = glass; c.beginPath(); c.roundRect(x - 20, y - 22, 40, 40, [16, 16, 3, 3]); c.fill();
+    if (powered) {
+      c.globalAlpha = sweep;
+      line(c, [[x, y - 14], [x, y + 10]], "#fff1ba", 9);
+      c.globalAlpha = 1;
+    }
+    for (const dx of [-23, -10, 10, 23]) line(c, [[x + dx, y - 19], [x + dx, y + 19]], "#202b32", 3);
+    line(c, [[x - 24, y - 21], [x + 24, y - 21]], "#7c8075", 4);
+    line(c, [[x - 24, y + 5], [x + 24, y + 5]], "#29343c", 3);
   }
-  line(c, [[h.x - h.w / 2, h.y - 3], [h.x + h.w / 2, h.y - 3]], color, 4);
 }
 
 export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
@@ -134,7 +147,7 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     glow(c, h.x, top, 480, "#fa662323");
     c.restore(); return;
   }
-  if (layer === "front") { status(c, h, time); c.restore(); return; }
+  if (layer === "front") { beacons(c, h, time, reduced); c.restore(); return; }
   const x = h.x, y = h.y, heat = furnaceHeat(h);
   glow(c, x, y + 100, 460, h.active ? "#f8863f45" : "#ee572024");
   // Refractory vessel below the narrow grate. Its wall is background scenery.
@@ -161,6 +174,10 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     line(c, [[x + dx, y - 215], [x + dx, y - 50]], "#131b25", 30);
     line(c, [[x + dx - 6, y - 210], [x + dx - 6, y - 52]], "#59626a", 5);
     line(c, [[x + dx - 12, y - 53], [x + dx + 12, y - 53]], h.active ? "#e7ffff" : "#d57545", 7);
+    if (h.warning > 0 && layer !== undefined && layer !== "all") {
+      const charge = 1 - h.warning / 2;
+      glow(c, x + dx, y - 53, 45 + charge * 35, `rgba(255,185,80,${.12 + charge * .22})`);
+    }
   }
   if (layer === undefined || layer === "all") { c.restore(); return; } // Casing-only destruction mesh.
   // Bounded smoke is emitted from the furnace mouth. After shutdown each
