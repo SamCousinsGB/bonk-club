@@ -135,7 +135,13 @@ Keep this constitution for durable rules and the handoff for current work.
   one-second amber warning before activation. Live wires use Tesla arcs and
   host-owned electrical contact damage. Intact wires support walking; cutting a
   cable or losing either mounting removes all player support from that span.
-  Surviving cut wires still follow the electrical cycle and shock on contact.
+  Surviving runs connected to either mount retain the seven-second cycle; fully
+  detached runs have no timed supply. Contact between upper and lower wires
+  creates constant heavy arcing and live contact damage regardless of the timer,
+  provided the touching circuit retains at least one mount. Separating the wires
+  restores their existing cycle. Water conducts from powered wire contacts.
+  Put one finite physical water jug on each of the eight pylon cross-arms.
+  Keep the four centre weapon ledges at y=590/1070 removed; climb within pylons.
   Nukes remove affected tower and wire sections, never re-create missing wire.
   Both tower and furnace cables use host-owned gravity, length constraints and
   strong damping, with only a subtle powered wiggle. Furnace cables and broken

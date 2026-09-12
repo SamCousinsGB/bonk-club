@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.25.1",
-  "releaseNotes": "Bots prioritise reachable weapons and avoid fatal jumps and recoil",
+  "version": "0.26.0",
+  "releaseNotes": "Water on every pylon arm, wire-only crossings and continuous arcs when cables touch",
   "private": true,
   "type": "module",
   "scripts": {
