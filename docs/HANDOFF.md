@@ -3,6 +3,36 @@
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
 
+## Car assembly arena - 12 September 2026
+
+- v0.30.0, protocol 52. Refresh every player and create a new room.
+- CAR ASSEMBLY has a conveyor with an eight-second cycle: three seconds stopped
+  for work, five seconds carrying cars and riders to the next station. A chassis
+  gains stamped body panels, a welded cabin, then wheels and its finished colour.
+  Work already on the line produces the first completed car during a short round.
+- Cars provide real moving collision/cover. Riders can jump off and are lifted
+  onto newly installed roofs. The press has a solid descending head with a safe
+  amber warning; robot arm/tool contact deals electrical damage. Upper machine
+  surfaces and separate maintenance walkways provide alternate jumping routes.
+- Station mounting/head destruction disables work permanently. Car cuts travel
+  with their existing parts, damaged cars cannot receive replacement geometry,
+  destroyed rail sections stop approaching pallets, and queues/identities are
+  bounded. Nuclear/black-hole removal cannot recreate cars. Round reset restores
+  the original production line. Guests and hot joins receive validated stages,
+  count, machine state and surviving collision; movement is interpolated.
+- Source: ../bonk-club-qa/car-assembly, branch codex/car-assembly, based on current
+  main including bot firing clearance, furnace audio and text-selection fixes.
+  The canonical checkout's older overlapping work is preserved.
+- Fourteen focused assembly regressions and existing route/scale/material checks
+  pass. Seeded four-bot play completed the new arena's first round in 23.7 seconds.
+  Real Edge host/guest and changed-map hot join passed with selected relay/relay
+  candidates, including actual guest movement/jump and permanent machine/car cuts.
+  Rendered gameplay inspected at 1600x900 and 844x390; no browser errors.
+- External QA: ../bonk-club-qa/assembly-online.mjs, assembly-online.json,
+  assembly-online-active.png and assembly-online-hotjoin.png. No debug hooks,
+  new dependencies or Pi changes ship. Full integrated suite and release proof
+  are recorded below after completion.
+
 ## Arc furnace environmental warning and electricity - 12 September 2026
 
 - v0.29.0, protocol 51 unchanged. Removed both furnace countdown/status screens

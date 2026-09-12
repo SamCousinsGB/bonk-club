@@ -149,6 +149,12 @@ Keep this constitution for durable rules and the handoff for current work.
   Broken spans fall, drape over surviving structure and remain attached only at
   surviving mounts. Keep cable cuts, attachments and moving geometry in validated
   guest snapshots and hot joins; never clear all wires when a machine breaks.
+- CAR ASSEMBLY uses a host-owned production clock and conveyor: stamp body panels,
+  weld the cabin, fit wheels and finish the car. Cars are solid moving cover and
+  jumping surfaces. Preserve safe press warnings, physical machine contacts,
+  alternate overhead routes, permanent car/station cuts, stopped pallets at broken
+  rails, bounded feed queues, validated hot joins and full round reset. Do not
+  replace production with decorative car animation or rebuild damaged bodywork.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by
