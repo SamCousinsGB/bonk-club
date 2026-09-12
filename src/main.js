@@ -425,7 +425,7 @@ function syncColourOptions(acceptRoster = false) {
       "aria-pressed",
       String(profile[key] === button.dataset.value),
     );
-    button.title = button.getAttribute("aria-label") + (button.disabled ? " (in use)" : "");
+    button.title = (button.getAttribute("aria-label") || button.dataset.value) + (button.disabled ? " (in use)" : "");
   }
   for (const el of document.querySelectorAll("[data-profile-field]")) el.value = profile[el.dataset.profileField];
   drawPreview();
