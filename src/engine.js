@@ -171,6 +171,7 @@ export class World {
     }
     this.drops = positions.map(([x, y], index) => {
       const type = featured[index] || chooseWeapon(this.random, seenWeapons, this.weaponPool);
+      if (!type) return null;
       seenWeapons.add(type);
       return {
         x,
@@ -181,12 +182,7 @@ export class World {
         vy: 0,
         life: SUDDEN_DEATH,
       };
-    });
-    // Equal first pickup, equal distance and full ammunition for all four starts.
-    const preferredStarter = ["blaster","smg","shotgun","burst"][(this.round-1)%4];
-    const starter = this.weaponPool.includes(preferredStarter) ? preferredStarter : chooseWeapon(this.random, new Set(), this.weaponPool);
-    this.drops.push(...this.arena.starterWeapons.map(([x,y])=>({x,y,type:starter,
-      ammo:WEAPONS[starter].ammo,vx:0,vy:0,life:SUDDEN_DEATH})));
+    }).filter(Boolean);
     this.chunks = []; this.chunkSerial = 0; this.propNavigationAt = 0; this.cargoSerial = 0;
     this.cover = (this.arena.cover || []).map((c, i) => prepareProp({
       ...c,
@@ -204,7 +200,8 @@ export class World {
     this.phase = "countdown";
     this.phaseTime = 2.4;
     this.elapsed = 0;
-    this.weaponTimer = this.arena.survival?.firstWeapon ?? 2;
+    this.scheduleWeapon(true);
+    this.grenadeTimer = this.arena.survival ? Infinity : 2;
     this.hitstop = 0;
     this.winner = null;
     this.lastDeathCause = null;
@@ -455,7 +452,13 @@ export class World {
       this.weaponTimer -= dt;
       if (this.weaponTimer <= 0) {
         this.spawnWeapon();
-        this.weaponTimer = (this.arena.survival?.weaponInterval ?? 3) + this.random() * 2;
+        this.scheduleWeapon();
+      }
+      this.grenadeTimer -= dt;
+      if (this.grenadeTimer <= 0) {
+        const type = chooseWeapon(this.random, new Set(this.drops.map(d => d.type)), this.weaponPool);
+        if (type && WEAPONS[type].kind === "grenade") this.spawnWeapon(type);
+        this.grenadeTimer = 3 + this.random() * 2;
       }
     }
     const actions = new Map();
@@ -1018,7 +1021,15 @@ export class World {
     impulseRig(p, p.x + ax * 25, p.y - 10, ax * 250, ay * 250);
     this.event("throw", { x: p.x, y: p.y, action });
   }
-  spawnWeapon() {
+  scheduleWeapon(first = false) {
+    if (this.arena.survival) {
+      this.weaponTimer = first ? this.arena.survival.firstWeapon
+        : this.arena.survival.weaponInterval + this.random() * 2;
+      return;
+    }
+    this.weaponTimer = first ? 6 : 6 + this.random() * 2;
+  }
+  spawnWeapon(scheduledType = null) {
     if (this.arena.survival) {
       if (this.drops.length || this.players.some(p => p.alive && p.weapon)) return;
       const candidates = this.platforms.filter(p => p.hp !== 0 && p.w > 80)
@@ -1031,10 +1042,19 @@ export class World {
       const point = candidates[Math.min(candidates.length - 1, Math.floor(this.random() * candidates.length))];
       const preferred = ["bat", "blaster", "sword", "smg"][(this.round - 1 + Math.floor(this.random() * 4)) % 4];
       const type = this.weaponPool.includes(preferred) ? preferred : chooseWeapon(this.random, new Set(), this.weaponPool);
+      if (!type) return;
       this.drops.push({ ...point, type, ammo: Math.max(1, Math.ceil(WEAPONS[type].ammo * .45)), vx: 0, vy: 0, life: 25 });
       return;
     }
     if (this.drops.length >= 12) return;
+    const type = scheduledType || chooseWeapon(
+      this.random,
+      new Set(this.drops.map((d) => d.type)),
+      this.weaponPool,
+    );
+    if (!type || !this.weaponPool.includes(type) || type === "nuke") return;
+    // Grenade rolls run at the old cadence independently of these slower rolls.
+    if (!scheduledType && WEAPONS[type].kind === "grenade") return;
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     // Prefer accessible, unoccupied landings near the current fight. Avoid
     // repeatedly piling weapons on a single ledge or abandoned rooftop.
@@ -1050,11 +1070,6 @@ export class World {
     }).sort((a,b)=>a.cost-b.cost);
     const point=ranked[0]?.point;
     if (!point) return;
-    const type = chooseWeapon(
-      this.random,
-      new Set(this.drops.map((d) => d.type)),
-      this.weaponPool,
-    );
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
       ...point,
@@ -1181,7 +1196,7 @@ export class World {
       });
     this.debris = this.debris.slice(-90);
   }
-  reactPropDamage(b, damage) { return propReactionDamage(this, b, damage); }
+  reactPropDamage(b, damage, point) { return propReactionDamage(this, b, damage, point); }
   inheritPropReaction(parent, child) { inheritReaction(parent, child); }
   updateCover(dt) {
     updateProps(this, dt);

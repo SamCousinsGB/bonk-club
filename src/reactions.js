@@ -6,6 +6,7 @@ import { carveRectangle } from "./nuclear.js";
 import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
+import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
 
 // The host owns finite water and fuel. Guests receive only the bounded visible
 // state; neither fluid motion nor damage is re-simulated by a guest.
@@ -141,7 +142,7 @@ function ignite(b) {
   const contents = BARRELS[b.kind]?.contents;
   if (!b.chunk && contents && SPILLS[contents].burn && !b.spent) {
     b.liquidLeft ??= 96;
-    if (b.liquidLeft > 0) { b.leak=1; b.fire=SPILLS[contents].burn; }
+    if (b.liquidLeft > 0) { punctureContainer(b); b.leak=1; b.fire=SPILLS[contents].burn; }
   }
   if (flammable(b) && !b.fire && (b.fuel === undefined || b.fuel > 0)) {
     b.fuel ??= b.chunk ? 3.5 : 8;
@@ -150,14 +151,18 @@ function ignite(b) {
 }
 function armCylinder(b) {
   if (b.spent || b.leak > 0) return;
+  punctureContainer(b);
   b.leak = 1; b.fuse = b.kind === "barrel" ? 3 : 4.2; b.gasFuel = 3.6; b.gasAt = 0;
-  // The side valve breaks away. Offset thrust and real angular inertia produce
-  // a tumbling rocket instead of steering it towards a chosen fighter.
-  if (b.kind === "canister") impulseProp(b, -b.mass * 180, -b.mass * 160, b.x + b.w, b.y + b.h * .7);
+  // Pressure pushes opposite the puncture; off-centre hits also create torque.
+  if (b.kind === "canister") {
+    const p = leakOutlets(b)[0];
+    impulseProp(b, -p.nx*b.mass*180, -p.ny*b.mass*180, p.x, p.y);
+  }
 }
 
-export function propReactionDamage(world, b, damage) {
+export function propReactionDamage(world, b, damage, point) {
   if (b.chunk) return damage;
+  if (damage > 0) punctureContainer(b, point);
   if (b.kind === "generator" && damage > 0) b.spark = 1.1;
   if (explosiveBarrel(b) && !b.spent && damage > 0) {
     armCylinder(b);
@@ -224,6 +229,9 @@ export function surfaceReaction(world, shot, surface) {
   const b = world.cover.find(b => b.id === (surface.propId || surface.id)) ||
     world.chunks.find(b => b.id === (surface.propId || surface.id)) || surface;
   const contents = BARRELS[b.kind]?.contents;
+  // Ignition runs before damage, so retain the shot's entry point first.
+  if (shot.damage > 0 && !shot.nuclear && !["grenade", "rocket"].includes(shot.kind))
+    punctureContainer(b, { x:shot.x, y:shot.y });
   if (ballistic(shot) && !b.chunk && !b.spent && b.hp > 0 && !b.cold && !b.soaked &&
     (b.kind === "canister" || (contents && SPILLS[contents].burn && (b.liquidLeft ?? 96) > 0)) &&
     bulletIgnites(world, shot, b)) ignite(b);
@@ -386,17 +394,19 @@ function conduction(world, dt) {
 function containers(world, dt, bs) {
   for(const b of bs) {
     if(b.chunk||!b.leak)continue;
+    punctureContainer(b);
+    const outlets=leakOutlets(b);
     if(b.kind==="waterTank"&&b.waterLeft>0) {
       if(b.cold>0)continue;
-      const x=b.x+b.w/2,y=b.y+b.h*.65;
-      b.waterLeft-=addWater(world,x,y,Math.min(b.waterLeft,55*dt));
+      for(const p of outlets) b.waterLeft-=addWater(world,p.x,p.y,
+        Math.min(b.waterLeft,55*dt/outlets.length));
       continue;
     }
     const contents=BARRELS[b.kind]?.contents;
     if(contents) {
       if(b.cold>0||b.spent)continue;
-      b.liquidLeft-=addSpill(world,contents,b.x+b.w/2,b.y+b.h*.65,
-        Math.min(b.liquidLeft,32*dt),b.fire>0);
+      for(const p of outlets) b.liquidLeft-=addSpill(world,contents,p.x,p.y,
+        Math.min(b.liquidLeft,32*dt/outlets.length),b.fire>0);
       if(b.liquidLeft<.01){b.leak=0;b.fire=0;b.spent=true;}
       continue;
     }
@@ -405,15 +415,17 @@ function containers(world, dt, bs) {
       b.hissAt=world.time+.9;world.event("hazard",{...centre(b),kind:"leak",urgent:b.fuse<1.5});
     }
     b.fuse=Math.max(0,b.fuse-dt);b.gasFuel=Math.max(0,b.gasFuel-dt);
-    const a=(b.angle||0)+.45, dx=Math.cos(a),dy=Math.sin(a);
     if(b.kind==="canister"&&b.gasFuel>0) {
-      impulseProp(b,-dx*b.mass*650*dt,-dy*b.mass*650*dt,b.x+b.w*.9,b.y+b.h*.72);
+      for(const p of outlets) impulseProp(b,-p.nx*b.mass*650*dt/outlets.length,
+        -p.ny*b.mass*650*dt/outlets.length,p.x,p.y);
       b.gasAt=(b.gasAt||0)-dt;
       if(b.gasAt<=0&&world.gas.length<GAS_LIMIT) {
         b.gasAt=.3;
-        world.gas.push({id:++world.reactionSerial,x:b.x+b.w/2+dx*30,y:b.y+b.h/2+dy*30,
-          vx:clamp(b.vx*.15+dx*130,-500,500),vy:clamp(b.vy*.15+dy*130-12,-500,500),
-          r:22,life:3.2,lit:b.fire>0?.22:0,owner:0});
+        const p=outlets[(b.gasPort||0)%outlets.length];b.gasPort=(b.gasPort||0)+1;
+        const r=clamp(Math.min(b.w,b.h)*.08,2,5);
+        world.gas.push({id:++world.reactionSerial,x:p.x+p.nx*r,y:p.y+p.ny*r,
+          vx:clamp(b.vx*.15+p.nx*130,-500,500),vy:clamp(b.vy*.15+p.ny*130-12,-500,500),
+          r,life:3.2,lit:b.fire>0?.22:0,owner:0});
       }
     }
     if(b.fuse<=0) {
@@ -537,7 +549,7 @@ export function reactionDanger(world, x, y) {
 
 const number=(n,min,max)=>typeof n==="number"&&Number.isFinite(n)&&n>=min&&n<=max;
 export function validReactionObject(b) {
-  return ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","liquidLeft","glued","tarred","oiled"].every(k=>
+  return validContainerLeaks(b) && ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","liquidLeft","glued","tarred","oiled"].every(k=>
     b[k]===undefined||number(b[k],0,k==="waterLeft"?210:k==="liquidLeft"?96:k==="charge"||k==="leak"||["glued","tarred","oiled"].includes(k)?1:12)) &&
     (b.spent===undefined||typeof b.spent==="boolean");
 }

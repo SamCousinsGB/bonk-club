@@ -1,6 +1,7 @@
 import { drawWater } from "./water-art.js";
 import { drawElectricity } from "./electricity-art.js";
 import { BARRELS, SPILLS, barrelWarning } from "./barrels.js";
+import { leakOutlets } from "./container-leaks.js";
 
 const TAU=Math.PI*2;
 const line=(c,points,color,width=2)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
@@ -45,7 +46,11 @@ export function drawReactiveProp(c,p) {
       line(c,[[x+w*.78,y+h*.68],[x+w*.78,y+h*.78]],color,3);
     }
   }
-  if(p.leak){line(c,[[x+w*.75,y+h*.65],[x+w*.93,y+h*.72],[x+w*.8,y+h*.8]],"#10242b",3);}
+  for(const hole of p.leaks || []) {
+    const hx=x+w/2+hole.x*w,hy=y+h/2+hole.y*h,r=Math.max(1.4,Math.min(3,Math.min(w,h)*.055));
+    line(c,[[hx-r*1.3,hy-r],[hx+r,hy+r*1.4]],"#29343a",1);
+    circle(c,hx,hy,r,"#10242b");circle(c,hx-hole.nx*r*.4,hy-hole.ny*r*.4,r*.4,"#bac5bd");
+  }
   c.restore();return true;
 }
 
@@ -59,7 +64,7 @@ export function drawGas(c,state,time) {
       circle(c,g.x+Math.cos(a)*g.r*.35,g.y+Math.sin(a)*g.r*.25,g.r*.65,g.lit?"#ffb04c":"#a8c39b");
     }
     c.globalAlpha=Math.min(.42,g.life*.3);
-    line(c,[[g.x-g.r*.55,g.y],[g.x-g.r*.15,g.y-4],[g.x+g.r*.28,g.y+2]],g.lit?"#fff1ab":"#bbd5b6",1.5);
+    line(c,[[g.x-g.r*.55,g.y],[g.x-g.r*.15,g.y-g.r*.12],[g.x+g.r*.28,g.y+g.r*.06]],g.lit?"#fff1ab":"#bbd5b6",1.5);
     c.restore();
   }
 }
@@ -94,12 +99,14 @@ export function drawReactions(c,state,time) {
       line(c,[[-b.w*.4,-b.h*.1],[b.w*.08,b.h*.23],[b.w*.22,-b.h*.38]],"#d6fcff",1.5);c.restore();
     }
     if(b.leak&&!b.chunk&&!(b.cold>0)&&!b.spent) {
-      const a=(b.angle||0)+.45,dx=Math.cos(a),dy=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2;
       const active=b.kind==="canister"||(b.kind==="waterTank"&&b.waterLeft>0)||b.liquidLeft>0;
-      if(active)for(let i=0;i<5;i++) {
-        const d=22+((time*95+i*11)%57),spread=Math.sin(i*5+time*14)*(d-15)*.1;
+      if(active)for(const p of leakOutlets(b))for(let i=0;i<5;i++) {
+        const age=(time*2.5+i/5)%1,length=Math.min(b.w,b.h)*.9;
+        const d=age*length,spread=Math.sin(i*5+time*14)*d*.09;
         const contents=BARRELS[b.kind]?.contents;
-        circle(c,cx+dx*d-dy*spread,cy+dy*d+dx*spread,1.5+i*.25,b.kind==="waterTank"?"#93e5ffc7":
+        const fall=b.kind==="canister"?0:age*age*length*.55;
+        circle(c,p.x+p.nx*d-p.ny*spread,p.y+p.ny*d+p.nx*spread+fall,
+          Math.max(.7,Math.min(2,Math.min(b.w,b.h)*.025))*(.6+age),b.kind==="waterTank"?"#93e5ffc7":
           contents?SPILLS[contents].rim:b.fire?"#ffbb72a0":"#d9dfc68c");
       }
     }

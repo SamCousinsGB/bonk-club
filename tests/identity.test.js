@@ -162,7 +162,8 @@ test("standard arenas open with featured weapons while survival arenas start una
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena, random: () => 0.3 });
     if(w.arena.survival){assert.equal(w.drops.length,0);continue;}
-    assert.equal(w.drops[0]?.type, "nuke", ARENAS[arena].name);
+    assert.notEqual(w.drops[0]?.type, "nuke", ARENAS[arena].name);
+    assert.ok(["rare", "exotic"].includes(WEAPONS[w.drops[0]?.type]?.rarity));
     assert.ok(["rare", "exotic"].includes(WEAPONS[w.drops[1]?.type]?.rarity));
   }
 });
@@ -175,7 +176,7 @@ test("short rounds rotate the rare arsenal instead of resetting weapon variety",
   for (let round = 1; round <= Math.ceil(featured * 3 / 5); round++) {
     const opening = rotation.opening(round);
     opening.forEach((w) => seen.add(w));
-    if (round % 3 === 1) assert.equal(opening[0], "nuke");
+    if (round % 3 === 0) assert.equal(opening[0], "nuke");
     assert.notEqual(opening[0], opening[1]);
   }
   for (const [type, w] of Object.entries(WEAPONS))

@@ -32,6 +32,9 @@ const shuffle = (values, random) => {
 };
 
 class MenuWorld extends World {
+  scheduleWeapon(first = false) {
+    this.weaponTimer = first ? 2.5 : 3 + this.random() * 2;
+  }
   nextWeapon() {
     if (!this.menuWeapons?.length) this.menuWeapons = shuffle(GUNS, this.random);
     return this.menuWeapons.pop();
@@ -56,6 +59,7 @@ class MenuWorld extends World {
     this.spawnWeapon();
     this.phase = "fight";
     this.weaponTimer = 2.5;
+    this.grenadeTimer = Infinity;
     this.ai.reset();
   }
   spawnWeapon() {

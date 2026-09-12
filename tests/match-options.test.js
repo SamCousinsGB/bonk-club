@@ -35,6 +35,23 @@ test('selected maps repeat within the chosen pool across round resets',()=>{
   const pool=[0,ARENAS.length-1],world=new World({arena:0,arenaPool:pool,weaponPool:['bat'],random:()=>.4});
   for(let n=0;n<10;n++){world.phase='result';world.phaseTime=0;world.step(STEP);assert.ok(pool.includes(world.arenaIndex));assert.ok(world.drops.every(d=>d.type==='bat'));}
 });
+test('a nuclear-only selection waits for scheduled rounds without random replacements',()=>{
+  const world=new World({weaponPool:['nuke'],shuffle:false,random:()=>.4});
+  for(let round=1;round<=6;round++) {
+    world.round=round;world.startRound();
+    assert.equal(world.drops.length,round%3===0?1:0);
+    assert.ok(world.drops.every(d=>d.type==='nuke'));
+    world.drops=[];world.spawnWeapon();assert.equal(world.drops.length,0);
+    world.phase='fight';world.grenadeTimer=.001;world.step(STEP);assert.equal(world.drops.length,0);
+  }
+});
+test('the independent grenade schedule cannot bypass the chosen weapon pool',()=>{
+  const world=new World({weaponPool:['bubble'],shuffle:false,random:()=>.99});
+  world.drops=[];world.phase='fight';world.weaponTimer=Infinity;world.grenadeTimer=.001;
+  world.step(STEP);assert.equal(world.drops.length,0);
+  world.spawnWeapon('grenade');assert.equal(world.drops.length,0);
+  world.spawnWeapon('nuke');assert.equal(world.drops.length,0);
+});
 test('offline Play uses the same slot and match rules without pretending to offer invites',()=>{
   let started=0;const room=createOfflineRoom({onStart:()=>started++},{difficulty:'normal'},'Offline');
   try {
