@@ -382,7 +382,7 @@ const additions = {
     damage: 14,
     force: 0,
     cooldown: 1.7,
-    ammo: 2,
+    ammo: 1,
     speed: 760,
     recoil: 300,
     life: 1.05,

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.28.0",
-  "releaseNotes": "Power fist launches ragdolls that smash through terrain on impact",
+  "version": "0.28.1",
+  "releaseNotes": "Stronger spacetime distortion and single-shot black hole generators",
   "private": true,
   "type": "module",
   "scripts": {

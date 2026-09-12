@@ -367,7 +367,7 @@ test("a launched singularity must resolve before the last survivor scores", () =
     q.hp = 0;
   });
   p.weapon = "blackhole";
-  p.ammo = 2;
+  p.ammo = 1;
   w.attack(p);
   w.step(STEP);
   assert.equal(w.phase, "fight");

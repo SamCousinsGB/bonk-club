@@ -2,6 +2,25 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Stronger, single-shot black holes - 12 September 2026
+
+- v0.28.1, protocol 51 unchanged from the integrated power-fist release.
+- Whole-arena displacement is 50% stronger and chromatic fringes are 20% stronger.
+  Canvas fallback matches the stronger bend. Existing field lifetime, fade-in/out,
+  reduced motion, bounded overlap and purely visual global effect remain intact.
+- Every black-hole generator pickup now carries one shot. Firing consumes the
+  generator while the launched seed still travels/activates normally. Opening,
+  refill, thrown and next-round pickups, hot-join ammo and final-shot round scoring
+  are covered. No extra damage or physical range/lifetime changes.
+- Scoped changes also applied to the canonical checkout, preserving its older work.
+  Release integration remains ../bonk-club-qa/spacetime-warp on codex/blackhole-spacetime,
+  rebased onto current main including pylon-water and power-fist changes.
+- 23 focused ammo/lifecycle/effects checks passed. Stronger actual rendered gameplay,
+  overlap, reduced motion, WebGL loss/recovery, 844x390 and real relay host/guest/hot
+  join passed without browser errors. Browser/desktop builds, seven desktop tests
+  and Windows executable smoke passed. Full suite and publication checks follow.
+- External evidence uses ../bonk-club-qa/spacetime-stronger-*; no debug hooks ship.
+
 ## Whole-arena spacetime warp - 12 September 2026
 
 - v0.26.0, protocol 49 unchanged, gameplay revision

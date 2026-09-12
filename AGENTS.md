@@ -253,6 +253,8 @@ Keep this constitution for durable rules and the handoff for current work.
   Keep capture violent: retain incoming momentum, fast eccentric orbits, elastic
   strands and independent limb flailing. Loose matter tumbles until compression;
   do not restore continuous steering to a fixed orbital speed or early packing.
+- Each black-hole generator pickup carries one shot; firing consumes the generator
+  while its launched seed continues until contact and completes the normal effect.
 - Active black holes subtly warp the entire rendered arena and background with
   animated spacetime refraction. This global warp is visual only: it adds no damage,
   forces or collision changes outside the existing local effect. Ease it in/out
