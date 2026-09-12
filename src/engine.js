@@ -197,6 +197,7 @@ export class World {
     this.phaseTime = 2.4;
     this.elapsed = 0;
     this.scheduleWeapon(true);
+    this.grenadeTimer = this.arena.survival ? Infinity : 2;
     this.hitstop = 0;
     this.winner = null;
     this.lastDeathCause = null;
@@ -446,8 +447,14 @@ export class World {
       this.elapsed += dt;
       this.weaponTimer -= dt;
       if (this.weaponTimer <= 0) {
-        this.spawnWeapon(this.nextWeaponType);
+        this.spawnWeapon();
         this.scheduleWeapon();
+      }
+      this.grenadeTimer -= dt;
+      if (this.grenadeTimer <= 0) {
+        const type = chooseWeapon(this.random, new Set(this.drops.map(d => d.type)));
+        if (WEAPONS[type].kind === "grenade") this.spawnWeapon(type);
+        this.grenadeTimer = 3 + this.random() * 2;
       }
     }
     const actions = new Map();
@@ -1011,16 +1018,12 @@ export class World {
     this.event("throw", { x: p.x, y: p.y, action });
   }
   scheduleWeapon(first = false) {
-    this.nextWeaponType = null;
     if (this.arena.survival) {
       this.weaponTimer = first ? this.arena.survival.firstWeapon
         : this.arena.survival.weaponInterval + this.random() * 2;
       return;
     }
-    // Choose before waiting so hand grenades retain their shorter drop delay.
-    this.nextWeaponType = chooseWeapon(this.random, new Set(this.drops.map(d => d.type)));
-    const grenade = WEAPONS[this.nextWeaponType].kind === "grenade";
-    this.weaponTimer = first ? (grenade ? 2 : 6) : (grenade ? 3 : 6) + this.random() * 2;
+    this.weaponTimer = first ? 6 : 6 + this.random() * 2;
   }
   spawnWeapon(scheduledType = null) {
     if (this.arena.survival) {
@@ -1038,6 +1041,12 @@ export class World {
       return;
     }
     if (this.drops.length >= 12) return;
+    const type = scheduledType || chooseWeapon(
+      this.random,
+      new Set(this.drops.map((d) => d.type)),
+    );
+    // Grenade rolls run at the old cadence independently of these slower rolls.
+    if (!scheduledType && WEAPONS[type].kind === "grenade") return;
     const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
     // Prefer accessible, unoccupied landings near the current fight. Avoid
     // repeatedly piling weapons on a single ledge or abandoned rooftop.
@@ -1053,10 +1062,6 @@ export class World {
     }).sort((a,b)=>a.cost-b.cost);
     const point=ranked[0]?.point;
     if (!point) return;
-    const type = scheduledType || chooseWeapon(
-      this.random,
-      new Set(this.drops.map((d) => d.type)),
-    );
     // Spawn within the chosen storey instead of falling onto the roof above it.
     this.drops.push({
       ...point,

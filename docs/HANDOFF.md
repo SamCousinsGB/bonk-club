@@ -7,9 +7,10 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
 - v0.24.2, protocol 46 unchanged. Refresh to use the new host-side pacing.
 - Removed all four spawn-side starter guns. Existing contested arena pickups
   and the featured rare/exotic rotation remain. Movement/combat speed is unchanged.
-- Standard refills wait six seconds initially, then 6–8 seconds. The next type
-  is selected before its delay, so grenade/cluster/cryo drops retain their
-  two-second first delay and 3–5-second repeat delay. Survival arenas and the
+- Standard refill rolls wait six seconds initially, then 6–8 seconds. Independent
+  grenade rolls keep the original two-second first delay, 3–5-second repeat delay
+  and weighted selection chances. Each clock admits only its own category, so
+  slowing weapon rolls cannot reduce grenade availability or duplicate drops. Survival arenas and the
   autonomous menu fight retain their own existing pickup cadence.
 - Nukes appear once in the opening pickups of standard rounds 3, 6, 9, etc.
   They are excluded from all random pickup pools, including exclusion fallbacks.

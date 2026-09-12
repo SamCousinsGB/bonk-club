@@ -196,8 +196,9 @@ Keep this constitution for durable rules and the handoff for current work.
 - Powerful and strange weapons should be rare but actually appear during short
   rounds. Preserve the contested featured weapon rotation. All fighters start
   unarmed, with no weapons beside their starting positions. Standard weapon
-  refills wait six seconds initially, then 6–8 seconds; grenade types retain
-  their two-second first delay and 3–5-second repeat delay. Survival arenas keep
+  refill rolls wait six seconds initially, then 6–8 seconds. Independent grenade
+  rolls keep their original two-second first delay and 3–5-second repeat delay
+  and weighted selection chances; neither clock may spawn the other category. Survival arenas keep
   their existing scarce pickups. One nuclear pickup appears only on every third
   standard round (3, 6, 9, ...); random refills must never include nukes.
 - Death effects retain body momentum, gravity and solid contacts from the first

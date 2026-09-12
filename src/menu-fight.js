@@ -59,6 +59,7 @@ class MenuWorld extends World {
     this.spawnWeapon();
     this.phase = "fight";
     this.weaponTimer = 2.5;
+    this.grenadeTimer = Infinity;
     this.ai.reset();
   }
   spawnWeapon() {
