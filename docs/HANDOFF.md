@@ -53,7 +53,19 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   peak 0.64; this checks output/headroom, not subjective listening quality.
 - External evidence: ../bonk-club-qa/furnace-atmosphere-browser.{mjs,json},
   furnace-atmosphere-*.png and furnace-atmosphere-audio.wav. No debug hooks ship.
-  Full-suite and public-release verification follow below when complete.
+- Published and publicly verified in integrated v0.29.1 at
+  `0e19ff8754aee2ace30d9ed6a6c8e90a85c8f915` (furnace implementation `298990a`).
+  [Release run 34712915219](https://github.com/SamCousinsGB/bonk-club/actions/runs/34712915219)
+  passed all 961 shared/game tests, three server tests, Windows/Linux desktop
+  unit tests, executable smoke/packaging, source consistency and Pages deployment.
+- All 17 public files matched both the exact clean build and CI artifact by
+  SHA-256. Unmodified public v0.29.1 passed a normal-menu furnace round, visible
+  beacons/arcs, actual electrical audio output, mute/unmute and host/guest play
+  with selected relay/relay routes and no browser errors. Public gameplay was
+  visually inspected. This is one-machine relay QA, not cross-ISP latency proof.
+- Final evidence: furnace-atmosphere-live{.mjs,.json,-verification.json},
+  furnace-atmosphere-live-{warning,active}.png and furnace-atmosphere-ci/.
+  Preview ports 5508/5509 are stopped. No Pi changes or production debug hooks.
 
 
 
