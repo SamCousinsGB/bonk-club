@@ -19,7 +19,7 @@ function makeCable(layout) {
 }
 
 export function createCables(arena) {
-  const kind = arena.furnace ? "furnace" : arena.transmission ? "tower" : null;
+  const kind = arena.turbine ? "turbine" : arena.furnace ? "furnace" : arena.transmission ? "tower" : null;
   const cables = CABLE_LAYOUTS.filter(c => c.kind === kind).map(makeCable);
   // Settle once on round creation. Guests receive these points from the host;
   // joining a damaged arena never recreates a pristine span or replays history.
@@ -33,7 +33,7 @@ export function releaseCableMounts(world) {
   for (const c of world.cables || []) {
     const wasIntact = cableIntact(c);
     const spec = cableLayout(c.id);
-    if (spec.kind === "tower") {
+    if (spec.kind === "tower" || spec.kind === "turbine") {
       for (const [i, end] of [spec.a, spec.b].entries())
         if (!survives(world, end.x, end.supportY)) c.attached[i] = false;
     } else {
@@ -103,7 +103,7 @@ export function updateCables(world, dt) {
     for (const c of world.cables) {
       const spec = cableLayout(c.id), h = world.hazards.find(h =>
         spec.kind === "furnace" ? h.type === "furnace" : h.type === "powerline" && h.circuit === spec.index);
-      const power = h && !h.done && h.active && (spec.kind === "tower" || cableIntact(c)) ? 1 : 0;
+      const power = h && !h.done && h.active && (spec.kind !== "furnace" || cableIntact(c)) ? 1 : 0;
       stepCable(c, world.time - world.cableAccumulator, power, world.platforms);
     }
     world.cableAccumulator -= STEP;
@@ -193,7 +193,7 @@ export function cableSnapshot(cables = []) {
     points: c.points.map(p => ({ x: p.x, y: p.y })) }));
 }
 export function validCables(cables, arena) {
-  const specs = CABLE_LAYOUTS.filter(c => arena?.furnace ? c.kind === "furnace" : arena?.transmission ? c.kind === "tower" : false);
+  const specs = CABLE_LAYOUTS.filter(c => arena?.turbine ? c.kind === "turbine" : arena?.furnace ? c.kind === "furnace" : arena?.transmission ? c.kind === "tower" : false);
   return Array.isArray(cables) && cables.length === specs.length &&
     new Set(cables.map(c => c?.id)).size === cables.length && cables.every(c => {
       const spec = specs.find(s => s.id === c?.id);

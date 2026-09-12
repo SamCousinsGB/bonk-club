@@ -1,5 +1,5 @@
 import { previewTesla } from "./tesla.js";
-import { World, STEP, cleanInput } from "./engine.js";
+import { World, ARENAS, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
 import { blend } from "./render-state.js";
@@ -47,6 +47,7 @@ export class GuestPrediction {
     const platforms = structuredClone(state.platforms);
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
+      arena: ARENAS[state.arenaIndex], hazards: structuredClone(state.hazards),
       platforms, cover: structuredClone(state.cover), chunks: structuredClone(state.chunks),
       cables: structuredClone(state.cables || []),
       players: [this.player], projectiles: [],

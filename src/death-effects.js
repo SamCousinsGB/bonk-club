@@ -7,6 +7,7 @@ export const DEATH_EFFECTS = [
   "slice",
   "gib",
   "bubble",
+  "blend",
   "impale",
   "plasma",
   "phaser",
@@ -61,7 +62,7 @@ export function deathPose(rag, effect, angle = 0, target = null) {
       p.px -= Math.sin(n * 4.2) * 2.5;
       p.py += Math.cos(n * 2.1) * 2;
     }
-  } else if (effect === "bubble") {
+  } else if (["bubble", "blend"].includes(effect)) {
     const pieces = [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]];
     const angles = [-Math.PI / 2, -.3, -2.65, -.7, 2.4, .55];
     pieces.forEach((ids, i) => {
@@ -123,7 +124,7 @@ export function updateDeath(rag, dt) {
 export function deathJoints(rag) {
   if (rag.effect === "ice") return rag.deathAge < .4 ? rag.morphPose : [];
   if (rag.ash) return JOINTS.filter((_, i) => !crumbledBone(rag, i));
-  if (rag.effect === "bubble") return BUBBLE_JOINTS;
+  if (["bubble", "blend"].includes(rag.effect)) return BUBBLE_JOINTS;
   return rag.effect === "slice"
     ? CUT_JOINTS
     : rag.effect === "blast"

@@ -36,7 +36,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 52;
+export const PROTOCOL = 53;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -872,7 +872,7 @@ export function validSnapshot(s) {
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= (h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
+        h.w <= (h.type === "turbine" ? 500 : h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
         (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
         (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
         (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.30.0",
-  "releaseNotes": "Car assembly arena with a moving production line, stamping press and robot welders",
+  "version": "0.31.0",
+  "releaseNotes": "Turbine Hall: narrow jumps, spinning blades and physical high-voltage cables",
   "private": true,
   "type": "module",
   "scripts": {

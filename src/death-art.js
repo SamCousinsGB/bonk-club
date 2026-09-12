@@ -156,7 +156,7 @@ export function drawDeath(r, rag, time) {
         rag,
         pts[0].x,
         pts[0].y,
-        rag.effect === "bubble" ? age * 7 * (rag.facing || 1) :
+        ["bubble", "blend"].includes(rag.effect) ? age * 7 * (rag.facing || 1) :
           Math.atan2(pts[0].y - pts[1].y, pts[0].x - pts[1].x) + Math.PI / 2,
         rag.facing || 1,
       );
@@ -164,7 +164,7 @@ export function drawDeath(r, rag, time) {
         for (const joint of rag.severed)
           for (const id of JOINTS[joint].slice(0, 2))
             r.circle(pts[id].x, pts[id].y, 3, "#b72b45");
-      if (rag.effect === "bubble")
+      if (["bubble", "blend"].includes(rag.effect))
         for (const id of [1, 2, 3, 5, 7, 9])
           r.circle(pts[id].x, pts[id].y, 2.8, "#b72b45");
       if (rag.effect === "slice")

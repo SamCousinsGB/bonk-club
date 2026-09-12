@@ -3,7 +3,7 @@ import { POWER_INTERVAL } from "./transmission-arena.js";
 import { cableIntact, releaseCableMounts } from "./heavy-cables.js";
 import { powerlineCircuit } from "./powerline-circuit.js";
 
-export const wireCable = (state, h) => state.cables?.find(c => c.id === `tower${h.circuit}`);
+export const wireCable = (state, h) => state.cables?.find(c => c.id === `${state.cables?.some(c => c.id.startsWith("turbine")) ? "turbine" : "tower"}${h.circuit}`);
 export const wirePieces = (state, h) => {
   const c = wireCable(state, h);
   return c ? c.links.flatMap((live, i) => live ? [{ a: c.points[i], b: c.points[i + 1] }] : []) : [];

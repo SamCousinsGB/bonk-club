@@ -1,3 +1,4 @@
+import { TURBINE_MOUNTS } from "../src/cable-layout.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, ARENAS } from "../src/engine.js";
@@ -17,7 +18,7 @@ function lab(type="geyser") {
 const advance=(w,t)=>{for(let n=0;n<t/STEP;n++)updateHazards(w,STEP);};
 for(const type of HAZARD_TYPES)test(`${type} is a persistent map fixture with a valid live snapshot`,()=>{
  const {w,h}=lab(type);w.players.forEach(p=>p.x=1500);
- advance(w,3);assert.equal(h.active,type==="slag");
+ advance(w,3);assert.equal(h.active,["slag","turbine"].includes(type));
  advance(w,4);assert.ok(validSnapshot(w.snapshot()),type);
  advance(w,30);assert.equal(w.hazards.length,1);assert.equal(w.hazards[0],h);
  assert.ok(validSnapshot(JSON.parse(JSON.stringify(w.snapshot()))));
@@ -56,7 +57,7 @@ test("destroying a fixture mounting floor disables it",()=>{
 test("every arena has fixed, varied traps away from spawns",()=>{
  const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length>=2,a.name);
  for(const h of a.traps){kinds.add(h.type);
- if(h.type==="powerline")assert.ok(TOWER_MOUNTS[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
+ if(h.type==="powerline")assert.ok((a.turbine ? TURBINE_MOUNTS : TOWER_MOUNTS)[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
  else assert.ok(a.platforms.some(p=>p.y===h.y&&p.x<=h.x&&p.x+p.w>=h.x));
  if(!a.survival)assert.ok(!a.spawns.some(([x,y])=>Math.abs(x-h.x)<h.w/2+85&&Math.abs(y-(h.y-30))<90),a.name);}}
  assert.equal(kinds.size,HAZARD_TYPES.length);

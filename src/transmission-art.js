@@ -1,3 +1,4 @@
+import { cableLayout } from "./cable-layout.js";
 import { electricArc } from "./electricity-art.js";
 import { wireCable } from "./powerlines.js";
 import { drawCableStroke } from "./cable-art.js";
@@ -82,8 +83,8 @@ export function drawTransmissionTowers(c,state) {
 export function drawPowerlines(c,state,time) {
   c.save();c.lineCap="round";c.lineJoin="round";
   const circuit=powerlineCircuit(state);
-  for(const cable of state.cables||[])if(cable.id.startsWith("tower")) {
-    const runs=circuit.runs.filter(r=>r.cable===cable.id),h=state.hazards?.find(h=>h.type==="powerline"&&"tower"+h.circuit===cable.id);
+  for(const cable of state.cables||[])if(/^(tower|turbine)/.test(cable.id)) {
+    const runs=circuit.runs.filter(r=>r.cable===cable.id),h=state.hazards?.find(h=>h.type==="powerline"&&wireCable(state,h)?.id===cable.id);
     for(const r of runs) {
       const run=r.points;
       drawCableStroke(c,run,"#18232d",11);drawCableStroke(c,run,"#899b9f",6);
@@ -106,7 +107,7 @@ export function drawPowerlines(c,state,time) {
   for(const h of state.hazards||[]) {
     if(h.type!=="powerline"||h.done)continue;
     const color=h.active?"#bcfaff":h.warning>0&&Math.sin(time*18)>0?"#ffc565":"#526c6b",cable=wireCable(state,h);
-    for(const [i,p] of TOWER_MOUNTS[h.circuit].entries())if(cable?.attached[i]) {
+    for(const [i,p] of (cable ? [cableLayout(cable.id).a,cableLayout(cable.id).b] : []).entries())if(cable?.attached[i]) {
       c.fillStyle="#182732";c.fillRect(p.x-8,p.supportY-26,16,20);
       c.fillStyle=color;c.fillRect(p.x-4,p.supportY-22,8,12);
     }

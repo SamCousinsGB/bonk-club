@@ -26,8 +26,8 @@ function contact(a,b,c,d) {
 export function powerlineCircuit(state) {
   const runs=[],contacts=[];
   for(const cable of state.cables||[]) {
-    if(!cable.id.startsWith("tower"))continue;
-    const h=state.hazards?.find(h=>h.type==="powerline"&&`tower${h.circuit}`===cable.id);
+    if(!/^(tower|turbine)/.test(cable.id))continue;
+    const h=state.hazards?.find(h=>h.type==="powerline"&&`${cable.id.startsWith("turbine")?"turbine":"tower"}${h.circuit}`===cable.id);
     for(let i=0;i<cable.links.length;i++) {
       if(!cable.links[i])continue;
       const start=i;

@@ -27,6 +27,7 @@ export class HazardBreaks {
 }
 
 export function hazardArtBounds(h) {
+  if (h.type === "turbine") return {x:h.bodyX-h.w/2-8,y:h.bodyY-h.w/2-8,w:h.w+16,h:h.w+16};
   if (h.type === "furnace") return {x:h.x-345,y:h.y-220,w:690,h:580};
   if (h.type === "slag") return {x:h.x-h.w/2-12,y:h.y-h.h-8,w:Math.min(924,h.w+24),h:Math.min(320,h.h+16)};
   let left = h.x - h.w / 2 - 32, right = h.x + h.w / 2 + 32;

@@ -1,3 +1,4 @@
+import { drawTurbineHall, drawTurbineMounts } from "./turbine-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
@@ -905,6 +906,7 @@ export class Renderer {
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
+        if (arena.turbine) drawTurbineHall(layer.getContext("2d"));
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
@@ -936,7 +938,8 @@ export class Renderer {
     if(arena.transmission)drawTransmissionTowers(c,state);
     c.restore();
     // Both wire systems occupy the rear layer, behind platforms and fighters.
-    if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
+    if(arena.turbine)drawTurbineMounts(c,state);
+    if(arena.transmission||arena.turbine)drawPowerlines(c,state,this.reduced ? 0 : time);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     for (const s of state.spikes) {

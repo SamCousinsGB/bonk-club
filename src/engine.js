@@ -1,3 +1,4 @@
+import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
 import { ASSEMBLY_ARENA } from "./assembly-arena.js";
 import { createAssembly, updateAssembly, assemblySnapshot } from "./assembly.js";
@@ -75,7 +76,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -532,6 +533,14 @@ export class World {
     const solids = [], carryId = carrier?.carryId;
     for (const p of this.platforms) if (p.hp !== 0) solids.push(p);
     solids.push(...cableSolids(this));
+    if (this.arena?.turbine) {
+      solids.push(...TURBINE_BOUNDS);
+      for (let i=0;i<solids.length;i++) {
+        const s=solids[i];
+        if(s.y>=1140 && this.hazards.some(h=>h.type==="turbine"&&!h.done&&s.x<h.x+h.w/2&&s.x+s.w>h.x-h.w/2))
+          solids[i]={...s,lethal:true};
+      }
+    }
     for (const bodies of [this.cover, this.chunks])
       for (const b of bodies) if (b.id !== carryId)
         for (const tile of propSolids(b)) solids.push(tile);
@@ -968,7 +977,7 @@ export class World {
     deathPose(this.ragdolls.at(-1),effect,angle,{x:sourceX,y:sourceY});
     inheritPowerFlight(p, this.ragdolls.at(-1));
     this.ragdolls = this.ragdolls.slice(-4);
-    if(["gib","blast","bubble"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
+    if(["gib","blast","bubble","blend"].includes(effect))bloodBurst(this,p.x,p.y,p.vx,p.vy,28);
     this.event("ko", { x: p.x, y: p.y, color: p.color, ash, effect, at: this.time });
     this.ragdolls.at(-1).deathId = this.nextEvent;
   }

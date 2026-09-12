@@ -1,3 +1,4 @@
+import { updateTurbine, turbineZone } from "./turbines.js";
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { breakable } from "./maps.js";
@@ -6,13 +7,13 @@ import { isScanner, scanFighters } from "./scanner.js";
 import { releaseCargo } from "./cargo.js";
 import { updatePowerline } from "./powerlines.js";
 import { updateFurnace } from "./furnace.js";
-export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline"];
-export const HAZARD_LABELS={furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
+export const HAZARD_TYPES=["geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine"];
+export const HAZARD_LABELS={turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {
   return (world.arena.traps||[]).map((h,i)=>({
-    ...h,id:i+1,bodyX:h.type==="saw"?h.x+Math.sin(h.motionPhase||0)*(h.w/2-28):h.x,bodyY:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.type==="furnace"?h.y+140:h.y-h.h+24,vy:0,age:0,
+    ...h,id:i+1,bodyX:h.type==="saw"?h.x+Math.sin(h.motionPhase||0)*(h.w/2-28):h.x,bodyY:h.type==="turbine"?h.y-30:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.type==="furnace"?h.y+140:h.y-h.h+24,vy:0,age:0,
     warning:0,duration:1.25,cooldown:3.5+i*.75,active:false,
     done:false,hitIds:[],hitTimer:0,...(h.type==="powerline"?{circuit:h.circuit??0}:{}),
     ...(h.type === "loader" ? {cooldown: 3.5} : {}),
@@ -20,6 +21,7 @@ export function createHazards(world) {
   }));
 }
 export function hazardZone(h) {
+  if(h.type==="turbine")return turbineZone(h);
   if (h.assemblyStation > 1) return { x: h.bodyX - 16, y: h.bodyY - 16, w: 32, h: 32 };
   if(h.type==="furnace")return {x:h.x-h.w/2,y:h.y-h.h,w:h.w,h:h.h+420};
   if(h.type==="pendulum"||h.type==="saw") {
@@ -52,6 +54,7 @@ export function updateHazards(world,dt) {
     if(h.done)continue;
     if(h.assemblyStation)continue; // The production clock owns these machines.
     if(h.type==="furnace"||h.type==="slag"){updateFurnace(world,h,dt);continue;}
+    if(h.type==="turbine"){updateTurbine(world,h,dt);continue;}
     if(h.type==="powerline"){updatePowerline(world,h,dt);continue;}
     // The renderer breaks the casing apart when this fixture loses its mounting.
     if(!world.platforms.some(p=>p.hp!==0&&Math.abs(p.y-h.y)<2&&p.x<=h.x&&p.x+p.w>=h.x)) {

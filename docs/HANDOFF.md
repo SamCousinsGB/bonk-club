@@ -23,6 +23,35 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   protocol changes, Pi changes or production debug hooks.
 
 
+## Turbine Hall - 12 September 2026
+
+- v0.31.0, protocol 53. Refresh every player and create a new room.
+- Six large rotating blade sweeps cover the bottom edge and all rotor seams.
+  Contact blends living fighters or fallen corpses into six physical body parts,
+  with blood, tangential impulses, gravity and solid contacts. Prone, frozen and
+  recovering fighters have no immunity. Destruction disables individual rotors;
+  the enclosed concrete sump and side walls prevent bottom/side ring-outs.
+- Narrow staggered steel ledges provide difficult double jumps and an upper
+  alternate route. Both opening pickups are reachable from all four spawns;
+  a real movement test executes the left starting double jump. Bots reject
+  turbine-bed landings while their rotors survive.
+- Two heavy pass-through cable spans reuse gravity, damping, length constraints,
+  cut links, removable mounts, seven-second safe/live cycles and cross-circuit
+  shorts. Cut ends keep falling; only runs with surviving supply stay timed live.
+- Source: ../bonk-club-qa/turbine-hall, branch codex/turbine-hall, from published
+  main including Car Assembly. Older overlapping canonical edits are preserved.
+- Thirteen focused regressions cover every bottom entry/seam, circular contact,
+  dismemberment and motion, corpse conversion, destruction, containment, actual
+  double jumps, bot routing, guest prediction, power supply, cable cuts, round
+  reset, changed-map hot join and malformed wire state.
+- Real Edge host/guest and changed-map hot join passed with selected relay/relay
+  candidates. Actual guest movement/jump, blade deaths, live wires, rotor and
+  cable cuts matched. Desktop 1600x900 and phone 844x390 rendering inspected;
+  no browser errors. Seeded four-bot play reached round two in 38.6 seconds.
+- External evidence: ../bonk-club-qa/turbine-online.mjs, turbine-online.json,
+  turbine-online-*.png and turbine-bot-play.json. No dependencies, production
+  hooks or Pi changes. Release validation is recorded below after completion.
+
 ## Car assembly arena - 12 September 2026
 
 - v0.30.0, protocol 52. Refresh every player and create a new room.

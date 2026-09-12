@@ -1,5 +1,6 @@
 // Only these identifiers cross the wire; clients render the same local copy.
 export const VICTORY_MESSAGES = Object.freeze({
+  turbine: "By blending the opposition",
   bubble: "By bursting the opposition's bubble",
   gas: "By ignoring the hissing canister",
   electrified: "By completing the circuit",

@@ -116,6 +116,7 @@ export function traceFlight(
       )
         continue;
       if (vy >= 0 && oldY + 30 <= p.y + 5) {
+        if (p.lethal) return null;
         if (raw.id === from.id) {
           if (jumps && !allowReturn) return null;
           if (!jumps) {
