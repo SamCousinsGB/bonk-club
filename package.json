@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
   "version": "0.23.0",
-  "releaseNotes": "Transmission towers with wire crossings that switch electricity every seven seconds",
+  "releaseNotes": "Transmission towers with cycling live wires",
   "private": true,
   "type": "module",
   "scripts": {
