@@ -21,18 +21,29 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   remain preserved; continue from this worktree or current main for these changes.
 - Nineteen new simulation regressions cover pickup priorities at every difficulty,
   blocked/claimed/unreachable weapons, fatal gaps and recoil, useful dodges,
-  safe double jumps, destroyed destinations and the nuclear exception. The full
-  suite passed 903/904, including four-bot rounds on every arena; its sole failure
-  was an obsolete assertion that bots must ignore an available railgun. That test
-  now checks the fist combo with an empty pickup, matching the new contract.
+  safe double jumps, destroyed destinations and the nuclear exception. All
+  **904 shared gameplay tests** passed, including four-bot rounds on every arena.
+  The old melee-combo test now uses an empty pickup to exercise the fist fallback.
 - Production build and real browser host/guest/hot join/departure passed with
   selected relay/relay routes and no browser errors. Actual rendered weapon
   seeking, safe double jump/pickup and 25-second stranded survival were checked.
-  Seven desktop tests and the Windows executable smoke passed. Final CI and
-  publication verification follow. No new dependencies, wire state or Pi changes.
+  Seven desktop tests per OS, Windows/Linux executable smoke and packaging,
+  three server tests, and the shared-release gate passed. No new dependencies,
+  wire state or Pi changes.
 - External QA: `../bonk-club-qa/bot-survival-browser.mjs`, its JSON and screenshots;
   staged online evidence is in the worktree's ignored `desktop/test-results/`.
   No observer hooks or fixture server are shipped. Port 5477 was stopped.
+- **Published and verified:** gameplay revision
+  `1fcb398364a38fbab507e502cdc9e9cdb48bb5ed`, v0.25.1, protocol 49.
+  [Release run 34705209179](https://github.com/SamCousinsGB/bonk-club/actions/runs/34705209179)
+  completed successfully. All **17 public files** matched the clean committed
+  build and CI browser artifact by SHA-256. The unmodified public game passed
+  host/guest controls, third-player hot join and host departure with selected
+  relay/relay connections and no browser errors; rendered gameplay was inspected.
+- Exact source/build: `../bonk-club-qa/bot-survival-exact`; CI browser artifact:
+  `bot-survival-ci`; hashes: `bot-survival-live-verification.json`; verifier:
+  `verify-bot-survival-live.mjs`. Shared game source hash:
+  `01e21d7414114d4a1026ef18e0122fb07ff7fdabbd9e92a4be0997b5c0e6b066`.
 
 ## Unified Play lobby - 12 September 2026
 
