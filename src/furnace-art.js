@@ -166,9 +166,9 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
   // Bounded smoke is emitted from the furnace mouth. After shutdown each
   // existing puff rises and fades; there is no opaque rectangular hazard art.
   for (let i = 0; i < 48; i++) {
-    const lifetime = 4.2, age = (h.age + noise(i + 60) * lifetime) % lifetime;
+    const lifetime = 4.2, age = (time + noise(i + 60) * lifetime) % lifetime;
     const born = h.age - age, phase = ((born % FURNACE_CYCLE) + FURNACE_CYCLE) % FURNACE_CYCLE;
-    if (born < 0 || phase < FURNACE_ON) continue;
+    if (!h.active && (born < 0 || phase < FURNACE_ON)) continue;
     const u = age / lifetime, drift = Math.sin(i * 4.7 + age) * (35 + u * 120);
     const sx = x + (noise(i) - .5) * 360 + drift, sy = y - 45 - u * 1110;
     c.globalAlpha = Math.sin(Math.PI * u) * .43;
