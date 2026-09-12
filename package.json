@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.25.0",
-  "releaseNotes": "Unified Play lobby, match options and guest ready-up",
+  "version": "0.25.1",
+  "releaseNotes": "Bots prioritise reachable weapons and avoid fatal jumps and recoil",
   "private": true,
   "type": "module",
   "scripts": {

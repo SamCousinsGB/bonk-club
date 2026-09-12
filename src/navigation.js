@@ -46,6 +46,7 @@ export function traceFlight(
   spikes = [],
   initialVx = 0,
   landingX = null,
+  allowReturn = false,
 ) {
   let x = startX,
     y = from.y - 30,
@@ -116,11 +117,13 @@ export function traceFlight(
         continue;
       if (vy >= 0 && oldY + 30 <= p.y + 5) {
         if (raw.id === from.id) {
-          if (jumps) return null;
-          y = p.y - 30;
-          vy = 0;
-          ground = true;
-          continue;
+          if (jumps && !allowReturn) return null;
+          if (!jumps) {
+            y = p.y - 30;
+            vy = 0;
+            ground = true;
+            continue;
+          }
         }
         const pad = p.material === "cable" ? 0 : Math.min(23, p.w / 4);
         if (x < p.x + pad || x > p.x + p.w - pad) return null;

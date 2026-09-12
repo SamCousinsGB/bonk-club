@@ -182,9 +182,14 @@ Keep this constitution for durable rules and the handoff for current work.
 - AI defaults to Easy with imperfect aim, reactions and firing discipline. Use
   the same controls, health, ammunition and physics as humans. Improve navigation
   without making bots accurate, tireless terminators.
-- Unarmed and melee-weapon bots close distance or seek a reachable ranged upgrade.
-  They must not stand at range attempting to shoot a bat or endlessly jump into a
-  ceiling. Detect failed routes/stalemates and choose another action.
+- Unarmed bots prioritise reachable weapons, including melee pickups, over chasing
+  opponents. Fists are a fallback when no usable weapon is reachable, or for an
+  opponent blocking the route or attacking at close range. Armed melee bots seek
+  reachable ranged upgrades. Do not waste short-range attacks across a gap.
+- Bots must not deliberately jump or lunge into fatal drops to end a stalemate.
+  Validate traversal and dodge landings, brake at edges and allow for recoil.
+  Retry safe routes or wait for a reachable pickup. A last-ditch unsafe escape is
+  reserved for imminent lethal danger with no safe route, never boredom or low HP.
 - Tesla is a held electrical cast from the physical muzzle, with bounded chains
   through fighters, props and connected unfrozen water. Release ends the arc;
   charge drains during use. Preserve cover blocking, short shocks, electrical

@@ -103,7 +103,7 @@ test("spin hits both sides but cannot hit through a solid wall; parries remain a
   assert.equal(q.hp, 100);
   assert.ok(p.stun > 0);
 });
-test("unarmed bots close the distance and finish melee without hunting distant pickups or crawling", () => {
+test("unarmed bots finish a melee combo when no usable weapon is available, without crawling", () => {
   const w = arena([0]),
     [p, q] = w.players;
   q.x = 820;
@@ -111,7 +111,7 @@ test("unarmed bots close the distance and finish melee without hunting distant p
     x: 100,
     y: 545,
     type: "railgun",
-    ammo: 4,
+    ammo: 0,
     life: 60,
     vx: 0,
     vy: 0,

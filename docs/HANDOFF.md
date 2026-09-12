@@ -2,6 +2,38 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Bot weapon priorities and survival - 12 September 2026
+
+- v0.25.1, protocol 49 unchanged. Bots prioritise reachable weapons while unarmed,
+  including melee pickups, even with an opponent nearby. They retain a valid
+  pickup target and reconsider claimed, empty, locked, fallen or unreachable
+  pickups. Fists remain available for blocked paths, close attacks and when no
+  usable weapon is reachable. Easy combat reactions and aim remain unchanged.
+- Removed deliberate fatal stalemate jumps. Exploratory routes and grounded
+  dodges require checked landings. Every physics tick checks remaining destinations,
+  braking distance, melee impulses and firing recoil against current footing.
+  Ranged bots retain useful firing positions across gaps. The explicit desperate
+  escape is limited to an imminent nuke covering the ledge with no safe landing;
+  low HP or a stalled fight alone never enables it. Normal human physics still
+  apply, including knockback and destruction after takeoff.
+- Release worktree: `../bonk-club-qa/bot-survival`, branch `codex/bot-survival`,
+  based on current main's shared Play release. Canonical unfinished source edits
+  remain preserved; continue from this worktree or current main for these changes.
+- Nineteen new simulation regressions cover pickup priorities at every difficulty,
+  blocked/claimed/unreachable weapons, fatal gaps and recoil, useful dodges,
+  safe double jumps, destroyed destinations and the nuclear exception. The full
+  suite passed 903/904, including four-bot rounds on every arena; its sole failure
+  was an obsolete assertion that bots must ignore an available railgun. That test
+  now checks the fist combo with an empty pickup, matching the new contract.
+- Production build and real browser host/guest/hot join/departure passed with
+  selected relay/relay routes and no browser errors. Actual rendered weapon
+  seeking, safe double jump/pickup and 25-second stranded survival were checked.
+  Seven desktop tests and the Windows executable smoke passed. Final CI and
+  publication verification follow. No new dependencies, wire state or Pi changes.
+- External QA: `../bonk-club-qa/bot-survival-browser.mjs`, its JSON and screenshots;
+  staged online evidence is in the worktree's ignored `desktop/test-results/`.
+  No observer hooks or fixture server are shipped. Port 5477 was stopped.
+
 ## Unified Play lobby - 12 September 2026
 
 - v0.25.0, protocol 49. Refresh every player and create a new room.

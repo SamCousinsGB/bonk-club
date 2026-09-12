@@ -11,6 +11,7 @@ function islands(weapon, separation = 1200) {
     { id: "left", x: 100, y: 1200, w: 130, h: 24 },
     { id: "right", x: 100 + separation, y: 1200, w: 400, h: 24 },
   ];
+  if (weapon === "blackhole") Object.assign(world.platforms[0], {x:0, w:230});
   Object.assign(world.players[0], { x: 185 + separation, y: 1170, ground: true, support: "right" });
   Object.assign(world.players[1], {
     x: 185, y: 1170, ground: true, support: "left", weapon,
@@ -28,8 +29,11 @@ function advance(world, seconds, observe = () => {}) {
 
 for (const [weapon, separation] of [["barrage", 1250], ["saw", 1400], ["railgun", 2100], ["blaster", 1700],
   ["flame",1200],["repulsor",1200],["jelly",1200],["midas",1200],["tangle",1200]]) {
-  test(`${weapon} AI fires across a destroyed gap without waiting for a safe recoil stance`, () => {
+  test(`${weapon} AI fires across a destroyed gap from a safe recoil stance`, () => {
     const world = islands(weapon, separation);
+    world.platforms[0].x = 0;
+    world.platforms[0].w = 700;
+    world.players[1].x = 600;
     const ammo = world.players[1].ammo;
     let firingDistance = 0;
     advance(world, 3.5, w => {
@@ -37,7 +41,8 @@ for (const [weapon, separation] of [["barrage", 1250], ["saw", 1400], ["railgun"
         firingDistance = Math.abs(w.players[0].x - w.players[1].x);
     });
     assert.ok(world.players[1].ammo < ammo || world.events.some(e => e.type === "shoot"));
-    assert.ok(firingDistance > separation - 150, `engaged at ${firingDistance}`);
+    assert.ok(firingDistance > separation - 500, `engaged at ${firingDistance}`);
+    assert.equal(world.players[1].alive, true);
   });
 }
 
@@ -86,20 +91,20 @@ for (const weapon of ["bat"]) {
   });
 }
 
-test("stranded unarmed AI attempts a double jump toward its opponent even if the gap is fatal", () => {
+test("stranded unarmed AI survives a stalemate instead of jumping into a fatal gap", () => {
   const world = islands(null);
   let crossedEdge = false, airJump = false;
-  advance(world, 8, w => {
+  advance(world, 25, w => {
     const bot = w.players[1];
     crossedEdge ||= bot.x > 250 && !bot.ground;
     airJump ||= bot.jumps === 2;
   });
-  assert.ok(crossedEdge, "leave the isolated ledge toward the opponent");
-  assert.ok(airJump, "try the second normal jump instead of giving up in midair");
-  assert.equal(world.players[1].alive, false, "a failed jump is allowed to end the stand-off");
+  assert.equal(crossedEdge, false, "waiting is preferable to a deliberate fatal drop");
+  assert.equal(airJump, false);
+  assert.equal(world.players[1].alive, true);
 });
 
-test("stuck AI walks out from under a low ceiling before attempting its risky jump", () => {
+test("stuck AI walks out from under a low ceiling to find a safe jump", () => {
   const world = islands(null);
   world.platforms[0].w = 450;
   world.platforms.push({ id: "roof", x: 100, y: 1090, w: 300, h: 25 });

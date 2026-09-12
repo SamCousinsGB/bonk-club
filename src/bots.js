@@ -214,9 +214,65 @@ export class BotController {
           i.jump = !p.jumpHeld;
           b.input.jump = false;
         }
+        this.protectFooting(world, p, b, i, solids, here);
         inputs[p.id] = i;
       }
     return inputs;
+  }
+  protectFooting(world, p, b, i, solids, here) {
+    // Run after every override, on every physics tick, including held controls
+    // between decisions. Navigation may still be rebuilding after destruction.
+    if (b.flight && !solids.some(s => s.id === b.flight.to && s.hp !== 0)) {
+      b.flight = null;
+      b.think = 0;
+      i.jump = false;
+    }
+    if (!p.ground || !here || b.flight || b.recovery) return;
+    const span = walkingSpan(here, solids);
+    const margin = Math.min(18, span.w / 4);
+    const left = span.x + margin, right = span.x + span.w - margin;
+    const dir = Number(i.right) - Number(i.left);
+    // A dodge is a controlled jump with a checked landing, just like traversal.
+    if (i.jump) {
+      const landing = clamp(p.x + dir * 160, left, right);
+      const flight = traceFlight(solids, here, p.x, dir, 1, .38,
+        world.time, world.spikes(), p.vx, landing, true);
+      if (flight) {
+        b.flight = {...flight, started:world.time};
+        i.attack = false; i.block = false; i.duck = false;
+        return;
+      }
+      i.jump = false;
+    }
+    // Melee impulses outlive an attack; account for their protected momentum
+    // before starting a punch, kick, finisher or weapon swing beside a drop.
+    if (i.attack && (!p.weapon || WEAPONS[p.weapon]?.kind === "melee") && !p.prone) {
+      const boost = p.weapon ? 260 : COMBO[p.comboTime > 0 ? p.comboStep : 0].boost;
+      const vx = clamp(p.vx + Math.cos(i.aim ?? 0) * boost, -620, 620);
+      const end = p.x + vx * .23 + Math.sign(vx) * vx * vx / 3000;
+      if (end < left || end > right) i.attack = false;
+    }
+    if (i.attack && p.weapon && WEAPONS[p.weapon]?.kind !== "melee") {
+      const recoil = firingRecoil(WEAPONS[p.weapon], p);
+      const kick = -Math.cos(i.aim ?? 0) * recoil;
+      const vx = p.vx + kick * (p.vx * kick > 0 ? clamp(1 - Math.abs(p.vx) / 1100, 0, 1) : 1);
+      const end = p.x + vx * Math.min(.42, .16 + recoil / 2000) + Math.sign(vx) * vx * vx / 3000;
+      if (recoil && (end < left || end > right)) {
+        i.attack = false;
+        Object.assign(i, steer(p, clamp(p.x - Math.sign(kick) * 100, left + margin, right - margin)));
+      }
+    }
+    // Adjacent walkable cable tiles have a sloping top, so preserve a verified
+    // walking connection while checking that its next tile still exists.
+    if (b.edge?.kind === "walk" && solids.some(s => s.id === b.edge.to && s.hp !== 0)) return;
+    const momentum = p.recoilTime > 0 || p.impactTime > 0 || p.rush > 0;
+    const acceleration = 1500 * (momentum ? .22 : 1) * (p.oiled > 0 ? .24 : 1);
+    const vx = p.vx + (Number(i.right) - Number(i.left)) * acceleration / 120;
+    const stop = p.x + vx * .035 + Math.sign(vx) * vx * vx / (2 * acceleration);
+    if (stop < left || stop > right) {
+      Object.assign(i, steer(p, clamp(p.x, left + margin, right - margin)));
+      i.jump = false;
+    }
   }
   decide(world, p, b, solids, here) {
     const i = idle(),
@@ -350,7 +406,7 @@ export class BotController {
       destination = choice.floor,
       path = choice.path;
     // Commit to a useful, reachable pickup; avoid repeatedly swapping similar weapons.
-    if ((range > (melee ? 240 : 220) || Math.abs(enemy.y-p.y)>100) && !b.flight) {
+    if ((!p.weapon || range > (melee ? 240 : 220) || Math.abs(enemy.y-p.y)>100) && !b.flight) {
       const upgrades = world.drops
         .filter(
           (d) =>
@@ -369,16 +425,17 @@ export class BotController {
             path,
             value,
             score:
-              (path?.cost ?? 100) + distance(p, d) / RUN_SPEED - value * 0.4,
+              (path?.cost ?? 100) + distance(p, d) / RUN_SPEED - value * 0.4 +
+              (WEAPONS[d.type]?.kind === "melee" ? 2 : 0),
           };
         })
         .filter(
           (d) =>
             d.path &&
-            d.path.cost < (melee ? 10 : 7) &&
-            (melee ? WEAPONS[d.d.type].kind !== "melee" : d.value > weapon.value + 2) &&
-            distance(p, d.d) <
-              (melee ? Math.min(900, Math.max(400,range * 0.8)) : 1100),
+            (!p.weapon || (d.path.cost < (melee ? 10 : 7) &&
+              (melee ? WEAPONS[d.d.type]?.kind !== "melee" : d.value > weapon.value + 2) &&
+              distance(p, d.d) < (melee ? Math.min(900, Math.max(400,range * 0.8)) : 1100))) &&
+            !world.spikes().some(s => d.d.x > s.x - 20 && d.d.x < s.x + s.w + 20 && Math.abs(d.floor.y - s.y) < 40),
         )
         .sort((a, b) => a.score - b.score);
       const upgrade = upgrades.find(u=>u.d===b.pickup && world.time<b.pickupUntil) || upgrades[0];
@@ -394,6 +451,19 @@ export class BotController {
           i.aim = -Math.PI / 2;
         }
       }
+    }
+    const fetching = goal !== enemy;
+    if (fetching) {
+      b.recovery = null;
+      if (!p.weapon) i.attack = false;
+    } else {
+      b.pickup = null;
+    }
+    // A gun can engage across a gap from its current footing. Do not take an
+    // unrelated route off that firing position merely to reach the enemy's floor.
+    if (!fetching && weapon.speed && !obstacle && range < weapon.range && here) {
+      destination = here;
+      path = paths.get(here.id);
     }
     let moveTo = goal.x,
       edge = path?.edge;
@@ -491,6 +561,17 @@ export class BotController {
       }
     }
     Object.assign(i, steer(p, moveTo));
+    if (fetching && !p.weapon && !b.flight) {
+      const direction = Math.sign(moveTo - p.x);
+      const blocker = world.players.find(q => q.alive && q.id !== p.id &&
+        distance(p, q) < weapon.range && Math.abs(q.y - p.y) < 45 &&
+        ((q.x - p.x) * direction > 0 || q.swing > 0) &&
+        !firstObstacle(solids, p, {x:q.x, y:q.y - 10}));
+      if (blocker) {
+        i.attack = true;
+        i.aim = Math.atan2(blocker.y - p.y, blocker.x - p.x);
+      }
+    }
     if (
       !weapon.speed &&
       goal === enemy &&
@@ -576,10 +657,9 @@ export class BotController {
       b.think = 0;
       b.stuck = 0;
     }
-    // A destroyed map may have no safe path at all. Once attacking and ordinary
-    // routes stop making progress, commit to an exploratory jump/drop. A failed
-    // landing is preferable to two survivors waiting forever on separate islands.
-    if (!b.flight && !ride && p.ground && staleAttack && !b.recovery &&
+    // Explore only flights with a real landing. A stale fight is never a reason
+    // to jump into a fatal gap; wait for a reachable pickup or a changed route.
+    if (!b.flight && !ride && !fetching && p.ground && here && staleAttack && !b.recovery &&
         (world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
       const attempt = b.recoveryAttempts || 0;
       let direction = Math.sign(enemy.x - p.x) || (p.id % 2 ? 1 : -1);
@@ -591,7 +671,13 @@ export class BotController {
           Math.abs(p.x - right) + Math.abs(enemy.x - right) * 0.25 ? -1 : 1;
       }
       if (attempt % 2) direction *= -1;
-      b.recovery = { dir: direction, until: world.time + 2.4, jumpAt: null };
+      const landing = [direction, -direction].flatMap(dir => [1, 2].map(jumps =>
+        traceFlight(solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
+        .find(Boolean);
+      if (landing) b.flight = {...landing, started:world.time};
+      else if (roof) Object.assign(i, steer(p, clamp(direction < 0 ? roof.x - 45 : roof.x + roof.w + 45,
+        footing.x + 24, footing.x + footing.w - 24)));
+      b.approachAt = world.time;
       b.recoveryAttempts = attempt + 1;
       if (edge) b.failures.set(edge.key, world.time + 9);
     }
@@ -776,6 +862,23 @@ export class BotController {
     }
     if (!hazard && b.fallRecovery && !p.ground && !b.flight && world.time < b.fallRecovery.until) {
       Object.assign(i,steer(p,b.fallRecovery.x));i.attack=false;
+    }
+    // A last-ditch leap is reserved for a nuclear fuse that will destroy every
+    // standing/jumping position on this ledge. Try a verified escape first.
+    if (p.ground && here && !b.flight && !b.recovery) {
+      const doom = world.projectiles.find(s => s.nuclear && s.kind === "grenade" &&
+        s.life > 0 && s.life < .9 && Math.abs(s.vx) < 80 && Math.abs(s.vy) < 80 &&
+        [footing.x + 18, footing.x + footing.w - 18].every(x =>
+          Math.hypot(x - s.x, p.y - 260 - s.y) < s.radius - 30));
+      if (doom) {
+        const direction = Math.sign(p.x - doom.x) || Math.sign(enemy.x - p.x) || 1;
+        const escape = [direction, -direction].flatMap(dir => [1, 2].map(jumps =>
+          traceFlight(solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
+          .find(f => f && Math.hypot(f.endX - doom.x,
+            solids.find(s => s.id === f.to).y - 30 - doom.y) > doom.radius + 30);
+        if (escape) b.flight = {...escape, started:world.time};
+        else b.recovery = {dir:direction, until:world.time + 2.4, jumpAt:null};
+      }
     }
     if (b.recovery) {
       const recovery = b.recovery;
