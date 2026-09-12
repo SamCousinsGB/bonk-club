@@ -13,6 +13,7 @@ const palettes = {
   hospital:["bed","trolley","cabinet"],atrium:["trolley","planter","bed"],
   arctic:["generator","crate","barrel"],volcano:["stone","generator","barrel"],
   factory:["pallet","generator","barrel"],port:["crate","pallet","barrel"],
+  transmission:["generator","pallet","crate"],
 };
 export const fixtureBounds = t => {
   const half = t.type === "pendulum" ? Math.max(t.w/2, (t.h-35)*.76+36) : t.w/2;

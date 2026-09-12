@@ -21,7 +21,7 @@ export const FURNACE_ARENA = dressArena({
     deck(480, 450, 300), deck(1780, 450, 300),
     deck(850, 1420, 860, 20),
   ],
-  spawns: [[360, 1198], [2200, 1198], [390, 618], [2170, 618]],
+  spawns: [[280, 1198], [2280, 1198], [390, 618], [2170, 618]],
   cover: [], weapons: [], spikes: [], hazards: ["furnace", "slag"],
   traps: [
     { type: "furnace", x: 1280, y: 1000, w: 460, h: 1250, dir: 1 },

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.22.0",
-  "releaseNotes": "Capes, textured finishes, movement trails and new headwear in Character customisation",
+  "version": "0.24.0",
+  "releaseNotes": "Arc furnace arena with dancing cables, electrical surges and molten metal",
   "private": true,
   "type": "module",
   "scripts": {

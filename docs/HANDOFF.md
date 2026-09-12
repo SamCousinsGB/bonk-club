@@ -2,6 +2,39 @@
 
 Updated 12 September 2026. Read the root `AGENTS.md` first.
 
+## Transmission Towers - 12 September 2026
+
+- Release **v0.23.0**, protocol **44**. Refresh all players' tabs and create a
+  new room. Integrated in `../bonk-club-qa/transmission-release` on
+  `codex/transmission-towers`, retaining main's survival arenas, shared desktop
+  platform and cosmetics. Canonical checkout changes remain uncommitted alongside
+  its other work; the release worktree is the integrated source of this release.
+- Added Transmission Towers to the arena selector and full rotation: two open
+  steel pylons, staggered climbing platforms, two sagging solid cable crossings,
+  equal starter runs and four reachable contested pickup sites. Steel/cable
+  surfaces resist bullets and use the existing circular terrain destruction.
+- Wires start safe and switch together every seven seconds, with a one-second
+  amber warning before energizing. Live wires reuse Tesla's animated arc renderer
+  and apply host-only 70-damage contact shocks, at most once per fighter per
+  0.8 seconds per circuit. Elevated air outside the cable is safe. Electrical
+  deaths use the existing physical skeleton effect.
+- Cable and insulator-mount damage opens its circuit until round reset. Nukes
+  cut the affected platforms, rear lattice and cable, preserving the opposite
+  tower and background outside the blast. Remaining unpowered cable is still
+  physical. Guest snapshots, interpolation and hot join retain cuts and timing.
+- Source QA: real Edge host/guest controls crossed the safe wire, transmitted
+  live shocks and nuclear destruction; a third browser hot joined the aftermath.
+  Terrain matched at the transport's 0.01-unit precision and all three browsers
+  selected relay/relay candidates. Actual safe/live/nuke frames inspected; no
+  page errors. These are one-PC relay checks, not a cross-ISP measurement.
+- Eight focused regressions cover timing, both crossing directions, contact and
+  electrical death, prediction authority, phase gates, explosion/nuke cuts,
+  reset, snapshot round trips, interpolation and malformed wire fields. The
+  integrated map/hazard/network/render/cosmetic checks passed 76 tests.
+- External QA: `../bonk-club-qa/transmission-*`. No debug hooks, dependencies,
+  desktop-shell changes or Pi configuration changes are part of this feature.
+  Final full-suite and publication verification are recorded below when complete.
+
 ## Character cosmetics - 12 September 2026
 
 - Release **v0.22.0**, protocol **43**. Refresh every player before creating a room.
@@ -35,7 +68,29 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   exposes a DOM QA report. Its development proxy supplies the normal public Origin
   for signaling/temporary ICE requests. None of that observer is in the release.
   Full test log: `../bonk-club-qa/cosmetics-tests.log`. Publication verification
-  follows below; do not report the initial local v0.19.0/protocol41 fixture as live.
+  is recorded below; initial local v0.19.0/protocol41 fixtures were never published.
+
+- **Published and verified:** v0.22.0, protocol 43, gameplay revision
+  `30801b7a78effefda807a318991cbb265f06c581`. Release workflow
+  [34697523471](https://github.com/SamCousinsGB/bonk-club/actions/runs/34697523471)
+  passed shared/server tests, Windows and Linux unit/executable/package checks,
+  matching revision/version/source manifests, and Pages deployment.
+- Final integrated local suite: **822 tests passed**; 39 focused cosmetic,
+  identity and network tests also passed after advancing the shared protocol.
+  The final tooltip fix was checked in the exact production bundle and CI.
+- All **17 public files** match the clean tested build and CI artifact by SHA-256.
+  JS: `index-2F57jmJv.js`; CSS: `index-B58EEvZH.css`; shared source fingerprint:
+  `8f675383954b04a0825f1c3048da4138b85c0ceeb2eefecb4504a2182dca057a`.
+  Exact clean build: `../bonk-club-qa/cosmetics-build`; downloaded CI artifact:
+  `../bonk-club-qa/cosmetics-ci`; parity record: `../bonk-club-qa/cosmetics-live-parity.json`.
+- The unmodified public game passed cosmetic selection, solo start, real host/
+  guest start, hot join into a nuclear-damaged arena, round continuation and leave.
+  Public diagnostics showed protocol 43 and a selected direct host/host connection;
+  the earlier three-browser source test selected relay/relay at every end.
+  Actual rendered editor/gameplay and 390px layout were inspected; saved selections
+  survived reload and reduced motion rendered a static preview. No final page errors.
+- Only this task's servers on 5405/5406/5407/5408/5409 were stopped. External QA
+  observers never entered the shipped bundle. Refresh all players before joining.
 
 
 ## Shared releases and Steam platform preparation - 12 September 2026
@@ -58,15 +113,28 @@ Updated 12 September 2026. Read the root `AGENTS.md` first.
   grant methods. Editable preferences/profile data cannot carry earned state.
   No XP, levels, inventory, Steam identity, native binding or managed backend is
   enabled. Strong progression needs trusted outcome verification, not P2P reports.
-- Initial verification: 796 game tests plus the new release-metadata test pass,
-  seven desktop and three server tests pass. Windows executable smoke covers the
-  setup gate, no browser-service requests, offline solo, saves and controls.
-  Windows packaging passes. Three real Edge contexts pass host/guest/hot join
-  through selected public relay routes; screenshots inspected and no page errors.
-  These are one-machine browser tests, not Steam or cross-ISP proof.
+- Released as **v0.21.0**, protocol **42**, at
+  `693eef6085bb07e97f7398a69f91bc4bb7e3d895`. Unified Actions run
+  [34697008362](https://github.com/SamCousinsGB/bonk-club/actions/runs/34697008362)
+  passed all 817 shared tests, three server tests, seven desktop tests on each
+  OS, executable smoke, native packaging, shared-source verification and Pages
+  publication. Both OS smoke results show the Steam setup gate, zero browser
+  service requests, offline solo, saved preferences after restart and no errors.
+- All 17 published browser files matched the exact CI artifact by SHA-256.
+  The published game passed host/guest controls, hot join and host departure in
+  three real Edge contexts with selected public relay/relay routes. Actual
+  gameplay and desktop setup screens were inspected. These are one-machine
+  browser tests, not Steam or cross-ISP proof.
+- Downloaded Windows/Linux archives match every packaged manifest hash (74/73
+  files respectively); Linux executable bits and licence notices are preserved.
+  Both packages have no Steam app ID. Evidence is in
+  `../bonk-club-qa/steam-platform-ci`; local/live browser results are in the
+  worktree's ignored `desktop/test-results` directory. The verified shared source
+  hash is `729cc57732f3c1d44b43f1cd8598e7d64c589cc04f8de063e02df3c245f08347`.
 - Work is isolated in `../bonk-club-qa/steam-platform-foundation` on
   `codex/steam-platform-foundation` to preserve the canonical checkout's unrelated
-  gameplay edits. Publication and final CI evidence will be added below.
+  gameplay edits. Subsequent releases already build on this foundation; retain
+  newer gameplay when integrating it and do not restore protocol 42 over them.
 
 ## Sustained Tesla arcs - 12 September 2026
 
