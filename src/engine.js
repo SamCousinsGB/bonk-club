@@ -1,5 +1,7 @@
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
+import { trainBox } from "./trains.js";
+import { TRAIN_ARENA, FOUNDRY_ARENA } from "./setpiece-arenas.js";
 import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
 import { ASSEMBLY_ARENA } from "./assembly-arena.js";
@@ -78,7 +80,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -564,7 +566,7 @@ export class World {
     }
   }
   move(p, i, dt) {
-    const solids = this.solids(p);
+    let solids = this.solids(p);
     const boxBefore=playerBox(p);p.spikeY=boxBefore.y+boxBefore.h;
     const support = p.ground && solids.find((s) => s.id === p.support);
     if (support) {
@@ -606,6 +608,14 @@ export class World {
       moveKnocked(p,solids,dt);return;
     }
     if (p.ground) p.airLunge = false;
+    p.dropThrough = Math.max(0, (p.dropThrough || 0) - dt);
+    const thin = s => s.oneWay || s.material === "cable";
+    if (i.duck && !p.freeze && p.stun <= 0 && support && thin(support)) {
+      p.dropThrough = .22; p.ground = false; p.support = null; p.coyote = 0;
+      p.vy = Math.max(p.vy, 160);
+    }
+    if (p.dropThrough > 0 || i.duck && !p.freeze && p.stun <= 0)
+      solids = solids.filter(s => !thin(s));
     const prone = !!i.duck;
     if (prone !== p.prone) {
       // Keep the feet fixed even when a hit has just cleared ground/support.
@@ -614,7 +624,7 @@ export class World {
       const y = p.y + (prone ? 20 : -20),
         radius = prone ? 34 : 15, bottom = prone ? 10 : 30, top = prone ? 10 : 28;
       // Validate the entire new body, including headroom and prone width.
-      if (!solids.some(s => p.x + radius > s.x && p.x - radius < s.x + s.w &&
+      if (!solids.some(s => !thin(s) && p.x + radius > s.x && p.x - radius < s.x + s.w &&
           y + bottom > s.y && y - top < s.y + s.h)) {
         p.y = y;
         p.prone = prone;
@@ -695,7 +705,7 @@ export class World {
       // so walking up the sag does not hit the side of the next tiny segment.
       const landing = oldY + bottom <= s.y - surfaceDy + (s.material === "cable" ? 10 : 3) &&
         p.y + bottom > s.y && (s.material === "cable" ? incomingVy >= 0 : p.vy * dt >= surfaceDy);
-      if (s.material === "cable" && !landing) continue;
+      if ((s.oneWay || s.material === "cable") && !landing) continue;
       if (
         p.x + radius <= s.x ||
         p.x - radius >= s.x + s.w ||
@@ -1315,7 +1325,10 @@ export class World {
       if (b.kind === "duck") b.vy += 380 * dt;
       const endX = x + b.vx * dt,
         endY = y + b.vy * dt;
-      const collisions = [...this.solids(),...furnaceHits(this)].map((s) => ({
+      const shotSolids = [...this.solids(), ...furnaceHits(this)];
+      for (const h of this.hazards) if (h.type === "train" && h.active && !h.done)
+        shotSolids.push({ ...trainBox(h), id: `train${h.id}`, material: "metal" });
+      const collisions = shotSolids.map((s) => ({
         s,
         hit: segmentBox(x, y, endX, endY, s, b.r),
       }));

@@ -59,6 +59,7 @@ function elbow(a, b, l1, l2, side) {
   ];
 }
 export function updateRig(p, dt, platforms, time) {
+  if (p.dropThrough > 0) platforms = platforms.filter(s => !s.oneWay && s.material !== "cable");
   if (!p.rig) p.rig = makeRig(p);
   if(p.knockdown>0)return;
   if(p.freeze>0 && p.freezePose) {

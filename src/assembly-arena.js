@@ -1,4 +1,4 @@
-const deck = (x, y, w, h = 24, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
+const deck = (x, y, w, h = 24, extra = {}) => ({ x, y, w, h, material: "metal", ...(h === 24 ? {oneWay:true} : {}), ...extra });
 export const LINE_Y = 1190;
 export const LINE_CYCLE = 8;
 export const LINE_PITCH = 600;

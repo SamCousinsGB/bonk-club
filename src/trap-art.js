@@ -1,3 +1,4 @@
+import { drawTrain, drawLadle } from "./setpiece-art.js";
 import { drawTurbine } from "./turbine-art.js";
 import { drawFurnaceFixture } from "./furnace-art.js";
 import { isScanner } from "./scanner.js";
@@ -33,6 +34,8 @@ export function drawHazards(c,hazards,time,theme,layer="all",reduced=false){
   for(const h of hazards||[]){
     if(h.done)continue;
     if(h.assemblyStation)continue;
+    if(h.type==="ladle"){if(layer!=="front")drawLadle(c,h,time,reduced);continue;}
+    if(h.type==="train"){if(layer!=="front")drawTrain(c,h,time,reduced);continue;}
     if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced);continue;}
     if(h.type==="powerline")continue;
     if(h.type==="turbine"){if(layer!=="front")drawTurbine(c,h,reduced,time);continue;}

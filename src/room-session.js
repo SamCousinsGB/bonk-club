@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 57;
+export const PROTOCOL = 58;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -826,6 +826,7 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) && validReactionObject(p) &&
+        (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
         (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&
@@ -867,6 +868,8 @@ export function validSnapshot(s) {
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
+        (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
+        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 980 && h.h === 150 && h.y === 1060 && h.x === 1280 && Math.abs(h.bodyX) <= 5000)) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 3) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
           integer(h.assemblyWork, 0, 10000000) &&
@@ -879,13 +882,13 @@ export function validSnapshot(s) {
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= (h.type === "turbine" ? 500 : h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
+        h.w <= (h.type === "train" ? 980 : h.type === "turbine" ? 500 : h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
         (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
         (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
         (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&
         (h.motionPhase === undefined || (h.type === "saw" && finite(h.motionPhase) && Math.abs(h.motionPhase) <= Math.PI)) &&
         h.h > 0 &&
-        h.h <= (h.type === "furnace" ? 1300 : 300) &&
+        h.h <= (h.type === "furnace" ? 1300 : h.type === "ladle" ? 760 : 300) &&
         h.warning >= 0 &&
         h.warning <= 2 &&
         h.age >= 0 &&

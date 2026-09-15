@@ -1,4 +1,4 @@
-const deck = (x, y, w, h = 20, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
+const deck = (x, y, w, h = 20, extra = {}) => ({ x, y, w, h, material: "metal", ...(y < 1140 ? {oneWay:true} : {}), ...extra });
 export const TURBINE_RADIUS = 246;
 export const TURBINE_ARENA = {
   name: "TURBINE HALL", theme: "turbine", color: "#152b34", turbine: true,

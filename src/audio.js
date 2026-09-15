@@ -203,7 +203,7 @@ export class Sound {
       return;
     }
     const swing = ['bat', 'sword', 'hammer', 'powerfist'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
-    const name = { hazard: detail.kind === 'tesla' ? 'tesla' : 'burn', parry: 'parry', swing, throw: 'whoosh',
+    const name = { hazard: ['train','train-warning'].includes(detail.kind) ? detail.kind : detail.kind === 'tesla' ? 'tesla' : 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];
     if (name) this.sample(name, detail);
   }

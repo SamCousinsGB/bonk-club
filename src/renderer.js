@@ -1,4 +1,5 @@
 import { drawTurbineHall, drawTurbineBed } from "./turbine-art.js";
+import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
@@ -414,6 +415,14 @@ export class Renderer {
   platform(p, time) {
     if (p.hp === 0) return;
     if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
+    if (p.oneWay) {
+      const c=this.ctx;
+      c.fillStyle="#263945";c.fillRect(p.x,p.y,p.w,p.h);
+      c.fillStyle="#c2d5d6";c.fillRect(p.x,p.y,p.w,3);
+      c.fillStyle="#91a8ac";
+      for(let x=p.x+5;x<p.x+p.w-3;x+=14)c.fillRect(x,p.y+5,3,Math.max(1,p.h-5));
+      return;
+    }
     if (p.material === "cable") {
       const c=this.ctx;c.fillStyle="#263641";c.fillRect(p.x,p.y,p.w,p.h);
       c.fillStyle="#a1b0b6";c.fillRect(p.x,p.y,p.w,2);return;
@@ -909,6 +918,7 @@ export class Renderer {
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
         if (arena.turbine) drawTurbineHall(layer.getContext("2d"));
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
+        if (arena.setpiece) drawSetpieceHall(layer.getContext("2d"),arena);
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);
@@ -955,6 +965,7 @@ export class Renderer {
     c.restore();
     for (const p of state.platforms) if (p.move || p.travel) this.platform(p,time);
     if (arena.assembly) drawAssembly(c, state, this.reduced);
+    if (arena.theme === "railway") drawTrack(c,state);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);

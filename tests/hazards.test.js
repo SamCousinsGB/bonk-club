@@ -7,6 +7,10 @@ import { validSnapshot } from "../src/network.js";
 import { combatFloor } from "./helpers.js";
 import { TOWER_MOUNTS } from "../src/cable-layout.js";
 function lab(type="geyser") {
+ if (["train","ladle"].includes(type)) {
+  const w=new World({arena:ARENAS.findIndex(a=>a.theme===(type==="train"?"railway":"foundry")),players:[0,1],shuffle:false});w.phase="fight";
+  const h=w.hazards.find(h=>h.type===type);w.hazards=[h];return {w,h,p:w.players[0]};
+ }
  const w=new World({random:()=>.5,shuffle:false});combatFloor(w);w.phase="fight";
  w.arena={...w.arena,traps:[{type,x:650,y:565,w:type==="conveyor"?300:120,h:type==="conveyor"?20:230,dir:1}]};
  w.hazards=createHazards(w);const h=w.hazards[0];
@@ -54,7 +58,7 @@ test("destroying a fixture mounting floor disables it",()=>{
  const {w,h,p}=lab();w.platforms[0].hp=0;h.active=true;advance(w,1);assert.ok(h.done);assert.equal(p.hp,100);
 });
 test("every arena has fixed, varied traps away from spawns",()=>{
- const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length>=2,a.name);
+ const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length >= (a.theme === "railway" ? 1 : 2),a.name);
  for(const h of a.traps){kinds.add(h.type);
  if(h.type==="powerline")assert.ok(TOWER_MOUNTS[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
  else assert.ok(a.platforms.some(p=>p.y===h.y&&p.x<=h.x&&p.x+p.w>=h.x));

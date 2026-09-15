@@ -3,7 +3,7 @@ import { TOWER_LEVELS, TOWER_MOUNTS, TOWER_BASE } from "./cable-layout.js";
 
 export const POWER_INTERVAL = 7;
 export const WIRE_LEFT = TOWER_MOUNTS[0][0].x, WIRE_RIGHT = TOWER_MOUNTS[0][1].x;
-const deck = (x,y,w,h=20,extra={}) => ({x,y,w,h,material:"metal",...extra});
+const deck = (x,y,w,h=20,extra={}) => ({x,y,w,h,material:"metal",...(h === 20 ? {oneWay:true} : {}),...extra});
 const platforms = [deck(30,TOWER_BASE,960,36),deck(1570,TOWER_BASE,960,36)];
 // Access gaps beside the tower bodies leave room to climb and drop between
 // levels without trapping fighters beneath the broad cross-arms.

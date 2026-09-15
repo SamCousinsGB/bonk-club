@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.35.1",
-  "releaseNotes": "Improved bot routes, firing decisions, hazard avoidance and recovery from stalemates",
+  "version": "0.36.0",
+  "releaseNotes": "Bullet Train and Scrap Foundry arenas; hold down to drop through thin platforms and wires",
   "private": true,
   "type": "module",
   "scripts": {

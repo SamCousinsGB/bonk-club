@@ -119,7 +119,7 @@ export function traceFlight(
       // A conductor is tiled only to follow its curve. Trace the tile beneath
       // the feet, rather than rejecting an overlapping neighbour's narrow edge.
       if (p.material === "cable" && (x < p.x || x > p.x + p.w)) continue;
-      if (p.material === "cable" && (vy < 0 || oldY + 30 > p.y + 10)) continue;
+      if ((p.oneWay || p.material === "cable") && (vy < 0 || oldY + 30 > p.y + (p.material === "cable" ? 10 : 3))) continue;
       if (
         x + 15 <= p.x ||
         x - 15 >= p.x + p.w ||

@@ -1,6 +1,6 @@
 // Host-authored movement state needed to replay unacknowledged controls. These
 // values never arrive from a guest; positions, hits and world state stay on host.
-const numbers = ["coyote", "jumpBuffer", "stun", "impactTime", "angularVelocity",
+const numbers = ["dropThrough", "coyote", "jumpBuffer", "stun", "impactTime", "angularVelocity",
   "landing", "gaitSpeed", "cooldown", "pickupCooldown"];
 const flags = ["jumpHeld", "blockHeld", "airLunge", "throwHeld"];
 export function motionState(p) {
@@ -9,6 +9,7 @@ export function motionState(p) {
 }
 export function validMotion(m) {
   return m && numbers.every(k => Number.isFinite(m[k]) && Math.abs(m[k]) <= 10000) &&
+    m.dropThrough >= 0 && m.dropThrough <= .22 &&
     flags.every(k => typeof m[k] === "boolean") &&
     (m.support === null || typeof m.support === "string" && m.support.length <= 160);
 }

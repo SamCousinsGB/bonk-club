@@ -9,7 +9,7 @@ const simulationOnly = new Set([
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
-  "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
+  "dropThrough", "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
 ]);
 const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas", "spills"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
@@ -110,6 +110,7 @@ export function interpolateStates(a, b, t, mode = "all") {
     });
     out.hazards = b.hazards.map(h => {
       const old = a.hazards.find(q => q.id === h.id);
+      if (h.type === "train" && (old?.active !== h.active || old?.dir !== h.dir)) return h;
       return h.type === "furnace" ? h : old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
     });
     out.cables = (b.cables || []).map(c => {
