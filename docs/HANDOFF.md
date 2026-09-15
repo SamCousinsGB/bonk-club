@@ -45,7 +45,7 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 
 ## Bullet Train, Scrap Foundry and drop-through platforms - 15 September 2026
 
-- v0.35.0 / protocol 57. Refresh all players and create a new room.
+- v0.36.0 / protocol 58. Refresh all players and create a new room.
 - Bullet Train runs at 2,000 units/second, alternates direction every eleven
   seconds, and warns for two seconds. Upper walkways or a timed double jump clear
   it. Swept contacts launch physical remains, props and weapons; shots hit the
