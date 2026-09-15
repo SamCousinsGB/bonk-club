@@ -132,7 +132,9 @@ test("a projectile dodge on a narrow ledge lands back on solid ground", () => {
   advance(w, 2, () => {jumped ||= w.players[1].jumps > 0;});
   assert.ok(jumped, "the safety check must preserve a useful dodge");
   assert.equal(w.players[1].alive, true);
-  assert.equal(w.players[1].support, "floor0");
+  const ground = w.solids().find(s => s.id === w.players[1].support);
+  assert.ok(ground && ground.x >= 925 && ground.x + ground.w <= 1075,
+    "land on the original ledge or its surviving terrain after the rocket hits");
 });
 
 test("a gun with fatal recoil is held until the bot has room to fire", () => {

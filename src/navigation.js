@@ -1,9 +1,15 @@
 import { dangerous, hazardZone } from "./hazards.js";
+import { botDanger } from "./bot-danger.js";
 import { W, H, RUN_SPEED, JUMP_SPEED, AIR_JUMP_SPEED } from "./scale.js";
 
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const steer = (p, x) => {
+  // Let ground friction finish a stop. Countersteering a tiny residual speed
+  // for a whole decision interval makes a stationary bot oscillate forever.
+  if (p.ground !== false && Math.abs(x - p.x) < 8 && Math.abs(p.vx) < 100 &&
+      !(p.recoilTime > 0 || p.impactTime > 0 || p.oiled > 0 || p.ice))
+    return {left:false, right:false};
   const speed = clamp((x - p.x) * 6, -RUN_SPEED, RUN_SPEED);
   // Digital controls need to stay held at cruise speed. Releasing here applies
   // ground friction for an entire AI decision interval, causing a repeated shuffle.
@@ -47,6 +53,7 @@ export function traceFlight(
   initialVx = 0,
   landingX = null,
   allowReturn = false,
+  unsafe = null,
 ) {
   let x = startX,
     y = from.y - 30,
@@ -56,6 +63,7 @@ export function traceFlight(
     ground = !jumps,
     clearAt = jumps ? 0 : null;
   const dt = 1 / 60;
+  let leftDanger = !unsafe?.(x, y);
   const nearby = solids.filter(
     (p) =>
       (p.hp !== 0 &&
@@ -75,7 +83,7 @@ export function traceFlight(
     if (clearAt === null && (x + 15 < from.x || x - 15 > from.x + from.w))
       clearAt = age;
     const input =
-      landingX !== null && clearAt !== null ? steer({ x, vx }, landingX) : null;
+      landingX !== null && clearAt !== null ? steer({ x, vx, ground }, landingX) : null;
     const move = input ? Number(input.right) - Number(input.left) : dir;
     if (move)
       vx +=
@@ -91,6 +99,10 @@ export function traceFlight(
     y += vy * dt;
     ground = false;
     if (x < 18 || x > W - 18 || y > H - 20) return null;
+    // Escapes may begin in danger, but must leave it and never re-enter it.
+    const inDanger = unsafe?.(x, y);
+    if (inDanger && leftDanger) return null;
+    if (!inDanger) leftDanger = true;
     if (
       spikes.some(
         (s) =>
@@ -116,6 +128,7 @@ export function traceFlight(
       )
         continue;
       if (vy >= 0 && oldY + 30 <= p.y + 5) {
+        if (unsafe?.(x, p.y - 30)) return null;
         if (p.lethal) return null;
         if (raw.id === from.id) {
           if (jumps && !allowReturn) return null;
@@ -364,6 +377,7 @@ export function routesFrom(
       if ((failures.get(edge.key) || 0) > time) continue;
       const to = solids.find((p) => p.id === edge.to);
       if (!to) continue;
+      if (botDanger(hazards, edge.endX, to.y - 30)) continue;
       const danger = hazards.some(
         (h) =>
           dangerous(h) && Math.abs(edge.endX - (hazardZone(h).x+hazardZone(h).w/2)) < hazardZone(h).w/2 + 40 &&

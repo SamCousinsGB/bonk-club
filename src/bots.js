@@ -7,6 +7,7 @@ import { dangerous, hazardZone } from "./hazards.js";
 import { reactionDanger } from "./reactions.js";
 import { grenadePlan } from "./ballistics.js";
 import { survivalControls } from "./survival-ai.js";
+import { botDanger } from "./bot-danger.js";
 import {
   navigationSteps,
   traceFlight,
@@ -63,9 +64,24 @@ function firstObstacle(solids, p, point) {
     .filter((o) => o.hit)
     .sort((a, b) => a.hit.t - b.hit.t)[0]?.s;
 }
+function unsafePoint(world, x, y) {
+  return botDanger(world.hazards, x, y) || reactionDanger(world, x, y) ||
+    world.fields.some(f => f.kind === "blackhole" && Math.hypot(x-f.x,y-f.y) < f.radius + 30);
+}
+function recoilEnd(p, aim) {
+  const recoil = firingRecoil(WEAPONS[p.weapon], p);
+  const kick = -Math.cos(aim) * recoil;
+  const vx = p.vx + kick * (p.vx * kick > 0 ? clamp(1 - Math.abs(p.vx) / 1100, 0, 1) : 1);
+  return p.x + vx * Math.min(.42, .16 + recoil / 2000) + Math.sign(vx) * vx * vx / 3000;
+}
+function safeFlight(world, ...args) {
+  // All traversal, dodge and recovery takeoffs use the same live safety check.
+  while (args.length < 11) args.push(undefined);
+  return traceFlight(...args, (x,y) => unsafePoint(world,x,y));
+}
 // Find space to use a dangerous weapon, including across checked platform routes.
 // Score every opponent so backing away from one does not run into another.
-function firingPosition(world, p, enemy, weapon, paths, solids, here, aim) {
+function firingPosition(world, p, enemy, weapon, paths, solids, here, aim, force = false) {
   const desired = weapon.clearance + 80;
   const opponents = world.players.filter(q => q.alive && q.id !== p.id);
   const nearest = point => Math.min(...opponents.map(q => distance(point, q)));
@@ -74,15 +90,16 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim) {
   const impactShot = WEAPONS[p.weapon].kind !== "grenade";
   const obstruction = firstObstacle(solids, p, {x:enemy.x, y:enemy.y - 10});
   const blockedClose = obstruction && segmentBox(p.x, p.y - 10, enemy.x, enemy.y - 10, obstruction);
-  if (current > desired + 100 && !(impactShot && blockedClose && distance(p, enemy) * blockedClose.t < weapon.clearance)) return null;
+  if (!force && current > desired + 100 && !(impactShot && blockedClose && distance(p, enemy) * blockedClose.t < weapon.clearance)) return null;
   const options = [];
   for (const [id, path] of paths) {
     const s = solids.find(s => s.id === id);
     if (!s || s.hp === 0 || s.chunk) continue;
     const span = walkingSpan(s, solids);
-    const margin = Math.max(30, weapon.recoil * Math.abs(Math.cos(aim)) * .38 + 24);
-    if (span.w < margin * 2 + 10) continue;
-    const left = span.x + margin, right = span.x + span.w - margin;
+    const offset = recoilEnd({...p,x:0,vx:0,ground:true},aim);
+    const left = span.x + Math.max(30,-offset+30);
+    const right = span.x + span.w - Math.max(30,offset+30);
+    if (right < left + 10) continue;
     const y = s.y - 30;
     const dx = Math.sqrt(Math.max(0, desired * desired - (y - enemy.y) ** 2));
     for (const x of new Set([clamp(p.x,left,right), left, right,
@@ -100,6 +117,7 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim) {
       const hit = wall && segmentBox(x,y - 10,enemy.x,enemy.y - 10,wall);
       const clearance = distance(point,enemy) * (hit?.t ?? 1);
       const cost = Math.max(0,desired - separation) * 6 +
+        (force && wall && !breakable(wall) ? 1500 : 0) +
         (!impactShot && wall ? weapon.clearance * 3 : 0) +
         (impactShot
           ? Math.max(0,weapon.clearance - clearance) * 4 : 0) +
@@ -110,7 +128,7 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim) {
   }
   options.sort((a,b) => a.cost - b.cost || (p.id % 2 ? a.point.x - b.point.x : b.point.x - a.point.x));
   // A stranded bot still keeps the greatest available clearance on its ledge.
-  return options[0] || (here && {point:{x:p.x,y:p.y},s:here,path:paths.get(here.id)});
+  return options[0] || (!force && here && {point:{x:p.x,y:p.y},s:here,path:paths.get(here.id)});
 }
 function intercept(p, q, speed) {
   const dx = q.x - p.x,
@@ -238,13 +256,19 @@ export class BotController {
         b.think -= dt;
         if (b.think <= 0) {
           b.think = 0.08 + p.id * 0.006;
-          b.stuck = distance(p, b.last) < 3 ? b.stuck + b.think : 0;
-          b.last = { x: p.x, y: p.y };
+          // Count lack of useful progress, including shuffling back and forth.
+          // A deliberate stop to aim or wait for a hazard is not a failed route.
+          if (distance(p,b.last) >= 28) {
+            b.last = {x:p.x,y:p.y}; b.stuck=0;
+          } else if ((b.input.left || b.input.right) && !b.flight) b.stuck += b.think;
+          else b.stuck=0;
           for (const [key, expiry] of b.failures)
             if (expiry < world.time) b.failures.delete(key);
           b.input = this.decide(world, p, b, solids, here);
         }
         const i = { ...b.input, jump: false };
+        if (b.moveTo != null && !b.flight && !b.recovery)
+          Object.assign(i, steer(p, b.moveTo));
         if (b.flight) {
           const f = b.flight,
             age = world.time - f.started;
@@ -286,7 +310,7 @@ export class BotController {
     // A dodge is a controlled jump with a checked landing, just like traversal.
     if (i.jump) {
       const landing = clamp(p.x + dir * 160, left, right);
-      const flight = traceFlight(solids, here, p.x, dir, 1, .38,
+      const flight = safeFlight(world, solids, here, p.x, dir, 1, .38,
         world.time, world.spikes(), p.vx, landing, true);
       if (flight) {
         b.flight = {...flight, started:world.time};
@@ -306,11 +330,33 @@ export class BotController {
     if (i.attack && p.weapon && WEAPONS[p.weapon]?.kind !== "melee") {
       const recoil = firingRecoil(WEAPONS[p.weapon], p);
       const kick = -Math.cos(i.aim ?? 0) * recoil;
-      const vx = p.vx + kick * (p.vx * kick > 0 ? clamp(1 - Math.abs(p.vx) / 1100, 0, 1) : 1);
-      const end = p.x + vx * Math.min(.42, .16 + recoil / 2000) + Math.sign(vx) * vx * vx / 3000;
+      const end = recoilEnd(p, i.aim ?? 0);
       if (recoil && (end < left || end > right)) {
         i.attack = false;
-        Object.assign(i, steer(p, clamp(p.x - Math.sign(kick) * 100, left + margin, right - margin)));
+        const offset = recoilEnd({...p,x:0,vx:0}, i.aim ?? 0);
+        const min = left + Math.max(0,-offset) + 8;
+        const max = right - Math.max(0,offset) - 8;
+        const x = min <= max ? clamp(p.x,min,max) : (left+right)/2;
+        b.recoilPosition = {x, support:here.id, weapon:p.weapon, direction:Math.sign(kick), blocked:min>max};
+        b.moveTo = x;
+        Object.assign(i, steer(p,x));
+      }
+    }
+    // Inspect the stopping path before entering danger, not just the bot's
+    // current location. Prefer walking out; use a checked jump for a blocked lane.
+    if (!world.arena.survival) {
+      const projected = clamp(p.x + p.vx * .24 + dir * 48, left, right);
+      if (unsafePoint(world,p.x,p.y) || unsafePoint(world,projected,p.y)) {
+        const candidates = [p.x, projected - 90, projected + 90, left + 8, right - 8,
+          ...world.hazards.flatMap(h => {const z=hazardZone(h);return [z.x-42,z.x+z.w+42];})]
+          .filter(x => x >= left && x <= right && !unsafePoint(world,x,p.y) &&
+            !firstObstacle(solids,p,{x,y:p.y-10}))
+          .sort((a,c) => Math.abs(a-p.x)-Math.abs(c-p.x));
+        const x = candidates[0];
+        if (x != null) {
+          Object.assign(i,steer(p,x)); b.moveTo=x;
+          i.attack=false; i.duck=false; i.block=false; i.jump=false;
+        }
       }
     }
     // Adjacent walkable cable tiles have a sloping top, so preserve a verified
@@ -364,13 +410,12 @@ export class BotController {
     const previous = choices.find((c) => c.q.id === b.target);
     const choice =
       previous &&
-      world.time < b.targetUntil &&
-      previous.score < choices[0].score + 2
+      previous.score < choices[0].score + (world.time < b.targetUntil ? 2 : .8)
         ? previous
         : choices[0];
     if (choice.q.id !== b.target) {
       b.target = choice.q.id;
-      b.targetUntil = world.time + 0.7;
+      b.targetUntil = world.time + 1.4;
     }
     const enemy = choice.q,
       range = distance(p, enemy);
@@ -409,13 +454,8 @@ export class BotController {
       distance(p, center(obstacle)) < weapon.blast + 100
     )
       i.attack = false;
-    // Reposition for recoil initially, but never veto the shot indefinitely on
-    // an island too narrow for the preferred firing stance.
-    if (weapon.recoil && footing && p.ground && range > 175 && !staleAttack) {
-      const recoilX = p.x - Math.cos(i.aim) * weapon.recoil * 0.38;
-      if (recoilX < footing.x + 18 || recoilX > footing.x + footing.w - 18)
-        i.attack = false;
-    }
+    // The final footing guard owns recoil clearance and an actual firing stance.
+    // A separate estimate here used to veto firing without scheduling any move.
     if (grenade) {
       const saved = b.grenade;
       if (
@@ -480,6 +520,7 @@ export class BotController {
         .filter(
           (d) =>
             d.path &&
+            !unsafePoint(world,d.d.x,d.floor.y-30) &&
             (!p.weapon || (d.path.cost < (melee ? 10 : 7) &&
               (melee ? WEAPONS[d.d.type]?.kind !== "melee" : d.value > weapon.value + 2) &&
               distance(p, d.d) < (melee ? Math.min(900, Math.max(400,range * 0.8)) : 1100))) &&
@@ -507,8 +548,9 @@ export class BotController {
     } else {
       b.pickup = null;
     }
-    const spacing = !fetching && weapon.clearance && here
-      ? firingPosition(world,p,enemy,weapon,paths,solids,here,i.aim) : null;
+    const needsRecoilRoom = b.recoilPosition?.blocked && b.recoilPosition.weapon === p.weapon;
+    const spacing = !fetching && p.weapon && (weapon.clearance || needsRecoilRoom) && here
+      ? firingPosition(world,p,enemy,weapon,paths,solids,here,i.aim,needsRecoilRoom) : null;
     if (spacing) {
       goal = spacing.point;
       destination = spacing.s;
@@ -560,7 +602,7 @@ export class BotController {
           Math.abs(p.vx) < 45 &&
           !b.flight
         ) {
-          const actual = traceFlight(
+          const actual = safeFlight(world,
             solids,
             here,
             p.x,
@@ -579,7 +621,10 @@ export class BotController {
             b.think = 0;
           }
         }
-      } else moveTo = clamp(goal.x, here.x + 22, here.x + here.w - 22);
+      } else {
+        const pad=Math.min(22,here.w/3);
+        moveTo = clamp(goal.x, here.x + pad, here.x + here.w - pad);
+      }
     } else {
       b.edge = null;
       if (
@@ -587,7 +632,7 @@ export class BotController {
         weapon.speed &&
         !obstacle &&
         range < weapon.range * 0.85 &&
-        (!staleAttack || weapon.clearance)
+        !clearing
       ) {
         const desired = weapon.blast
           ? Math.max(420, weapon.blast + 140)
@@ -613,11 +658,19 @@ export class BotController {
                 (weapon.recoil || 0) * Math.abs(Math.cos(i.aim)) * 0.38 + 24,
               ),
             )
-          : 20;
+          : Math.min(20,footing.w/3);
         moveTo = clamp(moveTo, footing.x + margin, footing.x + footing.w - margin);
       }
     }
-    Object.assign(i, steer(p, moveTo));
+    const recoilPosition = b.recoilPosition;
+    if (recoilPosition && !fetching && !spacing && !b.edge && here?.id === recoilPosition.support &&
+        p.weapon === recoilPosition.weapon &&
+        Math.sign(-Math.cos(i.aim)) === recoilPosition.direction) {
+      moveTo = recoilPosition.x;
+      if (!recoilPosition.blocked && Math.abs(p.x-moveTo)<8 && Math.abs(p.vx)<35) b.recoilPosition=null;
+    } else b.recoilPosition=null;
+    const movement = steer(p, moveTo);
+    Object.assign(i, movement);
     if (fetching && !p.weapon && !b.flight) {
       const direction = Math.sign(moveTo - p.x);
       const blocker = world.players.find(q => q.alive && q.id !== p.id &&
@@ -716,6 +769,7 @@ export class BotController {
     // Explore only flights with a real landing. A stale fight is never a reason
     // to jump into a fatal gap; wait for a reachable pickup or a changed route.
     if (!b.flight && !ride && !fetching && !spacing && p.ground && here && staleAttack && !b.recovery &&
+        world.time >= (b.exploreAt || 0) &&
         (world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
       const attempt = b.recoveryAttempts || 0;
       let direction = Math.sign(enemy.x - p.x) || (p.id % 2 ? 1 : -1);
@@ -728,12 +782,13 @@ export class BotController {
       }
       if (attempt % 2) direction *= -1;
       const landing = [direction, -direction].flatMap(dir => [1, 2].map(jumps =>
-        traceFlight(solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
+        safeFlight(world, solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
         .find(Boolean);
       if (landing) b.flight = {...landing, started:world.time};
       else if (roof) Object.assign(i, steer(p, clamp(direction < 0 ? roof.x - 45 : roof.x + roof.w + 45,
         footing.x + 24, footing.x + footing.w - 24)));
       b.approachAt = world.time;
+      b.exploreAt = world.time + 1.2;
       b.recoveryAttempts = attempt + 1;
       if (edge) b.failures.set(edge.key, world.time + 9);
     }
@@ -767,6 +822,13 @@ export class BotController {
         !["rocket", "grenade", "plasma", "duck"].includes(shot.kind)
       )
         continue;
+      // A settled grenade has no intercept velocity, but its fuse is still a
+      // threat. Waiting for it to move again made bots stand on live explosives.
+      if (shot.kind === "grenade" && shot.life > 0 && shot.life < .9 &&
+          distance(p,shot) < (shot.radius || 215) + 65 &&
+          !firstObstacle(solids,p,{x:shot.x,y:shot.y})) {
+        threat=shot; soon=0; break;
+      }
       const vx = shot.vx - p.vx,
         vy = shot.vy - p.vy,
         speed2 = vx * vx + vy * vy;
@@ -787,11 +849,12 @@ export class BotController {
     }
     if (threat && threat !== b.defenceThreat) {
       b.defenceThreat = threat;
-      b.reactToThreat = world.random() < skill.defence;
+      b.reactToThreat = (threat.kind === "grenade" && threat.life < .9) || world.random() < skill.defence;
     }
+    if (threat?.kind === "grenade" && threat.life < .9) b.reactToThreat = true;
     if (threat && b.reactToThreat) {
       if (["rocket", "grenade", "plasma", "duck"].includes(threat.kind)) {
-        b.flight = null;
+        if (p.ground) b.flight = null;
         const away = Math.sign(p.x - threat.x) || 1;
         if (here)
           Object.assign(
@@ -862,7 +925,7 @@ export class BotController {
         Math.hypot(p.x - f.x, p.y - f.y) < f.radius + 45,
     );
     if (hole && here) {
-      b.flight = null;
+      if (p.ground) b.flight = null;
       Object.assign(
         i,
         steer(
@@ -929,7 +992,7 @@ export class BotController {
       if (doom) {
         const direction = Math.sign(p.x - doom.x) || Math.sign(enemy.x - p.x) || 1;
         const escape = [direction, -direction].flatMap(dir => [1, 2].map(jumps =>
-          traceFlight(solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
+        safeFlight(world, solids, here, p.x, dir, jumps, .38, world.time, world.spikes(), p.vx)))
           .find(f => f && Math.hypot(f.endX - doom.x,
             solids.find(s => s.id === f.to).y - 30 - doom.y) > doom.radius + 30);
         if (escape) b.flight = {...escape, started:world.time};
@@ -968,6 +1031,9 @@ export class BotController {
     }
     if (i.block && !p.weapon) i.block = !p.blockHeld && p.parryCooldown <= 0;
     survivalControls(world, p, b, i, solids);
+    // Recompute ordinary steering at physics frequency. Combat/hazard overrides
+    // keep their own controls, instead of being silently replaced by a waypoint.
+    b.moveTo = i.left === movement.left && i.right === movement.right && !i.duck ? moveTo : null;
     return i;
   }
 }
