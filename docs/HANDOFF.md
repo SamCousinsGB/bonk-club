@@ -43,6 +43,32 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 - The earlier integrated suite passed 1,009/1,010; the menu assertion was its only
   failure. The final full suite, CI and public verification follow below.
 
+## Bullet Train, Scrap Foundry and drop-through platforms - 15 September 2026
+
+- v0.35.0 / protocol 57. Refresh all players and create a new room.
+- Bullet Train runs at 2,000 units/second, alternates direction every eleven
+  seconds, and warns for two seconds. Upper walkways or a timed double jump clear
+  it. Swept contacts launch physical remains, props and weapons; shots hit the
+  body. Destroyed approaches stop later services; an arriving train finishes.
+- Scrap Foundry has alternating tilting ladles with lethal molten streams and
+  pits, inward conveyors, a central press and upper bypasses. Mounting cuts stop
+  ladles permanently until reset; streams consume scrap through the prop system.
+- S/down drops through slatted platforms and transmission wires; upward jumps
+  pass through them. Solid floors still support lying down. Assembly maintenance
+  paths, turbine ledges and selected pylon landings also use thin surfaces.
+  Host-authored release grace and guest prediction prevent immediate reattachment.
+- Fourteen new regressions and 101 focused integrated checks pass, including the
+  latest turbine, bot-decision and physical-assembly changes from main.
+- Real Edge host/guest/hot join passed warning/pass, actual guest S/jump, matching
+  destroyed track/catwalk geometry, molten death and real phone touch-drag drop.
+  Selected relay/relay pairs verified at all peers; no page errors. Desktop and
+  844x390 visuals inspected. Same QA PC, not a cross-ISP latency or Steam test.
+- Source: ../bonk-club-qa/train-foundry, branch codex/train-foundry. Existing
+  canonical edits are preserved. No dependencies, production hooks or Pi changes.
+  External evidence: train-foundry-online.mjs/json, train-foundry-online-*.png,
+  train-foundry-mobile-touch.png and train-foundry-visual.mjs in ../bonk-club-qa.
+- Full-suite, production-bundle and Pages verification will follow below.
+
 ## Physical assembly cars - 15 September 2026
 
 - v0.34.0, protocol 56. Refresh every player's tab and create a new room.

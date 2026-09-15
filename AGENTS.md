@@ -176,6 +176,18 @@ Keep this constitution for durable rules and the handoff for current work.
   Every crusher, including assembly and survival presses, crushes only beneath
   its descending lower face. Return strokes, tops and sides do not deal crush
   damage; steam and separate hazards retain their own contact rules.
+- BULLET TRAIN has a fast train crossing after two seconds of signal/horn warning,
+  alternating directions. Preserve jumpable clearance, upper bypasses, swept
+  physical contacts, projectile cover and disabled services after approach cuts.
+- SCRAP FOUNDRY has two tilting ladles pouring lethal molten streams into pits,
+  inward conveyors, a central press and upper catwalks. Amber warnings precede
+  pouring; cutting a ladle mounting disables it until reset. Damage is host-owned.
+- Slatted thin platforms and intact transmission wires let fighters jump up
+  through them and hold S/down to descend. Touch uses the downward movement drag.
+  Solid floors retain prone behavior. Preserve the release grace period, guest
+  prediction, destruction flags and distinct thin-platform art. Both new arenas,
+  assembly maintenance decks, pylon service ledges and turbine walkways use this.
+  Machine mountings and structural floors remain solid.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by
