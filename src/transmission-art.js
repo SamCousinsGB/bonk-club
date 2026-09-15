@@ -83,7 +83,7 @@ export function drawTransmissionTowers(c,state) {
 export function drawPowerlines(c,state,time) {
   c.save();c.lineCap="round";c.lineJoin="round";
   const circuit=powerlineCircuit(state);
-  for(const cable of state.cables||[])if(/^(tower|turbine)/.test(cable.id)) {
+  for(const cable of state.cables||[])if(cable.id.startsWith("tower")) {
     const runs=circuit.runs.filter(r=>r.cable===cable.id),h=state.hazards?.find(h=>h.type==="powerline"&&wireCable(state,h)?.id===cable.id);
     for(const r of runs) {
       const run=r.points;

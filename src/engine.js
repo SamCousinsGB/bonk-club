@@ -1,3 +1,4 @@
+import { tumbleTurbineBody } from "./turbines.js";
 import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
 import { ASSEMBLY_ARENA } from "./assembly-arena.js";
@@ -1458,6 +1459,7 @@ export class World {
         }
         delete rag.capturedBy;
       }
+      tumbleTurbineBody(this,rag,dt);
       if(updateDeath(rag,dt))continue;
       if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;

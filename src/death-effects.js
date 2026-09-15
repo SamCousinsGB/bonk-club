@@ -112,7 +112,7 @@ export function deathPose(rag, effect, angle = 0, target = null) {
 }
 export function updateDeath(rag, dt) {
   if (!rag.effect) return false;
-  rag.deathAge += dt;
+  rag.deathAge = rag.effect === "blend" ? Math.min(5.9,rag.deathAge+dt) : rag.deathAge+dt;
   if (rag.effect !== "singularity") return false;
   const center = { x: rag.targetX, y: rag.targetY };
   for (const p of new Set(rag.strands.flatMap((s) => s.points)))

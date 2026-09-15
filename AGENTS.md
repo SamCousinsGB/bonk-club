@@ -149,13 +149,15 @@ Keep this constitution for durable rules and the handoff for current work.
   Broken spans fall, drape over surviving structure and remain attached only at
   surviving mounts. Keep cable cuts, attachments and moving geometry in validated
   guest snapshots and hot joins; never clear all wires when a machine breaks.
-- TURBINE HALL has six continuously running rotors spanning the bottom, narrow
-  staggered double-jump routes and two pass-through high-voltage cable spans.
-  Blade contact blends living fighters and fallen bodies into moving physical
-  pieces. Preserve the enclosed concrete sump and side boundaries: destroyed
-  rotors leave contained pits, never a bottom ring-out. Cable cuts, fallen tails,
-  mount-dependent seven-second power cycles and guest/hot-join state persist
-  until round reset. Bots must not route onto intact turbine beds.
+- TURBINE HALL has six continuously running rotors, recessed scalloped concrete
+  troughs, staggered double-jump routes, wider fighting ledges and moving steps.
+  Keep the dark, slower blade artwork subordinate to the fighting. There are no
+  wires on this map. Blade contact blends living fighters and fallen bodies into
+  physical pieces; individual rotor impulses keep the remains tumbling through
+  the result screen until reset. Preserve gravity, contacts and bounded state.
+  The sump and side boundaries contain destroyed rotor pits without a flat floor
+  or bottom ring-out. Bots must not route onto intact turbine beds. Preserve
+  machine destruction and remains through validated guest state and hot joins.
 - CAR ASSEMBLY uses a host-owned production clock and conveyor: stamp body panels,
   weld the cabin, fit wheels and finish the car. Cars are solid moving cover and
   jumping surfaces. Preserve safe press warnings, physical machine contacts,

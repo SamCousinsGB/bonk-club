@@ -2,8 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards } from "../src/hazards.js";
-import { updateCables, cableSolids, blastCables } from "../src/heavy-cables.js";
-import { powerlineCircuit } from "../src/powerline-circuit.js";
+import { TURBINE_BED } from "../src/turbine-arena.js";
 import { carveExplosion } from "../src/terrain.js";
 import { deathJoints } from "../src/death-effects.js";
 import { navigation, routesFrom, surfaceAt } from "../src/navigation.js";
@@ -52,8 +51,15 @@ test("the casing corners outside the circular blade sweep do not kill", () => {
 
 test("an existing corpse is blended on entering the blades without a second score", () => {
   const w=fixture(),p=w.players[0];place(p,213,1190);w.kill(p,{cause:"bullet"});
-  tick(w);assert.equal(w.ragdolls[0].effect,"blend");assert.equal(w.lastDeathCause,"bullet");
+  tick(w);w.updateRagdolls(STEP);assert.equal(w.ragdolls[0].effect,"blend");assert.equal(w.lastDeathCause,"bullet");
   assert.equal(w.ragdolls.length,1);assert.ok(validSnapshot(w.snapshot()));
+});
+
+test("already sliced bodies become valid separate pieces on entering a rotor", () => {
+  const w=fixture();place(w.players[0],213,1190);w.kill(w.players[0],{effect:"slice",cause:"rail"});
+  assert.equal(w.ragdolls[0].points.length,13);w.updateRagdolls(STEP);
+  assert.equal(w.ragdolls[0].effect,"blend");assert.equal(w.ragdolls[0].points.length,11);
+  assert.ok(validSnapshot(w.snapshot()));assert.equal(w.lastDeathCause,"rail");
 });
 
 test("destroying a rotor or its mounting is permanent; the sump still contains falls", () => {
@@ -62,7 +68,7 @@ test("destroying a rotor or its mounting is permanent; the sump still contains f
   const p=w.players[0];place(p,213,1190);
   for(let i=0;i<240;i++){w.move(p,cleanInput({}),STEP);tick(w);}
   assert.ok(p.alive&&p.ground);assert.ok(p.y<1428);assert.equal(w.lastDeathCause,null);
-  assert.ok(w.solids().some(s=>s.id==="hall-bottom"));
+  assert.ok(w.solids().some(s=>s.id==="hall-bed0"));
   w.startRound();assert.ok(w.hazards.every(h=>!h.done));assert.ok(w.cables.every(c=>c.links.every(Boolean)));
 });
 
@@ -82,7 +88,7 @@ test("narrow routes require double jumps and all four spawns can reach both pick
     for(const [x,y] of w.arena.weapons)assert.ok(paths.has(surfaceAt(solids,{x,y}).id));
     assert.ok([...paths.keys()].every(id=>!solids.find(s=>s.id===id).lethal));
   }
-  assert.ok(w.platforms.filter(p=>p.y>800&&p.y<1100&&p.w<=145).length>=7);
+  assert.ok(w.platforms.some(p=>p.move));
   const from=w.platforms[6],to=w.platforms[7],edge=graph.get(from.id).find(e=>e.to===to.id&&e.jumps===2);
   assert.ok(edge);assert.ok(!graph.get(from.id).some(e=>e.to===to.id&&e.jumps===1));
   const p=w.players[0];place(p,edge.startX,from.y-30,{ground:true,support:from.id});
@@ -97,7 +103,7 @@ test("narrow routes require double jumps and all four spawns can reach both pick
 });
 
 test("guest prediction uses the same solid hall boundaries without editing host state", () => {
-  const w=fixture();w.platforms=[];tick(w);place(w.players[1],2538,1398,{ground:true,vx:240});
+  const w=fixture();w.platforms=[];tick(w);place(w.players[1],2538,1250,{ground:true,vx:240});
   const s={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]},saved=structuredClone(s);
   const prediction=new GuestPrediction();prediction.receive(s,1,1000);
   for(let i=1;i<12;i++)prediction.advance(cleanInput({right:true}),i,1000+i*1000/60);
@@ -105,24 +111,34 @@ test("guest prediction uses the same solid hall boundaries without editing host 
   assert.deepEqual(s,saved);
 });
 
-test("cables sag under gravity, never form walking bridges and severed tails fall", () => {
-  const w=fixture(),c=w.cables[0];assert.equal(cableSolids(w).length,0);
-  assert.ok(c.points[12].y>c.points[0].y+150);
-  blastCables(w,{...c.points[12],radius:45});const before=structuredClone(c.points);
-  for(let i=0;i<120;i++)updateCables(w,STEP);
-  assert.ok(c.links.some(v=>!v));assert.ok(c.attached.every(Boolean));
-  assert.ok(c.points.some((p,i)=>p.y>before[i].y+30));assert.ok(validSnapshot(w.snapshot()));
+test("six recessed troughs replace the flat floor and the wires are removed", () => {
+  const w=fixture();assert.equal(w.cables.length,0);assert.equal(w.hazards.length,6);
+  assert.ok(w.hazards.every(h=>h.type==="turbine"));
+  for(let rotor=0;rotor<6;rotor++){
+    const bed=TURBINE_BED.slice(rotor*16,(rotor+1)*16);
+    assert.ok(bed[7].y-bed[0].y>110);assert.ok(bed.every(p=>p.w<30));
+  }
+  assert.ok(!w.platforms.some(p=>p.y>1200&&p.w>60));
 });
 
-test("mounted cable runs retain seven-second supply and detached runs lose it", () => {
-  const w=fixture(),h=w.hazards[6],c=w.cables[0];
-  h.age=6.2;tick(w);assert.ok(h.warning>0&&!h.active);
-  h.age=7;tick(w);assert.ok(h.active);
-  const q=c.points[12];place(w.players[0],q.x,q.y);tick(w);assert.equal(w.players[0].hp,30);
-  blastCables(w,{...c.points[12],radius:30});h.age=8;tick(w);
-  assert.ok(powerlineCircuit(w).runs.filter(r=>r.cable===c.id).every(r=>r.powered));
-  carveExplosion(w,{x:390,y:340,radius:65});carveExplosion(w,{x:1060,y:340,radius:65});tick(w);
-  assert.ok(c.attached.every(v=>!v));assert.ok(powerlineCircuit(w).runs.filter(r=>r.cable===c.id).every(r=>!r.powered));
+test("remains keep jumbling through a long fight and the result with bounded valid physics", () => {
+  const w=fixture();place(w.players[0],213,1170);tick(w);const rag=w.ragdolls[0];
+  const advance=n=>{for(let i=0;i<n;i++){w.time+=STEP;w.updateRagdolls(STEP);}};
+  advance(1200);assert.ok(w.ragdolls.includes(rag));
+  w.phase="result";const before=structuredClone(rag.points);advance(90);
+  assert.ok(rag.points.some((p,i)=>Math.hypot(p.x-before[i].x,p.y-before[i].y)>20));
+  assert.ok(rag.points.every(p=>Number.isFinite(p.x)&&p.y<1430&&p.x>=0&&p.x<=2560));
+  assert.ok(validSnapshot(w.snapshot()));assert.equal(w.lastDeathCause,"turbine");
+  w.startRound();assert.equal(w.ragdolls.length,0);
+});
+
+test("destroyed rotors stop driving remains and consumed ash is never revived", () => {
+  const w=fixture();place(w.players[0],213,1170);tick(w);const rag=w.ragdolls[0];
+  w.hazards.forEach(h=>h.done=true);rag.life=.1;
+  for(let i=0;i<20;i++){w.time+=STEP;w.updateRagdolls(STEP);}assert.equal(w.ragdolls.length,0);
+  place(w.players[1],213,1190);w.kill(w.players[1],{effect:"nuclear",cause:"nuclear"});
+  const ash=w.ragdolls[0];ash.ash=true;w.hazards.forEach(h=>h.done=false);
+  w.updateRagdolls(STEP);assert.notEqual(ash.effect,"blend");
 });
 
 test("prediction, countdown and results cannot kill or advance turbines", () => {
@@ -130,13 +146,14 @@ test("prediction, countdown and results cannot kill or advance turbines", () => 
   const w=fixture();w.prediction=true;place(w.players[0],213,1200);tick(w);assert.equal(w.players[0].hp,100);assert.equal(w.hazards[0].age,0);
 });
 
-test("changed-map transport and hot join preserve blade deaths, rotor cuts and cable geometry", () => {
+test("changed-map transport and hot join preserve tumbling remains, rotor cuts and the cable-free map", () => {
   const w=fixture();place(w.players[0],213,1170);tick(w);
-  carveExplosion(w,{x:1493,y:1390,radius:180});blastCables(w,{...w.cables[0].points[12],radius:45});updateCables(w,STEP);tick(w);
+  carveExplosion(w,{x:1493,y:1390,radius:180});tick(w);
+  for(let i=0;i<900;i++){w.time+=STEP;w.updateRagdolls(STEP);}
   const s=new RenderSnapshots().make(w.snapshot()),out=expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(s))),validSnapshot);
   assert.deepEqual(out.cables,s.cables);assert.deepEqual(out.hazards,s.hazards);assert.equal(out.ragdolls[0].effect,"blend");
   assert.ok(validSnapshot(out));
-  for(const change of [s=>s.cables[0].id="tower0",s=>s.cables[0].points[3].x=Infinity,s=>s.hazards[0].w=900,s=>s.ragdolls[0].effect="invalid"]){
+  for(const change of [s=>s.cables.push({id:"turbine0"}),s=>s.ragdolls[0].points[3].x=Infinity,s=>s.hazards[0].w=900,s=>s.ragdolls[0].effect="invalid"]){
     const bad=structuredClone(s);change(bad);assert.equal(validSnapshot(bad),false);
   }
 });

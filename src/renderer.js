@@ -1,4 +1,4 @@
-import { drawTurbineHall, drawTurbineMounts } from "./turbine-art.js";
+import { drawTurbineHall, drawTurbineBed } from "./turbine-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
@@ -937,9 +937,8 @@ export class Renderer {
     c.save(); clipCraters(c,state);
     if(arena.transmission)drawTransmissionTowers(c,state);
     c.restore();
-    // Both wire systems occupy the rear layer, behind platforms and fighters.
-    if(arena.turbine)drawTurbineMounts(c,state);
-    if(arena.transmission||arena.turbine)drawPowerlines(c,state,this.reduced ? 0 : time);
+    // Tower wires occupy the rear layer, behind platforms and fighters.
+    if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     for (const s of state.spikes) {
@@ -959,6 +958,7 @@ export class Renderer {
     drawCraters(this, state);
     drawGas(c, state, time);
     drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced);
+    if(arena.turbine)drawTurbineBed(c);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);

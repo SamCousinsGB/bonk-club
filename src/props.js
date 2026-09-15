@@ -1,3 +1,4 @@
+import { TURBINE_BOUNDS } from "./turbine-arena.js";
 import { H, W } from "./scale.js";
 import { pullCarriedObject } from "./object-carry.js";
 import { playerBox } from "./collision.js";
@@ -293,6 +294,7 @@ export function updateProps(world, dt) {
   if (dt <= 0) return;
   const bodies = [...world.cover, ...world.chunks].filter(b => b.hp > 0);
   const floors = world.platforms.filter(p => p.hp !== 0);
+  if(world.arena?.turbine)floors.push(...TURBINE_BOUNDS);
   const starts = new Map();
   for (const b of bodies) { prepareProp(b); starts.set(b, { x: b.x, y: b.y, angle: b.angle }); b.dx = b.dy = 0; }
   const fastest = Math.max(0, ...bodies.map(b => Math.hypot(b.vx, b.vy) + Math.abs(b.spin) * Math.hypot(b.w, b.h) / 2));

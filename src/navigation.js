@@ -164,6 +164,7 @@ export function* navigationSteps(
     a.id.split(":")[0] === b.id.split(":")[0];
   let traces = 0;
   for (const from of solids) {
+    if(from.boundary||from.lethal)continue;
     const signature =
       cache &&
       JSON.stringify(

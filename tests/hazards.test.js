@@ -1,4 +1,3 @@
-import { TURBINE_MOUNTS } from "../src/cable-layout.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, ARENAS } from "../src/engine.js";
@@ -57,7 +56,7 @@ test("destroying a fixture mounting floor disables it",()=>{
 test("every arena has fixed, varied traps away from spawns",()=>{
  const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length>=2,a.name);
  for(const h of a.traps){kinds.add(h.type);
- if(h.type==="powerline")assert.ok((a.turbine ? TURBINE_MOUNTS : TOWER_MOUNTS)[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
+ if(h.type==="powerline")assert.ok(TOWER_MOUNTS[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
  else assert.ok(a.platforms.some(p=>p.y===h.y&&p.x<=h.x&&p.x+p.w>=h.x));
  if(!a.survival)assert.ok(!a.spawns.some(([x,y])=>Math.abs(x-h.x)<h.w/2+85&&Math.abs(y-(h.y-30))<90),a.name);}}
  assert.equal(kinds.size,HAZARD_TYPES.length);

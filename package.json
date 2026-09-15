@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.32.0",
-  "releaseNotes": "Reworked car assembly machinery, car bodies, fault lights and lethal steam/work zones",
+  "version": "0.33.0",
+  "releaseNotes": "Reworked Turbine Hall: shaped pits, tumbling remains and clearer combat routes",
   "private": true,
   "type": "module",
   "scripts": {

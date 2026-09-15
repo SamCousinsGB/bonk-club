@@ -1,6 +1,30 @@
 # Bonk Club — next chat
 
-Updated 12 September 2026. Read the root `AGENTS.md` first.
+Updated 15 September 2026. Read the root `AGENTS.md` first.
+
+## Turbine Hall refinement - 15 September 2026
+
+- v0.33.0, protocol 55. Refresh every player's tab and create a new room.
+- Sam removed the wire requirement. Turbine Hall now has no cables or electrical
+  traps; Transmission Towers and Arc Furnace retain their physical wires.
+- Six scalloped concrete sumps replace the full-width flat floor. Collision and
+  artwork use the same short strips, with permanent side containment after rotor
+  destruction. Props and rubble use these boundaries too.
+- Darker six-blade rotors turn at one fifth of the previous artwork speed; reduced
+  motion is slower again. Wider fight ledges, three upper galleries and two moving
+  steps retain difficult double-jump traversal and alternate routes.
+- Blade forces now act on separate ragdoll pieces during fights and results.
+  Bounded staggered impulses prevent settling; gravity and contacts stay active.
+  Remains persist while a rotor drives them and clear at reset. Consumed ash and
+  black-hole captures are excluded; destroyed rotors stop driving the remains.
+- Focused gameplay checks cover every bottom entry, actual double jumps, safe bot
+  routes, long-lived remains, results, destruction, reset and malformed transport.
+  Source host/guest/hot-join browsers passed guest controls, blade deaths, damaged
+  geometry and persistent remains with selected relay/relay candidates and no
+  browser errors. Evidence: ../bonk-club-qa/turbine-online.json and screenshots.
+- Source worktree: ../bonk-club-qa/turbine-hall (codex/turbine-hall). The canonical
+  checkout's unrelated pending edits are preserved. Release verification follows.
+
 
 ## Accidental text selection - 12 September 2026
 

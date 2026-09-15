@@ -1,4 +1,4 @@
-import { cableLayout } from "./cable-layout.js";
+import { TURBINE_BED } from "./turbine-arena.js";
 
 const line = (c, a, b, color, width = 3) => {
   c.strokeStyle = color; c.lineWidth = width; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
@@ -40,51 +40,40 @@ export function drawTurbineHall(c) {
     line(c, [x - 3, 200], [x - 3, 1100], "#456069", 12);
     for (let y = 210; y < 1120; y += 110) line(c, [x - 19, y], [x + 19, y], "#637675", 6);
   }
-  c.fillStyle = "#17262c"; c.fillRect(0, 1428, 2560, 12);
-  c.fillStyle = "#687170"; c.fillRect(0, 1428, 2560, 4);
 }
 
-export function drawTurbineMounts(c, state) {
-  for (const cable of state.cables || []) {
-    const spec = cableLayout(cable.id);
-    if (spec?.kind !== "turbine") continue;
-    for (const [i, end] of [spec.a, spec.b].entries()) {
-      if (!cable.attached[i]) continue;
-      line(c, [end.x, end.supportY + 12], [end.x, end.y], "#24343b", 12);
-      for (let y = end.supportY + 22; y < end.y - 4; y += 7) {
-        line(c, [end.x - 17, y], [end.x + 17, y], "#b08c61", 6);
-        line(c, [end.x - 14, y - 2], [end.x + 14, y - 2], "#ead0a0", 2);
-      }
-      disc(c, end.x, end.y, 7, "#afc3c2");
-    }
-  }
+export function drawTurbineBed(c) {
+  c.beginPath(); c.moveTo(0, 1600);
+  for (const bed of TURBINE_BED) { c.lineTo(bed.x, bed.y); c.lineTo(bed.x + bed.w, bed.y); }
+  c.lineTo(2560, 1600); c.closePath(); c.fillStyle = "#17262c"; c.fill();
+  c.strokeStyle = "#4a5657"; c.lineWidth = 4; c.stroke();
 }
 
-export function drawTurbine(c, h, reduced) {
+export function drawTurbine(c, h, reduced, time = h.age) {
   const radius = h.w / 2;
   c.save(); c.translate(h.bodyX, h.bodyY);
   disc(c, 0, 0, radius + 9, "#0b181f");
-  c.strokeStyle = "#63777a"; c.lineWidth = 7;
+  c.strokeStyle = "#45595c"; c.lineWidth = 7;
   c.beginPath(); c.arc(0, 0, radius + 3, 0, Math.PI * 2); c.stroke();
   // Fixed casing teeth distinguish the stationary rim from the moving blades.
-  for (let i = 0; i < 28; i++) {
-    const a = i * Math.PI / 14;
-    line(c, [Math.cos(a) * (radius - 2), Math.sin(a) * (radius - 2)],
-      [Math.cos(a) * (radius + 9), Math.sin(a) * (radius + 9)], i % 2 ? "#1c292b" : "#d1a554", 9);
-  }
-  c.save(); c.rotate(h.age * (reduced ? 2 : 9) * h.dir + h.id * .7);
   for (let i = 0; i < 12; i++) {
-    c.rotate(Math.PI / 6);
+    const a = i * Math.PI / 6;
+    line(c, [Math.cos(a) * (radius - 2), Math.sin(a) * (radius - 2)],
+      [Math.cos(a) * (radius + 9), Math.sin(a) * (radius + 9)], i % 3 ? "#1c292b" : "#947749", 9);
+  }
+  c.save(); c.rotate(time * (reduced ? .35 : 1.8) * h.dir + h.id * .7);
+  for (let i = 0; i < 6; i++) {
+    c.rotate(Math.PI / 3);
     const steel = c.createLinearGradient(35, -30, radius, 45);
-    steel.addColorStop(0, "#36515c"); steel.addColorStop(.48, "#779696");
-    steel.addColorStop(.75, "#c0cebc"); steel.addColorStop(1, "#4b686e");
+    steel.addColorStop(0, "#273d46"); steel.addColorStop(.48, "#354b51");
+    steel.addColorStop(.75, "#4b6061"); steel.addColorStop(1, "#30474e");
     c.beginPath(); c.moveTo(37, -19); c.bezierCurveTo(90, -48, 167, -59, radius - 9, -21);
     c.lineTo(radius - 4, 12); c.bezierCurveTo(159, -10, 90, 8, 40, 20); c.closePath();
     c.fillStyle = steel; c.fill(); c.strokeStyle = "#102a35"; c.lineWidth = 3; c.stroke();
-    line(c, [92, -27], [radius - 19, -9], "#dce5c8", 2);
+    line(c, [92, -27], [radius - 19, -9], "#536768", 2);
   }
-  disc(c, 0, 0, 49, "#102731"); disc(c, 0, 0, 39, "#809998");
-  disc(c, 0, 0, 24, "#304a54"); disc(c, 0, 0, 11, "#b7c5b4");
+  disc(c, 0, 0, 49, "#102731"); disc(c, 0, 0, 39, "#4c6367");
+  disc(c, 0, 0, 24, "#304a54"); disc(c, 0, 0, 11, "#72817a");
   for (let i = 0; i < 6; i++) disc(c, Math.cos(i * Math.PI / 3) * 33, Math.sin(i * Math.PI / 3) * 33, 3, "#203943");
   c.restore();
   c.restore();
