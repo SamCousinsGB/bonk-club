@@ -125,8 +125,12 @@ test("remains keep jumbling through a long fight and the result with bounded val
   const w=fixture();place(w.players[0],213,1170);tick(w);const rag=w.ragdolls[0];
   const advance=n=>{for(let i=0;i<n;i++){w.time+=STEP;w.updateRagdolls(STEP);}};
   advance(1200);assert.ok(w.ragdolls.includes(rag));
-  w.phase="result";const before=structuredClone(rag.points);advance(90);
-  assert.ok(rag.points.some((p,i)=>Math.hypot(p.x-before[i].x,p.y-before[i].y)>20));
+  w.phase="result";
+  const ranges=rag.points.map(p=>({min:p.y,max:p.y}));
+  for(let frame=0;frame<240;frame++){
+    advance(1);rag.points.forEach((p,i)=>{ranges[i].min=Math.min(ranges[i].min,p.y);ranges[i].max=Math.max(ranges[i].max,p.y);});
+  }
+  assert.ok(ranges.every(r=>r.max-r.min>25),"every piece must lift and tumble, not just shuffle on the concrete");
   assert.ok(rag.points.every(p=>Number.isFinite(p.x)&&p.y<1430&&p.x>=0&&p.x<=2560));
   assert.ok(validSnapshot(w.snapshot()));assert.equal(w.lastDeathCause,"turbine");
   w.startRound();assert.equal(w.ragdolls.length,0);

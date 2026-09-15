@@ -45,19 +45,28 @@ export function tumbleTurbineBody(world, rag, dt) {
       bloodBurst(world, rag.points[0].x, rag.points[0].y, 0, -300, 18);
     }
     rag.life = Math.max(rag.life, 1.5);
-    for (const [i, p] of rag.points.entries()) {
+    for (const p of rag.points) {
       if (!inside(h, p, 5)) continue;
       const dx = p.x - h.bodyX, dy = p.y - h.bodyY, d = Math.hypot(dx, dy) || 1;
       p.px -= (-dy / d * h.dir * 750 + dx / d * 220) * dt * dt;
       p.py -= dx / d * h.dir * 450 * dt * dt;
-      // Each blade catches settled pieces at a different time. Impulses feed
-      // the existing Verlet gravity, joint rotation and concrete contacts.
-      const phase = world.time * 1.8 + i * .173 + h.id * .31;
-      if (p.y > turbineBedY(p.x) - 85 && Math.floor(phase) !== Math.floor(phase - dt * 1.8)) {
-        const vx = (p.x - p.px) / dt + h.dir * (160 + i % 3 * 35);
-        const vy = (p.y - p.py) / dt - 380 - i % 4 * 30;
-        p.px = p.x - Math.max(-550, Math.min(550, vx)) * dt;
-        p.py = p.y - Math.max(-550, Math.min(550, vy)) * dt;
+    }
+    // A blade catches a whole severed piece, with off-centre torque. Driving
+    // both ends together avoids the length constraint swallowing its impulse.
+    const pieces = [[0], [1,2], [3,4], [5,6], [7,8], [9,10]];
+    for (const [i, ids] of pieces.entries()) {
+      const phase = world.time * 1.35 + i * .173 + h.id * .31;
+      if (Math.floor(phase) === Math.floor(phase - dt * 1.35)) continue;
+      const points = ids.map(i => rag.points[i]);
+      if (!points.some(p => inside(h, p, 5) && p.y > turbineBedY(p.x) - 70)) continue;
+      const cx = points.reduce((n,p)=>n+p.x,0)/points.length;
+      const cy = points.reduce((n,p)=>n+p.y,0)/points.length;
+      for (const p of points) {
+        const spin = i % 2 ? 9 : -9;
+        const vx = (p.x-p.px)/dt + h.dir*(160+i%3*35) - (p.y-cy)*spin;
+        const vy = (p.y-p.py)/dt - 650 + (p.x-cx)*spin;
+        p.px = p.x - Math.max(-800,Math.min(800,vx))*dt;
+        p.py = p.y - Math.max(-800,Math.min(800,vy))*dt;
       }
     }
   }
