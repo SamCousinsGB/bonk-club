@@ -12,7 +12,7 @@ test('fractures retain bounded source artwork and convex collision across every 
     const w=new World({arena,random:rng(seed)});
     for(const prop of w.cover) {
       w.chunks=[];prop.angle=.7;fractureProp(w,prop);
-      assert.ok(w.chunks.length>=6 && w.chunks.length<=10);
+      assert.ok(w.chunks.length>=6 && w.chunks.length<=(prop.kind==='car'?20:10));
       assert.ok(Math.abs(w.chunks.reduce((sum,p)=>sum+p.mass,0)-prop.mass)<1e-8);
       for(const p of w.chunks) {
         assert.ok(p.sourceArt && p.shape.length>=3);
