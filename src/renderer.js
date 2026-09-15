@@ -1,6 +1,6 @@
 import { drawTurbineHall, drawTurbineBed } from "./turbine-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
-import { drawAssemblyHall, drawAssembly } from "./assembly-art.js";
+import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
 import { drawBlood } from "./gore.js";
 import { drawDeath, drawStatus } from "./death-art.js";
@@ -355,6 +355,7 @@ export class Renderer {
   tableArt(p) {
     if (p.hp <= 0) return;
     const c = this.ctx;
+    if (p.kind === "car") { drawCarProp(c,p); return; }
     if (drawReactiveProp(c, p)) return;
     if (drawCover(c, p)) return;
     c.fillStyle = "#14202a99";
@@ -1009,7 +1010,7 @@ export class Renderer {
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
     for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
-    for (const cover of state.cover || []) this.table(cover);
+    for (const cover of state.cover || []) if(cover.kind!=="car"||!arena.assembly)this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);

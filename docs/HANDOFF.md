@@ -2,6 +2,30 @@
 
 Updated 15 September 2026. Read the root `AGENTS.md` first.
 
+## Physical assembly cars - 15 September 2026
+
+- v0.34.0, protocol 56. Refresh every player's tab and create a new room.
+- Cars now use the shared rigid prop solver: shaped cover and jumping surfaces,
+  mass, momentum, rotation, bullet/blast damage and matching bodywork fragments.
+  Stage and paint persist through debris and black-hole capture.
+- Conveyor runs continuously at 75 units/second. Surviving belt contact provides
+  traction; destroyed sections allow cars to tip/fall through. Outfeed cars fall
+  from the right edge. Feed remains bounded and damaged cars are never repaired.
+- Machines own latched work phases; robot weld points follow passing cars.
+  Empty/damaged/misaligned work parks tools. Supplies moved to maintenance ledges
+  so controls and labels remain clear. Normal outfeed does not report a fault.
+- All crushers damage only beneath the descending lower face. Return strokes,
+  tops and sides are safe from crushing. Press steam remains independently lethal.
+- Focused tests cover production, riding/jumping, shooting and debris, holes,
+  outfeed, reset, nuke/PHASER/black-hole consumption, malformed transport and
+  crusher return strokes. Real source host/guest/hot-join browsers passed
+  production, controls, falling damaged cars and destroyed machinery with
+  selected relay/relay pairs and no browser errors.
+- Worktree: ../bonk-club-qa/car-assembly (codex/physical-assembly-cars).
+  Evidence: ../bonk-club-qa/physical-cars-*. Canonical pending work is preserved.
+  Includes v0.33.0 Turbine Hall changes. Release verification follows.
+
+
 ## AI decisions pass - 15 September 2026
 
 - Bot steering now settles at its waypoint using normal ground friction and

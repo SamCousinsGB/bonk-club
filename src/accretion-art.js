@@ -34,7 +34,7 @@ export function drawMatter(r, core) {
       drawAppearance(c,q,0,0,0,q.facing);
     } else if (q.kind === "prop" && q.sourceKind) {
       c.scale(.27,.27);
-      r.table({kind:q.sourceKind,x:-32,y:-20,w:64,h:40,hp:100,maxHp:100,angle:0});
+      r.table({kind:q.sourceKind,carStage:q.carStage,carPaint:q.carPaint,x:-32,y:-20,w:64,h:40,hp:100,maxHp:100,angle:0});
     } else if (q.kind === "trap") {
       r.circle(0,0,q.size,"#44414d");
       for(let i=0;i<8;i++) { const a=i*Math.PI/4;

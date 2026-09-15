@@ -1,3 +1,4 @@
+import { crusherContact, crusherSweep } from "./crusher-contact.js";
 import { updateTurbine, turbineZone } from "./turbines.js";
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
@@ -102,7 +103,7 @@ export function updateHazards(world,dt) {
     const oldY=h.bodyY;
     if(h.type==="crusher") {
       h.bodyY=Math.min(h.y-22,h.bodyY+1100*dt);
-      for(const s of world.solids())if(breakable(s)&&!propFor(world,s)&&segmentBox(h.x,oldY,h.x,h.bodyY,s,h.w/2))world.damageCover(s,200);
+      for(const s of world.solids())if(breakable(s)&&!propFor(world,s)&&crusherContact(h,oldY,h.bodyY,s))world.damageCover(s,200);
     }
     const zone=hazardZone(h);
     if(isScanner(h)) {
@@ -110,7 +111,8 @@ export function updateHazards(world,dt) {
       if(h.type==="magnet")magneticPull(world,h,zone,dt);
       continue;
     }
-    hazardProps(world,h,zone,dt);
+    const crushZone=h.type==='crusher'?crusherSweep(h,oldY,h.bodyY):null;
+    if(h.type!=='crusher'||crushZone)hazardProps(world,h,crushZone||zone,dt);
     const solids=world.solids();
     for(const p of world.players) {
       if(!p.alive)continue;
@@ -122,9 +124,7 @@ export function updateHazards(world,dt) {
         }
         continue;
       }
-      const crush=h.type==="crusher"&&segmentBox(h.x,oldY,h.x,h.bodyY,
-        {x:box.x-h.w/2,y:box.y-22,w:box.w+h.w,h:box.h+44});
-      if(!overlap(box,zone)&&!crush)continue;
+      if(h.type==='crusher'?!crusherContact(h,oldY,h.bodyY,box):!overlap(box,zone))continue;
       if(["geyser","tesla","xray","steam","frost","spores"].includes(h.type)&&solids.some(s=>segmentBox(h.x,h.y-3,p.x,p.y,s)))continue;
       if(h.hitIds.includes(p.id))continue;
       h.hitIds.push(p.id);

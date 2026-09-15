@@ -54,6 +54,8 @@ export function blend(a, b, t) {
   const out = { ...b };
   for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
+  if(a.assemblyWork===b.assemblyWork)for(const key of ["assemblyOffset","assemblyPhase"])
+    if(Number.isFinite(a[key])&&Number.isFinite(b[key]))out[key]=lerp(a[key],b[key],t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));
     out.aimAngle = a.aimAngle + turn * t;

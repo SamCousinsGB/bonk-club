@@ -1,9 +1,8 @@
 const deck = (x, y, w, h = 24, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
 export const LINE_Y = 1190;
 export const LINE_CYCLE = 8;
-export const LINE_DWELL = 3;
 export const LINE_PITCH = 600;
-export const LINE_SPEED = LINE_PITCH / (LINE_CYCLE - LINE_DWELL);
+export const LINE_SPEED = LINE_PITCH / LINE_CYCLE;
 export const STATIONS = [640, 1240, 1840];
 
 // A low production floor with separate machine-top and maintenance routes.

@@ -1483,7 +1483,7 @@ export class World {
     return {
       players: this.players,
       platforms: this.platforms,
-      assembly: assemblySnapshot(this.assembly),
+      assembly: assemblySnapshot(this.assembly, this.cover),
       cables: cableSnapshot(this.cables),
       spikes: this.spikes(),
       cover: this.cover,

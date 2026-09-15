@@ -1,4 +1,5 @@
 import { TURBINE_BOUNDS } from "./turbine-arena.js";
+import { carPoints } from "./assembly-geometry.js";
 import { H, W } from "./scale.js";
 import { pullCarriedObject } from "./object-carry.js";
 import { playerBox } from "./collision.js";
@@ -9,6 +10,7 @@ import { propFragments } from "./prop-fracture.js";
 // Mass is relative to a 55 kg fighter. Surface friction and inertia, rather than
 // a movement clamp, determine how far a hit moves furniture and loose rubble.
 export const PROP_TYPES = {
+  car: { mass: 180, material: "metal" },
   table:   { mass: 28, material: "wood" },
   crate:   { mass: 36, material: "wood" },
   log:     { mass: 65, material: "wood" },
@@ -47,6 +49,7 @@ export function prepareProp(c, id = c.id) {
   const type = PROP_TYPES[c.kind];
   if (!type) return c;
   c.id = id;
+  if(c.kind === "car"){c.carStage ??= 0;c.carPaint ??= 0;}
   c.mass ??= type.mass;
   c.material ??= type.material;
   c.vx ??= 0; c.vy ??= 0; c.angle ??= 0; c.spin ??= 0;
@@ -93,9 +96,9 @@ export function propSolids(b) {
       old.id === b.id && old.kind === b.kind && old.material === b.material &&
       old.chunk === b.chunk && old.maxHp === b.maxHp) return old.tiles;
   let tiles;
-  if (!b.shape && Math.abs(b.angle) < .001) tiles = [b];
+  if (!b.shape && b.kind !== "car" && Math.abs(b.angle) < .001) tiles = [b];
   else {
-    const ps = bodyPoints(b), bounds = bodyBounds(b);
+    const ps = b.kind === "car" && !b.chunk ? carPoints(b) : bodyPoints(b), bounds = bodyBounds(b);
     const count = Math.max(1, Math.min(b.chunk ? 4 : 12, Math.ceil(bounds.w / 10))), width = bounds.w / count;
     tiles = [];
     for (let n = 0; n < count; n++) {
@@ -223,6 +226,7 @@ export function fractureProp(world, b) {
     const width = w, height = h;
     const chunk = { id: `chunk${++world.chunkSerial}`, chunk: true, kind: b.kind, material,
       x: origin.x + dx - width / 2, y: origin.y + dy - height / 2, w: width, h: height,
+      ...(b.kind === "car" ? {carStage:b.carStage,carPaint:b.carPaint} : {}),
       mass: b.mass * shardArea / area, hp: 24, maxHp: 24, shape, sourceArt,
       vx: clamp(b.vx - b.spin * dy + dx * 1.3, -MAX_SPEED, MAX_SPEED),
       vy: clamp(b.vy + b.spin * dx + dy * 1.3 - 35, -MAX_SPEED, MAX_SPEED),

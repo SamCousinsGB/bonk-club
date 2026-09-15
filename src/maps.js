@@ -1,5 +1,6 @@
 // Distinct layouts use the same world scale and movement rules.
 export const COVER_KINDS = [
+  "car",
   "table",
   "crate",
   "log",

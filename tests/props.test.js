@@ -48,7 +48,7 @@ function advance(w,seconds) { for(let n=0;n<seconds/STEP;n++) { w.time+=STEP;w.u
 test("every arena prop starts with a material, mass, and resettable physical state",()=>{
   for(let arena=0;arena<ARENAS.length;arena++) {
     const w=new World({arena});
-    assert.ok(w.cover.every(c=>c.mass===PROP_TYPES[c.kind].mass && c.vx===0 && c.angle===0));
+    assert.ok(w.cover.every(c=>c.mass===(c.kind==='car'?140+c.carStage*20:PROP_TYPES[c.kind].mass) && c.vx===0 && c.angle===0));
     assert.ok(validSnapshot(w.snapshot()),ARENAS[arena].name);
   }
 });

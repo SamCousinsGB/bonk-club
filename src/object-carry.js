@@ -32,7 +32,7 @@ export function pickupObjectCandidate(world, p, angle = p?.aimAngle) {
     ...bodies(world).filter(b => b.hp > 0).map(b => ({ ...bodyBounds(b), id: b.id })),
   ];
   for (const b of bodies(world)) {
-    if (b.hp <= 0 || !Number.isFinite(b.mass) || b.mass <= 0 || b.mass > 250 ||
+    if (b.kind === "car" && !b.chunk || b.hp <= 0 || !Number.isFinite(b.mass) || b.mass <= 0 || b.mass > 250 ||
         world.players.some(q => q.carryId === b.id) || (b.x + b.w / 2 - x) * facing < 8) continue;
     const q = nearestPoint(b, x, y);
     if (q.distance >= distance || solids.some(s => s.id !== b.id && s.propId !== b.id &&

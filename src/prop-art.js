@@ -4,7 +4,7 @@ import { PROP_MATERIALS } from "./props.js";
 // ribbon. Fragments sample their actual location in that image, never a scaled
 // miniature of the complete prop. No bitmap data is sent over the network.
 function sourceArtwork(r, b) {
-  const [, , , , w, h] = b.sourceArt, key = `${b.kind}:${w}:${h}`;
+  const [, , , , w, h] = b.sourceArt, key = `${b.kind}:${w}:${h}:${b.carStage}:${b.carPaint}`;
   const cache = (r.propArt ||= new Map());
   if (cache.has(key)) return cache.get(key);
   const canvas = document.createElement("canvas");
@@ -12,7 +12,7 @@ function sourceArtwork(r, b) {
   const c = canvas.getContext("2d"), main = r.ctx;
   c.scale(canvas.width/w, canvas.height/h);
   r.ctx = c;
-  try { r.tableArt({kind:b.kind, x:0, y:0, w, h, hp:100, maxHp:100}); }
+  try { r.tableArt({kind:b.kind,carStage:b.carStage,carPaint:b.carPaint, x:0, y:0, w, h, hp:100, maxHp:100}); }
   finally { r.ctx = main; }
   if(cache.size >= 64) cache.delete(cache.keys().next().value);
   cache.set(key,canvas);
@@ -20,7 +20,7 @@ function sourceArtwork(r, b) {
 }
 
 function shardArtwork(r, b) {
-  const key=JSON.stringify([b.kind,b.material,b.sourceArt,b.shape]),cache=(r.shardArt ||= new Map());
+  const key=JSON.stringify([b.kind,b.material,b.sourceArt,b.shape,b.carStage,b.carPaint]),cache=(r.shardArt ||= new Map());
   if(cache.has(key))return cache.get(key);
   const source=sourceArtwork(r,b),[x,y,w,h,sw,sh]=b.sourceArt;
   const canvas=document.createElement('canvas');

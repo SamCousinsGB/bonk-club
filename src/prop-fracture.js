@@ -1,3 +1,4 @@
+import { CAR_BODY, CAR_CABIN, carHeight } from "./assembly-geometry.js";
 // Split the source artwork with oblique cracks. Every shard is convex so the
 // rotating rigid-body collider can use exactly the same outline as the renderer.
 const rect = (x, y, w, h) => [[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
@@ -29,6 +30,15 @@ function split(ps, depth, random) {
 }
 function regions(b) {
   const {w,h}=b;
+  if(b.kind==='car') {
+    const stage=b.carStage??0, height=carHeight(stage);
+    const transform=ps=>ps.map(([x,y])=>[(x+125)*w/250,(y-1190+height)*h/height]);
+    const pieces=[[transform(rect(-125,1158,250,16)),'metal',2]];
+    if(stage>=1)pieces.push([transform(CAR_BODY),'metal',3]);
+    if(stage>=2)pieces.push([transform(CAR_CABIN),'metal',2]);
+    for(const x of [-81,81])pieces.push([transform(rect(x-20,stage===3?1143:1174,40,stage===3?47:16)),'metal',1]);
+    return pieces;
+  }
   // Separate cushions/mattress from frames and avoid filling the air under beds.
   if(b.kind==='bed')return [
     [rect(3,3,w-6,Math.max(20,h-22)), 'fabric', 2],

@@ -129,3 +129,15 @@ test("throwing a weapon and exploding near furniture both damage every cover typ
       assert.ok(c.hp < 75, kind + " " + action);
     }
 });
+
+for(const survival of [false,true])test(`crusher ${survival?'survival':'normal'} return stroke and upper surface do not crush fighters or cover`,()=>{
+  const {w,h,p}=lab('crusher');
+  if(survival)w.arena={...w.arena,survival:{kind:'press'}};
+  Object.assign(h,{bodyY:500,active:false,cooldown:2,age:5.4});
+  Object.assign(p,{x:h.x,y:470,rig:null});
+  w.cover=[{id:'topcrate',kind:'crate',x:h.x-25,y:430,w:50,h:45,hp:75,maxHp:75}];
+  advance(w,.25);assert.ok(h.bodyY<500);assert.equal(p.hp,100);assert.equal(w.cover[0].hp,75);
+  Object.assign(h,{bodyY:400,active:true,duration:1,age:4.5,hitIds:[]});
+  Object.assign(p,{y:365});advance(w,.1);assert.equal(p.hp,100);
+  Object.assign(p,{y:h.bodyY+45});advance(w,STEP);assert.equal(p.alive,false);
+});

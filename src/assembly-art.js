@@ -1,5 +1,5 @@
-import { LINE_Y, LINE_CYCLE, LINE_DWELL, LINE_SPEED, STATIONS } from "./assembly-arena.js";
-import { robotPose, CAR_BODY, CAR_CABIN, PRESS_HALF_HEIGHT, steamStrength, welding, smooth } from "./assembly-geometry.js";
+import { LINE_Y, LINE_SPEED, STATIONS } from "./assembly-arena.js";
+import { robotPose, CAR_BODY, CAR_CABIN, PRESS_HALF_HEIGHT, steamStrength, welding, smooth, carHeight } from "./assembly-geometry.js";
 
 const rect = (c, x, y, w, h, color) => { c.fillStyle = color; c.fillRect(x, y, w, h); };
 const path = (c, points, color, width = 4) => {
@@ -91,6 +91,18 @@ function carArt(c, car) {
   if(car.stage>=2)shell(c,x,0,painted,color);
   if(painted)for(const offset of [-81,81])wheel(c,x+offset,1167);
 }
+export function drawCarProp(c,b){
+  if(b.hp<=0)return;
+  const stage=b.carStage??0,height=carHeight(stage);
+  c.save();c.translate(b.x,b.y);c.scale(b.w/250,b.h/height);c.translate(125,height-1190);
+  carArt(c,{x:0,id:b.carPaint??0,stage});
+  if(stage<3){rect(c,-110,1174,220,9,'#344b59');rect(c,-107,1183,214,7,'#142d3a');}
+  if(b.hp<b.maxHp){
+    c.globalAlpha=Math.min(.85,(1-b.hp/b.maxHp)*1.5);
+    for(const x of [-70,18,80])path(c,[{x,y:stage>0?1130:1160},{x:x-9,y:1148},{x:x+12,y:1163}],"#152a36",3);
+  }
+  c.restore();
+}
 function stackLight(c,h,clock,reduced){
   const x=h.x+(h.assemblyStation===1?115:102), y=h.assemblyStation===1?705:770;
   const fault=!['none','empty'].includes(h.assemblyFault), amber=h.warning>0||h.assemblyFault==='empty';
@@ -102,7 +114,7 @@ function stackLight(c,h,clock,reduced){
     rect(c,x-9,y+i*18,18,14,lit?colors[i]:['#593c39','#635640','#314b47'][i]);
     if(lit){c.save();c.globalAlpha=.18;disc(c,x,y+i*18+7,26,colors[i]);c.restore();}
   }
-  if(fault||h.assemblyFault==='empty')label(c,({broken:'OFFLINE',damaged:'DAMAGED CAR',stage:'REJECTED',jam:'JAM',empty:'WAITING'})[h.assemblyFault],h.x,h.assemblyStation===1?815:916,17,fault?'#f18c72':'#d4ad69');
+  if(fault)label(c,({broken:'OFFLINE',damaged:'DAMAGED CAR',stage:'REJECTED',jam:'JAM',empty:'WAITING'})[h.assemblyFault],h.x,h.assemblyStation===1?815:916,17,fault?'#f18c72':'#d4ad69');
 }
 function steam(c,h,phase,clock){
   const strength=steamStrength(h,phase);if(strength<=0)return;
@@ -122,8 +134,8 @@ function steam(c,h,phase,clock){
 
 export function drawAssembly(c, state, reduced = false) {
   if (!state.assembly) return;
-  const { clock, completed, cars } = state.assembly, phase = clock % LINE_CYCLE;
-  const travel = Math.floor(clock / LINE_CYCLE) * 600 + Math.max(0, phase - LINE_DWELL) * LINE_SPEED;
+  const { clock, completed, cars } = state.assembly;
+  const travel = clock * LINE_SPEED;
   for (const b of state.platforms.filter(p => p.assemblyBelt && p.hp !== 0 && !p.wreckId)) {
     c.save(); c.beginPath(); c.rect(b.x, b.y, b.w, b.h); c.clip();
     rect(c, b.x, b.y, b.w, b.h, "#344956");
@@ -139,12 +151,12 @@ export function drawAssembly(c, state, reduced = false) {
     glow.addColorStop(0,warning?'#f6b64220':'#ed594222');glow.addColorStop(1,'#ed594200');
     c.fillStyle=glow;c.fillRect(h.x-195,995,390,230);
   }
-  for (const car of cars) {
-    c.save(); c.beginPath();
-    for (const p of state.platforms.filter(p => p.assemblyCar === car.id && p.hp !== 0 && !p.wreckId)) c.rect(p.x, p.y, p.w, p.h);
-    c.clip(); carArt(c, car, clock); c.restore();
+  for(const b of state.cover.filter(b=>b.kind==='car'&&b.hp>0)){
+    c.save();c.translate(b.x+b.w/2,b.y+b.h/2);c.rotate(b.angle||0);c.translate(-b.x-b.w/2,-b.y-b.h/2);
+    drawCarProp(c,b);c.restore();
   }
   for (const h of state.hazards.filter(h => h.assemblyStation)) {
+    const phase=h.assemblyPhase;
     // Indicators remain on surviving control feeds; broken machinery never regrows.
     if(state.platforms.some(p=>p.assemblyMount===h.assemblyStation&&p.hp!==0))stackLight(c,h,clock,reduced);
     if(h.done)continue;
@@ -174,7 +186,9 @@ export function drawAssembly(c, state, reduced = false) {
       for(const p of pose.slice(0,2)){
         disc(c,p.x,p.y,25,"#203947");disc(c,p.x,p.y,18,"#97a7a8");disc(c,p.x,p.y,11,"#3c5766");disc(c,p.x,p.y,5,"#c8d1c6");
       }
-      const work=cars.find(car=>car.id===h.assemblyWork && Math.abs(car.x-h.x)<3 && !car.damaged);
+      const record=cars.find(car=>car.id===h.assemblyWork&&!car.damaged);
+      const body=record&&state.cover.find(b=>b.id==='car'+record.id&&b.hp>0);
+      const work=body&&{...record,x:body.x+body.w/2};
       const operating=work&&h.assemblyFault==='none'&&phase>=1&&phase<2.3;
       if(operating&&h.assemblyStation===2&&work.stage===1){
         shell(c,work.x,-55*(1-smooth((phase-1)/.3)),false,"#91a4aa");
@@ -205,5 +219,5 @@ export function drawAssembly(c, state, reduced = false) {
   rect(c, 2260, 790, 230, 80, "#10212a");
   label(c, `BUILT ${completed}`, 2375, 824, 25, "#95d4b7");
   const fault = cars.some(car=>car.damaged||car.blocked)||state.hazards.some(h=>h.assemblyStation&&['broken','stage','jam','damaged'].includes(h.assemblyFault));
-  label(c, fault ? "LINE FAULT" : phase < 3 ? "ASSEMBLING" : "CONVEYOR RUNNING", 2375, 853, 18, fault ? "#f48d73" : "#a9c0c8");
+  label(c, fault ? "LINE FAULT" : "CONVEYOR RUNNING", 2375, 853, 18, fault ? "#f48d73" : "#a9c0c8");
 }

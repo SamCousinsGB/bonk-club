@@ -158,19 +158,24 @@ Keep this constitution for durable rules and the handoff for current work.
   The sump and side boundaries contain destroyed rotor pits without a flat floor
   or bottom ring-out. Bots must not route onto intact turbine beds. Preserve
   machine destruction and remains through validated guest state and hot joins.
-- CAR ASSEMBLY uses a host-owned production clock and conveyor: stamp body panels,
-  weld the cabin, fit wheels and finish the car. Cars are solid moving cover and
-  jumping surfaces. Preserve safe press warnings, physical machine contacts,
-  alternate overhead routes, permanent car/station cuts, stopped pallets at broken
-  rails, bounded feed queues, validated hot joins and full round reset. Do not
-  replace production with decorative car animation or rebuild damaged bodywork.
-  Machines latch an aligned, undamaged car before operating. Empty stations stay
-  parked without welding or steam; amber means warning/waiting, red means active
-  work or a labelled damaged-car, rejected-stage, jam or broken-machine fault.
-  Robot links have fixed lengths and hold programmed weld points. Keep the heavy
-  press die, timed steam jets, shaped car collision and distinct assembly stages.
-  Active tool contact and lingering in press steam are lethal; never electrify
-  the entire belt as a side effect of welding. Raised bypasses remain safe.
+- CAR ASSEMBLY uses a host-owned production clock and continuously moving conveyor:
+  stamp panels, weld the cabin, fit wheels and finish the car. Cars are heavy
+  physical props with shaped collision, bullet/blast damage, momentum and rotation.
+  The belt drives cars only through surviving contact; broken sections let them
+  tip and fall through, and finished cars fall from the outfeed. Never stop cars
+  ahead of holes or teleport them along a scripted track. Destroyed cars leave
+  matching physical metal pieces. Preserve stage/paint through debris, black-hole
+  capture, validated snapshots and hot joins. Keep bounded feed queues, permanent
+  destruction, raised bypasses and full round reset; never repair damaged cars.
+  Machines latch aligned passing cars before working. Robot tools track programmed
+  weld points with fixed-length links. Empty stations park without welding or
+  steam; amber means warning/waiting, red means active work or a labelled
+  damaged-car, rejected-stage, jam or broken-machine fault. Keep the heavy press
+  die, timed steam jets and distinct stages. Active tools and lingering in steam
+  are lethal; never electrify the whole belt as a side effect of welding.
+  Every crusher, including assembly and survival presses, crushes only beneath
+  its descending lower face. Return strokes, tops and sides do not deal crush
+  damage; steam and separate hazards retain their own contact rules.
 - Give traversal headroom and clear takeoffs. Meaningful gaps should use double
   jumps, with alternate routes and elevators; avoid tightly stacked head traps.
 - Every platform, including walls, stairs, panels and lifts, can be deformed by

@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
-import { updateAssembly, carTiles, robotPose } from "../src/assembly.js";
+import { updateAssembly, carTiles, carBody, robotPose } from "../src/assembly.js";
+import { updateProps } from "../src/props.js";
 import { carveExplosion } from "../src/terrain.js";
 import { validSnapshot } from "../src/network.js";
-import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
+import { RenderSnapshots, interpolateStates, blend } from "../src/render-state.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
 import { welding, steamStrength } from "../src/assembly-geometry.js";
 import { nuclearField, updateNuclear } from "../src/nuclear.js";
@@ -14,197 +15,184 @@ function fixture() {
   w.phase = "fight"; w.weaponTimer = 999; w.grenadeTimer = 999; w.drops = [];
   return w;
 }
-function advance(w, seconds) {
-  for (let i = 0; i < Math.round(seconds / STEP); i++) { w.time += STEP; w.movePlatforms(); updateAssembly(w, STEP); }
+function advance(w, seconds, rider) {
+  for (let i = 0; i < Math.round(seconds / STEP); i++) {
+    w.time += STEP; w.movePlatforms(); updateAssembly(w, STEP); updateProps(w,STEP);
+    if(rider)w.move(rider,cleanInput({}),STEP);
+  }
 }
 
-test("a chassis travels through three working stations to become a complete car", () => {
-  const w = fixture(), car = w.assembly.cars[0];
-  assert.equal(car.stage, 0); assert.equal(carTiles(w, car.id).length, 1);
-  advance(w, 10.4); assert.equal(car.stage, 1); assert.ok(Math.abs(car.x - 640) < .01);
-  advance(w, 8); assert.equal(car.stage, 2); assert.ok(carTiles(w, car.id).some(p => p.assemblyPart === "cabin"));
-  advance(w, 8); assert.equal(car.stage, 3); assert.deepEqual([...new Set(carTiles(w, car.id).map(p=>p.assemblyPart))], ["chassis","body","cabin","rearWheel","frontWheel"]);
-  assert.equal(w.assembly.completed, 4); assert.ok(validSnapshot(w.snapshot()));
+test("one physical chassis retains its identity through stamping, welding and wheels", () => {
+  const w=fixture(),car=w.assembly.cars[0],body=carBody(w,car);
+  assert.equal(car.stage,0);assert.equal(body.h,32);
+  advance(w,8);assert.equal(car.stage,1);assert.equal(body.h,70);
+  advance(w,8);assert.equal(car.stage,2);assert.equal(body.h,134);
+  advance(w,8);assert.equal(car.stage,3);assert.equal(carBody(w,car),body);
+  assert.equal(body.carStage,3);assert.ok(w.assembly.completed>=4);assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("preloaded work finishes during a short round, belt dwells and bounded feed continues", () => {
-  const w = fixture(); advance(w, 2.4); assert.equal(w.assembly.completed, 1);
-  assert.equal(w.assembly.cars[0].x, 40); advance(w, .6); assert.ok(Math.abs(w.assembly.cars[0].x - 40) < .01);
-  advance(w, 2); assert.ok(Math.abs(w.assembly.cars[0].x - 280) < .01);
-  advance(w, 115); assert.ok(w.assembly.completed >= 14); assert.ok(w.assembly.cars.length <= 6);
-  assert.ok(w.platforms.filter(p => p.assemblyCar).length <= 96); assert.ok(validSnapshot(w.snapshot()));
+test("belt runs continuously through tool work and bounded production feeds finished cars off the end",()=>{
+  const w=fixture(),car=w.assembly.cars[3],b=carBody(w,car);
+  advance(w,1.4);const x=b.x;advance(w,.3);assert.ok(b.x>x+15);assert.ok(w.hazards[2].active);
+  advance(w,1);assert.equal(car.stage,3);
+  advance(w,8.5);assert.ok(b.angle>.05&&b.y>1058,JSON.stringify(b));
+  advance(w,2);assert.equal(carBody(w,car),undefined);
+  advance(w,65);assert.ok(w.assembly.completed>=8);assert.ok(w.assembly.cars.length<=6);
+  assert.ok(w.cover.filter(b=>b.kind==='car').length<=6);assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("fighters ride both the running belt and a car roof, and can jump off", () => {
-  for (const roof of [false, true]) {
-    const w = fixture(); advance(w, 3);
-    const p = w.players[0], car = w.assembly.cars[2];
-    const surface = roof ? carTiles(w, car.id).find(p => p.assemblyPart === "cabin") : w.platforms.find(p => p.assemblyBelt && p.x === 300);
-    Object.assign(p, { x: roof ? car.x : 350, y: surface.y - 30, ground: true, support: surface.id, rig: null, vx: 0, vy: 0 });
-    const x = p.x;
-    for (let i = 0; i < 60; i++) { w.movePlatforms(); updateAssembly(w, STEP); w.move(p, cleanInput({}), STEP); }
-    assert.ok(p.x > x + 50, `${roof}: ${p.x - x}`); assert.ok(p.ground && p.alive);
-    w.move(p, cleanInput({ jump: true }), STEP); assert.ok(p.vy < -400 && !p.ground);
+test("fighters ride the belt and shaped car roof, then jump clear",()=>{
+  for(const roof of [false,true]){
+    const w=fixture();advance(w,3);const p=w.players[0],car=w.assembly.cars[2];
+    const surface=roof?carTiles(w,car.id).sort((a,b)=>a.y-b.y)[0]:w.platforms.find(b=>b.assemblyBelt&&b.x===300);
+    Object.assign(p,{x:roof?surface.x+surface.w/2:350,y:surface.y-30,ground:true,support:surface.id,rig:null,vx:0,vy:0});
+    const x=p.x;advance(w,.8,p);assert.ok(p.x>x+35,`${roof}: ${p.x-x}`);assert.ok(p.ground&&p.alive);
+    w.move(p,cleanInput({jump:true}),STEP);assert.ok(p.vy<-400&&!p.ground);
   }
 });
 
-test("installing a cabin lifts a surviving rider clear of its complete sloped collision", () => {
-  const w = fixture(), car = w.assembly.cars[2], p = w.players[0];
-  Object.assign(p, { x: car.x, y: 1090, ground: true, rig: null, hp: 10000 });
-  advance(w, 2.4); assert.equal(car.stage, 2); assert.equal(p.y, 1026); assert.ok(p.alive);
+test("bullets damage and push a car, destroy it into matching physical metal pieces, and never rebuild it",()=>{
+  const w=fixture(),car=w.assembly.cars[2],b=carBody(w,car),p=w.players[0];
+  Object.assign(p,{x:b.x-65,y:b.y+30,rig:null,weapon:'blaster',ammo:100,aimAngle:0,facing:1});
+  w.attack(p);for(let i=0;i<12;i++)w.updateProjectiles(STEP);
+  assert.ok(b.hp<200&&b.hp>0);assert.ok(b.vx>0);
+  advance(w,.1);assert.ok(car.damaged);assert.equal(car.stage,1);
+  p.weapon='railgun';p.cooldown=0;p.ammo=10;w.attack(p);for(let i=0;i<12;i++)w.updateProjectiles(STEP);
+  assert.equal(b.hp,0);assert.ok(w.chunks.length>=8);
+  assert.ok(w.chunks.every(q=>q.kind==='car'&&q.material==='metal'&&q.carStage===1&&q.carPaint===b.carPaint&&q.sourceArt));
+  advance(w,1);assert.equal(carTiles(w,car.id).length,0);assert.ok(!w.assembly.cars.includes(car));
+  assert.ok(validSnapshot(w.snapshot()));
+  advance(w,10);assert.equal(carBody(w,car),undefined);
+  w.startRound();assert.equal(w.assembly.cars.length,4);assert.equal(w.assembly.completed,0);assert.equal(w.chunks.length,0);
 });
 
-test("stamping warns safely, then its descending physical head crushes only contact", () => {
-  const w = fixture();
-  Object.assign(w.players[0], { x: 640, y: 1090, rig: null });
-  Object.assign(w.players[1], { x: 930, y: 1090, rig: null });
-  advance(w, .9); assert.ok(w.hazards[0].warning > 0); assert.ok(w.players[0].alive);
-  advance(w, .7); assert.equal(w.players[0].alive, false); assert.equal(w.players[1].hp, 100);
-  assert.equal(w.lastDeathCause, "crusher"); assert.ok(w.platforms.some(p => p.assemblyHead && p.y > 1040));
+test("a destroyed belt keeps driving cars into the gap, where they tip and fall instead of queuing",()=>{
+  const w=fixture(),car=w.assembly.cars[0],b=carBody(w,car);
+  carveExplosion(w,{x:420,y:1190,radius:170});
+  advance(w,4);assert.ok(b.x+b.w/2>280);assert.ok(b.y>1190||Math.abs(b.angle)>.2,JSON.stringify(b));
+  advance(w,8);assert.equal(carBody(w,car),undefined);assert.ok(w.assembly.cars.length<=6);assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("robot welders damage at their moving arm and tool rather than across the entire station", () => {
-  const w = fixture(); advance(w, 1.1);
-  const h = w.hazards[1], tip = robotPose(h, w.assembly.clock % 8)[2];
-  Object.assign(w.players[0], { x: tip.x, y: tip.y, rig: null });
-  Object.assign(w.players[1], { x: h.x + 140, y: 1150, rig: null });
-  advance(w, STEP); assert.equal(w.players[0].hp, 35); assert.equal(w.players[1].hp, 100);
-  advance(w, .05); assert.equal(w.players[0].hp, 35);
+test("blast damage retains impulse and prevents later assembly repairs",()=>{
+  const w=fixture(),car=w.assembly.cars[2],b=carBody(w,car);
+  w.explode({x:b.x-30,y:b.y+25,radius:120,damage:40,force:700});
+  assert.ok(b.hp<200);assert.ok(b.vx>0);advance(w,10);
+  assert.ok(car.damaged);assert.equal(car.stage,1);assert.ok(b.hp<200);assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("normal welding does not electrify the connected conveyor or distant riders", () => {
-  const w = fixture(), p = w.players[0];
-  Object.assign(p, { x: 920, y: 1160, ground: true, rig: null });
-  for (let i = 0; i < 240; i++) w.step(STEP);
-  assert.equal(p.hp, 100);
-  assert.ok(w.platforms.filter(p => p.assemblyBelt).every(p => !(p.charge > 0)));
-});
-
-test("station destruction prevents its build operation permanently and does not restore a press head", () => {
-  for (const station of [1, 2, 3]) {
-    const w = fixture(), h = w.hazards[station - 1], car = w.assembly.cars[station];
-    const mount = w.platforms.find(p => p.assemblyMount === station);
-    carveExplosion(w, { x: h.x, y: mount.y, radius: 140 }); advance(w, 2);
-    assert.ok(h.done); assert.equal(car.stage, station - 1);
-    if (station === 1) assert.ok(!w.platforms.some(p => p.assemblyHead));
-    assert.ok(validSnapshot(w.snapshot()));
-  }
-});
-
-test("car cuts persist while travelling and damaged work is never silently rebuilt", () => {
-  const w = fixture(), car = w.assembly.cars[2];
-  carveExplosion(w, { x: car.x + 95, y: 1130, radius: 40 });
-  const before = carTiles(w, car.id).reduce((sum, p) => sum + p.w * p.h, 0);
-  advance(w, 10); assert.ok(car.damaged); assert.equal(car.stage, 1);
-  assert.equal(carTiles(w, car.id).reduce((sum, p) => sum + p.w * p.h, 0), before);
-  assert.ok(car.x > 1800); assert.ok(validSnapshot(w.snapshot()));
-});
-
-test("a severed conveyor stops approaching pallets and keeps the queue bounded", () => {
-  const w = fixture(), car = w.assembly.cars[0];
-  carveExplosion(w, { x: 390, y: 1190, radius: 85 }); advance(w, 55);
-  assert.ok(car.x < 310); assert.ok(w.assembly.cars.length <= 6); assert.ok(validSnapshot(w.snapshot()));
-});
-
-test("destroyed car identities leave no collision, never reappear, and reset restores the line", () => {
-  const w = fixture(), id = w.assembly.cars[2].id;
-  carveExplosion(w, { x: 1240, y: 1140, radius: 200 }); advance(w, 2);
-  assert.ok(!w.assembly.cars.some(c => c.id === id)); assert.equal(carTiles(w, id).length, 0);
-  advance(w, 18); assert.equal(carTiles(w, id).length, 0);
-  w.startRound(); assert.equal(w.assembly.clock, 0); assert.equal(w.assembly.completed, 0);
-  assert.equal(w.assembly.cars.length, 4); assert.ok(w.hazards.every(h => !h.done)); assert.ok(validSnapshot(w.snapshot()));
-});
-
-test("nuclear removal cannot be recreated by the next production tick", () => {
-  const w = fixture(), id = w.assembly.cars[2].id;
-  const field = nuclearField(w, { x: 1240, y: 1100, owner: 0 });
-  field.age = 1; updateNuclear(w, field, STEP); advance(w, 2);
-  assert.equal(carTiles(w, id).length, 0); assert.ok(validSnapshot(w.snapshot()));
-});
-
-test("prediction, countdown and results cannot advance production or award cars", () => {
-  const w = fixture(), initial = structuredClone(w.snapshot());
-  for (const phase of ["countdown", "result"]) { w.phase = phase; advance(w, 5); assert.deepEqual(w.snapshot().assembly, initial.assembly); }
-  w.phase = "fight"; w.prediction = true; advance(w, 5); assert.deepEqual(w.snapshot().assembly, initial.assembly);
-});
-
-test("changed-map hot join retains car stages, cuts, completion counts and smooth movement", () => {
-  const w = fixture(), snapshots = new RenderSnapshots(); advance(w, 4);
-  carveExplosion(w, { x: w.assembly.cars[2].x + 110, y: 1130, radius: 30 }); advance(w, STEP);
-  const a = snapshots.make(w.snapshot());
-  const received = expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(a))), validSnapshot);
-  assert.deepEqual(received.assembly, a.assembly); assert.deepEqual(received.platforms, JSON.parse(JSON.stringify(a.platforms)));
-  advance(w, .1); const b = snapshots.make(w.snapshot()), view = interpolateStates(a, b, .5);
-  assert.ok(view.assembly.cars[0].x > a.assembly.cars[0].x && view.assembly.cars[0].x < b.assembly.cars[0].x);
-  assert.equal(view.assembly.completed, b.assembly.completed); assert.ok(validSnapshot(b));
-});
-
-test("wire validation rejects invalid production state and orphan car collision", () => {
-  const w = fixture();
-  for (const patch of [{ clock: NaN }, { completed: -1 }, { completed: 99 }, { serial: Infinity }, { cars: Array(7).fill(w.snapshot().assembly.cars[0]) }]) {
-    const s = structuredClone(w.snapshot()); Object.assign(s.assembly, patch); assert.equal(validSnapshot(s), false);
-  }
-  for (const patch of [{ stage: 4 }, { x: Infinity }, { damaged: "yes" }, { blocked: 1 }, { id: 0 }]) {
-    const s = structuredClone(w.snapshot()); Object.assign(s.assembly.cars[0], patch); assert.equal(validSnapshot(s), false);
-  }
-  const s = structuredClone(w.snapshot()); s.platforms.find(p => p.assemblyCar).assemblyCar = 999; assert.equal(validSnapshot(s), false);
-  const missing = structuredClone(w.snapshot()); delete missing.assembly; assert.equal(validSnapshot(missing), false);
-});
-
-
-test("empty stations stay parked without sparks, steam, work or damage", () => {
-  const w=fixture();
-  w.platforms=w.platforms.filter(p=>!p.assemblyCar);w.assembly.cars=[];
-  const home=robotPose(w.hazards[1],0);
+test("press warning is safe; descending underside kills and its top, sides and return stroke are safe",()=>{
+  const w=fixture(),h=w.hazards[0];advance(w,.9);assert.ok(h.warning>0);
   Object.assign(w.players[0],{x:640,y:1090,rig:null});
-  Object.assign(w.players[1],{x:1185,y:1106,rig:null});
+  Object.assign(w.players[1],{x:460,y:1000,rig:null});
+  Object.assign(w.players[2],{x:640,y:850,rig:null});
+  advance(w,.7);assert.equal(w.players[0].alive,false);assert.equal(w.players[1].hp,100);assert.equal(w.players[2].hp,100);
+  assert.equal(w.lastDeathCause,'crusher');
+  advance(w,.6);assert.ok(h.assemblyPhase>2.15);
+  Object.assign(w.players[3],{x:640,y:h.bodyY-45,rig:null});
+  const old=h.bodyY;advance(w,.4);assert.ok(h.bodyY<old);assert.equal(w.players[3].hp,100);
+});
+
+test("station destruction permanently disables work and never restores a press head",()=>{
+  for(const station of [1,2,3]){
+    const w=fixture(),h=w.hazards[station-1],car=w.assembly.cars[station];
+    const mount=w.platforms.find(p=>p.assemblyMount===station);
+    carveExplosion(w,{x:h.x,y:mount.y,radius:140});advance(w,3);
+    assert.ok(h.done);assert.equal(car.stage,station-1);
+    if(station===1)assert.ok(!w.platforms.some(p=>p.assemblyHead));assert.ok(validSnapshot(w.snapshot()));
+  }
+});
+
+test("nuclear removal does not recreate consumed physical cars",()=>{
+  const w=fixture(),id=w.assembly.cars[2].id,field=nuclearField(w,{x:1240,y:1100,owner:0});
+  field.age=1;updateNuclear(w,field,STEP);advance(w,2);assert.equal(carTiles(w,id).length,0);assert.ok(validSnapshot(w.snapshot()));
+});
+
+test("countdown, results and prediction cannot advance production or apply belt traction",()=>{
+  const w=fixture(),initial=structuredClone(w.assembly);
+  for(const phase of ['countdown','result']){w.phase=phase;advance(w,2);assert.deepEqual(w.assembly,initial);}
+  w.phase='fight';w.prediction=true;advance(w,2);assert.deepEqual(w.assembly,initial);
+  assert.ok(w.cover.filter(b=>b.kind==='car').every(b=>Math.abs(b.x+b.w/2-initial.cars.find(c=>'car'+c.id===b.id).x)<1));
+});
+
+test("hot join preserves damaged falling cars, angular state and physical debris",()=>{
+  const w=fixture(),car=w.assembly.cars[0],b=carBody(w,car),snapshots=new RenderSnapshots();
+  w.damageCover(b,20,200,0);carveExplosion(w,{x:420,y:1190,radius:170});advance(w,2);
+  const a=snapshots.make(w.snapshot()),received=expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(a))),validSnapshot);
+  assert.ok(received);assert.deepEqual(received.assembly,a.assembly);assert.deepEqual(received.cover,JSON.parse(JSON.stringify(a.cover)));
+  assert.ok(Math.abs(b.angle)>.05||b.y>1190);advance(w,.1);const next=snapshots.make(w.snapshot()),view=interpolateStates(a,next,.5);
+  const old=a.cover.find(q=>q.id===b.id),latest=next.cover.find(q=>q.id===b.id),middle=view.cover.find(q=>q.id===b.id);
+  assert.ok(middle.x>=Math.min(old.x,latest.x)&&middle.x<=Math.max(old.x,latest.x));assert.ok(validSnapshot(next));
+});
+
+test("wire validation rejects malformed production, car appearance, motion and machine phases",()=>{
+  const w=fixture();
+  for(const patch of [{clock:NaN},{completed:-1},{completed:99},{serial:Infinity},{cars:Array(7).fill(w.snapshot().assembly.cars[0])}]){
+    const s=structuredClone(w.snapshot());Object.assign(s.assembly,patch);assert.equal(validSnapshot(s),false);
+  }
+  for(const patch of [{stage:4},{x:Infinity},{damaged:'yes'},{blocked:1},{id:0}]){
+    const s=structuredClone(w.snapshot());Object.assign(s.assembly.cars[0],patch);assert.equal(validSnapshot(s),false);
+  }
+  for(const patch of [{carStage:4},{carPaint:-1},{angle:NaN},{vx:Infinity}]){
+    const s=structuredClone(w.snapshot());Object.assign(s.cover.find(b=>b.kind==='car'),patch);assert.equal(validSnapshot(s),false);
+  }
+  for(const patch of [{assemblyWork:-1},{assemblyFault:'boom'},{assemblyPhase:NaN},{assemblyPhase:4},{assemblyOffset:Infinity}]){
+    const s=structuredClone(w.snapshot());Object.assign(s.hazards[0],patch);assert.equal(validSnapshot(s),false);
+  }
+  const missing=structuredClone(w.snapshot());delete missing.assembly;assert.equal(validSnapshot(missing),false);
+});
+
+test("empty stations remain parked without sparks, steam or damage",()=>{
+  const w=fixture();w.cover=w.cover.filter(b=>b.kind!=='car');w.assembly.cars=[];
+  const home=robotPose(w.hazards[1],0);Object.assign(w.players[0],{x:640,y:1090,rig:null});
   for(let i=0;i<360;i++){
-    advance(w,STEP);
-    assert.deepEqual(robotPose(w.hazards[1],w.assembly.clock),home);
+    advance(w,STEP);assert.deepEqual(robotPose(w.hazards[1],w.hazards[1].assemblyPhase),home);
     assert.ok(w.hazards.every(h=>h.assemblyFault==='empty'&&!h.active&&!h.warning));
-    assert.equal(welding(w.hazards[1],w.assembly.clock),false);
-    assert.equal(steamStrength(w.hazards[0],w.assembly.clock),0);
+    assert.equal(welding(w.hazards[1],w.hazards[1].assemblyPhase),false);assert.equal(steamStrength(w.hazards[0],w.hazards[0].assemblyPhase),0);
   }
-  assert.equal(w.assembly.completed,0);assert.equal(w.players[0].hp,100);assert.equal(w.players[1].hp,100);
+  assert.equal(w.assembly.completed,0);assert.equal(w.players[0].hp,100);
 });
 
-test("robot links stay rigid, hold both welds, and return to the same parked pose", () => {
-  const w=fixture();advance(w,.1);const h=w.hazards[1],home=robotPose(h,0);
-  for(let phase=0;phase<8;phase+=.01){
-    const [a,b,c]=robotPose(h,phase);
-    assert.ok(Math.abs(Math.hypot(b.x-a.x,b.y-a.y)-190)<1e-6);
-    assert.ok(Math.abs(Math.hypot(c.x-b.x,c.y-b.y)-200)<1e-6);
+test("robot links remain rigid and follow the moving car during each weld",()=>{
+  const w=fixture();advance(w,1.35);const h=w.hazards[1],first=robotPose(h,h.assemblyPhase)[2];
+  assert.ok(welding(h,h.assemblyPhase));advance(w,.2);const next=robotPose(h,h.assemblyPhase)[2];assert.ok(next.x>first.x+10);
+  for(let phase=0;phase<3.1;phase+=.01){const [a,b,c]=robotPose(h,phase);
+    assert.ok(Math.abs(Math.hypot(b.x-a.x,b.y-a.y)-215)<1e-6);assert.ok(Math.abs(Math.hypot(c.x-b.x,c.y-b.y)-220)<1e-6);
   }
-  assert.deepEqual(robotPose(h,1.35),robotPose(h,1.65));
-  assert.deepEqual(robotPose(h,2),robotPose(h,2.25));
-  assert.deepEqual(robotPose(h,3),home);assert.deepEqual(robotPose(h,7),home);
+  const reset=blend({...h,assemblyWork:1,assemblyPhase:3.1},{...h,assemblyWork:5,assemblyPhase:.1},.5);assert.equal(reset.assemblyPhase,.1);
 });
 
-test("damage immediately cuts welding, reports a fault and cannot rebuild the shell", () => {
-  const w=fixture();advance(w,1.4);const h=w.hazards[1],car=w.assembly.cars[2];
-  assert.ok(welding(h,w.assembly.clock));
-  carveExplosion(w,{x:car.x+95,y:1130,radius:35});advance(w,STEP);
-  assert.equal(h.assemblyFault,'damaged');assert.equal(h.active,false);assert.equal(welding(h,w.assembly.clock),false);
+test("damage immediately cuts welding, reports a fault and cannot rebuild the shell",()=>{
+  const w=fixture();advance(w,1.4);const h=w.hazards[1],car=w.assembly.cars[2];assert.ok(welding(h,h.assemblyPhase));
+  w.damageCover(carBody(w,car),20);advance(w,STEP);assert.equal(h.assemblyFault,'damaged');assert.equal(h.active,false);
   advance(w,1);assert.equal(car.stage,1);assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("press vents and both robot work points are lethal while elevated bypasses are safe", () => {
+test("steam and active tools kill at contact while bypasses and distant belt riders remain safe",()=>{
   for(const station of [1,2,3]){
-    const w=fixture();advance(w,1.4);
-    const h=w.hazards[station-1],tip=robotPose(h,w.assembly.clock)[2];
+    const w=fixture();advance(w,1.4);const h=w.hazards[station-1],tip=robotPose(h,h.assemblyPhase)[2];
     Object.assign(w.players[0],{x:station===1?840:tip.x,y:station===1?1120:tip.y,rig:null});
-    Object.assign(w.players[1],{x:h.x,y:700,rig:null});
-    advance(w,.7);assert.equal(w.players[0].alive,false,station);assert.equal(w.players[1].hp,100,station);
-    assert.equal(w.lastDeathCause,station===1?'burn':station===2?'electrified':'crusher');
+    Object.assign(w.players[1],{x:h.x,y:700,rig:null});Object.assign(w.players[2],{x:950,y:1160,rig:null});
+    advance(w,.7);assert.equal(w.players[0].alive,false,station);assert.equal(w.players[1].hp,100);assert.equal(w.players[2].hp,100);
+    assert.ok(w.platforms.filter(p=>p.assemblyBelt).every(p=>!(p.charge>0)));
   }
 });
 
-test("machine faults and jam state survive hot join and reject malformed wire values", () => {
-  const w=fixture();carveExplosion(w,{x:560,y:1190,radius:45});advance(w,.1);
-  assert.ok(w.assembly.cars[1].blocked);assert.equal(w.hazards[0].assemblyFault,'jam');
-  const snap=w.snapshot(),received=expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(snap))),validSnapshot);
-  assert.equal(received.hazards[0].assemblyFault,'jam');assert.ok(received.assembly.cars[1].blocked);
-  for(const patch of [{assemblyWork:-1},{assemblyWork:Infinity},{assemblyFault:'boom'},{assemblyFault:null}]){
-    const bad=structuredClone(snap);Object.assign(bad.hazards[0],patch);assert.equal(validSnapshot(bad),false);
-  }
+
+test("black holes retain the appearance of captured cars and never respawn them",async()=>{
+  const {blackholeField}=await import('../src/blackhole.js'),{updateFields}=await import('../src/specials.js');
+  const w=fixture(),car=w.assembly.cars[3],b=carBody(w,car);
+  const f=blackholeField(w,{x:b.x+b.w/2,y:b.y+b.h/2,owner:0});w.fields=[f];
+  for(let t=0;t<.5;t+=STEP){w.time+=STEP;updateFields(w,STEP);}
+  const wreck=w.wreckage.find(q=>q.sourceKind==='car'&&q.carPaint===b.carPaint);
+  assert.ok(wreck);assert.equal(wreck.carStage,b.carStage);assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
+  for(let t=0;t<5.5;t+=STEP){w.time+=STEP;updateFields(w,STEP);}
+  const core=w.wreckage.find(q=>q.kind==='matter'),item=core.items.find(q=>q.sourceKind==='car'&&q.carPaint===b.carPaint);
+  assert.ok(item);assert.equal(item.carStage,b.carStage);advance(w,.1);assert.equal(carBody(w,car),undefined);
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
+});
+
+test("PHASER consumes car bodies without leaving collision or rebuilding them",()=>{
+  const w=fixture(),car=w.assembly.cars[2],b=carBody(w,car),p=w.players[0];
+  Object.assign(p,{x:b.x-100,y:b.y+30,rig:null,weapon:'phaser',ammo:2,aimAngle:0});
+  w.attack(p);advance(w,.1);assert.equal(carBody(w,car),undefined);assert.equal(carTiles(w,car.id).length,0);assert.ok(validSnapshot(w.snapshot()));
 });
