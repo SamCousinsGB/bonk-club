@@ -1,3 +1,4 @@
+import { furnacePartAlive } from './furnace-parts.js';
 import { CABLE_LAYOUTS, CABLE_SEGMENTS, cableLayout } from "./cable-layout.js";
 
 const STEP = 1 / 120;
@@ -38,7 +39,7 @@ export function releaseCableMounts(world) {
         if (!survives(world, end.x, end.supportY)) c.attached[i] = false;
     } else {
       const machine = world.hazards.find(h => h.type === "furnace");
-      if (!machine || machine.done || !survives(world, 1280, 1000)) c.attached[1] = false;
+      if (!machine || !furnacePartAlive(machine,6+Number(c.id.slice(7)))) c.attached[1] = false;
     }
     if (wasIntact && !cableIntact(c)) releaseCableSupport(world, c);
   }
@@ -103,7 +104,7 @@ export function updateCables(world, dt) {
     for (const c of world.cables) {
       const spec = cableLayout(c.id), h = world.hazards.find(h =>
         spec.kind === "furnace" ? h.type === "furnace" : h.type === "powerline" && h.circuit === spec.index);
-      const power = h && !h.done && h.active && (spec.kind !== "furnace" || cableIntact(c)) ? 1 : 0;
+      const power = h && !h.done && h.active && c.attached.some(Boolean) ? 1 : 0;
       stepCable(c, world.time - world.cableAccumulator, power, world.platforms);
     }
     world.cableAccumulator -= STEP;

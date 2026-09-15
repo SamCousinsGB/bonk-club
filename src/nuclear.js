@@ -1,3 +1,4 @@
+import { blastFurnace } from './furnace-parts.js';
 import { NUCLEAR } from "./impact.js";
 import { blastCables } from "./heavy-cables.js";
 import { trackKillSource } from "./kill-credit.js";
@@ -124,6 +125,7 @@ export function updateNuclear(world, f, dt) {
     f.melted = true;
     const crater = world.craters.find((c) => c.id === f.craterId);
     blastCables(world, crater);
+    blastFurnace(world,crater,100);
     world.wreckage = world.wreckage.filter((w) => {
       if (!w.outline)
         return (
@@ -154,7 +156,7 @@ export function updateNuclear(world, f, dt) {
     world.cover = world.cover.filter((s) => !bodyInBlast(s, crater));
     world.chunks = world.chunks.filter((s) => !bodyInBlast(s, crater));
     world.hazards = world.hazards.filter(
-      (h) => h.type === "powerline" || !inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f),
+      (h) => h.type === "powerline" || h.type === "furnace" || !inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f),
     );
     for (const key of ["drops", "projectiles", "debris", "blood"])
       world[key] = world[key].filter((p) => !inBlast(p, f));

@@ -1,4 +1,5 @@
 import { crusherContact, crusherSweep } from "./crusher-contact.js";
+import { FURNACE_PARTS } from './furnace-parts.js';
 import { updateTurbine, turbineZone } from "./turbines.js";
 import { playerBox, segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
@@ -16,6 +17,7 @@ export function createHazards(world) {
   return (world.arena.traps||[]).map((h,i)=>({
     ...h,id:i+1,bodyX:h.type==="saw"?h.x+Math.sin(h.motionPhase||0)*(h.w/2-28):h.x,bodyY:h.type==="turbine"?h.y-30:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.type==="furnace"?h.y+140:h.y-h.h+24,vy:0,age:0,
     warning:0,duration:1.25,cooldown:3.5+i*.75,active:false,
+    ...(h.type==='furnace'?{furnaceParts:FURNACE_PARTS.map(()=>100),furnaceFault:0,furnaceStage:0,furnaceLeft:9,furnaceSpan:9,furnaceCycle:0,furnaceCooling:0,furnaceLanes:[true,true,true]}:{}),
     done:false,hitIds:[],hitTimer:0,...(h.type==="powerline"?{circuit:h.circuit??0}:{}),
     ...(h.type === "loader" ? {cooldown: 3.5} : {}),
     ...(world.arena.survival && h.type === "conveyor" ? {cooldown: 0} : {}),

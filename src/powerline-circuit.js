@@ -1,3 +1,5 @@
+import { cableLayout } from './cable-layout.js';
+import { furnaceFeed, furnacePartAlive } from './furnace-parts.js';
 import { POWER_INTERVAL } from "./transmission-arena.js";
 
 const clamp = n => Math.max(0, Math.min(1, n));
@@ -26,20 +28,21 @@ function contact(a,b,c,d) {
 export function powerlineCircuit(state) {
   const runs=[],contacts=[];
   for(const cable of state.cables||[]) {
-    if(!cable.id.startsWith("tower"))continue;
-    const h=state.hazards?.find(h=>h.type==="powerline"&&`tower${h.circuit}`===cable.id);
+    if(!/^(tower|furnace)/.test(cable.id))continue;
+    const furnace=cable.id.startsWith('furnace'),spec=cableLayout(cable.id);
+    const h=furnace?state.hazards?.find(h=>h.type==='furnace'):state.hazards?.find(h=>h.type==="powerline"&&`tower${h.circuit}`===cable.id);
     for(let i=0;i<cable.links.length;i++) {
       if(!cable.links[i])continue;
       const start=i;
       while(i+1<cable.links.length&&cable.links[i+1])i++;
-      const supplied=start===0&&cable.attached[0]||i===cable.links.length-1&&cable.attached[1];
-      runs.push({cable:cable.id,points:cable.points.slice(start,i+2),supplied,shorted:false,
-        powered:!!(supplied&&h&&!h.done&&(h.age+1e-9)%(POWER_INTERVAL*2)>=POWER_INTERVAL)});
+      const supplied=start===0&&cable.attached[0]||i===cable.links.length-1&&cable.attached[1]&&(!furnace||furnacePartAlive(h,6+Number(cable.id.slice(7)))&&furnaceFeed(state,spec.index));
+      runs.push({cable:cable.id,phase:furnace?spec.index:null,points:cable.points.slice(start,i+2),supplied,shorted:false,
+        powered:!!(supplied&&h&&!h.done&&(furnace?h.active:(h.age+1e-9)%(POWER_INTERVAL*2)>=POWER_INTERVAL))});
     }
   }
   const parent=runs.map((_,i)=>i),root=i=>{while(parent[i]!==i)i=parent[i];return i;};
   for(let i=0;i<runs.length;i++)for(let j=i+1;j<runs.length;j++) {
-    const a=runs[i],b=runs[j];if(a.cable===b.cable)continue;
+    const a=runs[i],b=runs[j];if(a.cable===b.cable||a.phase!==null&&a.phase===b.phase)continue;
     for(let m=1;m<a.points.length;m++)for(let n=1;n<b.points.length;n++) {
       const p=contact(a.points[m-1],a.points[m],b.points[n-1],b.points[n]);
       if(p){parent[root(j)]=root(i);contacts.push({...p,run:i});}

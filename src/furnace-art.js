@@ -1,8 +1,10 @@
+import { FURNACE_PARTS, furnacePartBox } from './furnace-parts.js';
+import { powerlineCircuit } from './powerline-circuit.js';
 import { electricArc } from "./electricity-art.js";
 import { furnaceHeat } from "./furnace.js";
 import { FURNACE_CYCLE, FURNACE_ON } from "./furnace-arena.js";
 import { cableLayout } from "./cable-layout.js";
-import { cableRuns, drawCableStroke } from "./cable-art.js";
+import { drawCableStroke } from "./cable-art.js";
 
 const line = (c, pts, color, width = 3) => {
   c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p));
@@ -75,14 +77,22 @@ export function drawFurnaceHall(c) {
 
 export function drawFurnaceCables(c, cables, h, time) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
+  const circuit=powerlineCircuit({cables,hazards:h?[h]:[]});
   for (const cable of cables) {
     const spec = cableLayout(cable.id);
     if (spec?.kind !== "furnace") continue;
-    for (const run of cableRuns(cable)) {
+    for (const r of circuit.runs.filter(r=>r.cable===cable.id)) {
+      const run=r.points;
       drawCableStroke(c, run, "#090e16", 20);
       drawCableStroke(c, run, ["#b73738", "#de4842", "#973040"][spec.index], 12);
-      drawCableStroke(c, run, h?.active && !h.done && cable.attached.every(Boolean) && cable.links.every(Boolean)
+      drawCableStroke(c, run, r.powered
         ? "#ff9671" : "#f56e5b", 3, -2);
+      if(r.powered)for(let i=0;i<run.length-1;i+=2)
+        electricArc(c,run[i],run[Math.min(i+2,run.length-1)],time,810+i+spec.index*50,r.shorted?1.9:1.2,true);
+      if(r.powered)for(const end of [run[0],run.at(-1)]) {
+        glow(c,end.x,end.y,44,"#72dfff50");
+        for(let j=0;j<3;j++)electricArc(c,end,{x:end.x+Math.cos(time*7+j*2)*22,y:end.y+Math.sin(time*9+j*2)*22},time,950+j,1,true);
+      }
     }
     for (const [i, end] of [spec.a, spec.b].entries()) {
       if (!cable.attached[i]) continue;
@@ -150,6 +160,13 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
   if (layer === "front") { beacons(c, h, time, reduced); c.restore(); return; }
   const x = h.x, y = h.y, heat = furnaceHeat(h);
   glow(c, x, y + 100, 460, h.active ? "#f8863f45" : "#ee572024");
+  c.save();
+  // Retain the surviving original artwork; removed sections never regenerate.
+  if(h.furnaceParts?.some(hp=>hp===0)) {
+    c.beginPath();c.rect(-4000,-4000,12000,12000);
+    h.furnaceParts.forEach((hp,i)=>{if(!hp){const b=furnacePartBox(h,i);c.rect(b.x,b.y,b.w,b.h);}});
+    c.clip('evenodd');
+  }
   // Refractory vessel below the narrow grate. Its wall is background scenery.
   line(c, [[x - 270, y + 70], [x - 225, y + 300], [x + 225, y + 300], [x + 270, y + 70]], "#101821", 24);
   const steel = c.createLinearGradient(x - 240, y, x + 240, y);
@@ -179,13 +196,19 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
       glow(c, x + dx, y - 53, 45 + charge * 35, `rgba(255,185,80,${.12 + charge * .22})`);
     }
   }
+  for(let i=0;i<FURNACE_PARTS.length;i++)if(h.furnaceParts?.[i]>0&&h.furnaceParts[i]<100) {
+    const b=furnacePartBox(h,i),cx=b.x+b.w/2,cy=b.y+b.h*.5;
+    line(c,[[cx-b.w*.35,cy-b.h*.2],[cx-4,cy],[cx+7,cy-12],[cx+b.w*.35,cy+b.h*.22]],"#10141c",4);
+    if(h.active||h.warning>0)glow(c,cx,cy,Math.min(60,b.w),"#ffb35445");
+  }
+  c.restore();
   if (layer === undefined || layer === "all") { c.restore(); return; } // Casing-only destruction mesh.
   // Bounded smoke is emitted from the furnace mouth. After shutdown each
   // existing puff rises and fades; there is no opaque rectangular hazard art.
   for (let i = 0; i < 48; i++) {
     const lifetime = 4.2, age = (time + noise(i + 60) * lifetime) % lifetime;
     const born = h.age - age, phase = ((born % FURNACE_CYCLE) + FURNACE_CYCLE) % FURNACE_CYCLE;
-    if (!h.active && (born < 0 || phase < FURNACE_ON)) continue;
+    if (!h.active && (h.furnaceFault>0 ? h.furnaceCooling<=0 || age<2.5-h.furnaceCooling : born < 0 || phase < FURNACE_ON)) continue;
     const u = age / lifetime, drift = Math.sin(i * 4.7 + age) * (35 + u * 120);
     const sx = x + (noise(i) - .5) * 360 + drift, sy = y - 45 - u * 1110;
     c.globalAlpha = Math.sin(Math.PI * u) * .43;
@@ -196,12 +219,13 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     glow(c, x, y - 175, 450, "#68cfff30");
     for (let i = 0; i < 6; i++) {
       const side = i % 2 ? 1 : -1, lane = Math.floor(i / 2);
+      if(h.furnaceLanes&&!h.furnaceLanes[lane])continue;
       const start = { x: x + (lane - 1) * 145, y: y - 52 };
-      const bend = { x: x + side * (100 + noise(i + Math.floor(time * 10)) * 95), y: y - 320 - lane * 90 };
-      const end = { x: x + side * (80 + noise(i + Math.floor(time * 7) + 30) * 100), y: -90 + lane * 70 };
+      const bend = { x: start.x + side * (18 + noise(i + Math.floor(time * 10)) * 42), y: y - 320 - lane * 90 };
+      const end = { x: start.x + side * (15 + noise(i + Math.floor(time * 7) + 30) * 50), y: -90 + lane * 70 };
       electricArc(c, start, bend, time, 70 + i, 2.4, true);
       electricArc(c, bend, end, time, 170 + i, 2, true);
-      electricArc(c, start, { x: x + (lane - 1) * 85, y: y + 32 }, time, 220 + i, 3, true);
+      electricArc(c, start, { x: start.x, y: y + 32 }, time, 220 + i, 3, true);
     }
   }
   if (h.active || heat > 0 || h.warning > 0) {

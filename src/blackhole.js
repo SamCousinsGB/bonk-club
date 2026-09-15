@@ -1,3 +1,4 @@
+import { damageFurnaceWhere } from './furnace-parts.js';
 import { recordWreckStep } from "./wreck-motion.js";
 import { popBubble } from "./weird-weapons.js";
 import { trackKillSource } from "./kill-credit.js";
@@ -177,8 +178,9 @@ function tear(world, f) {
     addWreck(world, f, p, "prop");
     return false;
   });
+  damageFurnaceWhere(world,b=>{if(!bodyInBlast(b,cut))return false;addWreck(world,f,{...b,kind:null,material:'metal'},'platform');return true;});
   world.hazards = world.hazards.filter((h) => {
-    if (h.type === "powerline") return true; // Supply follows surviving wire mounts, not this virtual fixture.
+    if (h.type === "powerline" || h.type === "furnace") return true; // Supply follows surviving wire mounts, not this virtual fixture.
     if (h.done) return true; // A cleared fixture cannot become new physical wreckage.
     if (!inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f)) return true;
     addWreck(

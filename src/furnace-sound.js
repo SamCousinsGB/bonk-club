@@ -60,10 +60,11 @@ export class FurnaceSound {
     const phase = (h.age + 1e-9) % FURNACE_CYCLE;
     const name = h.active ? 'furnace-arc' : h.warning > 0 ? 'furnace-charge' : furnaceHeat(h) > 0 ? 'furnace-cool' : null;
     if (!name) { this.stop(sound); return; }
-    const offset = Math.max(0, phase - (h.active ? FURNACE_ON : h.warning > 0 ? FURNACE_WARNING : 0));
+    const left=h.active?h.duration:h.warning>0?h.warning:h.furnaceCooling;
+    const offset = h.furnaceFault>0?Math.max(0,FURNACE_SOUNDS[name]-left):Math.max(0, phase - (h.active ? FURNACE_ON : h.warning > 0 ? FURNACE_WARNING : 0));
     const remaining = FURNACE_SOUNDS[name] - offset;
     if (remaining <= .002) { this.stop(sound); return; }
-    const key = `${state.round}:${h.id}:${Math.floor((h.age + 1e-9) / FURNACE_CYCLE)}:${name}`;
+    const key = `${state.round}:${h.id}:${(h.furnaceFault>0?h.furnaceCycle:Math.floor((h.age + 1e-9) / FURNACE_CYCLE))}:${name}`;
     if (this.current?.key === key) {
       // A stale snapshot cannot repeat the strike or sustain electricity forever.
       if (this.current.age === h.age) return;

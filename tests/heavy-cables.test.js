@@ -1,3 +1,4 @@
+import { damageFurnacePart } from '../src/furnace-parts.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
@@ -81,11 +82,11 @@ for (const kind of ["furnace", "transmission"]) test(`${kind}: powered motion is
   assert.ok(residual < .6, `residual ${residual}`);
 });
 
-test("furnace destruction releases electrode ends but preserves heavy wires hanging from the wall", () => {
+test("destroyed furnace terminals release their ends but preserve heavy wires hanging from the wall", () => {
   const w = arena("furnace"); run(w, 1);
   const ends = w.cables.map(c => ({...c.points.at(-1)}));
-  carveExplosion(w, { x: 1280, y: 1000, radius: 100 }); run(w, 4);
-  assert.ok(w.hazards[0].done);
+  for(let i=6;i<12;i++)damageFurnacePart(w,w.hazards[0],i,100); run(w, 4);
+  assert.ok(!w.hazards[0].done);
   for (const [i, c] of w.cables.entries()) {
     assert.deepEqual(c.attached, [true, false]); assert.ok(c.links.every(Boolean));
     assert.ok(c.points.at(-1).y > ends[i].y + 100);
@@ -127,7 +128,7 @@ test("prediction cannot cut or move cables; physical fall continues through resu
   const w = arena("furnace"); w.prediction = true;
   const before = cableSnapshot(w.cables); blastCables(w, {x: 70,y:210,radius:500}); updateCables(w, .1);
   assert.deepEqual(cableSnapshot(w.cables), before); w.prediction = false;
-  carveExplosion(w, {x:1280,y:1000,radius:100}); w.phase="result"; w.phaseTime=100;
+  damageFurnacePart(w,w.hazards[0],6,100); w.phase="result"; w.phaseTime=100;
   const y=w.cables[0].points.at(-1).y;
   for(let i=0;i<120;i++)w.step(STEP);
   assert.ok(w.cables[0].points.at(-1).y>y+30);

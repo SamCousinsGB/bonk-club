@@ -1,3 +1,4 @@
+import { validFurnace } from './furnace-parts.js';
 import { validVictoryCause } from "./victory.js";
 import { validAssembly } from "./assembly.js";
 import { validPowerFlight } from "./power-fist.js";
@@ -36,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 56;
+export const PROTOCOL = 57;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -872,6 +873,7 @@ export function validSnapshot(s) {
           finite(h.assemblyPhase) && h.assemblyPhase>=0 && h.assemblyPhase<=3.11 &&
           finite(h.assemblyOffset) && Math.abs(h.assemblyOffset)<=200 &&
           ["none", "empty", "damaged", "stage", "jam", "broken"].includes(h.assemblyFault))) &&
+        validFurnace(h) &&
         (h.type !== "powerline" || integer(h.circuit,0,1)) &&
         [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
           finite,

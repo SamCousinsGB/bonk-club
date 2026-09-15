@@ -1,3 +1,4 @@
+import { damageFurnaceWhere } from './furnace-parts.js';
 import { JOINTS } from "./puppet.js";
 import { passiveBody, collidePoint } from "./body-physics.js";
 import { knockDown } from "./knockdown.js";
@@ -114,7 +115,8 @@ export function movePowerFlight(world, body, dt) {
     }
     // A saw's travel rail and an electrical field are not its moving head or
     // casing. Hit the rendered machinery, never the empty danger-area bounds.
-    for (const h of world.hazards) if (!h.done) {
+    damageFurnaceWhere(world,b=>{const hit=sweep(b);if(hit)remember(hit);return hit;});
+    for (const h of world.hazards) if (!h.done && h.type !== "furnace") {
       const hit = fixtureBoxes(h).map(sweep).find(Boolean);
       if (hit) {
         remember(hit); h.done = true; h.active = false; h.warning = 0;

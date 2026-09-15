@@ -90,11 +90,11 @@ test("active furnace also blocks a recoil-assisted route underneath the grate", 
   assert.equal(w.players[0].alive, false); assert.equal(w.ragdolls[0].effect, "tesla");
 });
 
-test("furnace mounting destruction clears danger and heat permanently, with reset next round", () => {
+test("furnace mounting damage leaves surviving machinery and resets only next round", () => {
   const w = arena(), h = w.hazards[0]; h.age = 11; advance(w, STEP);
   carveExplosion(w, { x: 1280, y: 1000, radius: 95 }); advance(w, STEP);
-  assert.ok(h.done && !h.active); assert.equal(furnaceHeat(h), 0);
-  advance(w, 30); assert.ok(h.done); assert.ok(validSnapshot(w.snapshot()));
+  assert.ok(!h.done && h.furnaceParts.some(hp=>hp<100));
+  advance(w, 30); assert.ok(!h.done); assert.ok(validSnapshot(w.snapshot()));
   w.startRound(); assert.ok(w.hazards.every(h => !h.done && !h.active && h.age === 0));
 });
 

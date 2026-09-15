@@ -1,3 +1,4 @@
+import { blastFurnace } from './furnace-parts.js';
 import { carveRectangle } from "./nuclear.js";
 import { blastCables, releaseCableMounts } from "./heavy-cables.js";
 
@@ -54,6 +55,7 @@ export function preparePlatforms(arena, arenaIndex) {
 
 export function carveExplosion(world, blast, { fixtures = true } = {}) {
   blastCables(world, blast);
+  if(fixtures)blastFurnace(world,blast);
   const cut = { ...blast, id: `blast${++world.terrainSerial}` };
   let changed = false;
   const removedWreck = new Set();
@@ -80,7 +82,7 @@ export function carveExplosion(world, blast, { fixtures = true } = {}) {
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
   for (const h of fixtures ? world.hazards : []) {
-    if (h.type === "powerline") continue; // Cut conductors keep their power cycle.
+    if (h.type === "powerline" || h.type === "furnace") continue; // Cut conductors keep their power cycle.
     if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,

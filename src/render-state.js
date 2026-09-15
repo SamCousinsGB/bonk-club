@@ -4,7 +4,7 @@ import { flightRecipe } from "./flight-replay.js";
 import { matterRecipe } from "./matter-replay.js";
 const simulationOnly = new Set([
   "grabHeld", "grabConsumed", "objectAttackHeld", "objectThrowHeld", "objectThrowConsumed", "carryPoint",
-  "gasAt", "gasPort", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
+  "wireHitIds", "wireHitTimer", "gasAt", "gasPort", "gasFuel", "fuel", "shockWait", "burnTick", "hissAt",
   "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
@@ -110,7 +110,7 @@ export function interpolateStates(a, b, t, mode = "all") {
     });
     out.hazards = b.hazards.map(h => {
       const old = a.hazards.find(q => q.id === h.id);
-      return old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
+      return h.type === "furnace" ? h : old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
     });
     out.cables = (b.cables || []).map(c => {
       const old = a.cables?.find(q => q.id === c.id);

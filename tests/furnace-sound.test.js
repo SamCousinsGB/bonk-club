@@ -62,13 +62,22 @@ test('late joins seek into the active discharge; stale frames never replay its o
   assert.equal(f.played.length, 1);
 });
 
-test('mute, result, round reset, destruction, map exit and suspended audio silence the furnace', () => {
+test('damaged furnace audio follows remaining irregular phases on a late join', () => {
+  const f=fixture();Object.assign(f.h,{furnaceFault:.5,furnaceCycle:4,furnaceStage:1,age:38,warning:1.1,active:false});
+  f.sound.update(f.world);assert.equal(f.played.at(-1).name,'furnace-charge');assert.ok(Math.abs(f.played.at(-1).duration-1.1)<1e-8);
+  Object.assign(f.h,{age:39.1,warning:0,active:true,duration:2.3,furnaceStage:2});f.sound.context.currentTime+=1.1;
+  f.sound.update(f.world);assert.equal(f.played.at(-1).name,'furnace-arc');assert.ok(Math.abs(f.played.at(-1).duration-2.3)<1e-8);
+  Object.assign(f.h,{age:41.4,active:false,furnaceCooling:2.5,furnaceCycle:5,furnaceStage:0});f.sound.context.currentTime+=2.3;
+  f.sound.update(f.world);assert.equal(f.played.at(-1).name,'furnace-cool');assert.equal(f.stopped.length,2);
+});
+
+test('mute, result, round reset, removed machine, map exit and suspended audio silence the furnace', () => {
   for (const end of ['mute', 'result', 'reset', 'destroyed', 'exit', 'suspended']) {
     const f = fixture(); f.seek(12); f.sound.update(f.world);
     if (end === 'mute') f.sound.muted = true;
     if (end === 'result') f.world.phase = 'result';
     if (end === 'reset') f.world.startRound();
-    if (end === 'destroyed') { f.world.platforms = []; updateFurnace(f.world, f.h, .01); }
+    if (end === 'destroyed') f.world.hazards = [];
     if (end === 'suspended') f.sound.context.state = 'suspended';
     f.sound.update(end === 'exit' ? null : f.world);
     assert.equal(f.stopped.length, 1, end); assert.equal(f.sound.furnace.current, null, end);

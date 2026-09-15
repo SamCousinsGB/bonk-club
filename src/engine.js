@@ -1,4 +1,5 @@
 import { tumbleTurbineBody } from "./turbines.js";
+import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
 import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
 import { ASSEMBLY_ARENA } from "./assembly-arena.js";
@@ -1314,7 +1315,7 @@ export class World {
       if (b.kind === "duck") b.vy += 380 * dt;
       const endX = x + b.vx * dt,
         endY = y + b.vy * dt;
-      const collisions = this.solids().map((s) => ({
+      const collisions = [...this.solids(),...furnaceHits(this)].map((s) => ({
         s,
         hit: segmentBox(x, y, endX, endY, s, b.r),
       }));
@@ -1344,6 +1345,7 @@ export class World {
           continue;
         }
         if (s) {
+          if(s.furnaceHazard && b.kind !== 'grenade' && b.kind !== 'rocket')damageFurnacePart(this,s.furnaceHazard,s.furnaceIndex,b.kind==='rail'?100:b.damage);
           surfaceReaction(this, b, s);
           if (breakable(s) && !b.nuclear && b.kind !== "rocket") {
             const speed = Math.hypot(b.vx,b.vy) || 1;
