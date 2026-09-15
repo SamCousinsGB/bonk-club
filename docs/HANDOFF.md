@@ -2,6 +2,40 @@
 
 Updated 15 September 2026. Read the root `AGENTS.md` first.
 
+## AI decisions pass - 15 September 2026
+
+- Bot steering now settles at its waypoint using normal ground friction and
+  refreshes ordinary movement each physics tick. Similar opponents retain target
+  priority so small score changes do not repeatedly restart the reaction delay.
+  Easy aim error, firing breaks, reactions and normal player physics are retained.
+- One recoil check now schedules an achievable firing stance. A gunner whose
+  perch cannot support its recoil seeks a reachable larger firing platform.
+  Explosive carriers still create clearance and keep their weapon. Safe gun
+  positions no longer expire merely because the opponent has not taken damage.
+- Route search rejects active/warning lethal landings. Live takeoff traces check
+  the whole arc against hazards, harmful reactions and black holes. Grounded
+  movement brakes before entering a kill zone and ignores dangerous pickups.
+  Raised press warnings include the future downstroke. Survival-mode controls
+  retain their specialized press/cargo/saw predictions.
+- Stuck detection includes short back-and-forth movement, failed explorations
+  have a retry delay, and tiny destroyed terrain uses valid waypoint margins.
+  A committed airborne escape is not discarded just because a projectile is
+  nearby. Stationary grenades are recognised by their imminent fuse.
+- Ordinary traversal/dodges still require a landing. Low HP and stalemates do
+  not permit suicide jumps; the existing unavoidable-nuke last-ditch escape
+  remains covered. No wire fields, protocol change, dependencies or Pi changes.
+- Worktree: ../bonk-club-qa/ai-pass, branch codex/ai-pass. Canonical dirty edits
+  are preserved. Added eleven decision regressions; 79 focused checks pass.
+  A prior dodge assertion now checks surviving support geometry, since the
+  incoming rocket can carve the ledge and change its entity ID.
+- External QA: ai-survey.mjs, ai-before.json, ai-after.json, ai-visual.mjs,
+  ai-visual.json, ai-online.mjs and ai-*-online.json under ../bonk-club-qa.
+  The preliminary 34-arena, 45-second seeded survey completed 30 rounds versus
+  22 on its base, with 3,137 direction changes versus 9,138. This survey preceded
+  final narrow-perch/fuse refinements and the concurrent Turbine Hall changes;
+  it is supporting evidence, not a deterministic guarantee for every match.
+  Final full-suite, release and public verification will be recorded below.
+
 ## Turbine Hall refinement - 15 September 2026
 
 - v0.33.0, protocol 55. Refresh every player's tab and create a new room.
