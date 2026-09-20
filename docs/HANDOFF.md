@@ -6,7 +6,7 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: v0.43.0 aircraft art pass; release verification pending.
+- Source release: `origin/main` at `5dab657`.
 - Game version: v0.43.0, protocol 66. Refresh every player tab before creating or
   joining a room.
 - Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
@@ -18,11 +18,15 @@ history through v0.40.0 is archived in
   Car Wash has a slippery conveyor
   floor, a heavy physical car, striking brushes, finite rinse water and an opposing
   dryer. Both preserve authoritative hazard and prop state through reset and hot join.
-- Local validation: 1,083 game tests and production build passed. Source browser
-  checks verified intact/breached artwork, complete engine breakup, bot combat,
-  reduced motion and a clean console. Cabin artwork is cached; physics and
-  decompression strength are unchanged. Exhaustive stress and release checks,
-  public artifact parity and public changed-world hot join are pending.
+- Release run [35533717480](https://github.com/SamCousinsGB/bonk-club/actions/runs/35533717480)
+  passed 1,083 game tests, three server tests, all six arena-stress shards,
+  Windows/Linux desktop checks, release consistency and Pages. The full local
+  76-case stress run also passed; all 17 public files match the release artifact.
+- Source browser checks verified intact/breached artwork, complete engine breakup,
+  bot combat and reduced motion. Cabin artwork is cached; turbulence and
+  decompression strength are unchanged. Public rendered gameplay and a real
+  changed-world hot join passed, retaining missing platform sections and displaced
+  cargo. Both production clients had clean consoles.
 
 ## Reconciled WIP
 
