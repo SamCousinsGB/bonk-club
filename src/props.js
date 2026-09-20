@@ -133,7 +133,7 @@ export function propFor(world, s) {
 
 // jx/jy are impulses (mass * velocity); hits at an edge also apply torque.
 export function impulseProp(b, jx, jy, x = b.x + b.w / 2, y = b.y + b.h / 2) {
-  if (b.hp <= 0) return;
+  if (b.hp <= 0 || b.strapped) return;
   prepareProp(b);
   const p = center(b);
   b.vx = clamp(b.vx + jx / b.mass, -MAX_SPEED, MAX_SPEED);
@@ -208,7 +208,19 @@ export function damageProp(world, b, damage, vx = 0, vy = 0, point) {
   if (b.hp <= 0) return;
   prepareProp(b);
   damage = world.reactPropDamage?.(b, damage, point) ?? damage;
+  if (b.strapped) {
+    const absorbed = Math.min(damage, b.strapHp || 0);
+    b.strapHp = Math.max(0, (b.strapHp || 0) - damage);
+    damage -= absorbed;
+    if (b.strapHp > 0) {
+      world.event("coverhit", { ...center(b), color: "#e2b75e" });
+      return;
+    }
+    b.strapped = false;
+    world.event("break", { ...center(b), color: "#e2b75e" });
+  }
   impulseProp(b, vx * 22, vy * 22, point?.x, point?.y);
+  if (damage <= 0) return;
   b.hp = Math.max(0, b.hp - damage);
   world.event(b.hp ? "coverhit" : "break", { ...center(b), color: PROP_MATERIALS[b.material].color });
   if (!b.hp) {
@@ -307,6 +319,11 @@ export function updateProps(world, dt) {
     const bounds = new Map();
     for (const b of bodies) {
       if (b.hp <= 0) continue;
+      if (b.strapped) {
+        b.vx = b.vy = b.spin = b.dx = b.dy = 0;
+        bounds.set(b, bodyBounds(b));
+        continue;
+      }
       // Sleeping is conditional on the actual support still being under the body.
       // A removed/moving floor, another body or any impulse wakes it immediately.
       const carried = pullCarriedObject(world, b, sub);

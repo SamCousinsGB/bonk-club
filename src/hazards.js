@@ -11,8 +11,9 @@ import { isScanner, scanFighters } from "./scanner.js";
 import { releaseCargo } from "./cargo.js";
 import { updatePowerline } from "./powerlines.js";
 import { updateFurnace } from "./furnace.js";
-export const HAZARD_TYPES=["ladle","train","geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine"];
-export const HAZARD_LABELS={ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
+import { compactHazardZone, updateAirflow, updateCarWash } from "./compact-setpieces.js";
+export const HAZARD_TYPES=["ladle","train","geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine","airflow","carwash"];
+export const HAZARD_LABELS={ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",airflow:"Open cargo ramp",carwash:"Car wash machinery",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {
@@ -27,6 +28,8 @@ export function createHazards(world) {
   }));
 }
 export function hazardZone(h) {
+  const compact = compactHazardZone(h);
+  if (compact) return compact;
   if(h.type==="ladle")return ladleZone(h);
   if(h.type==="train")return trainDanger(h);
   if(h.type==="turbine")return turbineZone(h);
@@ -68,6 +71,8 @@ export function updateHazards(world,dt) {
     if(h.type==="train"){updateTrain(world,h,dt);continue;}
     if(h.type==="turbine"){updateTurbine(world,h,dt);continue;}
     if(h.type==="powerline"){updatePowerline(world,h,dt);continue;}
+    if(h.type==="airflow"){updateAirflow(world,h,dt);continue;}
+    if(h.type==="carwash"){updateCarWash(world,h,dt);continue;}
     // The renderer breaks the casing apart when this fixture loses its mounting.
     if(!world.platforms.some(p=>p.hp!==0&&Math.abs(p.y-h.y)<2&&p.x<=h.x&&p.x+p.w>=h.x)) {
       h.done=true;h.active=false;h.warning=0;continue;

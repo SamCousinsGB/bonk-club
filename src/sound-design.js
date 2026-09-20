@@ -35,7 +35,7 @@ export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
   'burn', 'explosion', 'nuclear', 'siren', 'debris', 'cover', 'parry',
   'jump', 'pickup', 'fight', 'round', 'death', 'landing', 'train', 'train-warning',
-  'assembly-servo', 'assembly-spray',
+  'assembly-servo', 'assembly-spray', 'airflow', 'wash',
 ])]);
 
 export function weaponSound(detail = {}) {
@@ -100,7 +100,13 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
     for (let n = 0; n < 9; n++) noise(.12 + random() * length * .65, .06 + random() * .12, .08 * gain, 4300, 1100);
   }
 
-  if(name==='assembly-spray'){
+  if(name==='airflow'){
+    noise(0,.78,1.7,1100,45,.08,37);noise(.02,.7,.45,5200,700,.05,113);
+    modes(.03,.65,.08,[61,97,143]);
+  } else if(name==='wash'){
+    for(let i=0;i<12;i++)noise(i*.045,.18,.33,8200,1900,.02,170);
+    noise(0,.7,.8,900,85,.06,54);modes(.01,.45,.08,[118,236,472]);
+  } else if(name==='assembly-spray'){
     for(let i=0;i<8;i++)noise(i*.075,.19,.42,7400,2400,.025);
     mechanics(0,.12);mechanics(.61,.08);
   } else if(name==='assembly-servo'){

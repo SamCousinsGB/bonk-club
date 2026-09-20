@@ -2,6 +2,7 @@
 export const VICTORY_MESSAGES = Object.freeze({
   train: "By catching the express",
   turbine: "By blending the opposition",
+  carwash: "By sending the opposition through the wash",
   bubble: "By bursting the opposition's bubble",
   gas: "By ignoring the hissing canister",
   electrified: "By completing the circuit",

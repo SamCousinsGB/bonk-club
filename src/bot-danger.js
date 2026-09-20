@@ -3,7 +3,7 @@ import { dangerous, hazardZone } from "./hazards.js";
 // Warning areas are already unsafe destinations: do not start a jump that ends
 // inside a machine about to turn on. Scanners/loaders/belts are not kill zones.
 const lethal = new Set(["geyser", "crusher", "pendulum", "saw", "tesla", "steam",
-  "furnace", "slag", "powerline", "turbine"]);
+  "furnace", "slag", "powerline", "turbine", "airflow"]);
 export function botDanger(hazards, x, y, padding = 18) {
   return hazards.some(h => {
     if (!lethal.has(h.type) || !dangerous(h)) return false;
