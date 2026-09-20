@@ -702,6 +702,25 @@ test("bandwidth pacing sends current state at the next opportunity instead of ac
   } finally {guest.close();host.close();}
 });
 
+test('a long application stall never reopens the reliable snapshot window without an acknowledgement', async t => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer), received = [];
+  try {
+    await host.create(); host.start(); await guest.join(host.code); await tick();
+    const send = guest.connection.send.bind(guest.connection);
+    guest.connection.send = m => { if (m.t !== 'ack') send(m); };
+    guest.callbacks.onState = s => received.push(s.time);
+    let now = 1000; t.mock.method(performance, 'now', () => now);
+    const w = new World(), c = host.connections.get(1);
+    for (let n = 1; n <= 100; n++) {
+      now += 2000; w.time = n; await host.sendState(w.snapshot()); await tick();
+    }
+    assert.equal(c.inFlight.length, 4); assert.deepEqual(received, [1, 2, 3, 4]);
+    send({ t: 'ack', seq: c.frameSequence }); await tick();
+    now += 2000; await host.sendState(w.snapshot()); await tick();
+    assert.deepEqual(received, [1, 2, 3, 4, 100], 'resumption sends the current world');
+  } finally { guest.close(); host.close(); }
+});
+
 test("negotiated disposable stream carries validated state and sequenced bounded controls, with reliable fallback", async () => {
   const got=[],host=new Room({},FakePeer),guest=new Room({onState:s=>got.push(s.round)},FakePeer);
   try {

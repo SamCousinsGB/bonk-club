@@ -602,7 +602,7 @@ export class RoomSession {
         (realtimeOpen(c)
           ? c.realtime.bufferedAmount === 0
           : !c.bufferSize && (c.dataChannel?.bufferedAmount || 0) < 16384 &&
-            (c.inFlight.length < 4 || now - c.frameSentAt > 1200)),
+            c.inFlight.length < 4),
     );
     const motionReady = this.encodingMotion ? [] : [...this.connections.values()].filter(c => c.open && realtimeOpen(c) &&
       !c.realtime.bufferedAmount && now >= (c.nextMotionAt || 0));
@@ -654,7 +654,10 @@ export class RoomSession {
           if (fast) return;
           // Recheck after asynchronous work: transport pressure may have changed.
           if (c.bufferSize || (c.dataChannel?.bufferedAmount || 0) >= 16384) return;
-          if (performance.now() - c.frameSentAt > 1200) c.inFlight = [];
+          // Reliable acknowledgements are cumulative. A timeout must not reopen
+          // this window: a suspended receiver may still ACK transport bytes while
+          // its application is unable to consume them. Resume on its actual ACK.
+          if (c.inFlight.length >= 4) return;
           c.inFlight.push(seq);
           c.frameSequence = seq;
           c.frameSentAt = performance.now();

@@ -15,7 +15,9 @@ room protocol is also the boundary for the future Steam adapter. See
 - Recipients sharing a baseline share both the delta tree walk and compression.
   The two bounded streams captured in one tick can share a channel enqueue
   opportunity. Later generations wait for queue clearance, and pressure is
-  checked again after asynchronous encoding.
+  checked again after asynchronous encoding. Reliable fallback retains its
+  four-frame acknowledgement window even across long application stalls;
+  elapsed time cannot silently permit an ever-growing receiver backlog.
 - Codec requests have a one-second deadline. Invalid results and overload are
   rejected rather than retried on the render thread. A crashed/stalled worker is
   terminated and recreated for the next frame. Room closure cancels work and
