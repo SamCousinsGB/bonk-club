@@ -188,9 +188,11 @@ Keep this constitution for durable rules and the handoff for current work.
 - BULLET TRAIN has a 3,200-unit train crossing at 6,400 units/second after two seconds of signal/horn warning,
   alternating directions, motion blur and a rushing stereo wind pass. Preserve jumpable clearance, upper bypasses, swept
   physical contacts, projectile cover and disabled services after approach cuts. Damage within the crossing derails an
-  arriving train when a wheel set reaches the missing rail. From that point the train is a host-owned rigid body: retain
-  its incoming momentum, gravity, rotation, platform destruction and lethal contact with fighters, bodies, props,
-  fragments, weapons and shots. Its rotated state and carved path must survive validated guest snapshots and hot joins.
+  arriving train when a wheel set reaches the missing rail. From that point its eight host-owned weighted carriages
+  articulate at physical couplers, fall and tumble independently, and can separate under severe stretching or
+  jackknifing. Retain incoming momentum, gravity, platform destruction and lethal contact with fighters, bodies, props,
+  fragments, weapons and shots. Each carriage's collision must follow its artwork, and the complete articulated state
+  and carved path must survive validated guest snapshots and hot joins. Never restore one rigid whole-train body.
 - SCRAP FOUNDRY has two tilting ladles pouring lethal molten streams into pits,
   inward conveyors, a central press and upper catwalks. Amber warnings precede
   pouring; cutting a ladle mounting disables it until reset. Damage is host-owned.

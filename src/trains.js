@@ -3,20 +3,38 @@ import { TRAIN_Y, TRAIN_LENGTH, TRAIN_HEIGHT, TRAIN_SPEED, TRAIN_CYCLE, TRAIN_ST
 import { deathPose } from "./death-effects.js";
 import { carveExplosion } from "./terrain.js";
 
-const W=2560,H=1440,GRAVITY=1500,MAX_FALL=2800,MAX_SPIN=7;
+const W=2560,H=1440,GRAVITY=1850,MAX_FALL=2800,MAX_SPIN=7;
+export const TRAIN_CARRIAGE_COUNT=8;
+export const TRAIN_CARRIAGE_GAP=12;
+export const TRAIN_CARRIAGE_LENGTH=(TRAIN_LENGTH-TRAIN_CARRIAGE_GAP*(TRAIN_CARRIAGE_COUNT-1))/TRAIN_CARRIAGE_COUNT;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
-export const trainBody = h => ({x:h.bodyX,y:h.bodyY ?? h.y-h.h/2,w:h.w,h:h.h,angle:h.angle||0});
+const bodyFor=(x,y,angle=0)=>({x,y,w:TRAIN_CARRIAGE_LENGTH,h:TRAIN_HEIGHT,angle});
+const scheduledCarriages=h=>Array.from({length:TRAIN_CARRIAGE_COUNT},(_,i)=>{
+  const offset=-h.w/2+TRAIN_CARRIAGE_LENGTH/2+i*(TRAIN_CARRIAGE_LENGTH+TRAIN_CARRIAGE_GAP);
+  return {id:i,x:h.bodyX+h.dir*offset,y:h.bodyY ?? h.y-h.h/2,angle:0,vx:h.dir*TRAIN_SPEED,vy:0,spin:0,onRail:true,coupled:i<TRAIN_CARRIAGE_COUNT-1};
+});
 
-export function trainCorners(h) {
-  const b=trainBody(h),c=Math.cos(b.angle),s=Math.sin(b.angle),rx=b.w/2,ry=b.h/2;
-  return [[-rx,-ry],[rx,-ry],[rx,ry],[-rx,ry]].map(([x,y])=>({x:b.x+x*c-y*s,y:b.y+x*s+y*c}));
+export const trainBodies=h=>h.derailed&&Array.isArray(h.carriages)?h.carriages:scheduledCarriages(h);
+export const trainBody=h=>({x:h.bodyX,y:h.bodyY ?? h.y-h.h/2,w:h.w,h:h.h,angle:h.angle||0});
+
+function bodyCorners(body) {
+  const c=Math.cos(body.angle),s=Math.sin(body.angle),rx=body.w/2,ry=body.h/2;
+  return [[-rx,-ry],[rx,-ry],[rx,ry],[-rx,ry]].map(([x,y])=>({x:body.x+x*c-y*s,y:body.y+x*s+y*c}));
 }
 
-export const trainBox = h => {
-  const points=trainCorners(h),x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y));
+export function trainCorners(h) { return trainBodies(h).flatMap(c=>bodyCorners(bodyFor(c.x,c.y,c.angle))); }
+
+export const carriageBox=car=>{
+  const points=bodyCorners(bodyFor(car.x,car.y,car.angle)),x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y));
   return {x,y,w:Math.max(...points.map(p=>p.x))-x,h:Math.max(...points.map(p=>p.y))-y};
+};
+
+export const trainCollisionBoxes=h=>trainBodies(h).map(carriageBox);
+export const trainBox=h=>{
+  const boxes=trainCollisionBoxes(h),x=Math.min(...boxes.map(b=>b.x)),y=Math.min(...boxes.map(b=>b.y));
+  return {x,y,w:Math.max(...boxes.map(b=>b.x+b.w))-x,h:Math.max(...boxes.map(b=>b.y+b.h))-y};
 };
 
 function projection(points,axis) {
@@ -24,21 +42,34 @@ function projection(points,axis) {
   return [Math.min(...values),Math.max(...values)];
 }
 
-export function trainIntersects(h,box,margin=0) {
-  const train=trainCorners(h),rect=[
+function bodyIntersects(car,box,margin=0) {
+  const body=bodyFor(car.x,car.y,car.angle),corners=bodyCorners(body),rect=[
     {x:box.x-margin,y:box.y-margin},{x:box.x+box.w+margin,y:box.y-margin},
     {x:box.x+box.w+margin,y:box.y+box.h+margin},{x:box.x-margin,y:box.y+box.h+margin},
   ];
-  const angle=h.angle||0,axes=[{x:1,y:0},{x:0,y:1},{x:Math.cos(angle),y:Math.sin(angle)},{x:-Math.sin(angle),y:Math.cos(angle)}];
-  return axes.every(axis=>{
-    const a=projection(train,axis),b=projection(rect,axis);
-    return a[1]>=b[0]&&b[1]>=a[0];
-  });
+  const axes=[{x:1,y:0},{x:0,y:1},{x:Math.cos(body.angle),y:Math.sin(body.angle)},{x:-Math.sin(body.angle),y:Math.cos(body.angle)}];
+  return axes.every(axis=>{const a=projection(corners,axis),b=projection(rect,axis);return a[1]>=b[0]&&b[1]>=a[0];});
 }
 
+function carriageContact(a,b) {
+  const aa=bodyCorners(bodyFor(a.x,a.y,a.angle)),bb=bodyCorners(bodyFor(b.x,b.y,b.angle));
+  const axes=[a.angle,b.angle].flatMap(angle=>[{x:Math.cos(angle),y:Math.sin(angle)},{x:-Math.sin(angle),y:Math.cos(angle)}]);
+  let depth=Infinity,normal=null;
+  for(const axis of axes){
+    const ap=projection(aa,axis),bp=projection(bb,axis),overlapDepth=Math.min(ap[1],bp[1])-Math.max(ap[0],bp[0]);
+    if(overlapDepth<=0)return null;
+    if(overlapDepth<depth){depth=overlapDepth;normal={...axis};}
+  }
+  if((b.x-a.x)*normal.x+(b.y-a.y)*normal.y<0){normal.x*=-1;normal.y*=-1;}
+  return {...normal,depth};
+}
+
+const strikingCarriage=(h,box,margin=0)=>trainBodies(h).find(car=>overlap(carriageBox(car),box)&&bodyIntersects(car,box,margin));
+export function trainIntersects(h,box,margin=0) { return !!strikingCarriage(h,box,margin); }
+
 // Navigation avoids the entire track during an announced pass. Once derailed,
-// it follows the moving, rotated wreck rather than reserving an empty crossing.
-export const trainDanger = h => h.derailed ? trainBox(h) : {x:0,y:h.y-h.h,w:W,h:h.h};
+// it follows the articulated wreck rather than reserving an empty crossing.
+export const trainDanger=h=>h.derailed?trainBox(h):{x:0,y:h.y-h.h,w:W,h:h.h};
 
 export function trainPose(age) {
   const lap=Math.floor(age/TRAIN_CYCLE),phase=age-lap*TRAIN_CYCLE,dir=lap%2?-1:1;
@@ -56,83 +87,143 @@ function railAt(world,x,y) {
 function missingRailUnderTrain(world,h) {
   for(let offset=-h.w/2+140;offset<=h.w/2-130;offset+=300){
     const x=h.bodyX+offset*h.dir;
-    if(x>=0&&x<=W&&!railAt(world,x,h.y))return true;
+    if(x>=0&&x<=W&&!railAt(world,x,h.y))return x;
   }
-  return false;
+  return null;
 }
 
-function velocityAt(h,x,y) {
-  const rx=x-h.bodyX,ry=y-h.bodyY;
-  return {x:h.vx-(h.spin||0)*ry,y:h.vy+(h.spin||0)*rx};
+function carriageSupported(world,car) {
+  if(!car.onRail||Math.abs(car.angle)>.16||Math.abs(car.y-(TRAIN_Y-TRAIN_HEIGHT/2))>34)return false;
+  const axle=TRAIN_CARRIAGE_LENGTH*.31;
+  return railAt(world,car.x-axle,TRAIN_Y)&&railAt(world,car.x+axle,TRAIN_Y);
+}
+
+function pointVelocity(car,x,y) {
+  const rx=x-car.x,ry=y-car.y;
+  return {x:car.vx-car.spin*ry,y:car.vy+car.spin*rx};
 }
 
 function strikeMatter(world,h,dt) {
-  const body=trainBox(h);
-  for(const p of world.players)if(p.alive&&overlap(playerBox(p),body)&&trainIntersects(h,playerBox(p),3)){
-    const v=velocityAt(h,p.x,p.y);p.vx=clamp(v.x,-2600,2600);p.vy=clamp(v.y-260,-1800,1800);
+  for(const p of world.players)if(p.alive){
+    const car=strikingCarriage(h,playerBox(p),3);if(!car)continue;
+    const v=pointVelocity(car,p.x,p.y);p.vx=clamp(v.x,-2600,2600);p.vy=clamp(v.y-260,-1800,1800);
     world.kill(p,{effect:"blend",cause:"train",angle:Math.sign(v.x)||h.dir});
   }
   for(const rag of world.ragdolls){
-    if(rag.effect==="singularity"||!rag.points.some(p=>trainIntersects(h,{x:p.x-5,y:p.y-5,w:10,h:10})))continue;
+    if(rag.effect==="singularity")continue;
+    const hits=rag.points.map(q=>[q,strikingCarriage(h,{x:q.x-5,y:q.y-5,w:10,h:10})]).filter(([,car])=>car);
+    if(!hits.length)continue;
     if(rag.effect!=="blend"){delete rag.anchor;delete rag.ash;deathPose(rag,"blend");}
-    for(const q of rag.points)if(trainIntersects(h,{x:q.x-5,y:q.y-5,w:10,h:10})){
-      const v=velocityAt(h,q.x,q.y);q.px=q.x-clamp(v.x,-2600,2600)*dt;q.py=q.y-clamp(v.y-220,-1800,1800)*dt;
-    }
+    for(const [q,car] of hits){const v=pointVelocity(car,q.x,q.y);q.px=q.x-clamp(v.x,-2600,2600)*dt;q.py=q.y-clamp(v.y-220,-1800,1800)*dt;}
   }
-  for(const b of [...world.cover])if(b.hp>0&&overlap(b,body)&&trainIntersects(h,b)){
-    const v=velocityAt(h,b.x+b.w/2,b.y+b.h/2);b.vx=clamp(v.x,-1500,1500);b.vy=clamp(v.y-260,-1500,1500);world.damageCover(b,1000);
+  for(const b of [...world.cover])if(b.hp>0){
+    const car=strikingCarriage(h,b);if(!car)continue;
+    const v=pointVelocity(car,b.x+b.w/2,b.y+b.h/2);b.vx=clamp(v.x,-1500,1500);b.vy=clamp(v.y-260,-1500,1500);world.damageCover(b,1000);
   }
-  for(const b of world.chunks)if(b.hp>0&&overlap(b,body)&&trainIntersects(h,b)){
-    const v=velocityAt(h,b.x+b.w/2,b.y+b.h/2);b.vx=clamp(v.x,-1500,1500);b.vy=clamp(v.y-260,-1500,1500);b.spin=clamp((b.spin||0)+h.spin*1.7,-18,18);
+  for(const b of world.chunks)if(b.hp>0){
+    const car=strikingCarriage(h,b);if(!car)continue;
+    const v=pointVelocity(car,b.x+b.w/2,b.y+b.h/2);b.vx=clamp(v.x,-1500,1500);b.vy=clamp(v.y-260,-1500,1500);b.spin=clamp((b.spin||0)+car.spin*1.7,-18,18);
   }
   for(const d of world.drops){
-    const box={x:d.x-8,y:d.y-8,w:16,h:16};if(!overlap(box,body)||!trainIntersects(h,box))continue;
-    const v=velocityAt(h,d.x,d.y);d.vx=clamp(v.x,-1900,1900);d.vy=clamp(v.y-260,-1500,1500);
+    const car=strikingCarriage(h,{x:d.x-8,y:d.y-8,w:16,h:16});if(!car)continue;
+    const v=pointVelocity(car,d.x,d.y);d.vx=clamp(v.x,-1900,1900);d.vy=clamp(v.y-260,-1500,1500);
   }
   for(const b of world.projectiles){
-    const box={x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2};if(overlap(box,body)&&trainIntersects(h,box))b.life=0;
+    const box={x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2};if(strikingCarriage(h,box))b.life=0;
   }
 }
 
-function derail(world,h) {
+function derail(world,h,gapX) {
   h.derailed=true;h.warning=0;h.active=true;h.done=false;
-  h.angle=0;h.vx=h.dir*TRAIN_SPEED;h.vy=40;h.spin=h.dir*.28;h.crashCooldown=0;
-  world.event("hazard",{x:h.bodyX,y:h.bodyY,kind:"train-derail"});
+  h.carriages=scheduledCarriages(h);h.crashCooldown=0;
+  const falling=h.carriages.reduce((best,car)=>Math.abs(car.x-gapX)<Math.abs(best.x-gapX)?car:best);
+  falling.onRail=false;falling.vy=110;falling.spin=h.dir*.52;
+  world.event("hazard",{x:gapX,y:h.bodyY,kind:"train-derail"});
 }
 
-function impactTerrain(world,h,dt) {
-  h.crashCooldown=Math.max(0,(h.crashCooldown||0)-dt);
-  const bounds=trainBox(h),hits=world.platforms.filter(p=>p.hp!==0&&overlap(p,bounds)&&trainIntersects(h,p));
+function impactTerrain(world,car,dt) {
+  car.crashCooldown=Math.max(0,(car.crashCooldown||0)-dt);
+  const bounds=carriageBox(car),hits=world.platforms.filter(p=>p.hp!==0&&overlap(p,bounds)&&bodyIntersects(car,p));
   if(!hits.length)return;
-  // Rails and platforms tear the train off line rather than behaving like an
-  // immovable wall. Its great mass carries through while contact adds torque.
-  h.vx*=Math.exp(-2.2*dt);h.vy*=Math.exp(-.45*dt);
-  const lead=hits.sort((a,b)=>h.dir*(b.x-a.x))[0],cx=clamp(h.bodyX,lead.x,lead.x+lead.w),cy=clamp(h.bodyY,lead.y,lead.y+lead.h);
-  h.spin=clamp(h.spin+h.dir*(cx-h.bodyX)/(h.w/2)*1.15*dt*60,-MAX_SPIN,MAX_SPIN);
-  if(h.crashCooldown>0)return;
-  h.crashCooldown=.04;
-  carveExplosion(world,{x:cx,y:cy,radius:clamp(Math.max(lead.h*1.7,62),62,125)},{fixtures:false});
+  car.onRail=false;car.vx*=Math.exp(-2.8*dt);car.vy*=Math.exp(-.7*dt);
+  const lead=hits.sort((a,b)=>Math.sign(car.vx||1)*(b.x-a.x))[0],cx=clamp(car.x,lead.x,lead.x+lead.w),cy=clamp(car.y,lead.y,lead.y+lead.h);
+  const torque=((cx-car.x)*Math.sign(car.vy||1)-(cy-car.y)*Math.sign(car.vx||1))/TRAIN_CARRIAGE_LENGTH;
+  car.spin=clamp(car.spin+torque*1.65*dt*60,-MAX_SPIN,MAX_SPIN);
+  if(car.crashCooldown>0)return;
+  car.crashCooldown=.055;
+  carveExplosion(world,{x:cx,y:cy,radius:clamp(Math.max(lead.h*1.7,62),62,112)},{fixtures:false});
+}
+
+function couplerPoint(car,side) {
+  const reach=TRAIN_CARRIAGE_LENGTH/2,c=Math.cos(car.angle),s=Math.sin(car.angle);
+  return {x:car.x+c*reach*side,y:car.y+s*reach*side};
+}
+
+function solveCouplers(h,dt) {
+  for(let pass=0;pass<4;pass++)for(let i=0;i<h.carriages.length-1;i++){
+    const a=h.carriages[i],b=h.carriages[i+1];if(!a.coupled)continue;
+    const pa=couplerPoint(a,h.dir),pb=couplerPoint(b,-h.dir),dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy)||1;
+    const nx=dx/dist,ny=dy/dist,stretch=dist-TRAIN_CARRIAGE_GAP;
+    const av=pointVelocity(a,pa.x,pa.y),bv=pointVelocity(b,pb.x,pb.y),relative=(bv.x-av.x)*nx+(bv.y-av.y)*ny;
+    const centreDistance=Math.hypot(b.x-a.x,b.y-a.y);
+    if(centreDistance<TRAIN_CARRIAGE_LENGTH*.4||dist>155||(dist>70&&Math.abs(relative)>2400)){a.coupled=false;continue;}
+    if(Math.abs(stretch)<1)continue;
+    const correction=clamp(stretch*.42,-18,18),aWeight=a.onRail?.12:.5,bWeight=b.onRail?.12:.5,total=aWeight+bWeight;
+    a.x+=nx*correction*(aWeight/total);a.y+=ny*correction*(aWeight/total);
+    b.x-=nx*correction*(bWeight/total);b.y-=ny*correction*(bWeight/total);
+    const impulse=clamp((stretch*48+relative*1.8)*dt,-520,520);
+    if(!a.onRail){a.vx+=nx*impulse;a.vy+=ny*impulse;a.spin=clamp(a.spin+(pa.x-a.x)*ny*impulse*.000035,-MAX_SPIN,MAX_SPIN);}
+    if(!b.onRail){b.vx-=nx*impulse;b.vy-=ny*impulse;b.spin=clamp(b.spin-(pb.x-b.x)*ny*impulse*.000035,-MAX_SPIN,MAX_SPIN);}
+  }
+}
+
+function solveCarriageContacts(h) {
+  for(let pass=0;pass<2;pass++)for(let i=0;i<h.carriages.length;i++)for(let j=i+1;j<h.carriages.length;j++){
+    const a=h.carriages[i],b=h.carriages[j],contact=carriageContact(a,b);if(!contact)continue;
+    const aWeight=a.onRail?.08:.5,bWeight=b.onRail?.08:.5,total=aWeight+bWeight;
+    const correction=Math.min(25,contact.depth*.48);
+    a.x-=contact.x*correction*(aWeight/total);a.y-=contact.y*correction*(aWeight/total);
+    b.x+=contact.x*correction*(bWeight/total);b.y+=contact.y*correction*(bWeight/total);
+    const relative=(b.vx-a.vx)*contact.x+(b.vy-a.vy)*contact.y;
+    if(relative<0){
+      const impulse=-relative*.32;
+      if(!a.onRail){a.vx-=contact.x*impulse;a.vy-=contact.y*impulse;}
+      if(!b.onRail){b.vx+=contact.x*impulse;b.vy+=contact.y*impulse;}
+    }
+    const twist=Math.sin(b.angle-a.angle)*.015;
+    a.spin=clamp(a.spin-twist,-MAX_SPIN,MAX_SPIN);b.spin=clamp(b.spin+twist,-MAX_SPIN,MAX_SPIN);
+  }
 }
 
 function updateDerailed(world,h,dt) {
-  // Small substeps keep the 6,400-unit entry speed from tunnelling through
-  // fighters and thin catwalks before the impact drag takes hold.
-  const steps=Math.max(2,Math.min(12,Math.ceil((Math.abs(h.vx)*dt)/45))),step=dt/steps;
+  const peak=Math.max(...h.carriages.map(c=>Math.hypot(c.vx,c.vy))),steps=Math.max(2,Math.min(14,Math.ceil(peak*dt/42))),step=dt/steps;
   for(let i=0;i<steps;i++){
-    h.vy=clamp(h.vy+GRAVITY*step,-MAX_FALL,MAX_FALL);
-    h.bodyX+=h.vx*step;h.bodyY+=h.vy*step;h.angle+=h.spin*step;
-    if(h.angle>Math.PI)h.angle-=Math.PI*2;else if(h.angle< -Math.PI)h.angle+=Math.PI*2;
-    impactTerrain(world,h,step);strikeMatter(world,h,step);
+    for(const car of h.carriages){
+      if(carriageSupported(world,car)){
+        car.y=TRAIN_Y-TRAIN_HEIGHT/2;car.vy=0;car.angle*=Math.exp(-16*step);car.spin*=Math.exp(-12*step);
+      }else{
+        car.onRail=false;car.vy=clamp(car.vy+GRAVITY*step,-MAX_FALL,MAX_FALL);
+        car.vx*=Math.exp(-.055*step);car.spin*=Math.exp(-.12*step);
+      }
+      car.x+=car.vx*step;car.y+=car.vy*step;car.angle+=car.spin*step;
+      if(car.angle>Math.PI)car.angle-=Math.PI*2;else if(car.angle< -Math.PI)car.angle+=Math.PI*2;
+    }
+    solveCouplers(h,step);
+    solveCarriageContacts(h);
+    for(const car of h.carriages)impactTerrain(world,car,step);
+    strikeMatter(world,h,step);
   }
-  const bounds=trainBox(h);
-  if(bounds.y>H+2300||bounds.x>W+4300||bounds.x+bounds.w< -4300){h.done=true;h.active=false;}
+  const count=h.carriages.length;
+  h.bodyX=h.carriages.reduce((n,c)=>n+c.x,0)/count;h.bodyY=h.carriages.reduce((n,c)=>n+c.y,0)/count;
+  h.vx=h.carriages.reduce((n,c)=>n+c.vx,0)/count;h.vy=h.carriages.reduce((n,c)=>n+c.vy,0)/count;
+  h.angle=h.carriages.reduce((n,c)=>n+c.angle,0)/count;h.spin=h.carriages.reduce((n,c)=>n+c.spin,0)/count;
+  const boxes=trainCollisionBoxes(h);
+  if(boxes.every(b=>b.y>H+1800||b.x>W+4300||b.x+b.w< -4300)){h.done=true;h.active=false;}
 }
 
 export function updateTrain(world,h,dt) {
   if(world.prediction)return;
   if(h.derailed){h.age+=dt;updateDerailed(world,h,dt);return;}
-  // Destroying either tunnel approach still cancels future services. Damage to
-  // the crossing itself now catches the next arriving wheel set and derails it.
   const approaches=[25,2535].every(x=>railAt(world,x,h.y));
   if(!approaches&&!h.active){h.done=true;h.warning=0;return;}
   const old=trainPose(h.age);h.age+=dt;
@@ -141,13 +232,12 @@ export function updateTrain(world,h,dt) {
   if(h.warning>0&&!old.warning)world.event("hazard",{x:h.dir===1?0:W,y:h.y,kind:"train-warning"});
   if(!h.active&&!old.active)return;
   if(!old.active)world.event("hazard",{x:1280,y:h.y,kind:"train"});
-  if(h.active&&missingRailUnderTrain(world,h)){derail(world,h);updateDerailed(world,h,dt);return;}
+  const gapX=h.active?missingRailUnderTrain(world,h):null;
+  if(gapX!==null){derail(world,h,gapX);updateDerailed(world,h,dt);return;}
   const previous=old.active?old.bodyX:(h.dir===1?-h.w/2:W+h.w/2);
   const current=h.active?h.bodyX:(h.dir===1?W+h.w/2:-h.w/2);
   const sweep={x:Math.min(previous,current)-h.w/2,y:h.y-h.h,w:h.w+Math.abs(current-previous),h:h.h};
-  for(const p of world.players)if(p.alive&&overlap(playerBox(p),sweep)){
-    p.vx=h.dir*2100;p.vy=-380;world.kill(p,{effect:"blend",cause:"train",angle:h.dir});
-  }
+  for(const p of world.players)if(p.alive&&overlap(playerBox(p),sweep)){p.vx=h.dir*2100;p.vy=-380;world.kill(p,{effect:"blend",cause:"train",angle:h.dir});}
   for(const rag of world.ragdolls){
     if(rag.effect==="singularity"||!rag.points.some(p=>overlap({x:p.x-4,y:p.y-4,w:8,h:8},sweep)))continue;
     if(rag.effect!=="blend"){delete rag.anchor;delete rag.ash;deathPose(rag,"blend");}
@@ -156,6 +246,5 @@ export function updateTrain(world,h,dt) {
   for(const b of world.cover)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1500;b.vy=-300;world.damageCover(b,1000);}
   for(const b of world.chunks)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1500;b.vy=-300;b.spin=h.dir*8;}
   for(const d of world.drops)if(overlap({x:d.x-8,y:d.y-8,w:16,h:16},sweep)){d.vx=h.dir*1700;d.vy=-300;}
-  const body=trainBox(h);
-  for(const b of world.projectiles)if(overlap({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},body))b.life=0;
+  for(const b of world.projectiles){const box={x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2};if(trainIntersects(h,box))b.life=0;}
 }

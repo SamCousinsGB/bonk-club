@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards, hazardZone } from "../src/hazards.js";
 import { prepareProp } from "../src/props.js";
-import { trainBox, trainIntersects, trainPose } from "../src/trains.js";
+import { trainBodies, trainBox, trainIntersects, trainPose } from "../src/trains.js";
 import { carveExplosion } from "../src/terrain.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { validSnapshot } from "../src/network.js";
@@ -165,10 +165,15 @@ test("a passing train derails into a physical fall when a wheel reaches missing 
   h.age=5.35;
   for(let i=0;i<30&&!h.derailed;i++)tick(w);
   assert.ok(h.derailed);assert.ok(h.active);assert.ok(Math.abs(h.vx)>1000);
-  const start={y:h.bodyY,angle:h.angle};
+  assert.equal(h.carriages.length,8);assert.equal(new Set(h.carriages.map(c=>c.id)).size,8);
+  const start={y:h.bodyY,angles:h.carriages.map(c=>c.angle)};
   for(let i=0;i<30;i++)tick(w);
-  assert.ok(h.bodyY>start.y);assert.ok(Math.abs(h.angle-start.angle)>.02);
+  const angles=h.carriages.map(c=>c.angle),ys=h.carriages.map(c=>c.y);
+  assert.ok(h.bodyY>start.y);assert.ok(angles.some((angle,i)=>Math.abs(angle-start.angles[i])>.08));
+  assert.ok(Math.max(...angles)-Math.min(...angles)>.25);assert.ok(Math.max(...ys)-Math.min(...ys)>25);
   assert.ok(validSnapshot(w.snapshot()));
+  for(let i=0;i<110;i++)tick(w);
+  assert.ok(h.carriages.slice(0,-1).some(car=>!car.coupled));
 });
 
 test("the derailed train has rotated collision, destroys platforms and wipes out matter in its path",()=>{
@@ -176,10 +181,11 @@ test("the derailed train has rotated collision, destroys platforms and wipes out
   carveExplosion(w,{x:1120,y:1060,radius:90});h.age=5.25;
   for(let i=0;i<20&&!h.derailed;i++)tick(w);
   assert.ok(h.derailed);
-  Object.assign(h,{bodyX:1280,bodyY:825,vx:900,vy:500,angle:.42,spin:1.1,crashCooldown:0});
+  for(const [i,car] of trainBodies(h).entries())Object.assign(car,{x:-1800-i*500,y:1600,angle:0,vx:0,vy:0,spin:0,onRail:false,coupled:false});
+  Object.assign(h.carriages[3],{x:1280,y:825,vx:900,vy:500,angle:.42,spin:1.1});
   place(p,1280,825);w.drops.push({x:1420,y:890,vx:0,vy:0,type:"blaster",ammo:10,life:100});
   const before=w.platforms.length,box=trainBox(h);
-  assert.ok(box.h>h.h*5);assert.ok(trainIntersects(h,playerBoxForTest(p)));
+  assert.ok(box.h>h.h*2);assert.ok(trainIntersects(h,playerBoxForTest(p)));
   for(let i=0;i<4;i++)tick(w);
   assert.equal(p.alive,false);assert.equal(w.lastDeathCause,"train");
   assert.ok(w.platforms.length!==before||w.platforms.some(q=>q.id?.startsWith("cut")));
@@ -191,9 +197,17 @@ test("derail state survives compact hot join, rejects malformed motion and reset
   for(let i=0;i<30&&!h.derailed;i++)tick(w);
   const s=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
   const train=s.hazards[0];assert.ok(train.derailed);assert.ok(Math.abs(train.angle-h.angle)<.01);assert.ok(Math.abs(train.vx-h.vx)<.01);
+  assert.equal(train.carriages.length,8);assert.deepEqual(train.carriages.map(c=>c.id),h.carriages.map(c=>c.id));
   for(const [key,value] of [["angle",Math.PI+1],["vx",7000],["spin",8],["derailed","yes"]]){
     const bad=structuredClone(s);bad.hazards[0][key]=value;assert.equal(validSnapshot(bad),false,key);
   }
+  for(const mutate of [
+    train=>{train.carriages[0].x=9000;},
+    train=>{train.carriages[0].coupled="yes";},
+    train=>{train.carriages.pop();},
+  ]){const bad=structuredClone(s);mutate(bad.hazards[0]);assert.equal(validSnapshot(bad),false);}
+  const next=structuredClone(s);next.time+=STEP;next.hazards[0].carriages[0].angle+=.2;
+  const blended=interpolateStates(s,next,.5).hazards[0];assert.ok(Math.abs(blended.carriages[0].angle-(train.carriages[0].angle+.1))<.001);
   w.startRound();assert.equal(w.hazards[0].derailed,false);assert.equal(w.hazards[0].angle,0);
 });
 

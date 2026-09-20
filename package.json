@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.40.0",
-  "releaseNotes": "Bullet trains derail, fall and tear through damaged track and platforms",
+  "version": "0.40.1",
+  "releaseNotes": "Bullet Train carriages articulate, tumble and separate during derailments",
   "private": true,
   "type": "module",
   "scripts": {
