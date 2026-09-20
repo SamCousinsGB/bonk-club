@@ -28,7 +28,7 @@ export class HazardBreaks {
 
 export function hazardArtBounds(h,theme) {
   if (h.type === "turbine" && theme === "cargo-plane") {
-    const top=Math.min(720,h.bodyY-h.w/2-26);
+    const top=Math.min(h.bodyY-(h.y-30)+720,h.bodyY-h.w/2-26);
     return {x:h.bodyX-h.w/2-26,y:top,w:Math.max(1,Math.min(880,h.w+52)),h:Math.max(1,Math.min(440,h.bodyY+h.w/2+32-top))};
   }
   if (h.type === "turbine") return {x:h.bodyX-h.w/2-8,y:h.bodyY-h.w/2-8,w:h.w+16,h:h.w+16};

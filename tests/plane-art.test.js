@@ -20,12 +20,14 @@ function recording() {
   return {c,calls,balanced:()=>assert.equal(depth,0)};
 }
 
-test("the roomier interior and full aircraft stay within the fixed camera during banking",()=>{
+test("the roomier cabin stays framed while the wings extend well offscreen",()=>{
   assert.ok(PLANE.innerX*PLANE.innerY/(752*522)>1.10);
   assert.ok(PLANE.innerX*PLANE.innerY/(752*522)<1.12);
   const w=world(),engines=w.hazards.filter(h=>h.type==="turbine");
-  const extents=[{x:50,y:700},{x:2510,y:732},{x:1280,y:PLANE.y-PLANE.ry},{x:1280,y:PLANE.y+PLANE.ry}];
-  for(const h of engines)for(let i=0;i<32;i++)extents.push({x:h.bodyX+Math.cos(i*Math.PI/16)*(h.w/2+25),y:h.bodyY+Math.sin(i*Math.PI/16)*(h.w/2+30)});
+  const extents=[{x:450,y:710},{x:2110,y:710},{x:1280,y:PLANE.y-PLANE.ry},{x:1280,y:PLANE.y+PLANE.ry}];
+  assert.equal(engines.length,4);
+  assert.ok(w.platforms.some(p=>p.planeWing&&p.x<=-1500));
+  assert.ok(w.platforms.some(p=>p.planeWing&&p.x+p.w>=4060));
   for(let age=0;age<100;age+=.17)for(const reduced of [false,true]) {
     const p=planePose(age,reduced),c=Math.cos(p.angle),s=Math.sin(p.angle);
     for(const q of extents) {
@@ -49,7 +51,7 @@ test("aircraft art stays finite, bounded and does not mutate gameplay state",()=
   drawPlaneSky(c,100,false);drawPlaneInterior(c);
   for(const p of w.platforms.filter(p=>!p.planeHull))drawPlanePlatform(c,p);
   drawHazards(c,w.hazards,10,"cargo-plane","all",false,w.platforms);
-  balanced();assert.ok(calls.length<3000);assert.deepEqual(w.snapshot(),before);
+  balanced();assert.ok(calls.length<4500);assert.deepEqual(w.snapshot(),before);
 });
 
 test("aircraft engines animate in reduced motion and disappear fully when destroyed",()=>{

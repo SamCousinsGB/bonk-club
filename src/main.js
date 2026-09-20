@@ -200,7 +200,7 @@ function readInput(device) {
       (p) => p.id === controlledId,
     );
     if (p && mouse.active) {
-      const point = renderer.planeFrame ? planeLocalPoint(mouse,renderer.planeFrame.age,renderer.reduced) : mouse;
+      const point = renderer.planeFrame ? planeLocalPoint(mouse,renderer.planeFrame.age,renderer.reduced,renderer.planeFrame) : mouse;
       i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
     }
   }
@@ -214,7 +214,7 @@ function ownInput() {
   if (pad.aim !== null) i.aim = pad.aim;
   if (touchInput.aim !== null) i.aim = touchInput.aim;
   if (renderer.planeFrame && (pad.aim !== null || touchInput.aim !== null))
-    i.aim -= planePose(renderer.planeFrame.age,renderer.reduced).angle;
+    i.aim -= planePose(renderer.planeFrame.age,renderer.reduced,renderer.planeFrame).angle;
   return i;
 }
 function clearInput() {
