@@ -33,7 +33,7 @@ function regions(b) {
   if(b.kind==='car') {
     const stage=b.carStage??0, height=carHeight(stage);
     const transform=ps=>ps.map(([x,y])=>[(x+125)*w/250,(y-1190+height)*h/height]);
-    const pieces=[[transform(rect(-125,1158,250,16)),'metal',2]];
+    const pieces=[[transform(rect(-125,1158,250,16)),'metal',stage&15?2:3]];
     if(stage&1)pieces.push([transform(CAR_BODY),'metal',3]);
     if(stage&2)pieces.push([transform(CAR_CABIN),'metal',2]);
     for(const [x,part] of [[-81,4],[81,8]])if(stage&part)pieces.push([transform(rect(x-23,1144,46,46)),'metal',1]);
