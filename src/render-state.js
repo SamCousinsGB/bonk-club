@@ -142,7 +142,7 @@ export function interpolateStates(a, b, t, mode = "all") {
       if((key === "water" || key === "spills") && previous) {
         if(previous.grounded !== p.grounded || !!previous.frozen !== !!p.frozen) return p;
         const q=blend(previous,p,t);
-        q.h=lerp(previous.h,p.h,t);q.vy=lerp(previous.vy,p.vy,t);
+        q.h=lerp(previous.h,p.h,t);q.vx=lerp(previous.vx||0,p.vx||0,t);q.vy=lerp(previous.vy,p.vy,t);
         return q;
       }
       return blend(previous,p,t);

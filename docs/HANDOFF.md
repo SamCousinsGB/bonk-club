@@ -6,44 +6,35 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: `origin/main` at `d90551a` (v0.45.0 aircraft wing failure).
-- Game version: v0.45.0, protocol 68. Refresh every player tab before creating or
-  joining a room.
-- Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
-  overhead lights, swept-blade turbofans and layered clouds. Wings now extend
-  well beyond both screen edges, with four engines and thicker structural spars.
-  Interior area is 10.7% larger, with wider walkways and cargo floor. The whole
-  aircraft banks and shifts; input aiming compensates for its displayed pose.
-  Hull destruction opens local outward pressure jets affecting fighters, cargo,
-  weapons, bodies, fragments and fluids, including through guest prediction.
-- Actual loss of wing/fuselage connectivity latches a roll toward the broken side
-  and a sustained spiral. Dents retain the connection; isolated hull plating does
-  not count as an anchor. Detached sections keep falling collision and engines
-  until leaving the arena. Shared host/guest gravity follows the roll, pointer and
-  controller aim follows the displayed pose, and the cabin stays inside the frame.
-  Offscreen wings are excluded from weapon and late-join spawn selection.
-- Plane bot flight searches yield every eight traces and prioritise playable decks.
-  Hull texture and breach-ray caches reuse unchanged geometry across snapshots.
-  `node scripts/plane-profile.mjs` reduced the largest navigation stall from 248 ms
-  to around 4–6 ms on the development machine. Sustained source-browser drawing
-  measured roughly 1.7–2.1 ms p95; these are local CPU timings, not internet latency.
-- Car Wash now has a tiled hall, suspended service decks, cloth brush cylinders,
-  rinse arch and twin dryer fans. The seven contiguous belts start on the first
-  combat tick and reverse every eight seconds after an amber warning. The shaped
-  physical car stays in play between breakable end stops. Steel floor/decks resist
-  bullets and retain circular blast cuts; removed contacts cannot drive the car.
-  Individual brush/rinse/dryer mounts disable their matching art and effects.
-- Source-browser checks passed left/right wing loss, inverted and sustained rolls,
-  reduced-motion framing, actual host/guest replication, a late join after wing
-  failure and aircraft restoration. Temporary blast/inspection controls were removed.
-- Release run [35535896441](https://github.com/SamCousinsGB/bonk-club/actions/runs/35535896441)
-  passed 1,094 game tests, three server tests, all six arena-stress shards,
-  Windows/Linux desktop checks, release consistency and Pages. The full local
-  76-case stress run and both focused Cargo Plane stress cases passed too.
-- All 17 public files match the exact CI artifact. Unmodified public v0.45.0
-  passed plane map selection, host/guest joining, ready/start and ongoing bot combat
-  through the next round, with clean browser logs. Deliberate structural failure,
-  changed-world hot join and reset assertions were performed in the source build.
+- v0.46.0 / protocol 69 improves water flow, electrical contacts and tank flooding.
+  Refresh every player tab before creating or joining a room. Publication checks
+  are pending for this source revision.
+- Water retains finite volume and horizontal momentum, forms deep pools, drains
+  through destroyed supports and overtops low barriers. Side walls and ceilings
+  stop jets. Currents apply mass-sensitive drag and buoyancy to fighters, loose
+  props, weapon drops and death bodies; strong flows cause recoverable knockdowns.
+- Fast falling water uses swept contact against the actual powered wire segments.
+  Connected water and metal platforms share the host-owned electrical circuit;
+  separating or draining the contact removes power on the next reaction tick.
+- Transmission Towers retains eight tanks and its existing wire crossings. The
+  tanks now hold 1,200 units each (previously 210). Larger tanks elsewhere hold
+  960. Ruptures release compact outward-moving water; punctures produce finite
+  pressure jets. The inner tower tanks are positioned to preserve every spawn
+  and opening-pickup route. Larger tanks are heavier; visible gauges track contents.
+- Joined curved pool surfaces, shaded depth, merged falling sheets and impact
+  splashes follow the liquid geometry. Reduced motion suppresses surface shimmer.
+  Water is bounded at 384 parcels and 640 depth; this is a foundation for future
+  flooding arenas, not a shipped ship arena or a full fluid-dynamics solver.
+- All 1,110 game tests, 76 arena stress cases and the production build passed.
+  Source-browser host/guest input, real tank rupture, powered wire contact,
+  destroyed-platform hot join, small viewport, reduced motion and reset passed.
+  All eight tank ruptures remained bounded with valid quantized snapshots during
+  a 60-second reaction simulation. The production bundle passed normal three-player
+  browser controls/hot join. Final CI and public parity are pending.
+- The preceding v0.45.0 aircraft release remains included: larger four-engine
+  wings, structural disconnection causing a shared aircraft spiral, falling wing
+  collision and reduced hull/navigation work. Car Wash retains immediate belt
+  drive, eight-second reversal, physical car and individually breakable machinery.
 
 ## Reconciled WIP
 

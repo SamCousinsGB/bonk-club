@@ -1,3 +1,4 @@
+import { segmentBox } from './collision.js';
 const TAU = Math.PI * 2;
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
 const noise = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
@@ -37,19 +38,91 @@ export class WaterImpacts {
 }
 const impacts = new WeakMap();
 
+// Draw one continuous surface for each touching pool, rather than outlining
+// individual simulation columns. Adjacent heights share a tangent at each join.
+export function waterSurfaces(water,platforms=[]) {
+  const rows=new Map();
+  for(const q of water)if(q.grounded && !q.frozen && q.h>.02) {
+    const key=Math.round((q.y+q.h)*2);
+    if(!rows.has(key))rows.set(key,[]);rows.get(key).push(q);
+  }
+  const runs=[];
+  for(const row of rows.values()) {
+    row.sort((a,b)=>a.x-b.x);let run=[];
+    for(const q of row) {
+      const last=run.at(-1);
+      if(last && (Math.abs(last.x+last.w-q.x)>1 || Math.min(last.y+last.h,q.y+q.h)<=Math.max(last.y,q.y) ||
+        platforms.some(p=>p.hp!==0 && segmentBox(last.x+last.w/2,last.y+last.h/2,q.x+q.w/2,q.y+q.h/2,p)))) {
+        runs.push(run);run=[];
+      }
+      run.push(q);
+    }
+    if(run.length)runs.push(run);
+  }
+  return runs;
+}
+
+function drawPool(c,run,time) {
+  const first=run[0],last=run.at(-1),bottom=first.y+first.h;
+  const top=Math.min(...run.map(q=>q.y)),charged=run.some(q=>q.charge);
+  const wave=(x,h)=> (Math.sin(x*.032+time*2.8)+Math.sin(x*.067-time*3.6)*.35)*Math.min(1.6,h*.1);
+  const surface=()=>{
+    c.moveTo(first.x,first.y+wave(first.x,first.h));
+    for(let i=0;i<run.length;i++) {
+      const q=run[i],next=run[i+1],x=q.x+q.w;
+      const end=next?(q.y+next.y)/2:q.y;
+      c.quadraticCurveTo(q.x+q.w/2,q.y+wave(q.x+q.w/2,q.h),x,end+wave(x,q.h));
+    }
+  };
+  c.beginPath();surface();c.lineTo(last.x+last.w,bottom);c.lineTo(first.x,bottom);c.closePath();
+  const fill=c.createLinearGradient(0,top,0,Math.max(top+1,bottom));
+  fill.addColorStop(0,charged?'#77e6efac':'#75dbed91');
+  fill.addColorStop(.22,charged?'#32acc6a6':'#229ec19e');
+  fill.addColorStop(1,'#145782be');c.fillStyle=fill;c.fill();
+  c.save();c.clip();
+  // Broad refracted highlights drift with the current, within the real volume.
+  for(const [i,q] of run.entries())if(q.h>12 && i%4===1) {
+    const flow=(q.vx||0)*.015;
+    c.beginPath();c.moveTo(q.x+2,q.y+q.h*.35);
+    c.bezierCurveTo(q.x+20,q.y+q.h*.32,q.x+45,q.y+q.h*.43,q.x+70,q.y+q.h*.4);
+    c.strokeStyle='#b0f4ef25';c.lineWidth=1+Math.min(2,Math.abs(flow));c.stroke();
+  }
+  c.restore();
+  c.beginPath();surface();c.strokeStyle=charged?'#dcffffdf':'#d2f8ffc5';c.lineWidth=1.65;c.stroke();
+  for(const q of run)if(Math.abs(q.vx||0)>70 && q.h>2) {
+    const phase=(time*.7+noise(q.id))%1,x=q.x+phase*q.w;
+    c.beginPath();c.moveTo(x,q.y+1);c.quadraticCurveTo(x+4,q.y-.5,x+9,q.y+1);
+    c.strokeStyle='#f0ffffa8';c.lineWidth=1.8;c.stroke();
+  }
+}
+
 export function drawWater(c,state,time) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
-  for (const q of state.water || []) {
-    if (q.frozen) continue;
-    if (q.grounded) {
-      // Adjacent parcels use the same world-space wave, hiding column seams.
-      const wave = x => Math.sin(x*.07+time*4)*.8 + Math.sin(x*.13-time*3)*.4;
-      c.beginPath(); c.moveTo(q.x,q.y+q.h);
-      for(let i=0;i<=4;i++) {const x=q.x+i*q.w/4;c.lineTo(x,q.y+wave(x));}
-      c.lineTo(q.x+q.w,q.y+q.h);c.closePath();
-      c.fillStyle=q.charge?"#3ebcd88c":"#278fbf88";c.fill();
-      c.beginPath();for(let i=0;i<=4;i++){const x=q.x+i*q.w/4;i?c.lineTo(x,q.y+wave(x)):c.moveTo(x,q.y+wave(x));}
-      c.strokeStyle=q.charge?"#b6f6ffaa":"#a6e6f7ad";c.lineWidth=1.4;c.stroke();
+  for(const run of waterSurfaces(state.water||[],state.platforms||[]))drawPool(c,run,time);
+  // Joining neighbouring airborne columns turns a ruptured tank into a sheet
+  // with a single silhouette, rather than a rack of identical vertical tubes.
+  const airborne=[];
+  for(const q of [...(state.water||[])].filter(q=>!q.grounded&&!q.frozen).sort((a,b)=>a.x-b.x)) {
+    const old=airborne.at(-1);
+    if(old && q.h>22 && old.h>22 && Math.abs(old.x+old.w-q.x)<2 &&
+      Math.abs(old.y+old.h-q.y-q.h)<2 && Math.abs(old.y-q.y)<20 && Math.abs((old.vx||0)-(q.vx||0))<80) {
+      const right=q.x+q.w;old.y=Math.min(old.y,q.y);old.h=q.y+q.h-old.y;old.w=right-old.x;
+    } else airborne.push({...q});
+  }
+  for (const q of airborne) {
+    if (q.frozen || q.grounded || q.h<.02) continue;
+    if(q.h>22) {
+      const x=q.x+q.w/2,y=q.y,r=q.w*.48,bend=clamp((q.vx||0)*.025,-12,12);
+      c.beginPath();c.moveTo(x-r*.7,y+3);
+      c.bezierCurveTo(x-r,y+q.h*.25,x-r+bend,y+q.h*.75,x-r*.6+bend,y+q.h-2);
+      c.quadraticCurveTo(x+bend,y+q.h+2,x+r*.6+bend,y+q.h-2);
+      c.bezierCurveTo(x+r+bend,y+q.h*.75,x+r,y+q.h*.25,x+r*.7,y+3);
+      c.quadraticCurveTo(x,y-1,x-r*.7,y+3);
+      const sheen=c.createLinearGradient(q.x,0,q.x+q.w,0);
+      sheen.addColorStop(0,'#b3f2f5a2');sheen.addColorStop(.25,'#62cbe4a8');sheen.addColorStop(1,'#1684b580');
+      c.fillStyle=sheen;c.fill();
+      c.beginPath();c.moveTo(x-r*.65,y+6);c.quadraticCurveTo(x-r*.85,y+q.h*.6,x-r*.4+bend,y+q.h-5);
+      c.strokeStyle='#d2faffad';c.lineWidth=1.3;c.stroke();
       continue;
     }
     for (const s of fallingWaterStrands(q,time)) {

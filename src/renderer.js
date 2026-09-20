@@ -1042,7 +1042,7 @@ export class Renderer {
     if(arena.cargoPlane)drawPlaneOutflows(c,state,time,this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
-    drawReactions(c, state, time);
+    drawReactions(c, state, this.reduced ? 0 : time);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {
