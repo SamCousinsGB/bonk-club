@@ -524,7 +524,7 @@ function updateLobby() {
   if(start) {
     start.disabled=!room.canStart();
     const waiting=roster.filter(p=>p.id!==0 && !room.ready.has(p.id)).length;
-    $('#start-status').textContent=waiting ? 'Waiting for '+waiting+' player'+(waiting===1?'':'s')+' to ready up.' : activeSlots(room.slots,roster).length<2 ? 'Add a bot or wait for another player.' : 'Everyone is ready.';
+    $('#start-status').textContent=waiting ? 'Waiting for '+waiting+' player'+(waiting===1?'':'s')+' to ready up.' : activeSlots(room.slots,roster).length===1 ? 'Ready to start alone.' : 'Everyone is ready.';
   } else {
     const ready=room.ready.has(room.id);
     $('#ready-up').textContent=ready?'NOT READY':'READY UP';
@@ -866,8 +866,7 @@ function updateHud(s) {
   const status = $("#round-status");
   const warning =
     s.fields.some(f => f.kind === "shockwave") ? "Nuclear blast" :
-    s.players.length < 2 ? "Waiting for another player" :
-    s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
+    s.players.length >= 2 && s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
       ? s.elapsed >= SUDDEN_DEATH
         ? "Sudden death\nHealth draining"
         : `Sudden death in ${Math.ceil(SUDDEN_DEATH - s.elapsed)}`

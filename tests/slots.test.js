@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { activeSlots, defaultSlots, validSlots } from "../src/slots.js";
 import { World, STEP } from "../src/engine.js";
 import { validSnapshot } from "../src/network.js";
+import { SUDDEN_DEATH } from "../src/scale.js";
 
 test("slot modes distinguish empty reservations, bots and closed slots", () => {
   assert.ok(validSlots(defaultSlots()));
@@ -41,13 +42,17 @@ test("reserved slots hot join without resetting the arena, then leave empty; mix
   assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("closed fighters remain absent across rounds and a lone player cannot farm wins", () => {
+test("closed fighters remain absent and a lone test player neither farms wins nor enters sudden death", () => {
   const w = new World({players:[0,1],shuffle:false});
   w.syncSlots(["player","player","closed","closed"],[{id:0}]);
   w.startRound();
   assert.deepEqual(w.players.map(p=>p.id),[0]);
   w.phase = "fight";
+  w.elapsed = SUDDEN_DEATH + 1;
+  const hp = w.players[0].hp;
   for (let i=0;i<60;i++) w.step(STEP);
   assert.deepEqual(w.scores,[0,0,0,0]);
+  assert.equal(w.players[0].hp,hp);
+  assert.equal(w.phase,"fight");
   assert.ok(validSnapshot(w.snapshot()));
 });
