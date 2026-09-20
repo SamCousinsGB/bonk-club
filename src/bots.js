@@ -106,6 +106,10 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim, force
       clamp(enemy.x - dx,left,right), clamp(enemy.x + dx,left,right)])) {
       const point = {x,y};
       if (!path.edge && firstObstacle(solids,p,{x,y:y - 10})) continue;
+      // A walking retreat cannot pass through the opponent pinning us here.
+      // Choosing the opposite side made two crowded gun carriers push forever.
+      if (!path.edge && opponents.some(q => Math.abs(q.y-p.y)<60 && distance(p,q)<120 &&
+          (q.x-p.x)*(x-p.x)>0 && Math.abs(q.x-p.x)<Math.abs(x-p.x)+28)) continue;
       if (world.spikes().some(t => x > t.x - 22 && x < t.x + t.w + 22 && Math.abs(s.y - t.y) < 45) ||
           reactionDanger(world,x,y) || world.hazards.some(h => {
             if (!dangerous(h)) return false;
@@ -493,8 +497,10 @@ export class BotController {
     let goal = enemy,
       destination = choice.floor,
       path = choice.path;
+    const needsAlternative = (b.recoilPosition?.blocked && staleAttack) ||
+      (p.weapon && b.rearmWeapon === p.weapon && world.time < b.rearmUntil);
     // Commit to a useful, reachable pickup; avoid repeatedly swapping similar weapons.
-    if ((!p.weapon || range > (melee ? 240 : 220) || Math.abs(enemy.y-p.y)>100) && !b.flight) {
+    if ((!p.weapon || needsAlternative || range > (melee ? 240 : 220) || Math.abs(enemy.y-p.y)>100) && !b.flight) {
       const upgrades = world.drops
         .filter(
           (d) =>
@@ -522,14 +528,16 @@ export class BotController {
             d.path &&
             !unsafePoint(world,d.d.x,d.floor.y-30) &&
             (!p.weapon || (d.path.cost < (melee ? 10 : 7) &&
-              (melee ? WEAPONS[d.d.type]?.kind !== "melee" : d.value > weapon.value + 2) &&
+              (melee ? WEAPONS[d.d.type]?.kind !== "melee" : d.value > weapon.value + 2 ||
+                (needsAlternative && weapons[d.d.type]?.speed && weapons[d.d.type].recoil < weapon.recoil * .6)) &&
               distance(p, d.d) < (melee ? Math.min(900, Math.max(400,range * 0.8)) : 1100))) &&
             !world.spikes().some(s => d.d.x > s.x - 20 && d.d.x < s.x + s.w + 20 && Math.abs(d.floor.y - s.y) < 40),
         )
         .sort((a, b) => a.score - b.score);
       const upgrade = upgrades.find(u=>u.d===b.pickup && world.time<b.pickupUntil) || upgrades[0];
-      if (upgrade && (melee || upgrade.score < 1.5)) {
+      if (upgrade && (melee || needsAlternative || upgrade.score < 1.5)) {
         ({ d: goal, floor: destination, path } = upgrade);
+        if (needsAlternative) {b.rearmWeapon=p.weapon;b.rearmUntil=world.time+3;}
         if(b.pickup!==goal) { b.pickup=goal; b.pickupUntil=world.time+3; }
         if (
           p.weapon &&
@@ -537,7 +545,9 @@ export class BotController {
           !firstObstacle(solids, p, goal)
         ) {
           i.throw = true;
-          i.aim = -Math.PI / 2;
+          // Discard behind the approach, not overhead where the heavy weapon
+          // falls back onto its owner and knocks it off the firing platform.
+          i.aim = Math.atan2(-.25, p.x > goal.x ? 1 : -1);
         }
       }
     }

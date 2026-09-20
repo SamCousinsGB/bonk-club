@@ -129,3 +129,20 @@ test("similar opponents do not repeatedly switch the bot's target and restart it
   }
   assert.equal(targets.size,1);assert.ok(fire);
 });
+
+test("a stranded gunner replaces an unusable high-recoil gun with a reachable safer gun",()=>{
+  const w=fixture("railgun");
+  w.platforms=[{id:"floor0",x:700,y:1200,w:230,h:25},{id:"enemy",x:1900,y:1200,w:400,h:25}];
+  Object.assign(w.players[0],{x:2100,y:1170,support:"enemy"});
+  Object.assign(w.players[1],{x:810,y:1170,ammo:3});
+  w.drops=[{id:"safe-gun",type:"blaster",x:870,y:1190,vx:0,vy:0,ammo:14,life:90}];
+  let acquired=false,fired=false;
+  advance(w,9,()=>{acquired ||= w.players[1].weapon==="blaster";fired ||= w.projectiles.some(s=>s.owner===1&&s.weapon==="blaster");});
+  assert.ok(acquired);assert.ok(fired);assert.equal(w.players[1].alive,true);
+});
+
+test("an explosive carrier retreats on its own side of a close blocking opponent",()=>{
+  const w=fixture("plasma");w.platforms=[{id:"floor0",x:620,y:600,w:444,h:25}];
+  Object.assign(w.players[0],{x:879,y:570});Object.assign(w.players[1],{x:849,y:570});
+  advance(w,.5);assert.ok(w.players[1].x<810,"back away instead of pushing through the opponent");
+});

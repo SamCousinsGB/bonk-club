@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.35.0",
-  "releaseNotes": "Furnace component damage, unstable discharges and live cut cables",
+  "version": "0.35.1",
+  "releaseNotes": "Improved bot routes, firing decisions, hazard avoidance and recovery from stalemates",
   "private": true,
   "type": "module",
   "scripts": {

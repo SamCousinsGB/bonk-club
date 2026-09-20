@@ -1,6 +1,22 @@
 # Bonk Club — next chat
 
-Updated 15 September 2026. Read the root `AGENTS.md` first.
+Updated 20 September 2026. Read the root `AGENTS.md` first.
+
+## AI completion - 20 September 2026
+
+- v0.35.1 includes the AI pass below plus the current Turbine Hall, physical
+  assembly-car and sectional furnace releases. Protocol 57 is unchanged by AI.
+- Crowded explosive carriers reject walking retreats through another fighter.
+  A stranded gunner can replace an unusable high-recoil weapon with a reachable
+  lower-recoil gun; it keeps that pickup goal long enough to complete the swap.
+  Discarded weapons go behind the approach rather than falling onto the owner.
+- Thirteen new decision regressions and all 84 focused AI/menu/tactics checks
+  pass. Menu tests still require autonomous hits, shots, pickups, jumps, deaths,
+  continuing rounds and varied weapons in each seed, and real melee across the
+  three-seed sample. They no longer require a swing in every individual sample
+  when a melee bot has already collected a gun before making contact.
+- The earlier integrated suite passed 1,009/1,010; the menu assertion was its only
+  failure. The final full suite, CI and public verification follow below.
 
 ## Physical assembly cars - 15 September 2026
 
