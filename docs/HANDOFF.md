@@ -6,21 +6,21 @@ short; completed release history through v0.40.0 is preserved in
 
 ## Current release
 
-- Current source: `origin/main` at `9323960cefe54e20abc856419b964641cfac9832`.
-- Game version: v0.40.1, protocol 63. Refresh every player's tab and create a new room.
-- Bullet Train now consists of eight independently weighted carriage bodies with
-  bogie support, articulated breakable couplers, coach collision and per-carriage
-  destruction. Derailing coaches tumble, damage the arena and retain lethal physical
-  interaction. Guests receive bounded, validated and interpolated carriage state for
-  hot joins.
-- PR #3 integrated the checked worker commit. Release run
-  [35520338415](https://github.com/SamCousinsGB/bonk-club/actions/runs/35520338415)
+- Current source: `origin/main` at `74aedcfb92378119f2e43cfcb6f0e6d00f300f91`.
+- Game version: v0.40.2, protocol 63. Refresh the host tab before creating a room.
+- A host can set every opponent slot to Players only or Closed and start with one
+  fighter. The lobby reports `1 / 1 players` and `Ready to start alone`; gameplay has
+  no waiting overlay and does not apply sudden-death drain while only one fighter is
+  active. Death still resets the round, and later player joins retain the existing
+  hot-join rules.
+- PR #4 integrated the checked implementation. Release run
+  [35521310427](https://github.com/SamCousinsGB/bonk-club/actions/runs/35521310427)
   passed 1,061 game tests, three server tests, all six arena-stress shards, Windows
-  and Linux desktop checks, release consistency and Pages in about three minutes.
-  Public build metadata reports v0.40.1 at the exact merged revision above.
-- A deterministic 1600 x 900 source render was inspected with no page errors before
-  integration; focused train, render-state and network tests and the production build
-  were repeated after rebasing.
+  and Linux desktop checks, executable smoke/package checks, release consistency and
+  Pages. All 17 public files match the exact CI browser artifact by SHA-256.
+- Source and public browser QA both started a room with three Closed slots and one
+  live controllable fighter. The match remained in Round 1 without a waiting banner;
+  the public page reported one active player and no browser errors.
 
 ## Test and release pipeline
 
