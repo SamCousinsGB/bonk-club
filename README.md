@@ -119,10 +119,15 @@ Node.js 24 is used in CI.
 npm ci
 npm run dev
 npm test
+npm run test:release
 npm run build
 ```
 
 `dist/` contains the deployable static game. Relative asset paths support a GitHub Pages repository subpath. Fonts are bundled locally. Offline play and direct connections need no keys. Internet relay configuration is described below. The GitHub Actions workflow tests, builds, and publishes changes on `main`.
+
+`npm test` is the compact fast suite used during development. `npm run
+test:release` adds the exhaustive every-arena simulations. CI keeps those
+simulations mandatory while dividing the arenas across six parallel workers.
 
 Tests cover movement speed limits, preserved knockback, arena crossing time, climbing both outside routes through the taller rooms, long-range shots, extended round timing, all arena spawns, full elevator return trips with standing/prone passengers and loose weapons, automatic pickup, thrown-weapon damage and ammo retention, cover destruction, projectile occlusion and penetration, plasma bounces, blast shielding, input/state validation, combat, parries, round transitions, active-ragdoll constraints, prone collision, mouse aiming, four-peer room lifecycle, and disconnect handling. Touch tests cover simultaneous pointers, swipes, double-tap disambiguation, button activation, cancellation, physics integration, and portrait/landscape coordinate mapping. Transport tests with fake peers do not establish cross-network WebRTC reliability.
 

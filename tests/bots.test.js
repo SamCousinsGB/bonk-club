@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { World, STEP, ARENAS } from "../src/engine.js";
-import { validSnapshot } from "../src/network.js";
+import { World, STEP } from "../src/engine.js";
 import { combatFloor } from "./helpers.js";
 
 function fight() {
@@ -94,30 +93,4 @@ test("human controls are never replaced by AI after a hot join", () => {
   assert.ok(w.players[1].x > 1170);
   assert.equal(w.players[1].weapon, null);
   assert.equal(w.players[1].bot, false);
-});
-test("four AI fighters fight and complete rounds across every arena", () => {
-  for (let arena = 0; arena < ARENAS.length; arena++) {
-    let seed = 4781 + arena;
-    const random = () =>
-      (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
-    const w = new World({
-      players: [0, 1, 2, 3],
-      bots: [0, 1, 2, 3],
-      arena,
-      shuffle: false,
-      random,
-    });
-    let combat = false;
-    for (let n = 0; n < 120 * 150 && w.round === 1; n++) {
-      w.step(STEP);
-      if (n % 120 === 0) {
-        assert.ok(validSnapshot(w.snapshot()), ARENAS[arena].name);
-        combat ||= w.events.some(
-          (e) => e.type === "shoot" || e.type === "swing",
-        );
-      }
-    }
-    assert.ok(combat, ARENAS[arena].name + " must have AI combat");
-    assert.ok(w.round > 1, ARENAS[arena].name + " must keep playing");
-  }
 });

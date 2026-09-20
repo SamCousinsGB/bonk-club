@@ -59,7 +59,7 @@ still permits desktop preparation and solo testing; it never enables Steam
 networking. An ID alone also does not enable the unfinished native integration.
 
 ```powershell
-npm test
+npm run test:release
 npm test --prefix desktop
 npm run smoke --prefix desktop
 npm run desktop:package -- --platform=win32

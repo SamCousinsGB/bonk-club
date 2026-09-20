@@ -1,8 +1,9 @@
 # Bonk Club — Project Constitution
 
 This is the standing development contract for **Bonk Club**. Read it before
-changing this repository. Read `docs/HANDOFF.md` next for unfinished work and the
-last verified release, then inspect the relevant code and tests. Sam's latest
+changing this repository. Read the concise `docs/HANDOFF.md` next for unfinished
+work and the last verified release, then inspect the relevant code and tests.
+Do not load archived release histories unless the current task needs one. Sam's latest
 explicit instructions take precedence; older requests must not undo later ones.
 Keep this constitution for durable rules and the handoff for current work.
 
@@ -385,11 +386,19 @@ Keep this constitution for durable rules and the handoff for current work.
 
 - Inspect the current branch, dirty changes, code and relevant tests first.
   Preserve user changes. Use GitHub `main` as the shared source of truth.
+- Each parallel chat works in its own clean worktree based on current `origin/main`.
+  Worker chats make focused commits and report them to one integration/release
+  owner; they do not independently merge or publish. The release owner batches
+  compatible work, resolves integration once, and is the only chat that pushes
+  the integrated release to `main`.
 - Make routine reversible decisions and complete authorized work without repeated
   permission questions. Do not create another task or delegate to agents unless
   Sam explicitly asks. Do not add unsolicited dependencies or architecture rewrites.
-- Use `npm ci` in a fresh checkout. Run `npm test` for gameplay/network changes and
-  `npm run build` for a release. Run the server tests when changing server code.
+- Use `npm ci` in a fresh checkout. Run focused tests while iterating and `npm test`
+  for the fast shared suite before handing work to the release owner. The exhaustive
+  arena simulations remain mandatory through `npm run test:release` locally and the
+  six-shard `arena-stress` CI gate. Run `npm run build` for a release and run the
+  server tests when changing server code.
   Docs-only work needs link/content review and `git diff --check`, not gameplay tests.
 - Test behavior, not copies of implementation. Cover collision, live ragdoll
   recovery, death effects, destruction, resets and invalid wire data as relevant.
@@ -398,7 +407,8 @@ Keep this constitution for durable rules and the handoff for current work.
   Fake peers and local screenshots alone are not proof of online functionality.
 - Check mobile controls with real browser touch events when touch behavior changes.
   Check hot join into an already changed map when adding persistent world state.
-- Established gameplay delivery includes committing, pushing and verifying the
+- Established gameplay delivery includes committing and handing a focused worker
+  commit to the release owner. The release owner pushes and verifies one batched
   Pages release unless Sam requests local-only work. Never claim an unshipped change
   is live. Docs-only updates can use `[skip ci]` to avoid republishing unchanged assets.
 - Production builds use `VITE_ROOM_SERVICE_URL` and `VITE_TURN_CREDENTIALS_URL`;
@@ -406,5 +416,7 @@ Keep this constitution for durable rules and the handoff for current work.
   belong in the frontend bundle. Wait for successful CI/deployment and compare the
   published files with the tested build; then check the public game in-browser.
 - Stop only development servers started for the current task. Do not leave debug
-  hooks in production. Keep the working tree and next-chat handoff understandable.
+  hooks in production. Keep `docs/HANDOFF.md` limited to current state, unfinished
+  work and the latest release; move older records to `docs/archive/`. Remove a task
+  worktree after its clean commit is integrated and no evidence depends on it.
 - Report what changed, what was tested, what is live and any remaining work plainly.
