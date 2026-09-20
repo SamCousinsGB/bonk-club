@@ -80,7 +80,7 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 
 ## Bullet Train, Scrap Foundry and drop-through platforms - 20 September 2026
 
-- v0.36.0 / protocol 58. Refresh all players and create a new room.
+- Integrated v0.36.1 / protocol 58. Refresh all players and create a new room.
 - Bullet Train is 3,200 units long and runs at 6,400 units/second, alternates direction every eleven
   seconds, and warns for two seconds. Upper walkways or a timed double jump clear
   it. Swept contacts launch physical remains, props and weapons; shots hit the
@@ -111,7 +111,33 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   train audio buffers, both maps and no page errors. Twenty-eight focused
   setpiece and audio checks passed again from the committed source.
   Evidence: train-finish-bundle.json, train-finish-bundle-*.png and
-  train-finish-wind.wav in ../bonk-club-qa. Pages verification follows below.
+  train-finish-wind.wav in ../bonk-club-qa.
+- The initial full release suite passed 1,043/1,044 checks and found train
+  debris exceeding the shared 1,500-unit prop speed limit. Integrated repair
+  bda474e retains the express speed, bounds prop impulses at their solver limit,
+  and covers fresh/existing debris snapshots. All 48 focused setpiece, audio and
+  assembly checks pass after that repair. Four-bot rounds on both new maps
+  also complete with valid snapshots at each sampled second.
+- The repaired production bundle again passed both maps, repeated wind audio,
+  relay host/guest/phone hot join and no errors. A separate source browser run
+  smashed a track crate with the train and verified immediate guest debris plus
+  identical debris/damaged geometry at late join, keyboard S/jump and phone
+  downward drag. Evidence: train-finish-debris-online.json/log and PNGs.
+- Published and verified as v0.36.1, revision
+  bda474e0cf1516dae59e175342d2a3b6a25880db, protocol 58.
+  [Release run 35514702195](https://github.com/SamCousinsGB/bonk-club/actions/runs/35514702195)
+  passed all 1,046 game/network tests, three server tests, Windows/Linux desktop
+  checks, executable smoke/packaging, shared-source consistency and Pages.
+- All 17 public files match both the exact committed LF build and CI artifact
+  byte for byte. Shared source hash:
+  b49ff5117b1fb083b5c97783938a857243e405d2b142f236ee0ae2fa7b9d0efa.
+  Exact build: ../bonk-club-qa/train-finish-verified; artifact: train-finish-ci;
+  evidence: train-finish-parity.json and train-finish-ci-tests.log.
+- Unmodified public v0.36.1 passed both new arenas, two train wind passes,
+  real relay-connected host/guest/mobile hot join and no page errors. Desktop
+  and phone rendering inspected. Evidence: train-finish-public.json and PNGs.
+  All peers used one QA PC; this does not measure cross-ISP latency or Steam.
+  Task preview ports 5561/5562 are stopped; canonical unrelated edits are intact.
 
 ## Physical assembly cars - 15 September 2026
 
