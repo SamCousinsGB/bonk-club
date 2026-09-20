@@ -48,7 +48,19 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   passed actual curved cuts, enlargement, flowing metal, burn death and reset
   with selected relay/relay pairs. Large and small reduced-motion visuals were
   inspected. Evidence: ../bonk-club-qa/furnace-breach-browser.json and PNGs.
-- Final release verification follows below.
+- Released gameplay revision `1a588f4536b9c95ff6b4b5141a3d300be0d652b5`.
+  Actions run `35516315537` passed 1,052 gameplay/network tests, three server
+  tests, seven desktop tests per OS, Windows/Linux executable smoke, packaging,
+  shared-source verification and Pages deployment. Final focused checks: 43/43.
+- All 17 public files matched the clean LF-checkout build and CI artifact by
+  SHA-256. Game source hash:
+  `193a990d6c444850004f49f0f4d8e7215a830a75716739bb3b59798dbdfb9ba6`.
+  Evidence: ../bonk-club-qa/furnace-breach-live-verification.json.
+- Unmodified public v0.38.0 passed a host/guest furnace round, selected relay/relay,
+  measured electrical audio, mute/unmute and no browser errors. Public active
+  artwork inspected. Evidence: ../bonk-club-qa/furnace-breach-live.json and PNGs.
+  Peers used one QA PC; this does not measure cross-ISP latency. Temporary test
+  servers on ports 5565/5566 were stopped. Canonical unrelated work is untouched.
 
 ## Floorless Turbine Hall - 20 September 2026
 
