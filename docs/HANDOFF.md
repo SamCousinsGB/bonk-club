@@ -6,9 +6,9 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- v0.48.0 / protocol 71 unifies liquid simulation. Refresh every player tab
-  before creating or joining a room. Release validation is in progress; the
-  previous public revision is v0.47.1 (`ab679c5d6ef45b6f4b089ec542461fc608f3d6bd`).
+- Published v0.48.0 / protocol 71 unifies liquid simulation. Gameplay revision:
+  `056aa6c7cb5068942363e7a31c784568cefa86a1`. Refresh every player tab before
+  creating or joining a room.
 - Water, oil, glue, tar and molten metal use `src/liquid.js` for finite admission,
   gravity, momentum, deep pools, wall/ceiling collision, overflow, dam breaks and
   forces on fighters, props, loose weapons and death bodies. Material viscosity,
@@ -28,9 +28,9 @@ history through v0.40.0 is archived in
 - Foundry ladles hold finite 3,000-unit supplies. Furnace breaches emit at their
   actual openings and stop below the melt level; emitted metal keeps moving.
   Molten pits have physical retaining walls and drain through damaged floors or
-  walls. Molten contact is swept so fast jets cannot skip a fighter. Ladles stop and look empty when
-  drained. Host snapshots, compression, guest interpolation and reset carry the
-  shared fluid state and container dimensions/capacities.
+  walls. Molten contact is swept so fast jets cannot skip a fighter. Ladles stop
+  and look empty when drained. Host snapshots, compression, guest interpolation
+  and reset carry shared fluid state and container dimensions/capacities.
 - Pools use joined curved surfaces and material palettes; touching falling
   parcels form sheets. Render-only liquid leak dots were removed so artwork
   cannot imply an electrical connection absent from the fluid simulation.
@@ -44,10 +44,18 @@ history through v0.40.0 is archived in
   to the actual tilted water polygon. Empty rooms cannot retain electrical power.
 - The v0.47.1 lifeboat artwork fix remains included: davits, bracing, footplates
   and suspension cables follow the ship frame and surviving deck mounts.
-- Local game tests, stress groups, build and browser checks are being completed.
-  Three-player source checks passed real guest movement, mixed liquids, live
-  water, changed-world hot join parity, container sizes/capacities and reset.
-  Foundry pouring and breached-furnace molten flow were visually checked.
+- Release proof: 1,164 compact tests, all 78 arena stress checks and the production
+  build passed locally. [Release run 35540739011](https://github.com/SamCousinsGB/bonk-club/actions/runs/35540739011)
+  passed game/server checks, all stress groups, Windows/Linux packaging and smoke
+  checks, release fingerprints and Pages. All 17 public files match its exact
+  browser artifact. Artifact and public browsers passed three-player Tower and
+  Ocean Liner controls, jumping, mid-match joining and small-screen rendering,
+  with no browser errors.
+- Source checks passed mixed liquids, powered streams, changed-world hot join
+  parity, randomized capacities and reset. Four-player relay ship checks covered
+  flooding, mouse/touch swimming, oxygen, electrically charged floodwater and
+  damaged-hull hot join. Foundry pouring, furnace breaches, smooth pools and
+  falling wire contact were visually checked. Evidence: `bonk-club-qa/shared-*`.
 - v0.46.1's multiplayer scheduling and guest replay improvements remain included:
   separate bounded motion/world workers, sequenced controls, reliable fallback,
   cached prediction geometry and immediate disabled poses. See
