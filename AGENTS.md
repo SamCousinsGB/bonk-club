@@ -102,6 +102,12 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
+- **Car Wash:** one continuous slippery wash lane with an immediately running
+  conveyor, an eight-second shuttle reversal and a one-second amber warning.
+  The car is a shaped, damageable physical prop; only surviving belt contact
+  drives it. Service decks form alternate routes above the brushes. Brush,
+  rinse and dryer artwork/effects depend on their surviving mounts, and floor
+  dressing must follow actual blast cuts. Preserve reset and changed-world hot join.
 - **Cargo Plane Hold:** a compact oval cutaway fuselage with wings and exposed
   turbines on both sides. The whole aircraft banks and shifts together; aiming
   follows that frame. Through-hull damage creates local outward decompression,
