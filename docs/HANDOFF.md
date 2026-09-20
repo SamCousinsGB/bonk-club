@@ -6,9 +6,18 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- v0.46.0 / protocol 69 improves water flow, electrical contacts and tank flooding.
-  Published gameplay revision: `8e9240e8e1716aa6a2c369ff7ad058efb95ae754`.
+- v0.46.1 / protocol 69 hardens multiplayer scheduling and guest replay.
+  Published gameplay revision: `955667b5b68562ae3fc186b89e4970e71f2391c6`.
   Refresh every player tab before creating or joining a room.
+- Motion and world encoding/reconstruction have separate bounded workers and
+  jobs. Codec errors do not retry on the render thread; worker stalls recover.
+  Reliable fallback keeps its four-frame acknowledgement window during long
+  guest stalls, and asymmetric channel failure retains sequenced controls.
+  Rapid taps are acknowledged only after their press reaches simulation.
+- Guest prediction reuses collision geometry with exact replay comparisons on
+  every arena; falling wing removal invalidates the cache. Disabled-pose changes
+  apply immediately, and the warp shader skips inactive sources. See
+  [`NETCODE.md`](NETCODE.md) for measurements, reproduction and qualification limits.
 - Water retains finite volume and horizontal momentum, forms deep pools, drains
   through destroyed supports and overtops low barriers. Side walls and ceilings
   stop jets. Currents apply mass-sensitive drag and buoyancy to fighters, loose
@@ -25,19 +34,17 @@ history through v0.40.0 is archived in
   splashes follow the liquid geometry. Reduced motion suppresses surface shimmer.
   Water is bounded at 384 parcels and 640 depth; this is a foundation for future
   flooding arenas, not a shipped ship arena or a full fluid-dynamics solver.
-- All 1,110 game tests, 76 arena stress cases and the production build passed.
-  Source-browser host/guest input, real tank rupture, powered wire contact,
-  destroyed-platform hot join, small viewport, reduced motion and reset passed.
-  All eight tank ruptures remained bounded with valid quantized snapshots during
-  a 60-second reaction simulation. The production bundle passed normal three-player
-  browser controls/hot join. Release run
-  [35537135496](https://github.com/SamCousinsGB/bonk-club/actions/runs/35537135496)
+- All 1,124 game tests, three server tests and the production build passed.
+  The local 76-case stress run passed; final integrated release run
+  [35537511009](https://github.com/SamCousinsGB/bonk-club/actions/runs/35537511009)
   passed shared/server tests, all six stress groups, Windows/Linux desktop checks,
   release consistency and Pages. All 17 public files match its exact CI artifact.
-  Unmodified public v0.46.0 passed map selection, host/guest movement and jumping,
-  a third player's hot join and a small viewport with no browser errors. Deliberate
-  tank rupture, charged-water/destruction parity and reset were tested in source
-  browser sessions; this is one-machine multiplayer evidence.
+  The exact CI artifact and unmodified public v0.46.1 both passed real relay/relay
+  controls, readiness/options, hot join and host departure with no page errors.
+- Four-player source-browser checks passed matching destroyed-terrain IDs on
+  hot join, round reset, 10% packet loss, delay, duplicate/reordered packets,
+  a 1.2-second guest stall and 4x CPU throttling. These are one-machine checks;
+  separate-ISP endurance and native Steam transport qualification remain open.
 - The preceding v0.45.0 aircraft release remains included: larger four-engine
   wings, structural disconnection causing a shared aircraft spiral, falling wing
   collision and reduced hull/navigation work. Car Wash retains immediate belt

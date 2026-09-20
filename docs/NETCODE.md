@@ -71,8 +71,9 @@ Edge, 1280 x 720, one Windows QA machine, source builds, three remote guests.
 Baseline: v0.44.0 (`b614d61`). These samples are local CPU/render/delivery
 measurements, **not** cross-ISP latency or hardware certification. Short samples
 vary with operating-system scheduling, rendering and actual relay conditions.
-The comparison was recorded before integrating the parallel v0.45.0 aircraft
-release; none of the measured scenarios uses the aircraft arena.
+The comparison was recorded before integrating the parallel aircraft and water
+releases; none of the measured scenarios uses the aircraft arena. The combined
+source subsequently passed the same impairment/hot-join/reset checks.
 
 | Measurement (95th percentile) | v0.44.0 | v0.46.1 |
 | --- | ---: | ---: |
@@ -85,10 +86,18 @@ release; none of the measured scenarios uses the aircraft arena.
 
 The impaired-link sample's maximum update gap was 103.3 ms after the changes;
 there were no reversed authoritative updates or page errors. Delivery timing
-did not improve in every sample. The CPU benchmark with 96 physical props
-reduced median replay time from 2.87 to 2.53 ms (about 12%) while matching every
-fighter field in 160 comparisons. Ordinary and heavy fixtures together perform
-320 exact replay comparisons.
+did not improve in every sample. On the final integrated code, the CPU benchmark
+with 96 physical props reduced median replay time from 3.09 to 2.70 ms (12.5%)
+and p95 from 4.68 to 4.11 ms while matching every fighter field in 160 comparisons.
+Ordinary and heavy fixtures together perform 320 exact replay comparisons.
+
+Final release revision `955667b5b68562ae3fc186b89e4970e71f2391c6` passed 1,124
+shared tests, three service tests, all 76 arena stress cases across six CI shards,
+Windows/Linux desktop checks, matching release metadata and Pages in
+[run 35537511009](https://github.com/SamCousinsGB/bonk-club/actions/runs/35537511009).
+All 17 public files matched the exact CI artifact. The unmodified public build
+passed real relay/relay host/guest controls, readiness, options, hot join and
+host departure with no page errors.
 
 Rendering four simultaneous two-black-hole arenas on the same GPU produced a
 55.6 ms frame interval at p95 in both builds. With the other three renderers
