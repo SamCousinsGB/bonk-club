@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards, hazardZone } from "../src/hazards.js";
+import { prepareProp } from "../src/props.js";
 import { trainPose } from "../src/trains.js";
 import { carveExplosion } from "../src/terrain.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
@@ -146,4 +147,13 @@ test("destruction preserves the thin surface flag and invalid wire flags are rej
   assert.ok(w.platforms.filter(p=>p.y===780).every(p=>p.oneWay));
   const s=new RenderSnapshots().make(w.snapshot());assert.ok(validSnapshot(s));
   s.platforms[0].oneWay="true";assert.equal(validSnapshot(s),false);
+});
+
+
+test("train impacts keep fresh and existing debris within snapshot motion limits",()=>{
+  const w=fixture(),h=w.hazards[0];h.age=5.2;
+  w.cover=[prepareProp({id:'track-crate',kind:'crate',x:1200,y:1000,w:50,h:60,hp:75,maxHp:75})];
+  tick(w);assert.ok(w.chunks.length>0);
+  assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
+  tick(w);assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
 });

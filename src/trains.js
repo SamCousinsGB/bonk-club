@@ -42,8 +42,8 @@ export function updateTrain(world,h,dt) {
       q.px=q.x-h.dir*2100*dt;q.py=q.y+380*dt;
     }
   }
-  for(const b of world.cover)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1700;b.vy=-300;world.damageCover(b,1000);}
-  for(const b of world.chunks)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1700;b.vy=-300;b.spin=h.dir*8;}
+  for(const b of world.cover)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1500;b.vy=-300;world.damageCover(b,1000);}
+  for(const b of world.chunks)if(b.hp>0&&overlap(b,sweep)){b.vx=h.dir*1500;b.vy=-300;b.spin=h.dir*8;}
   for(const d of world.drops)if(overlap({x:d.x-8,y:d.y-8,w:16,h:16},sweep)){d.vx=h.dir*1700;d.vy=-300;}
   // Shots hit the actual train body. The crossing itself is otherwise open.
   const body=trainBox(h);
