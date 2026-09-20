@@ -27,10 +27,10 @@ export const TRANSMISSION_ARENA = dressArena({
     w:WIRE_RIGHT-WIRE_LEFT,h:85,dir:circuit?1:-1})),
 });
 
-// One finite, physical water jug on each inner and outer cross-arm. Reserve
-// these positions after automatic dressing so furniture cannot replace a jug.
-for (const y of TOWER_LEVELS) for (const x of [170, 930, 1630, 2390]) {
-  const jug = {x:x-32,y:y-76,w:64,h:76,kind:"waterTank",hp:85,maxHp:85,waterLeft:210};
+// One finite, physical water tank on each inner and outer cross-arm. Reserve
+// these positions after automatic dressing so furniture cannot replace a tank.
+for (const y of TOWER_LEVELS) for (const x of [170, 942, 1618, 2390]) {
+  const jug = {x:x-44,y:y-124,w:88,h:124,kind:"waterTank",hp:85,maxHp:85,waterLeft:1200};
   TRANSMISSION_ARENA.cover = TRANSMISSION_ARENA.cover.filter(p =>
     p.x+p.w < jug.x-18 || p.x > jug.x+jug.w+18 || p.y+p.h < jug.y || p.y > y);
   TRANSMISSION_ARENA.cover.push(jug);

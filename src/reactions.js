@@ -7,11 +7,13 @@ import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
+import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, moveLiquid, waterForces, waterWireContact } from './liquid.js';
+export { WATER_LIMIT, WATER_WIDTH } from './liquid.js';
 import { poweredWirePieces } from "./powerline-circuit.js";
 
 // The host owns finite water and fuel. Guests receive only the bounded visible
 // state; neither fluid motion nor damage is re-simulated by a guest.
-export const WATER_LIMIT = 192, GAS_LIMIT = 24, WATER_WIDTH = 32;
+export const GAS_LIMIT = 24;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const centre = b => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 const overlap = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w > b.x - pad &&
@@ -54,7 +56,7 @@ export function resetReactions(world) {
   const kinds = ["canister", ...(world.arena.transmission?[]:["waterTank"]), "canister",
     variants[world.arenaIndex % 4], variants[(world.arenaIndex + 1) % 4]];
   for (const [index, kind] of kinds.entries()) {
-    const size = kind === "canister" ? [44, 72] : kind === "waterTank" ? [64, 76] : [54, 68];
+    const size = kind === "canister" ? [44, 72] : kind === "waterTank" ? [88, 108] : [54, 68];
     let placed = false;
     for (let n = 0; n < floors.length && !placed; n++) {
       const f = floors[(n + world.arenaIndex + index * 3) % floors.length];
@@ -70,7 +72,7 @@ export function resetReactions(world) {
           world.platforms.some(p => p !== f && p.hp !== 0 && overlap({...b,y:b.y-140,h:b.h+140}, p, 2)) ||
           world.hazards.some(h => overlap(b, hazardZone(h), 28))) continue;
         world.cover.push(prepareProp({ ...b, id: `reaction-prop${index}`, kind, hp: 85, maxHp: 85,
-          ...(kind === "waterTank" ? { waterLeft: 210 } : {}) }));
+          ...(kind === "waterTank" ? { waterLeft: 960 } : {}) }));
         used.add(f.id); placed = true; break;
       }
     }
@@ -108,26 +110,7 @@ export function addSpill(world, kind, x, y, amount, fire = false) {
 
 // Amount is cross-sectional area divided by a column width. Transfers conserve
 // it exactly, including at the admission limit. No invisible full-fluid grid.
-export function addWater(world, x, y, amount) {
-  if (!(amount > 0) || !Number.isFinite(x + y + amount)) return 0;
-  let left = amount;
-  for (let n = 0; left > .001 && n < WATER_LIMIT; n++) {
-    const offset = n ? Math.ceil(n / 2) * (n % 2 ? 1 : -1) : 0;
-    const column = Math.floor(x / WATER_WIDTH) * WATER_WIDTH + offset * WATER_WIDTH;
-    if (column < 0 || column + WATER_WIDTH > W) continue;
-    let q = world.water.find(q => q.x === column && !q.frozen && Math.abs(q.y + q.h - y) < 12);
-    if (q && q.h >= 24) continue;
-    if (!q) {
-      if (world.water.length >= WATER_LIMIT) break;
-      q = { id: ++world.reactionSerial, x: column, y, w: WATER_WIDTH, h: 0,
-        vy: 0, grounded: false, frozen: 0, spark: 0, charge: 0 };
-      world.water.push(q);
-    }
-    const take = Math.min(left, 24 - q.h);
-    q.y -= take; q.h += take; left -= take;
-  }
-  return amount - left;
-}
+export const addWater = emitWater;
 
 function wet(b, duration = 2.5) {
   b.soaked = Math.max(b.soaked || 0, duration);
@@ -182,7 +165,7 @@ export function propReactionDamage(world, b, damage, point) {
   if (b.kind === "waterTank" && damage > 0 && b.waterLeft > 0) {
     b.leak = 1;
     if (damage >= b.hp) {
-      const emitted = addWater(world, b.x + b.w / 2, b.y + b.h / 2, b.waterLeft);
+      const emitted = addWater(world, b.x + b.w / 2, b.y + b.h / 2, b.waterLeft, {burst:340, vx:b.vx||0, vy:Math.min(100,b.vy||0)});
       b.waterLeft -= emitted;
       if (b.waterLeft > .01) return Math.max(0, b.hp - 1);
     }
@@ -366,13 +349,12 @@ function moveWater(world, dt, key = "water") {
   world[key]=parcels.filter(q=>q.h>.05&&q.y<H+80);
 }
 
-function conduction(world, dt) {
+function conduction(world, dt, wires) {
   const nodes=conductorNodes(world);
-  const wires=poweredWirePieces(world);
   const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
-    const powered=b.spark>0||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
+    const powered=b.spark>0||waterWireContact(b)||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
       wires.some(s=>segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
     if(powered){live.add(i);queue.push(i);}
   }
@@ -405,7 +387,8 @@ function containers(world, dt, bs) {
     if(b.kind==="waterTank"&&b.waterLeft>0) {
       if(b.cold>0)continue;
       for(const p of outlets) b.waterLeft-=addWater(world,p.x,p.y,
-        Math.min(b.waterLeft,55*dt/outlets.length));
+        Math.min(b.waterLeft,(55+Math.sqrt(b.waterLeft)*3)*dt/outlets.length),
+        {vx:(b.vx||0)+p.nx*Math.sqrt(b.waterLeft)*7,vy:(b.vy||0)+p.ny*Math.sqrt(b.waterLeft)*5});
       continue;
     }
     const contents=BARRELS[b.kind]?.contents;
@@ -486,11 +469,13 @@ function updateSpills(world, dt, bs, ps) {
 }
 
 export function updateReactions(world, dt) {
-  if(world.phase!=="fight"||dt<=0)return;
+  if(world.prediction||world.phase!=="fight"||dt<=0)return;
   world.reactionClock+=dt;
   if(world.reactionClock<.05-1e-8)return;
   dt=Math.min(.075,world.reactionClock);world.reactionClock=0;
-  moveWater(world,dt);
+  const wires=poweredWirePieces(world);
+  moveLiquid(world,dt,wires,thawWater);
+  waterForces(world,dt);
   moveWater(world,dt,"spills");
   const bs=bodies(world), ps=world.players.filter(p=>p.alive);
   for(const b of [...bs,...ps]) {
@@ -534,7 +519,7 @@ export function updateReactions(world, dt) {
       world.explode({x:g.x,y:g.y,kind:"grenade",weapon:"gas",owner:g.owner,radius:g.r+28,damage:38,force:480});}}
   }
   world.gas=world.gas.filter(g=>g.life>0&&g.y>-100&&g.y<H+100&&g.x>-100&&g.x<W+100);
-  conduction(world,dt);
+  conduction(world,dt,wires);
 }
 
 export function consumeReactionArea(world, blast) {
@@ -555,8 +540,8 @@ export function reactionDanger(world, x, y) {
 
 const number=(n,min,max)=>typeof n==="number"&&Number.isFinite(n)&&n>=min&&n<=max;
 export function validReactionObject(b) {
-  return validContainerLeaks(b) && ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","liquidLeft","glued","tarred","oiled"].every(k=>
-    b[k]===undefined||number(b[k],0,k==="waterLeft"?210:k==="liquidLeft"?96:k==="charge"||k==="leak"||["glued","tarred","oiled"].includes(k)?1:12)) &&
+  return validContainerLeaks(b) && ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","waterCapacity","liquidLeft","glued","tarred","oiled"].every(k=>
+    b[k]===undefined||number(b[k],0,(k==="waterLeft"||k==="waterCapacity")?TANK_CAPACITY:k==="liquidLeft"?96:k==="charge"||k==="leak"||["glued","tarred","oiled"].includes(k)?1:12)) &&
     (b.spent===undefined||typeof b.spent==="boolean");
 }
 export function validReactions(s) {
@@ -567,7 +552,7 @@ export function validReactions(s) {
     number(q.fire,0,SPILLS[q.kind].burn)&&number(q.cold,0,3.2))&&
     Array.isArray(s.water)&&s.water.length<=WATER_LIMIT&&s.water.every(q=>
     Number.isInteger(q.id)&&q.id>0&&q.id<=10000000&&number(q.x,0,W-WATER_WIDTH)&&number(q.y,-200,H+150)&&
-    q.w===WATER_WIDTH&&number(q.h,.01,48)&&number(q.vy,0,1000)&&typeof q.grounded==="boolean"&&
+    q.w===WATER_WIDTH&&number(q.h,1e-9,WATER_DEPTH)&&number(q.vx??0,-900,900)&&number(q.vy,-600,1000)&&typeof q.grounded==="boolean"&&
     number(q.frozen,0,7)&&validReactionObject(q))&&new Set(s.water.map(q=>q.id)).size===s.water.length&&
     Array.isArray(s.gas)&&s.gas.length<=GAS_LIMIT&&s.gas.every(g=>Number.isInteger(g.id)&&g.id>0&&
     number(g.x,-200,W+200)&&number(g.y,-200,H+400)&&number(g.vx,-500,500)&&number(g.vy,-500,500)&&

@@ -6,7 +6,7 @@ and interpolate other actors. Browser discovery/transport is WebRTC; the shared
 room protocol is also the boundary for the future Steam adapter. See
 [`PLATFORMS.md`](PLATFORMS.md) for the unimplemented Steam/account work.
 
-## v0.45.1 changes
+## v0.46.1 changes
 
 - Motion and world state have independent encoding jobs **and workers**. A
   blocked world encode/reconstruction cannot occupy the actor worker. Each lane
@@ -35,7 +35,7 @@ room protocol is also the boundary for the future Steam adapter. See
   immediately. The warp shader skips inactive sources without changing its
   geometry, amplitude, reduced-motion behaviour or physics.
 
-The wire shape remains protocol **68**. World and motion histories are separate,
+The wire shape remains protocol **69**. World and motion histories are separate,
 retain at most 32 snapshots, and deltas use only acknowledged baselines. Missing
 baselines request a full state. Compressed frames are limited to 250 KB and
 decompression to 1 MB. Each stream assembler retains at most two partial frames.
@@ -72,7 +72,7 @@ vary with operating-system scheduling, rendering and actual relay conditions.
 The comparison was recorded before integrating the parallel v0.45.0 aircraft
 release; none of the measured scenarios uses the aircraft arena.
 
-| Measurement (95th percentile) | v0.44.0 | v0.45.1 |
+| Measurement (95th percentile) | v0.44.0 | v0.46.1 |
 | --- | ---: | ---: |
 | Guest reconciliation, two black holes | 3.0 ms | 1.8 ms |
 | Guest reconciliation, impaired link and 4x CPU throttle | 26.7 ms | 14.8 ms |

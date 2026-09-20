@@ -1,6 +1,6 @@
 {
   "name": "bonk-club",
-  "version": "0.45.1",
+  "version": "0.46.1",
   "releaseNotes": "Improves multiplayer update scheduling and guest performance",
   "private": true,
   "type": "module",

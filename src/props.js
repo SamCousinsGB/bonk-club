@@ -49,8 +49,9 @@ export function prepareProp(c, id = c.id) {
   const type = PROP_TYPES[c.kind];
   if (!type) return c;
   c.id = id;
+  if(c.kind === "waterTank" && !c.chunk) {c.waterLeft ??= c.w>=80?960:210;c.waterCapacity ??= c.waterLeft;}
   if(c.kind === "car"){c.carStage ??= 0;c.carPaint ??= 0;c.carCoat ??= 0;}
-  c.mass ??= type.mass;
+  c.mass ??= c.kind === "waterTank" ? type.mass * Math.max(1,c.w*c.h/(64*76)) : type.mass;
   c.material ??= type.material;
   c.vx ??= 0; c.vy ??= 0; c.angle ??= 0; c.spin ??= 0;
   c.dx ??= 0; c.dy ??= 0;

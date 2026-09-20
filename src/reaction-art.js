@@ -2,6 +2,7 @@ import { drawWater } from "./water-art.js";
 import { drawElectricity } from "./electricity-art.js";
 import { BARRELS, SPILLS, barrelWarning } from "./barrels.js";
 import { leakOutlets } from "./container-leaks.js";
+import { TANK_CAPACITY } from "./liquid.js";
 
 const TAU=Math.PI*2;
 const line=(c,points,color,width=2)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
@@ -10,6 +11,28 @@ const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=colo
 export function drawReactiveProp(c,p) {
   if(p.kind!=="waterTank"&&!BARRELS[p.kind])return false;
   const tank=p.kind==="waterTank",x=p.x,y=p.y,w=p.w,h=p.h;
+  if(tank && w>=80) {
+    c.save();
+    c.beginPath();c.roundRect(x+3,y+8,w-6,h-12,12);
+    const shell=c.createLinearGradient(x,0,x+w,0);
+    shell.addColorStop(0,'#72939a');shell.addColorStop(.22,'#d5e4dc');shell.addColorStop(.55,'#a6c2bd');shell.addColorStop(1,'#42636b');
+    c.fillStyle=shell;c.fill();c.strokeStyle='#213c4b';c.lineWidth=3;c.stroke();
+    c.fillStyle='#102e41';c.beginPath();c.roundRect(x+w*.2,y+h*.19,w*.6,h*.59,7);c.fill();
+    const level=Math.min(1,(p.waterLeft||0)/(p.waterCapacity||TANK_CAPACITY));
+    const wy=y+h*.78-h*.59*level;
+    const water=c.createLinearGradient(0,wy,0,y+h*.78);water.addColorStop(0,'#89ebee');water.addColorStop(1,'#197eab');
+    c.fillStyle=water;c.fillRect(x+w*.22,wy,w*.56,h*.59*level);
+    line(c,[[x+w*.22,wy],[x+w*.78,wy]],'#d0ffff',2);
+    for(const yy of [.15,.81]) {
+      c.fillStyle='#3b5661';c.fillRect(x+1,y+h*yy,w-2,7);
+      for(const xx of [9,w-9])circle(c,x+xx,y+h*yy+3,2,'#bbd2cf');
+    }
+    line(c,[[x+w*.3,y+h*.24],[x+w*.3,y+h*.69]],'#edffff6a',3);
+    c.fillStyle='#375767';c.fillRect(x+w*.35,y,w*.3,9);
+    for(const xx of [.12,.76]){c.fillStyle='#243d4b';c.fillRect(x+w*xx,y+h-7,w*.12,7);}
+    for(const hole of p.leaks||[])circle(c,x+w/2+hole.x*w,y+h/2+hole.y*h,3,'#11222a');
+    c.restore();return true;
+  }
   const type=BARRELS[p.kind], warning=barrelWarning(p), flashing=warning.pulse>.45;
   c.save();
   c.translate(x+w/2,y+h/2);c.scale(warning.swell,warning.swell);c.translate(-x-w/2,-y-h/2);

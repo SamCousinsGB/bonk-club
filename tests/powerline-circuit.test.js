@@ -22,16 +22,16 @@ const touch = w => {
   Object.assign(upper,{x:lower.x,y:lower.y,px:lower.x,py:lower.y});
 };
 
-test("eight water jugs occupy every pylon arm and the four centre weapon ledges are absent",()=>{
+test("eight larger water tanks occupy every pylon arm and the four centre weapon ledges are absent",()=>{
   const w=make(),jugs=w.cover.filter(b=>b.kind==="waterTank");
   assert.equal(jugs.length,8);
   for(const y of TOWER_LEVELS)for(const [left,right] of [[50,480],[820,990],[1570,1740],[2080,2510]]) {
     const j=jugs.find(b=>b.x>=left&&b.x+b.w<=right&&b.y+b.h===y);
-    assert.ok(j,`jug on arm ${left},${y}`);assert.equal(j.waterLeft,210);assert.ok(j.mass>0);
+    assert.ok(j,`jug on arm ${left},${y}`);assert.equal(j.waterLeft,1200);assert.ok(j.mass>0);
   }
   for(const y of [590,1050,1070])assert.ok(!w.platforms.some(p=>p.y===y&&p.x+p.w>790&&p.x<1770));
   for(const d of w.drops)assert.ok(w.platforms.some(p=>d.x>=p.x&&d.x<=p.x+p.w&&Math.abs(p.y-d.y)<65));
-  jugs[0].waterLeft=0;w.startRound();assert.equal(w.cover.filter(b=>b.kind==="waterTank"&&b.waterLeft===210).length,8);
+  jugs[0].waterLeft=0;w.startRound();assert.equal(w.cover.filter(b=>b.kind==="waterTank"&&b.waterLeft===1200).length,8);
 });
 
 for(const end of [0,1])test(`losing mount ${end} preserves the seven-second clock until the other mount is lost`,()=>{
