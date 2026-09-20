@@ -18,16 +18,32 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 - Suspended service galleries and end landings replace arbitrary small ledges.
   Crown mounts form a lower route; intact upper routes remain safe. Decoration
   follows surviving platform sections and cannot bridge destroyed collision.
-- 36 focused assembly/audio checks passed, including full production, separate
-  wheels, missing upstream work, persistent partial paint, invalid transport,
-  destruction, resets and an actual gallery jump. Production build passed.
+- All 1,058 tests passed on exact committed revision a1683dc3011ffcc31a67e7c1c11de5484b2d3d4e.
+  Focused assembly/audio/fracture checks include full production, separate wheels,
+  missing upstream work, persistent partial paint, invalid transport, destruction,
+  reset and an actual gallery jump. Production build passed. Bare chassis fracture
+  into eight metal pieces; assembled cars stay within the existing 20-piece cap.
 - Real source host/guest/changed-map hot join passed production, actual guest
   movement/jump, falling damaged cars and partial paint after machine destruction.
   Selected relay/relay pairs and no browser errors. These peers share one QA PC;
   this is not a cross-ISP latency measurement. Desktop and small-screen evidence:
   ../bonk-club-qa/paint-line-online.json and paint-line-*.png.
 - Worktree: ../bonk-club-qa/car-assembly, branch codex/assembly-paint-station.
-  Canonical unrelated edits remain preserved. Final release verification follows.
+  Canonical unrelated edits remain preserved. Both task preview servers are stopped.
+- Published revision: a1683dc3011ffcc31a67e7c1c11de5484b2d3d4e.
+  [Release run 35516627930](https://github.com/SamCousinsGB/bonk-club/actions/runs/35516627930)
+  passed all 1,058 game tests, three server tests, seven desktop tests per OS,
+  Windows/Linux executable smoke and packaging, source consistency and Pages.
+- All 17 public files match the exact committed build and CI artifact by SHA-256.
+  Source hash: 73078160efcc6e4712dcfd898d2e8cda1c31573726d9f75332196966ec6d8a63.
+  Exact checkout: ../bonk-club-qa/paint-line-exact; artifact: paint-line-ci.
+  Evidence: paint-line-final-tests.log, paint-line-final-release.log and
+  paint-line-final-live-verification.json in ../bonk-club-qa.
+- Unmodified public v0.39.0 and the production bundle passed normal map selection,
+  repeated car production, guest controls, departure and real hot join through
+  selected relay/relay pairs with no browser errors. Desktop and 844x390 gameplay
+  were visually inspected. Evidence: paint-line-final-public.json and PNGs.
+  No production debug hooks, new dependencies or Pi changes.
 
 ## Arc Furnace carved breaches and molten leaks - 20 September 2026
 
