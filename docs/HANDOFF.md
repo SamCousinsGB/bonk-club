@@ -6,8 +6,8 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: `origin/main` at `5dab657`.
-- Game version: v0.43.0, protocol 66. Refresh every player tab before creating or
+- Source release: v0.44.0 Car Wash art and gameplay pass; public verification pending.
+- Game version: v0.44.0, protocol 67. Refresh every player tab before creating or
   joining a room.
 - Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
   overhead lights, tapered wings, swept-blade turbofans and layered clouds.
@@ -15,18 +15,17 @@ history through v0.40.0 is archived in
   aircraft banks and shifts; input aiming compensates for its displayed pose.
   Hull destruction opens local outward pressure jets affecting fighters, cargo,
   weapons, bodies, fragments and fluids, including through guest prediction.
-  Car Wash has a slippery conveyor
-  floor, a heavy physical car, striking brushes, finite rinse water and an opposing
-  dryer. Both preserve authoritative hazard and prop state through reset and hot join.
-- Release run [35533717480](https://github.com/SamCousinsGB/bonk-club/actions/runs/35533717480)
-  passed 1,083 game tests, three server tests, all six arena-stress shards,
-  Windows/Linux desktop checks, release consistency and Pages. The full local
-  76-case stress run also passed; all 17 public files match the release artifact.
-- Source browser checks verified intact/breached artwork, complete engine breakup,
-  bot combat and reduced motion. Cabin artwork is cached; turbulence and
-  decompression strength are unchanged. Public rendered gameplay and a real
-  changed-world hot join passed, retaining missing platform sections and displaced
-  cargo. Both production clients had clean consoles.
+- Car Wash now has a tiled hall, suspended service decks, cloth brush cylinders,
+  rinse arch and twin dryer fans. The seven contiguous belts start on the first
+  combat tick and reverse every eight seconds after an amber warning. The shaped
+  physical car stays in play between breakable end stops. Steel floor/decks resist
+  bullets and retain circular blast cuts; removed contacts cannot drive the car.
+  Individual brush/rinse/dryer mounts disable their matching art and effects.
+- Local source-browser checks passed actual host/guest controls, immediate car
+  movement, rinse, reversed belts, changed-world hot join, round reset, small
+  viewport and reduced motion with no browser errors. Focused car-wash simulation
+  passed bot combat and sustained four-player input. Integrated full checks and
+  public artifact/browser verification are pending.
 
 ## Reconciled WIP
 

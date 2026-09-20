@@ -1,4 +1,5 @@
 import { planeHull } from "./plane.js";
+import { carShape } from "./assembly-geometry.js";
 const solid = (x, y, w, h = 42, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
 const grate = (x, y, w, extra = {}) => ({ x, y, w, h: 16, material: "metal", oneWay: true, ...extra });
 
@@ -48,30 +49,30 @@ export const CAR_WASH_ARENA = {
   compactSetpiece: "car-wash",
   platforms: [
     ...washFloor,
-    grate(60, 830, 560),
-    grate(760, 760, 420),
-    grate(1380, 760, 420),
-    grate(1940, 830, 560),
-    grate(1080, 480, 400),
-    grate(80, 510, 300),
-    grate(2180, 510, 300),
+    solid(0, 1070, 42, 90), solid(2518, 1070, 42, 90),
+    grate(70, 910, 380), grate(2110, 910, 380),
+    grate(590, 800, 360), grate(1450, 800, 360),
+    grate(1050, 650, 400),
+    grate(120, 630, 290), grate(2150, 630, 290),
+    grate(570, 410, 400), grate(1580, 410, 400),
+    grate(1080, 240, 400),
   ],
-  spawns: [[170, 798], [2390, 798], [1140, 448], [1420, 448]],
-  weapons: [[940, 728], [1620, 728]],
+  spawns: [[190, 878], [2370, 878], [710, 378], [1840, 378]],
+  weapons: [[1160, 618], [1390, 208]],
   starterWeapons: [],
   spikes: [],
   cover: [
-    { x: 180, y: 1060, w: 250, h: 100, kind: "car", hp: 200, maxHp: 200, mass: 200,
-      carStage: 31, carPaint: 2, carCoat: 1 },
-    { x: 380, y: 772, w: 82, h: 58, kind: "trolley", hp: 75, maxHp: 75 },
-    { x: 2090, y: 772, w: 82, h: 58, kind: "trolley", hp: 75, maxHp: 75 },
-    { x: 1190, y: 1092, w: 54, h: 68, kind: "barrel", hp: 75, maxHp: 75 },
+    { x: 180, y: 1026, w: 250, h: 134, kind: "car", hp: 200, maxHp: 200, mass: 200,
+      carStage: 31, carPaint: 2, carCoat: 1, shape: carShape(31) },
+    { x: 310, y: 852, w: 82, h: 58, kind: "trolley", hp: 75, maxHp: 75 },
+    { x: 2170, y: 852, w: 82, h: 58, kind: "trolley", hp: 75, maxHp: 75 },
+    { x: 1300, y: 582, w: 54, h: 68, kind: "waterTank", hp: 75, maxHp: 75 },
   ],
   hazards: ["carwash", "conveyor"],
   traps: [
     { type: "carwash", x: 1280, y: 1160, w: 360, h: 300, dir: 1 },
-    ...[430, 850, 1270, 1690, 2110].map((x, i) => ({
-      type: "conveyor", x, y: 1160, w: 400, h: 20, dir: 1,
+    ...Array.from({length: 7}, (_, i) => ({
+      type: "conveyor", x: 200 + i * 360, y: 1160, w: 360, h: 20, dir: 1,
       beltSpeed: 320, beltForce: 980,
     })),
   ],
