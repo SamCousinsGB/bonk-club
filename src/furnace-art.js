@@ -78,7 +78,6 @@ export function drawFurnaceHall(c) {
 
 export function drawFurnaceCables(c, cables, h, time) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
-  clipFurnace(c,h);
   const circuit=powerlineCircuit({cables,hazards:h?[h]:[]});
   for (const cable of cables) {
     const spec = cableLayout(cable.id);
@@ -96,17 +95,20 @@ export function drawFurnaceCables(c, cables, h, time) {
         for(let j=0;j<3;j++)electricArc(c,end,{x:end.x+Math.cos(time*7+j*2)*22,y:end.y+Math.sin(time*9+j*2)*22},time,950+j,1,true);
       }
     }
+    // Only machinery is clipped by shell cuts; a loose cable can swing across a hole.
+    c.save();clipFurnace(c,h);
     for (const [i, end] of [spec.a, spec.b].entries()) {
-      if (!cable.attached[i]) continue;
+      if (!cable.attached[i] && i===0) continue;
       line(c, [[end.x, end.y - 17], [end.x, end.y + 17]], "#263740", 25);
       for (let i = -1; i <= 1; i++) line(c, [[end.x - 17, end.y + i * 11], [end.x + 17, end.y + i * 11]], "#bd9980", 5);
       circle(c, end.x, end.y, 5, "#ece5c9");
     }
-    if (cable.attached[1]) {
+    if (cable.attached[1] || h?.furnacePieces?.some(p=>p.part===6+Number(cable.id.slice(7)))) {
       const p = spec.b;
       line(c, [[p.x, p.y], [p.x, 805]], "#292e37", 22);
       line(c, [[p.x - 5, p.y + 10], [p.x - 5, 800]], "#6c7777", 4);
     }
+    c.restore();
   }
   c.restore();
 }
