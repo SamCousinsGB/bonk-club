@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.40.1",
-  "releaseNotes": "Bullet Train carriages articulate, tumble and separate during derailments",
+  "version": "0.40.2",
+  "releaseNotes": "Hosts can start one-player test matches with empty or closed opponent slots",
   "private": true,
   "type": "module",
   "scripts": {

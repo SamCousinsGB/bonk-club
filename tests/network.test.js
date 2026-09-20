@@ -663,7 +663,7 @@ test("host slot modes reserve bots, skip closed slots and admit hot joins only t
   } finally {extra.close();guest.close();host.close();}
 });
 
-test("host can close an occupied lobby slot and cannot start without an opponent", async () => {
+test("host can close an occupied lobby slot and start a one-player test match", async () => {
   const notices=[];
   const host=new Room({},FakePeer),guest=new Room({onError:s=>notices.push(s)},FakePeer);
   try {
@@ -675,8 +675,7 @@ test("host can close an occupied lobby slot and cannot start without an opponent
     await tick();
     assert.deepEqual(host.roster.map(p=>p.id),[0]);
     assert.ok(notices.some(s=>s.includes("host changed your slot to Closed")));
-    assert.equal(host.start(),false);
-    host.setSlot(2,"ai");assert.equal(host.start(),true);
+    assert.equal(host.start(),true);
   } finally {guest.close();host.close();}
 });
 

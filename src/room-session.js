@@ -213,7 +213,7 @@ export class RoomSession {
     return true;
   }
   canStart() {
-    return this.host && !this.closed && !this.running && activeSlots(this.slots, this.roster).length >= 2 &&
+    return this.host && !this.closed && !this.running && activeSlots(this.slots, this.roster).length >= 1 &&
       this.roster.every(p => p.id === 0 || this.ready.has(p.id));
   }
   setReady(value) {

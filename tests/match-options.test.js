@@ -52,13 +52,13 @@ test('the independent grenade schedule cannot bypass the chosen weapon pool',()=
   world.spawnWeapon('grenade');assert.equal(world.drops.length,0);
   world.spawnWeapon('nuke');assert.equal(world.drops.length,0);
 });
-test('offline Play uses the same slot and match rules without pretending to offer invites',()=>{
+test('offline Play can start alone using the same slot and match rules without pretending to offer invites',()=>{
   let started=0;const room=createOfflineRoom({onStart:()=>started++},{difficulty:'normal'},'Offline');
   try {
     assert.equal(room.code,'OFFLINE');assert.equal(room.offline,true);
     assert.equal(room.options.difficulty,'normal');
     assert.equal(room.setOptions({...room.options,weapons:['bat'],maps:[0]}),true);
     room.setSlot(1,'closed');room.setSlot(2,'closed');room.setSlot(3,'closed');
-    assert.equal(room.start(),false);room.setSlot(1,'ai');assert.equal(room.start(),true);assert.equal(started,1);
+    assert.equal(room.start(),true);assert.equal(started,1);
   } finally {room.close();}
 });

@@ -516,7 +516,7 @@ export class World {
             effect: turbineVoid ? "blend" : undefined, source: powerSource(p) });
         }
         for (const s of this.spikes()) impale(this,p,s);
-        if (this.elapsed > SUDDEN_DEATH) {
+        if (this.players.length >= 2 && this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
           if (p.hp <= 0) this.kill(p, { cause: "sudden" });
         }
