@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.47.0",
-  "releaseNotes": "Ocean Liner: flooding compartments, a sinking ship, swimming and oxygen",
+  "version": "0.47.1",
+  "releaseNotes": "Ocean Liner lifeboats now have deck-mounted supports and suspension cables",
   "private": true,
   "type": "module",
   "scripts": {

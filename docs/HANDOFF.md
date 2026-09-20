@@ -6,6 +6,12 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- v0.47.1 adds deck-mounted lifeboat davits, walkway bracing, footplates and
+  suspension cables. The fittings follow the ship frame and disappear when
+  their main-deck mounting points are destroyed. No gameplay/protocol changes.
+  Intact, listing, sinking, damaged-mount and small-screen source views were
+  checked; all 18 ship tests, 1,143 compact tests and the build passed. Publication
+  verification is pending.
 - Ocean Liner is published as v0.47.0 / protocol 70. Gameplay revision:
   `e3654640ddb4c467f2d1d5ea3d7d49efb1df23bd`. Refresh every player tab before
   creating or joining a room.

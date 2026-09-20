@@ -89,13 +89,6 @@ export function drawShipInterior(c){
   rect(c,1122,464,304,215,'#182f3d');
   for(let y=484;y<670;y+=24){line(c,[[1160,y],[1375,y]],'#6d898e',5);line(c,[[1160,y],[1160,y+12]],'#2b454e',3);}
   line(c,[[1141,476],[1141,675]],'#b7c6bd',5);line(c,[[1390,476],[1390,675]],'#b7c6bd',5);
-  // Split deck walkways and forward/rear lifeboats.
-  for(const x of [354,1970]) {
-    line(c,[[x+20,518],[x+20,414],[x+170,414],[x+188,481]],'#c2cec4',7);
-    path(c,[[x,461],[x+207,461],[x+174,492],[x+30,492]]);c.fillStyle='#df633d';c.fill();
-    path(c,[[x+33,461],[x+58,432],[x+151,432],[x+178,461]]);c.fillStyle='#edb17c';c.fill();
-    rect(c,x+61,438,84,17,'#294551');line(c,[[x+8,470],[x+198,470]],'#ffd2a1',3);
-  }
   // Funnel, mast, antenna and rigging: strong silhouette against the sky.
   path(c,[[1190,345],[1198,240],[1364,240],[1392,345]]);c.fillStyle=gradient(c,240,105,[[0,'#c75239'],[.7,'#b14334'],[1,'#76352d']]);c.fill();
   path(c,[[1198,240],[1364,240],[1371,267],[1196,267]]);c.fillStyle='#142a35';c.fill();
@@ -107,6 +100,34 @@ export function drawShipInterior(c){
   rail(c,702,398,412);rail(c,1435,398,410);
   circle(c,698,443,6,'#ec8171');circle(c,1845,443,6,'#88e7be');
   lamp(c,698,443,'#ec8171',50);lamp(c,1845,443,'#88e7be',50);
+}
+
+export function drawShipLifeboats(c,platforms) {
+  // Background fittings share the ship frame and depend on surviving deck
+  // mounts. Keep them out of the static cache so broken mounts cannot hover.
+  const mounted=x=>platforms.some(p=>p.shipDeck&&p.hp!==0&&p.y===680&&p.x<=x-8&&p.x+p.w>=x+8);
+  for(const x of [354,1970]) {
+    const feet=[x+56,x+186],intact=feet.map(mounted);
+    for(let i=0;i<2;i++)if(intact[i]) {
+      const foot=feet[i],hook=x+(i?163:43),brace=feet[1-i];
+      // Footplates, gusseted columns and the walkway's diagonal bracing.
+      line(c,[[foot,676],[foot,418],[hook,396],[hook,414]],'#233e4b',14);
+      line(c,[[foot-2,675],[foot-2,419],[hook,400],[hook,414]],'#b6c9c2',8);
+      line(c,[[foot,659],[brace,525]],'#294651',10);
+      line(c,[[foot-2,657],[brace-2,525]],'#849e9d',4);
+      path(c,[[foot-15,675],[foot,643],[foot+15,675]]);c.fillStyle='#799693';c.fill();
+      rect(c,foot-20,674,40,6,'#ced6c5');
+      for(const dx of [-14,14])circle(c,foot+dx,677,2,'#28424b');
+      circle(c,foot,544,10,'#294651');circle(c,foot,544,6,'#b0bdb0');
+      circle(c,hook,409,6,'#e2dec7');circle(c,hook,409,2.5,'#2b4551');
+      if(intact.every(Boolean))line(c,[[hook-2,414],[hook-2,466],[hook+2,466],[hook+2,414]],'#cbd4c2',1.8);
+    }
+    if(!intact.every(Boolean))continue;
+    path(c,[[x,461],[x+207,461],[x+174,492],[x+30,492]]);c.fillStyle=gradient(c,460,34,[[0,'#ee8552'],[1,'#ac412c']]);c.fill();
+    path(c,[[x+33,461],[x+58,432],[x+151,432],[x+178,461]]);c.fillStyle='#edb17c';c.fill();
+    rect(c,x+61,438,84,17,'#294551');line(c,[[x+8,470],[x+198,470]],'#ffd2a1',3);
+    for(const dx of [43,163]){rect(c,x+dx-3,459,6,26,'#e0d5b9');circle(c,x+dx,459,3,'#f7dec0');}
+  }
 }
 
 export function drawShipPlatform(c,p) {

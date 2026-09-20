@@ -1,5 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
-import { drawShipSky, transformShip, drawShipInterior, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
+import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
@@ -924,6 +924,7 @@ export class Renderer {
         drawShipInterior(layer.getContext('2d'));this.scenery.set('ship-interior',layer);
       }
       c.drawImage(this.scenery.get('ship-interior'),0,0);
+      drawShipLifeboats(c,state.platforms);
       drawShipWater(c,state,time,this.reduced,false,true);
     } else if (arena.cargoPlane) {
       drawPlaneSky(c,time,this.reduced);
