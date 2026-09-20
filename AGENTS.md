@@ -102,6 +102,14 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
+- **Ocean Liner:** a cutaway ocean vessel with five finite flood compartments.
+  Only through-hull openings below the waterline admit seawater; surviving
+  bulkheads contain it until cut or overtopped. Flood mass changes draft and
+  list, reserve buoyancy can be exhausted, and free surfaces follow world
+  gravity. Water moves physical cargo, pickups and bodies. Primary action swims
+  toward aim when immersed; oxygen above submerged heads drains for twelve
+  seconds, restores in air and causes host-owned drowning damage when empty.
+  Preserve guest movement, aim compensation, damaged-world hot join and reset.
 - **Car Wash:** one continuous slippery wash lane with an immediately running
   conveyor, an eight-second shuttle reversal and a one-second amber warning.
   The car is a shaped, damageable physical prop; only surviving belt contact

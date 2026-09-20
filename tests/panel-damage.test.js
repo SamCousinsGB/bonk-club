@@ -108,7 +108,7 @@ test("bullet-destroyed panels persist through guest transport and interpolation,
     const wire = new RenderSnapshots(), before = wire.make(w.snapshot());
     const panels = w.platforms.filter(p => p.destructible);
     for (const panel of panels) {
-      if(panel.planeHull) {
+      if(panel.planeHull || panel.shipHull || panel.shipBulkhead) {
         const left=panel.x<1280;
         // Wing attachment plates must also be reachable from inside the cabin.
         for(let n=0;n<8&&panel.hp>0;n++) {

@@ -79,18 +79,18 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
   assert.equal(W * H, 4 * 1280 * 720);
   for (let i = 0; i < ARENAS.length; i++) {
     const w = new World({ arena: i, players: [0, 1, 2, 3] });
-    assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > 2400);
+    assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > (w.arena.ship ? 2350 : 2400));
     if (w.arena.survival) {
       assert.equal(w.platforms.length, 1);
       assert.ok(w.platforms[0].w > 2300);
       assert.ok(w.players.every(p=>p.y < w.platforms[0].y));
     } else {
       assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
-      if(w.arena.turbine)assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) < 1200);
+      if(w.arena.turbine||w.arena.ship)assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) < 1200);
       else assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) >= 1200);
       assert.ok(w.platforms.length >= 16);
       assert.ok(w.cover.length >= 3);
-      assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= (w.arena.cargoPlane ? 1100 : 2000));
+      assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= (w.arena.cargoPlane ? 1100 : w.arena.ship ? 1700 : 2000));
     }
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());

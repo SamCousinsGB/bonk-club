@@ -1,6 +1,7 @@
 import { validFurnace } from './furnace-parts.js';
 import { validVictoryCause } from "./victory.js";
 import { validAssembly } from "./assembly.js";
+import { validShip } from './ship.js';
 import { validPowerFlight } from "./power-fist.js";
 import { validCables } from "./heavy-cables.js";
 import { validReactions, validReactionObject } from "./reactions.js";
@@ -37,7 +38,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 69;
+export const PROTOCOL = 70;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -792,6 +793,7 @@ export function validSnapshot(s) {
     validReactions(s) &&
     validCables(s.cables, ARENAS[s.arenaIndex]) &&
     (ARENAS[s.arenaIndex]?.assembly ? s.assembly != null && validAssembly(s.assembly) : s.assembly == null) &&
+    (ARENAS[s.arenaIndex]?.ship ? validShip(s.ship) : s.ship == null) &&
     ["countdown", "fight", "result"].includes(s.phase) &&
     integer(s.arenaIndex, 0, ARENAS.length - 1) &&
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
@@ -808,6 +810,8 @@ export function validSnapshot(s) {
         validReactionObject(p) &&
         validPowerFlight(p) &&
         typeof p.bot === "boolean" &&
+        finite(p.oxygen) && p.oxygen>=0 && p.oxygen<=12 &&
+        typeof p.submerged==='boolean' && typeof p.swimming==='boolean' && typeof p.swimStroke==='boolean' &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
         integer(p.actionSerial, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&
@@ -854,6 +858,9 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) && validReactionObject(p) &&
+        (p.shipHull === undefined || (p.shipHull === true && !!s.ship && p.material==='metal')) &&
+        (p.shipBulkhead === undefined || (p.shipBulkhead === true && !!s.ship && p.material==='metal')) &&
+        (p.shipDeck === undefined || (p.shipDeck === true && !!s.ship && p.material==='metal')) &&
         (p.planeHull === undefined || (p.planeHull === true && ARENAS[s.arenaIndex]?.cargoPlane === true && p.material === "metal")) &&
         (p.planeWing === undefined || ([-1,1].includes(p.planeWing) && ARENAS[s.arenaIndex]?.cargoPlane === true && p.material === "metal")) &&
         (p.wingLoose === undefined || (p.wingLoose === true && !!p.planeWing && finite(p.wingAt) && p.wingAt >= 0 &&

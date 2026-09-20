@@ -1,4 +1,6 @@
 import { updatePlane, movePlaneWings } from "./plane.js";
+import { createShip, updateShip, swimPlayer, shipWaterAt } from './ship.js';
+import { SHIP_ARENA } from './ship-arena.js';
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
 import { trainCollisionBoxes } from "./trains.js";
@@ -82,7 +84,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -149,6 +151,7 @@ export class World {
   }
   startRound() {
     this.arena = ARENAS[this.arenaIndex];
+    this.ship = createShip(this.arena);
     this.terrainVersion = 0;
     this.terrainSerial = 0;
     this.cables = createCables(this.arena);
@@ -242,6 +245,7 @@ export class World {
       vx: 0,
       vy: 0,
       hp: 100,
+      oxygen: 12, submerged: false, swimming: false, swimStroke: false,
       alive: true,
       facing: id % 2 ? -1 : 1,
       ground: false,
@@ -414,6 +418,7 @@ export class World {
       return;
     }
     this.movePlatforms();
+    updateShip(this, dt);
     updateAssembly(this, dt);
     cleanCarriedObjects(this);
     this.updateCover(dt);
@@ -477,7 +482,12 @@ export class World {
     const actions = new Map();
     for (const p of this.players) {
       if (!p.alive) continue;
-      const input = objectInput(this, p, active ? cleanInput(inputs[p.id]) : emptyInput());
+      const raw = active ? cleanInput(inputs[p.id]) : emptyInput();
+      // In deep water the primary action is a swim stroke, including when
+      // carrying a prop. Secondary action still releases the held object.
+      const swimming = this.ship && (shipWaterAt(this,p.x,p.y+16)?.depth || 0)>22;
+      const input = objectInput(this, p, swimming ? {...raw,attack:false} : raw);
+      if(swimming) input.attack=raw.attack;
       actions.set(p.id, input);
       this.move(p, input, dt);
     }
@@ -489,7 +499,7 @@ export class World {
       p.throwHeld = i.throw;
       if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
-        else if (i.attack) this.attack(p);
+        else if (i.attack && !p.swimming) this.attack(p);
       }
     }
     for (let a = 0; a < this.players.length; a++)
@@ -574,6 +584,8 @@ export class World {
     if(this.arena.cargoPlane)movePlaneWings(this,this.hazards.find(h=>h.type==="airflow")?.age || 0);
   }
   move(p, i, dt) {
+    i = swimPlayer(this, p, i, dt);
+    if (!p.alive) return;
     let solids = this.solids(p);
     const boxBefore=playerBox(p);p.spikeY=boxBefore.y+boxBefore.h;
     const support = p.ground && solids.find((s) => s.id === p.support);
@@ -624,7 +636,7 @@ export class World {
     }
     if (p.dropThrough > 0 || i.duck && !p.freeze && p.stun <= 0)
       solids = solids.filter(s => !thin(s));
-    const prone = !!i.duck;
+    const prone = !!i.duck && !p.swimming;
     if (prone !== p.prone) {
       // Keep the feet fixed even when a hit has just cleared ground/support.
       // Growing downward from a prone airborne centre can start inside a floor,
@@ -1505,6 +1517,7 @@ export class World {
     cleanCarriedObjects(this);
     return {
       players: this.players,
+      ship: this.ship,
       platforms: this.platforms,
       assembly: assemblySnapshot(this.assembly, this.cover),
       cables: cableSnapshot(this.cables),

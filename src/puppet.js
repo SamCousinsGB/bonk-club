@@ -68,7 +68,7 @@ export function updateRig(p, dt, platforms, time) {
   }
   const rig = p.rig,
     prone = !!p.prone;
-  const desired = prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
+  const desired = p.swimming && !p.ground ? (p.swimStroke ? (p.aimAngle??0)+Math.PI/2 : clamp(p.vx*.003,-.8,.8)) : prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
   let a = p.bodyAngle || 0,
     av = p.angularVelocity || 0;
   const strength = p.stun > 0 ? 8 : prone ? 36 : p.ground ? 100 : 35;
@@ -106,6 +106,9 @@ export function updateRig(p, dt, platforms, time) {
     };
     footA = foot(p.walk, -9);
     footB = foot(p.walk + Math.PI, 9);
+  } else if(p.swimming) {
+    const kick=Math.sin(time*8+p.id)*11;
+    footA=rotate([-10+kick,27]);footB=rotate([10-kick,30]);
   } else {
     // Tuck during ascent, then extend for landing. Vertical motion, rather than
     // a wall-clock sine, determines the airborne pose.
@@ -139,6 +142,10 @@ export function updateRig(p, dt, platforms, time) {
     const reach = Math.min(1, 35 / (Math.hypot(gx, gy) || 1));
     handA = [neck[0] + gx * reach, neck[1] + gy * reach - 6];
     handB = [neck[0] + gx * reach, neck[1] + gy * reach + 6];
+  } else if(p.swimming && p.swimStroke) {
+    const stroke=time*7+p.id;
+    handA=rotate([-25+Math.sin(stroke)*12,-16-Math.cos(stroke)*19]);
+    handB=rotate([25-Math.sin(stroke)*12,-16+Math.cos(stroke)*19]);
   } else if (p.block) {
     handA = [neck[0] + dx * 29 - dy * 10, neck[1] + dy * 29 + dx * 10];
     handB = [neck[0] + dx * 28 + dy * 8, neck[1] + dy * 28 - dx * 8];

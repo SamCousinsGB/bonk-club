@@ -1,4 +1,5 @@
 import { BOT_DIFFICULTIES, cleanDifficulty, combatPerception } from "./bot-difficulty.js";
+import { shipSwimControls } from './ship.js';
 import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
@@ -184,14 +185,14 @@ export class BotController {
         world.time > this.builtAt + 0.15)
     ) {
       const solids=world.solids().filter(s=>!s.chunk).map(s=>({...s}));
-      if(world.arena.cargoPlane)solids.sort((a,b)=>Number(!!a.planeHull)-Number(!!b.planeHull));
+      if(world.arena.cargoPlane||world.arena.ship)solids.sort((a,b)=>Number(!!a.planeHull||!!a.shipHull||!!a.shipBulkhead)-Number(!!b.planeHull||!!b.shipHull||!!b.shipBulkhead));
       this.pendingNavigation = navigationSteps(solids, {
         time: world.time,
         spikes: world.spikes(),
         cache: this.navigationCache,
         // A torn floor has hundreds of collision strips. Yield between flight
         // traces so rebuilding its routes cannot monopolize a simulation tick.
-        batchSize: world.arena.cargoPlane ? 8 : world.wreckage.some(w => w.hp > 0) ||
+        batchSize: world.arena.cargoPlane || world.arena.ship ? 8 : world.wreckage.some(w => w.hp > 0) ||
           world.fields.some(f => f.kind === "blackhole") ? 8 :
           world.cables?.some(c => c.id.startsWith("tower")) ? 64 :
           world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) ? 64 : Infinity,
@@ -218,6 +219,8 @@ export class BotController {
     const inputs = {};
     for (const p of world.players)
       if (p.bot && p.alive) {
+        const swim=shipSwimControls(world,p);
+        if(swim){inputs[p.id]=swim;continue;}
         let b = this.bots.get(p.id);
         if (!b || b.occupant !== p.occupant) {
           b = {

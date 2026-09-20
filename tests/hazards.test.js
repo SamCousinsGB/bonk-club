@@ -58,7 +58,7 @@ test("destroying a fixture mounting floor disables it",()=>{
  const {w,h,p}=lab();w.platforms[0].hp=0;h.active=true;advance(w,1);assert.ok(h.done);assert.equal(p.hp,100);
 });
 test("every arena has fixed, varied traps away from spawns",()=>{
- const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length >= (a.theme === "railway" ? 1 : 2),a.name);
+ const kinds=new Set();for(const a of ARENAS){assert.ok(a.traps.length >= (a.ship ? 0 : a.theme === "railway" ? 1 : 2),a.name);
  for(const h of a.traps){kinds.add(h.type);
  if(h.type==="powerline")assert.ok(TOWER_MOUNTS[h.circuit].every(end=>a.platforms.some(p=>p.y===end.supportY&&p.x<=end.x&&p.x+p.w>=end.x)));
  else if(h.type==="airflow")assert.ok(a.cargoPlane && a.platforms.some(p=>p.planeHull));

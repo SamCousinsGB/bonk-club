@@ -53,6 +53,7 @@ import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
 import { bindMouseControls } from "./mouse.js";
 import { planeLocalPoint, planePose } from "./plane.js";
+import { shipLocalPoint } from './ship.js';
 import { gameViewport, screenToWorld } from "./viewport.js";
 import { SUDDEN_DEATH } from "./scale.js";
 
@@ -200,7 +201,7 @@ function readInput(device) {
       (p) => p.id === controlledId,
     );
     if (p && mouse.active) {
-      const point = renderer.planeFrame ? planeLocalPoint(mouse,renderer.planeFrame.age,renderer.reduced,renderer.planeFrame) : mouse;
+      const point = renderer.shipFrame ? shipLocalPoint(mouse,renderer.shipFrame) : renderer.planeFrame ? planeLocalPoint(mouse,renderer.planeFrame.age,renderer.reduced,renderer.planeFrame) : mouse;
       i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
     }
   }
@@ -215,6 +216,7 @@ function ownInput() {
   if (touchInput.aim !== null) i.aim = touchInput.aim;
   if (renderer.planeFrame && (pad.aim !== null || touchInput.aim !== null))
     i.aim -= planePose(renderer.planeFrame.age,renderer.reduced,renderer.planeFrame).angle;
+  if(renderer.shipFrame && (pad.aim !== null || touchInput.aim !== null)) i.aim-=renderer.shipFrame.angle;
   return i;
 }
 function clearInput() {
@@ -894,6 +896,7 @@ function objectAction(state = world || remote) {
 }
 function equipmentInfo(p) {
   if (!p.alive) return '<small>ELIMINATED</small>';
+  if(p.swimming) return `<small title="Hold primary action and aim to swim. Surface to refill oxygen."><span class="held-weapon">SWIM · AIM + FIRE</span><span class="weapon-state">${Math.ceil(p.hp)} HP</span></small>`;
   const weapon=p.weapon && WEAPONS[p.weapon];
   const name=p.carryId ? 'CARRYING' : weapon?.name || 'FISTS';
   const detail=weapon ? `${p.ammo} · ${weapon.proneOnly && (!p.prone || !p.ground) ? 'LIE DOWN TO FIRE' : Math.ceil(p.hp)+' HP'}` : Math.ceil(p.hp)+' HP';

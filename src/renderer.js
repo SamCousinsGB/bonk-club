@@ -1,4 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
+import { drawShipSky, transformShip, drawShipInterior, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
@@ -416,6 +417,7 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    if(p.shipHull || p.shipDeck || p.shipBulkhead){drawShipPlatform(this.ctx,p);return;}
     if (p.planeHull) return;
     if (this.planeFrame && !p.wreckId && !p.waterId) { drawPlanePlatform(this.ctx,p); return; }
     if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
@@ -892,6 +894,7 @@ export class Renderer {
       return;
     }
     const arena = menuArena || ARENAS[state.arenaIndex];
+    this.shipFrame=arena.ship?state.ship:null;
     this.planeFrame = arena.cargoPlane ? state.hazards.find(h=>h.type==="airflow") || {age:0} : null;
     c.save();
     if (menuArena) {
@@ -913,6 +916,15 @@ export class Renderer {
 
     if (menuArena) {
       // The continuous menu arena has its own background and camera above.
+    } else if(arena.ship) {
+      drawShipSky(c,time,this.reduced);transformShip(c,state.ship);
+      drawShipWater(c,state,time,this.reduced);
+      if(!this.scenery.has('ship-interior')){
+        const layer=document.createElement('canvas');layer.width=W;layer.height=H;
+        drawShipInterior(layer.getContext('2d'));this.scenery.set('ship-interior',layer);
+      }
+      c.drawImage(this.scenery.get('ship-interior'),0,0);
+      drawShipWater(c,state,time,this.reduced,false,true);
     } else if (arena.cargoPlane) {
       drawPlaneSky(c,time,this.reduced);
       transformPlane(c,this.planeFrame.age,this.reduced,this.planeFrame);
@@ -950,7 +962,7 @@ export class Renderer {
       }
       c.drawImage(this.scenery.get(state.arenaIndex),0,0);
     }
-    if (!menuArena && !arena.cargoPlane) ambientDetail(this, arena, time);
+    if (!menuArena && !arena.cargoPlane && !arena.ship) ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
@@ -968,6 +980,7 @@ export class Renderer {
     drawScorchedPlatforms(this,state.platforms,time);
     if(arena.carWash)drawCarWashStructure(c,state);
     if(arena.cargoPlane)(this.planeHullLayer ||= new PlaneHullLayer()).draw(c,state.platforms);
+    if(arena.ship)drawShipShell(c,state.platforms);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {
@@ -1040,6 +1053,7 @@ export class Renderer {
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     if(arena.cargoPlane)drawPlaneOutflows(c,state,time,this.reduced);
+    if(arena.ship){drawShipDetails(c,state,time,this.reduced);drawShipWater(c,state,time,this.reduced,true);}
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
     drawReactions(c, state, this.reduced ? 0 : time);

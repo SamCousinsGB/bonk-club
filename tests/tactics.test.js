@@ -203,10 +203,11 @@ test("arena surfaces preserve their material rules and bounded starting geometry
     const w = new World({ arena });
     const panels = w.platforms.filter((p) => p.destructible);
     if(w.arena.cargoPlane)assert.ok(panels.length===198&&panels.every(p=>p.planeHull&&p.panel==="metal"));
+    else if(w.arena.ship)assert.ok(panels.length===72&&panels.every(p=>(p.shipHull||p.shipBulkhead)&&p.panel==='metal'));
     else if(w.arena.setpiece||w.arena.survival||w.arena.transmission||w.arena.furnace||w.arena.assembly||w.arena.turbine||w.arena.carWash)assert.equal(panels.length,0,"steel structures resist bullets");
     else assert.ok(panels.length > 0 && panels.length <= 6, ARENAS[arena].name);
     assert.ok(w.platforms.some((p) => !p.destructible));
-    assert.ok(w.platforms.filter(p=>p.material!=="cable").length <= (w.arena.cargoPlane ? 210 : 72));
+    assert.ok(w.platforms.filter(p=>p.material!=="cable").length <= (w.arena.cargoPlane ? 210 : w.arena.ship ? 90 : 72));
     assert.equal(w.platforms.filter(p=>p.material==="cable").length,0);
     assert.equal(w.cables.length,w.arena.transmission?2:w.arena.furnace?6:0);
     for (const p of panels) {

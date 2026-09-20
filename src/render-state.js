@@ -111,6 +111,9 @@ export function interpolateStates(a, b, t, mode = "all") {
   });
   out.time = lerp(a.time,b.time,t);
   if (mode !== "actors") {
+    if(a.ship && b.ship) out.ship={...b.ship,
+      angle:lerp(a.ship.angle,b.ship.angle,t),sink:lerp(a.ship.sink,b.ship.sink,t),age:lerp(a.ship.age,b.ship.age,t),
+      volumes:b.ship.volumes.map((v,i)=>lerp(a.ship.volumes[i],v,t)),currents:b.ship.currents.map((v,i)=>lerp(a.ship.currents[i],v,t))};
     if (a.assembly && b.assembly) out.assembly = { ...b.assembly,
       clock: lerp(a.assembly.clock, b.assembly.clock, t),
       cars: b.assembly.cars.map(car => blend(a.assembly.cars.find(old => old.id === car.id), car, t)) };
