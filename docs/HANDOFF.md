@@ -33,9 +33,13 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   through the visible rotor row. There is no hidden support surface. Destroyed
   openings drop fighters into off-screen machinery instead of a floor or a normal
   bottom ring-out.
-- Focused checks cover every bottom entry and seam, absence of horizontal boundary
-  collision, destroyed openings, actual double jumps, guest prediction, persistent
-  six-piece tumbling, reset and validated hot-join state. Release verification follows.
+- Published revision: c6cc653a286a850f6704df3541eacee4439f6f27.
+  [Release run 35515516703](https://github.com/SamCousinsGB/bonk-club/actions/runs/35515516703)
+  passed all 1,046 game tests, three server tests, browser build, Windows and Linux
+  desktop tests, executable smoke, packaging, cross-target revision checks and Pages.
+- The exact clean build, downloaded browser artifact and all 17 public files matched
+  by SHA-256. Fresh public host, guest and hot-join browsers selected relay pairs;
+  map selection, controls and the floorless rendered arena worked without browser errors.
 
 ## Arc Furnace component damage - 20 September 2026
 
