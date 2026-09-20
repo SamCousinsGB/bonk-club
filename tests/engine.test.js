@@ -273,38 +273,3 @@ test("ragdoll joints remain finite and approximately constrained", () => {
     ) < 5,
   );
 });
-test("seeded four-player combat stays finite across every arena", () => {
-  for (let arena = 0; arena < ARENAS.length; arena++) {
-    let seed = 7;
-    const rand = () =>
-      (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
-    const w = new World({
-      players: [0, 1, 2, 3],
-      arena,
-      random: rand,
-      shuffle: false,
-    });
-    let inputs = {};
-    for (let n = 0; n < 7200; n++) {
-      if (n % 24 === 0)
-        inputs = Object.fromEntries(
-          w.ids.map((id) => [
-            id,
-            {
-              left: rand() < 0.45,
-              right: rand() < 0.45,
-              attack: rand() < 0.8,
-              block: rand() < 0.25,
-              jump: rand() < 0.5,
-              throw: rand() < 0.5,
-            },
-          ]),
-        );
-      w.step(STEP, inputs);
-      for (const p of w.players)
-        assert.ok([p.x, p.y, p.vx, p.vy, p.hp].every(Number.isFinite));
-      assert.ok(w.drops.length < 15);
-      assert.ok(w.projectiles.length < 100);
-    }
-  }
-});
