@@ -1,3 +1,4 @@
+import { updatePlane } from "./plane.js";
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
 import { trainCollisionBoxes } from "./trains.js";
@@ -420,6 +421,7 @@ export class World {
     this.updateDebris(dt);
     updateBlood(this,dt);
     if (this.phase === "result") {
+      if (this.arena.cargoPlane) updatePlane(this, this.hazards.find(h => h.type === "airflow"), dt);
       updateTesla(this, {});
       updateFields(this, dt);
       for (const p of this.players)
@@ -511,7 +513,7 @@ export class World {
     if (active) {
       for (const p of this.players) {
         if (!p.alive) continue;
-        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) {
+        if (p.y > H + 100 || (this.arena.cargoPlane && p.y < -160) || p.x < -130 || p.x > W + 130) {
           const turbineVoid = this.arena.turbine && p.y > H + 100;
           this.kill(p, { cause: turbineVoid ? "turbine" : "fall",
             effect: turbineVoid ? "blend" : undefined, source: powerSource(p) });
@@ -1095,7 +1097,7 @@ export class World {
     if (!type || !this.weaponPool.includes(type) || type === "nuke") return;
     // Grenade rolls run at the old cadence independently of these slower rolls.
     if (!scheduledType && WEAPONS[type].kind === "grenade") return;
-    const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90);
+    const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90 && !p.planeHull);
     // Prefer accessible, unoccupied landings near the current fight. Avoid
     // repeatedly piling weapons on a single ledge or abandoned rooftop.
     const living = this.players.filter(p => p.alive);

@@ -156,7 +156,7 @@ export function updateNuclear(world, f, dt) {
     world.cover = world.cover.filter((s) => !bodyInBlast(s, crater));
     world.chunks = world.chunks.filter((s) => !bodyInBlast(s, crater));
     world.hazards = world.hazards.filter(
-      (h) => h.type === "powerline" || h.type === "furnace" || !inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f),
+      (h) => ["powerline", "furnace", "airflow"].includes(h.type) || !inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f),
     );
     for (const key of ["drops", "projectiles", "debris", "blood"])
       world[key] = world[key].filter((p) => !inBlast(p, f));

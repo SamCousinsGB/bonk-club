@@ -116,7 +116,7 @@ export function movePowerFlight(world, body, dt) {
     // A saw's travel rail and an electrical field are not its moving head or
     // casing. Hit the rendered machinery, never the empty danger-area bounds.
     damageFurnaceWhere(world,b=>{const hit=sweep(b);if(hit)remember(hit);return hit;});
-    for (const h of world.hazards) if (!h.done && h.type !== "furnace") {
+    for (const h of world.hazards) if (!h.done && !["furnace", "airflow"].includes(h.type)) {
       const hit = fixtureBoxes(h).map(sweep).find(Boolean);
       if (hit) {
         remember(hit); h.done = true; h.active = false; h.warning = 0;

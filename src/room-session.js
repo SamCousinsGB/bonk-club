@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 64;
+export const PROTOCOL = 65;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -833,6 +833,7 @@ export function validSnapshot(s) {
       1536,
       (p) =>
         xy(p) && validReactionObject(p) &&
+        (p.planeHull === undefined || (p.planeHull === true && ARENAS[s.arenaIndex]?.cargoPlane === true && p.material === "metal")) &&
         (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
@@ -846,7 +847,7 @@ export function validSnapshot(s) {
         (p.sourceId === undefined || (typeof p.sourceId === "string" && p.sourceId.length <= 160)) &&
         [p.w, p.h, p.baseX, p.baseY, p.dx, p.dy].every(finite) &&
         (!p.destructible ||
-          (["wood", "glass"].includes(p.panel) &&
+          (["wood", "glass", "metal"].includes(p.panel) &&
             finite(p.hp) &&
             finite(p.maxHp) &&
             p.hp >= 0 &&

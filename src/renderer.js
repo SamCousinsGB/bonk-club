@@ -1,4 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
+import { drawPlaneSky, transformPlane, drawPlaneInterior, drawPlaneHull, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
@@ -415,6 +416,7 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    if (p.planeHull) return;
     if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
     if (p.oneWay) {
       const c=this.ctx;
@@ -889,6 +891,7 @@ export class Renderer {
       return;
     }
     const arena = menuArena || ARENAS[state.arenaIndex];
+    this.planeFrame = arena.cargoPlane ? { age: state.hazards.find(h=>h.type==="airflow")?.age || 0 } : null;
     c.save();
     if (menuArena) {
       const { width, height } = this.menuSize;
@@ -909,6 +912,10 @@ export class Renderer {
 
     if (menuArena) {
       // The continuous menu arena has its own background and camera above.
+    } else if (arena.cargoPlane) {
+      drawPlaneSky(c,time,this.reduced);
+      transformPlane(c,this.planeFrame.age,this.reduced);
+      drawPlaneInterior(c);
     } else if (arena.theme) {
       if (!this.scenery.has(state.arenaIndex)) {
         const layer = document.createElement("canvas");
@@ -938,7 +945,7 @@ export class Renderer {
       }
       c.drawImage(this.scenery.get(state.arenaIndex),0,0);
     }
-    if (!menuArena) ambientDetail(this, arena, time);
+    if (!menuArena && !arena.cargoPlane) ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
@@ -954,6 +961,7 @@ export class Renderer {
     if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
+    if(arena.cargoPlane)drawPlaneHull(c,state.platforms);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {
@@ -1025,6 +1033,7 @@ export class Renderer {
     for (const cover of state.cover || []) if(cover.kind!=="car"||!arena.assembly)this.table(cover);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
+    if(arena.cargoPlane)drawPlaneOutflows(c,state,time,this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
     drawReactions(c, state, time);

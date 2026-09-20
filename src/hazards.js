@@ -13,7 +13,7 @@ import { updatePowerline } from "./powerlines.js";
 import { updateFurnace } from "./furnace.js";
 import { compactHazardZone, updateAirflow, updateCarWash } from "./compact-setpieces.js";
 export const HAZARD_TYPES=["ladle","train","geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine","airflow","carwash"];
-export const HAZARD_LABELS={ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",airflow:"Open cargo ramp",carwash:"Car wash machinery",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
+export const HAZARD_LABELS={ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",airflow:"Hull decompression",carwash:"Car wash machinery",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {

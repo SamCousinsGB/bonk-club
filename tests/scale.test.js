@@ -90,7 +90,7 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
       else assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) >= 1200);
       assert.ok(w.platforms.length >= 16);
       assert.ok(w.cover.length >= 3);
-      assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= 2000);
+      assert.ok(Math.abs(w.players[0].x - w.players[1].x) >= (w.arena.cargoPlane ? 1100 : 2000));
     }
     assert.equal(validSnapshot(w.snapshot()), true, w.arena.name);
     const bad = structuredClone(w.snapshot());

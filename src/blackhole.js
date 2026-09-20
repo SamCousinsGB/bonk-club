@@ -181,7 +181,7 @@ function tear(world, f) {
   for(const b of furnaceHits(world))if(bodyInBlast(b,cut))addWreck(world,f,{...b,kind:null,material:'metal'},'platform');
   blastFurnace(world,cut);
   world.hazards = world.hazards.filter((h) => {
-    if (h.type === "powerline" || h.type === "furnace") return true; // Supply follows surviving wire mounts, not this virtual fixture.
+    if (["powerline", "furnace", "airflow"].includes(h.type)) return true; // Virtual controllers follow surviving geometry, not a physical casing.
     if (h.done) return true; // A cleared fixture cannot become new physical wreckage.
     if (!inBlast(h, f) && !inBlast({ x: h.bodyX, y: h.bodyY }, f)) return true;
     addWreck(
