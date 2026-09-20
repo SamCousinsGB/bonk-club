@@ -53,7 +53,7 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
     seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
     return (seed >>> 0) / 4294967296;
   };
-  const duration = name === 'train' ? 1.85 : name === 'train-warning' ? 1.4 : name === 'siren' ? NUKE_FUSE : name === 'nuclear' ? 4.6 :
+  const duration = name === 'train-warning' ? 1.4 : name === 'siren' ? NUKE_FUSE : name === 'nuclear' ? 4.6 :
     name === 'explosion' ? 1.65 : name === 'singularity' ? 1.4 :
     name === 'phaser' ? .9 : name === 'jump' ? .42 : name === 'death' ? .65 : name === 'landing' ? .38 :
     guns[name] ? guns[name][0] + .22 : .8;
@@ -193,9 +193,7 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
   } else if (name === 'train-warning') {
     modes(0, .65, .22, [311, 466, 622]);
     modes(.65, .65, .22, [311, 466, 622]);
-  } else if (name === 'train') {
-    noise(0, 1.8, 1.1, 2100, 100, .15);
-    modes(0, 1.8, .24, [65, 130, 195]);
+
   } else if (name === 'landing') {
     noise(0, .035, .28, 2300, 400, .002);
     noise(.004, .23, 1.9, 420, 45, .004);
