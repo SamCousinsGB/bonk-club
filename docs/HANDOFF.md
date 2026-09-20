@@ -6,7 +6,7 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: v0.42.0 plane-cutaway changes; release verification pending.
+- Source release: `origin/main` at `8bc62c9`.
 - Game version: v0.42.0, protocol 65. Refresh every player tab before creating or
   joining a room.
 - Cargo Plane Hold is an oval cutaway with wings and exposed turbines. The whole
@@ -16,10 +16,14 @@ history through v0.40.0 is archived in
   Car Wash has a slippery conveyor
   floor, a heavy physical car, striking brushes, finite rinse water and an opposing
   dryer. Both preserve authoritative hazard and prop state through reset and hot join.
-- Local checks include the complete game suite, focused decompression/transport
-  regressions and a production build. Source browser checks verified whole-plane
-  motion, actual roof/side holes and upward/outward ejection with no console errors.
-  CI, Pages artifact parity and public hot-join verification are pending.
+- Release run [35530173579](https://github.com/SamCousinsGB/bonk-club/actions/runs/35530173579)
+  passed 1,079 game tests, three server tests, all six arena-stress shards,
+  Windows/Linux desktop checks, release consistency and Pages. The full local
+  76-case arena stress run also passed. All 17 public files match the CI artifact.
+- Source browser checks verified whole-plane motion, actual roof/side holes and
+  upward/outward ejection. A real guest joined a damaged plane and retained the
+  existing breaches, jets and displaced cargo. The same changed-world hot join
+  passed on the public v0.42.0 build; host and guest consoles had no errors.
 
 ## Reconciled WIP
 
