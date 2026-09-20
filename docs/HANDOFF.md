@@ -78,7 +78,7 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 - The earlier integrated suite passed 1,009/1,010; its menu regression is fixed
   and the final full suite above passes.
 
-## Bullet Train, Scrap Foundry and drop-through platforms - 15 September 2026
+## Bullet Train, Scrap Foundry and drop-through platforms - 20 September 2026
 
 - v0.36.0 / protocol 58. Refresh all players and create a new room.
 - Bullet Train is 3,200 units long and runs at 6,400 units/second, alternates direction every eleven
@@ -106,7 +106,12 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   a swept stereo wind/pressure recording. Reduced motion omits the smear. Sound
   seeks on hot join/unmute and stops on exit, results or destruction; repeated
   stale frames never restart it. Dedicated audio lifecycle/headroom tests pass.
-- Full-suite, production-bundle and Pages verification will follow below.
+- The final production bundle passed a normal-menu host/guest/phone-hot-join
+  run with relay/relay candidates at all three peers, two actual 1.14-second
+  train audio buffers, both maps and no page errors. Twenty-eight focused
+  setpiece and audio checks passed again from the committed source.
+  Evidence: train-finish-bundle.json, train-finish-bundle-*.png and
+  train-finish-wind.wav in ../bonk-club-qa. Pages verification follows below.
 
 ## Physical assembly cars - 15 September 2026
 
