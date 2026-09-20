@@ -155,7 +155,8 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 
 ## Physical assembly cars - 15 September 2026
 
-- v0.34.0, protocol 56. Refresh every player's tab and create a new room.
+- Introduced in v0.34.0; final integrated release v0.36.1, protocol 58.
+  Refresh every player's tab and create a new room.
 - Cars now use the shared rigid prop solver: shaped cover and jumping surfaces,
   mass, momentum, rotation, bullet/blast damage and matching bodywork fragments.
   Stage and paint persist through debris and black-hole capture.
@@ -174,7 +175,30 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   selected relay/relay pairs and no browser errors.
 - Worktree: ../bonk-club-qa/car-assembly (codex/physical-assembly-cars).
   Evidence: ../bonk-club-qa/physical-cars-*. Canonical pending work is preserved.
-  Includes v0.33.0 Turbine Hall changes. Release verification follows.
+  Final integration includes bot, furnace, train/foundry and thin-platform work.
+- Car stage growth now interpolates its bottom position, preventing the new
+  cabin from briefly drawing through the conveyor. Focused regression and final
+  source/production browser checks passed.
+- Fixed the combined release blocker in train debris: impulses now respect the
+  existing 1500-unit prop velocity bound. The exact failing seeded train scenario
+  retains valid snapshots and completes its round; dedicated fresh/existing
+  debris regressions pass.
+- Published revision: bda474e0cf1516dae59e175342d2a3b6a25880db.
+  [Release run 35514702195](https://github.com/SamCousinsGB/bonk-club/actions/runs/35514702195)
+  passed all 1,046 gameplay tests, three server tests, browser build, Windows/Linux
+  desktop unit tests, executable smoke, packaging, source consistency and Pages.
+- All 17 public files match the exact committed production build and CI artifact
+  by SHA-256. Source hash:
+  b49ff5117b1fb083b5c97783938a857243e405d2b142f236ee0ae2fa7b9d0efa.
+  Exact checkout: ../bonk-club-qa/physical-cars-final-exact; artifact:
+  physical-cars-v0361-ci; evidence: physical-cars-final-live-verification.json.
+- Unmodified public v0.36.1 passed normal map selection, working production,
+  guest controls, departure and real hot join with selected relay/relay pairs
+  and no browser errors. Public active and small-screen hot-join renders saved;
+  active gameplay was visually inspected. Evidence: physical-cars-final-public.json
+  and PNGs. Peers shared one QA PC; this is not a cross-ISP latency measurement.
+- Task preview servers are stopped. No production debug hooks, new dependencies
+  or Pi changes. Canonical unrelated edits remain preserved.
 
 
 ## AI decisions pass - 15 September 2026
