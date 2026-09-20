@@ -7,8 +7,8 @@ history through v0.40.0 is archived in
 ## Current release
 
 - v0.46.0 / protocol 69 improves water flow, electrical contacts and tank flooding.
-  Refresh every player tab before creating or joining a room. Publication checks
-  are pending for this source revision.
+  Published gameplay revision: `8e9240e8e1716aa6a2c369ff7ad058efb95ae754`.
+  Refresh every player tab before creating or joining a room.
 - Water retains finite volume and horizontal momentum, forms deep pools, drains
   through destroyed supports and overtops low barriers. Side walls and ceilings
   stop jets. Currents apply mass-sensitive drag and buoyancy to fighters, loose
@@ -30,7 +30,14 @@ history through v0.40.0 is archived in
   destroyed-platform hot join, small viewport, reduced motion and reset passed.
   All eight tank ruptures remained bounded with valid quantized snapshots during
   a 60-second reaction simulation. The production bundle passed normal three-player
-  browser controls/hot join. Final CI and public parity are pending.
+  browser controls/hot join. Release run
+  [35537135496](https://github.com/SamCousinsGB/bonk-club/actions/runs/35537135496)
+  passed shared/server tests, all six stress groups, Windows/Linux desktop checks,
+  release consistency and Pages. All 17 public files match its exact CI artifact.
+  Unmodified public v0.46.0 passed map selection, host/guest movement and jumping,
+  a third player's hot join and a small viewport with no browser errors. Deliberate
+  tank rupture, charged-water/destruction parity and reset were tested in source
+  browser sessions; this is one-machine multiplayer evidence.
 - The preceding v0.45.0 aircraft release remains included: larger four-engine
   wings, structural disconnection causing a shared aircraft spiral, falling wing
   collision and reduced hull/navigation work. Car Wash retains immediate belt
