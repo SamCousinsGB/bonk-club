@@ -6,7 +6,7 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const noise=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
 const seedOf=b=>String(b.id).split("").reduce((n,c)=>(n*31+c.charCodeAt(0))%65521,0);
 const water=b=>b.grounded!==undefined;
-const anchor=b=>water(b)?{x:b.x+b.w/2,y:b.grounded?b.y-1:b.y+b.h*.65}:{x:b.x+b.w/2,y:b.y+b.h/2};
+const anchor=b=>{if(b.polygon)return {x:b.polygon.reduce((n,p)=>n+p.x,0)/b.polygon.length,y:b.polygon.reduce((n,p)=>n+p.y,0)/b.polygon.length};const box=conductorBounds(b);return {x:box.x+box.w/2,y:water(b)&&b.grounded?box.y:box.y+box.h*.65};};
 export const CIRCUIT_NODE_LIMIT=320, CIRCUIT_LINK_LIMIT=256;
 
 // A bounded spanning forest shows continuous chains, without drawing every
@@ -103,12 +103,17 @@ export function drawElectricity(c,state,time) {
   }
   for(const b of nodes) {
     const seed=seedOf(b);
-    if(water(b)) {
+    if(b.polygon) {
+      c.save();c.beginPath();b.polygon.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();c.clip();
+      c.fillStyle='#78dfff22';c.fillRect(b.x,b.y,b.w,b.h);
+      const mid=anchor(b);electricArc(c,{x:b.x+10,y:mid.y},{x:b.x+b.w-10,y:mid.y},time,seed,1.1);
+      c.restore();
+    }else if(water(b)) {
       // Discharge IN the fluid, with a reflected cyan glow beneath the surface.
       if(b.grounded){
         c.fillStyle="#9beaff28";c.fillRect(b.x,b.y,b.w,Math.min(b.h,12));
         if(!connected.has(b))electricArc(c,{x:b.x+2,y:b.y},{x:b.x+b.w-2,y:b.y},time,seed,.9);
-      }else electricArc(c,{x:b.x+b.w/2,y:b.y-10},{x:b.x+b.w/2,y:b.y+b.h},time,seed,.8);
+      }else {const q=conductorBounds(b);electricArc(c,{x:q.x+q.w/2,y:q.y},{x:q.x+q.w/2,y:q.y+q.h},time,seed,.8);}
     }else {
       const poly=conductorPolygon(b),start=time*.7+noise(seed),points=[];
       // Multiple corner-following segments crawl around the rotating silhouette.

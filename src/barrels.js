@@ -1,5 +1,6 @@
 // Shared identities for physical containers, their contents and their artwork.
 export const SPILLS = {
+  molten: { color: "#ff842b", rim: "#fff1b0", flow: .8, life: 3600, burn: 0 },
   oil: { color: "#423f32", rim: "#b5a568", flow: 1.4, life: 35, burn: 7 },
   glue: { color: "#d3dba0", rim: "#fbffd0", flow: .35, life: 24, burn: 0 },
   tar: { color: "#27222e", rim: "#826782", flow: .6, life: 40, burn: 11 },
@@ -12,7 +13,7 @@ export const BARRELS = {
   tarBarrel: { label: "TAR", color: "#6e497e", rim: "#d4a6df", contents: "tar" },
 };
 export const explosiveBarrel = b => !b.chunk && (b.kind === "barrel" || b.kind === "canister");
-export const SPILL_LIMIT = 96;
+export const SPILL_LIMIT = 384;
 
 // The whole casing pulses, with an accelerating 3-2-1 countdown painted on it.
 // Frozen containers retain the countdown but do not continue pulsing.

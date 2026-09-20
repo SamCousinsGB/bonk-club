@@ -1,3 +1,4 @@
+import { updateReactions } from '../src/reactions.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
@@ -12,11 +13,11 @@ import { interpolateStates } from "../src/render-state.js";
 function arena() {
   const w = new World({ arena: ARENAS.findIndex(a => a.furnace), players: [0, 1, 2, 3], shuffle: false, random: () => .4 });
   w.phase = "fight"; w.botIds.clear(); w.weaponTimer = 999;
-  w.cover = []; w.chunks = []; w.water = []; w.spills = []; w.gas = []; w.drops = [];
+  w.cover = []; w.chunks = []; w.water = []; w.gas = []; w.drops = [];
   return w;
 }
 function advance(w, seconds) {
-  for (let i = 0; i < Math.round(seconds / STEP); i++) { w.time += STEP; updateHazards(w, STEP); }
+  for (let i = 0; i < Math.round(seconds / STEP); i++) { w.time += STEP; updateHazards(w, STEP);updateReactions(w,STEP); }
 }
 
 test("furnace has nine open seconds, two warning seconds, five active seconds and bounded cooling", () => {
@@ -60,7 +61,7 @@ test("cooling only burns grate contact, expires, and molten slag remains dangero
   advance(w, .2); assert.equal(p.hp, 94);
   advance(w, 3); const hp = p.hp; assert.ok(p.alive && hp >= 70);
   advance(w, 1); assert.equal(p.hp, hp);
-  Object.assign(q, { x: 1280, y: 1380 }); advance(w, STEP);
+  Object.assign(q, { x: 1280, y: 1380 }); advance(w, .05);
   assert.equal(q.alive, false); assert.equal(w.ragdolls.at(-1).effect, "burn");
 });
 

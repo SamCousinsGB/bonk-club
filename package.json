@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.47.1",
-  "releaseNotes": "Ocean Liner lifeboats now have deck-mounted supports and suspension cables",
+  "version": "0.48.0",
+  "releaseNotes": "Shared liquids, varied tanks and barrels, and falling-water conduction",
   "private": true,
   "type": "module",
   "scripts": {

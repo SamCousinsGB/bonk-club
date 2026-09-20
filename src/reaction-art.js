@@ -122,7 +122,7 @@ export function drawReactions(c,state,time) {
       line(c,[[-b.w*.4,-b.h*.1],[b.w*.08,b.h*.23],[b.w*.22,-b.h*.38]],"#d6fcff",1.5);c.restore();
     }
     if(b.leak&&!b.chunk&&!(b.cold>0)&&!b.spent) {
-      const active=b.kind==="canister"||(b.kind==="waterTank"&&b.waterLeft>0)||b.liquidLeft>0;
+      const active=b.kind==="canister";
       if(active)for(const p of leakOutlets(b))for(let i=0;i<5;i++) {
         const age=(time*2.5+i/5)%1,length=Math.min(b.w,b.h)*.9;
         const d=age*length,spread=Math.sin(i*5+time*14)*d*.09;
@@ -144,21 +144,7 @@ export function drawReactions(c,state,time) {
 
 function drawSpills(c,state,time) {
   for(const q of state.spills||[]) {
-    const type=SPILLS[q.kind];
-    c.save();c.globalAlpha=Math.min(1,q.life/2);
-    if(!q.grounded) {
-      const cx=q.x+q.w/2,len=Math.max(5,Math.min(38,q.vy*.04+q.h*.4));
-      line(c,[[cx,q.y+q.h-len],[cx+Math.sin(q.id+time*5)*2,q.y+q.h]],type.color,Math.min(13,4+q.h*.35));
-      circle(c,cx,q.y+q.h,3.5,type.rim);
-    } else {
-      const wobble=Math.sin(time*(q.kind==="oil"?3:1.5)+q.x*.04)*.8;
-      c.fillStyle=type.color;
-      c.beginPath();c.moveTo(q.x,q.y+1);c.quadraticCurveTo(q.x+q.w/2,q.y-2+wobble,q.x+q.w,q.y+1);
-      c.lineTo(q.x+q.w,q.y+q.h);c.lineTo(q.x,q.y+q.h);c.closePath();c.fill();
-      line(c,[[q.x+2,q.y+1],[q.x+q.w*.55,q.y+wobble],[q.x+q.w-2,q.y+1]],type.rim,1.5);
-      if(q.kind==="oil")line(c,[[q.x+6,q.y+2],[q.x+q.w-7,q.y+2]],"#b69ccd77",1.2);
-      if(q.kind==="tar")circle(c,q.x+q.w*.55,q.y+2,1.8,"#ad83b46b");
-    }
+    c.save();
     if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),25+Math.sin(q.id+time*7)*6,time*8+q.id);
     c.restore();
   }

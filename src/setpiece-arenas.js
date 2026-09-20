@@ -35,6 +35,9 @@ export const FOUNDRY_ARENA = {
     grate(450,860,260),grate(880,830,240),grate(1440,830,240),grate(1850,860,260),
     grate(100,610,260),grate(530,570,280),grate(970,550,260),grate(1330,550,260),grate(1750,570,280),grate(2200,610,260),
     solid(1120,800,320,44),
+    // Crucible walls share destruction and collision with the rest of the arena.
+    solid(592,1220,16,160),solid(960,1220,16,160),
+    solid(1584,1220,16,160),solid(1952,1220,16,160),
   ],
   spawns:[[160,858],[2400,858],[230,568],[2330,568]],
   weapons:[[1000,800],[1560,800]],starterWeapons:[],spikes:[],

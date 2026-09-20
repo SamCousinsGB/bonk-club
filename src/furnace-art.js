@@ -1,4 +1,4 @@
-import { furnaceStreams } from './furnace-flow.js';
+import { furnaceOutlets } from './furnace-flow.js';
 import { clipFurnace } from './furnace-parts.js';
 import { powerlineCircuit } from './powerline-circuit.js';
 import { electricArc } from "./electricity-art.js";
@@ -149,16 +149,7 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false, platforms
   c.save(); c.lineJoin = "round"; c.lineCap = "round";
   if (h.type === "slag") {
     if (layer === "front") { c.restore(); return; }
-    const left = h.x - h.w / 2, top = h.y - h.h;
-    c.fillStyle = "#592d26"; c.fillRect(left - 12, top - 8, h.w + 24, h.h + 8);
-    const g = c.createLinearGradient(0, top, 0, h.y);
-    g.addColorStop(0, "#ffdb72"); g.addColorStop(.2, "#fb782a"); g.addColorStop(1, "#ab3026");
-    c.fillStyle = g; c.fillRect(left, top, h.w, h.h);
-    for (let i = 0; i < 27; i++) {
-      const x = left + ((i * 41 + time * 20) % h.w), y = top + 8 + noise(i) * 35;
-      line(c, [[x - 8, y], [x + 9, y - 3], [x + 22, y + 2]], i % 3 ? "#6e3128" : "#ffeab0", 3);
-    }
-    glow(c, h.x, top, 480, "#fa662323");
+    // Molten contents are drawn from the shared liquid state.
     c.restore(); return;
   }
   if (layer === "front") { beacons(c, h, time, reduced); drawFurnaceFlow(c,h,platforms,time,reduced); c.restore(); return; }
@@ -231,31 +222,9 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false, platforms
 }
 
 function drawFurnaceFlow(c,h,platforms,time,reduced) {
-  c.save();c.lineJoin='round';c.lineCap='round';
-  for(const s of furnaceStreams(h,platforms)) {
-    const mouth=s.points[0],end=s.points.at(-1),pts=s.points.map(p=>[p.x,p.y]);
-    glow(c,mouth.x,mouth.y,s.r*5,'#ff731a88');
-    circle(c,mouth.x,mouth.y,s.r*1.5,'#612617');
-    circle(c,mouth.x,mouth.y,s.r*1.1,'#fff0a0');
-    line(c,pts,'#b43c1d',s.r*2.5);
-    line(c,pts,'#ff841f',s.r*2);
-    line(c,pts,'#ffe18a',s.r*1.15);
-    line(c,pts,'#fff6c5',Math.max(2,s.r*.3));
-    if(!reduced)for(let i=0;i<9;i++) {
-      const u=(time*1.8+i/9)%1,k=Math.min(s.points.length-2,Math.floor(u*(s.points.length-1)));
-      const a=s.points[k],b=s.points[k+1],v=u*(s.points.length-1)-k;
-      circle(c,a.x+(b.x-a.x)*v,a.y+(b.y-a.y)*v,s.r*.65,'#fff2b2');
-    }
-    if(s.landed) {
-      glow(c,end.x,end.y,80,'#ff8a2944');
-      line(c,[[end.x-s.r*2,end.y],[end.x+s.r*2,end.y]],'#f67b27',s.r);
-      line(c,[[end.x-s.r*1.7,end.y-2],[end.x+s.r*1.7,end.y-2]],'#ffebb0',s.r*.4);
-      for(let i=0;i<10;i++) {
-        const u=reduced?.3:(time*1.5+i*.137)%1,side=i%2?1:-1;
-        const x=end.x+side*(s.r*2+u*38),y=end.y-Math.sin(u*Math.PI)*(18+i%3*10);
-        circle(c,x,y,1.5+(1-u)*2,'#ffcb64');
-      }
-    }
+  for(const p of furnaceOutlets(h)) {
+    glow(c,p.x,p.y,p.r*5,'#ff731a88');
+    circle(c,p.x,p.y,p.r*1.5,'#612617');
+    circle(c,p.x,p.y,p.r*1.1,'#fff0a0');
   }
-  c.restore();
 }

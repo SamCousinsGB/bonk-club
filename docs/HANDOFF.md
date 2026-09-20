@@ -6,54 +6,54 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Published v0.47.1 (`ab679c5d6ef45b6f4b089ec542461fc608f3d6bd`) adds
-  deck-mounted lifeboat davits, walkway bracing, footplates and
-  suspension cables. The fittings follow the ship frame and disappear when
-  their main-deck mounting points are destroyed. No gameplay/protocol changes.
-  Intact, listing, sinking, damaged-mount and small-screen source views were
-  checked; all 18 ship tests, 1,143 compact tests and the build passed.
-  [Release run 35540236546](https://github.com/SamCousinsGB/bonk-club/actions/runs/35540236546)
-  passed every check and Pages. All 17 public files match the exact CI artifact;
-  both artifact and public browsers passed host/guest controls, hot join and
-  small-screen rendering with clean logs. Evidence: `bonk-club-qa/lifeboat-*`.
-- Ocean Liner was introduced in v0.47.0 / protocol 70. Gameplay revision:
-  `e3654640ddb4c467f2d1d5ea3d7d49efb1df23bd`. Refresh every player tab before
-  creating or joining a room.
-- New cutaway ocean vessel has five finite flood compartments. Collision-derived
-  hull openings admit or drain water according to pressure head; dents remain
-  sealed. Intact bulkheads retain water until overtopped or physically breached.
-  Flood weight changes draft and list and can exhaust reserve buoyancy. Water
-  free surfaces follow world gravity while the ship moves in its own frame.
-- Primary action aims swimming strokes when immersed. Oxygen above submerged
-  heads lasts twelve seconds, restores in air and then causes drowning damage.
-  The shared movement code gives guests the same swimming, with host-only
-  oxygen, damage, flood volume and buoyancy authority. Bots swim around decks
-  toward air. Water floats cargo, drags loose objects and extinguishes fire.
-- Original Canvas art includes a glazed bridge, lifeboats, funnel/rigging,
-  illuminated cutaway rooms, pumps, marine engines, storage, continuous hull
-  trim, sunset ocean, compartment water, bubbles and actual breach jets. Broken
-  shell/deck/bulkhead artwork follows surviving collision. Physics is a bounded
-  hydrostatic compartment model, not a full ocean fluid-dynamics solver.
-- Focused physics checks cover sealing, single side plates, pressure flow,
-  volume conservation, overtopping, list/sinking, oxygen/drowning, swim controls,
-  cargo/death bodies, guest prediction, validation, aim transforms and reset.
-  All 1,143 compact tests and the production build passed. The full local
-  78-case arena stress run passed; both Ocean Liner cases passed again after
-  the final saturated-compartment pressure correction.
-- Source-browser checks passed real relay/relay host/guest controls, ship map
-  selection, guest mouse-directed and real touch swimming, oxygen use, exact
-  damaged-world hot-join parity, small viewport/reduced motion and restored
-  rounds, with no page errors. These relay checks ran on one machine.
-- Release run [35539621507](https://github.com/SamCousinsGB/bonk-club/actions/runs/35539621507)
-  passed shared/server tests, all six arena stress groups, Windows/Linux desktop
-  checks, release consistency and Pages. All 17 public files match the exact CI
-  artifact. That artifact and the unmodified public v0.47.0 both passed ship
-  selection, host/guest movement and jumping, ongoing combat, a third-player hot
-  join and small viewport rendering with clean browser logs. Deliberate flooding,
-  oxygen/swimming and changed-world parity were tested in the source build.
-  QA evidence is in the adjacent `bonk-club-qa/ship-*` files.
-- Existing v0.46.1 scheduling/replay improvements and finite parcel water remain
-  intact; see [`NETCODE.md`](NETCODE.md). Previous aircraft and machinery arenas remain.
+- v0.48.0 / protocol 71 unifies liquid simulation. Refresh every player tab
+  before creating or joining a room. Release validation is in progress; the
+  previous public revision is v0.47.1 (`ab679c5d6ef45b6f4b089ec542461fc608f3d6bd`).
+- Water, oil, glue, tar and molten metal use `src/liquid.js` for finite admission,
+  gravity, momentum, deep pools, wall/ceiling collision, overflow, dam breaks and
+  forces on fighters, props, loose weapons and death bodies. Material viscosity,
+  burning, stickiness, freezing and conductivity remain distinct. The shared
+  budget is 384 parcels, with depth bounded at 640; rejected volume stays in its
+  source. The old spill solver and analytic molten-stream damage are removed.
+- Falling liquid artwork, wetting and electrical contact share volume-preserving
+  stretched bounds. Thin films participate in the circuit; fast crossings use
+  swept wire contact. Tail length cannot extend above its source, and positive
+  microscopic volume survives network quantization. Breaking a source/contact
+  removes power on the next reaction tick. Oil, glue and tar remain insulating.
+- The host randomises water-tank and oil/glue/tar barrel sizes each round across
+  the map rotation, with capacity and mass following size. Resize checks preserve
+  spawn and terrain clearance. Transmission retains eight finite tanks, existing
+  crossings and the shifted inner-tank centres that preserve traversal. Tank
+  capacity is up to 1,200, rather than a fixed amount in every casing.
+- Foundry ladles hold finite 3,000-unit supplies. Furnace breaches emit at their
+  actual openings and stop below the melt level; emitted metal keeps moving.
+  Molten pits have physical retaining walls and drain through damaged floors or
+  walls. Molten contact is swept so fast jets cannot skip a fighter. Ladles stop and look empty when
+  drained. Host snapshots, compression, guest interpolation and reset carry the
+  shared fluid state and container dimensions/capacities.
+- Pools use joined curved surfaces and material palettes; touching falling
+  parcels form sheets. Render-only liquid leak dots were removed so artwork
+  cannot imply an electrical connection absent from the fluid simulation.
+- Ocean Liner remains included: five flood compartments, through-hull pressure
+  flow, bulkheads, listing/sinking, aim-directed swimming, twelve-second oxygen,
+  host-owned drowning, guest prediction and changed-world hot join. Its large
+  reservoirs use the shared engine's conservative volume exchange, admission and
+  drag, retaining their geometry and bounded pressure. Free water joins flood
+  mass on reaching the hull floor or an existing water surface. Flooded rooms
+  join the same electrical circuit as streams and metal, with contacts clipped
+  to the actual tilted water polygon. Empty rooms cannot retain electrical power.
+- The v0.47.1 lifeboat artwork fix remains included: davits, bracing, footplates
+  and suspension cables follow the ship frame and surviving deck mounts.
+- Local game tests, stress groups, build and browser checks are being completed.
+  Three-player source checks passed real guest movement, mixed liquids, live
+  water, changed-world hot join parity, container sizes/capacities and reset.
+  Foundry pouring and breached-furnace molten flow were visually checked.
+- v0.46.1's multiplayer scheduling and guest replay improvements remain included:
+  separate bounded motion/world workers, sequenced controls, reliable fallback,
+  cached prediction geometry and immediate disabled poses. See
+  [`NETCODE.md`](NETCODE.md) for measurements and qualification limits. These
+  browser checks are on one machine; separate-ISP and native Steam qualification
+  remain open.
 
 ## Development and release
 

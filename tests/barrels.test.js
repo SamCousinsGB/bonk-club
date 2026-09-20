@@ -108,7 +108,7 @@ test("a wall blocks the initial spill and lateral flow",()=>{
 });
 
 test("spill admission stays bounded and rejected liquid stays in its barrel",()=>{
-  const w=lab();addSpill(w,"oil",1200,600,20000);addSpill(w,"tar",1200,400,20000);
+  const w=lab();for(let y=100;y<900;y+=150)addSpill(w,"oil",1200,y,20000);
   assert.equal(w.spills.length,SPILL_LIMIT);
   const b=prop("glueBarrel");w.cover=[b];w.damageCover(b,200);
   assert.equal(b.hp,1);assert.equal(b.liquidLeft,96);assert.equal(w.spills.length,SPILL_LIMIT);
@@ -121,7 +121,7 @@ test("flame and electrical shots ignite oil and tar, but glue does not burn",()=
     const shot={kind:shotKind,r:4,owner:0};
     const hit=reactionContacts(w,shot,816,940,816,1010).find(c=>c.spill);
     assert.ok(hit);contactReaction(w,shot,hit);
-    assert.equal(w.spills.some(q=>q.fire>0),kind!=="glue");
+    assert.equal(w.spills.some(q=>q.fire>0),SPILLS[kind].burn>0);
   }
 });
 
@@ -200,9 +200,9 @@ test("burning oil and active barrel fuses survive snapshots and hot join; resets
 test("invalid spill kinds, duplicated IDs, excessive fuel, and malformed timer state are rejected",()=>{
   const w=lab();addSpill(w,"oil",816,999,24);const state=w.snapshot();assert.ok(validSnapshot(state));
   for(const change of [s=>s.spills[0].kind="unknown",s=>s.spills[0].kind="__proto__",
-    s=>s.spills[0].h=500,s=>s.spills[0].fire=12,s=>s.spills[0].x=NaN,s=>s.spills[0].cold=-1,
+    s=>s.spills[0].h=641,s=>s.spills[0].fire=12,s=>s.spills[0].x=NaN,s=>s.spills[0].cold=-1,
     s=>s.spills.push({...s.spills[0]}),s=>s.spills=Array(97).fill(s.spills[0]),s=>s.players[0].burn=3.1,
-    s=>s.players[0].burn=-1,s=>s.players[0].glued=Infinity,s=>s.cover.push({...prop("oilBarrel"),liquidLeft:97})]){
+    s=>s.players[0].burn=-1,s=>s.players[0].glued=Infinity,s=>s.cover.push({...prop("oilBarrel"),liquidLeft:1201})]){
     const s=structuredClone(state);change(s);assert.equal(validSnapshot(s),false);
   }
 });

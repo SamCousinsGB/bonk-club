@@ -20,6 +20,8 @@ export const FURNACE_ARENA = dressArena({
     deck(2360, 1110, 160),
     deck(480, 450, 300), deck(1780, 450, 300),
     deck(850, 1420, 860, 20),
+    // Physical retaining walls contain the shared molten pool until carved.
+    deck(848, 1356, 16, 64), deck(1696, 1356, 16, 64),
   ],
   spawns: [[280, 1198], [2280, 1198], [390, 618], [2170, 618]],
   cover: [], weapons: [], spikes: [], hazards: ["furnace", "slag"],

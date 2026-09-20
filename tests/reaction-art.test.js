@@ -1,3 +1,4 @@
+import { liquidBounds } from '../src/liquid-geometry.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fallingWaterStrands, WaterImpacts } from "../src/water-art.js";
@@ -12,13 +13,16 @@ const parcel=(id,x=800,y=990,extra={})=>({id,x,y,w:32,h:10,vy:0,grounded:true,fr
 const state=water=>({water,cover:[],chunks:[],platforms:[],hazards:[],players:[],time:1,round:1,arenaIndex:0});
 const metal=(id,x,y,extra={})=>prepareProp({id,kind:"cabinet",x,y,w:50,h:100,hp:85,charge:1,...extra});
 
-test("falling water stretches vertically with speed and breaks into unequal attached strands",()=>{
+test("falling liquid stretches with speed while preserving volume and matching its contact envelope",()=>{
   const q=parcel(1,800,500,{h:24,grounded:false,vy:100}),before=structuredClone(q);
   const slow=fallingWaterStrands(q,1),fast=fallingWaterStrands({...q,vy:900},1);
   assert.deepEqual(q,before);
   assert.ok(fast.length<=5);
   assert.ok(fast.every((s,i)=>s.length>slow[i].length && s.length>2*s.radius));
-  assert.ok(new Set(fast.map(s=>s.bottom)).size>2);
+  const b=liquidBounds({...q,vy:900});
+  assert.ok(Math.abs(b.w*b.h-q.w*q.h)<1e-9);
+  assert.equal(fast[0].bottom-fast[0].length,b.y);
+  assert.equal(fast[0].radius*2,b.w);
   assert.ok(fast.every(s=>s.bottom<=q.y+q.h && s.x>q.x && s.x<q.x+q.w));
   assert.notDeepEqual(fast,fallingWaterStrands({...q,vy:900},1.05));
 });

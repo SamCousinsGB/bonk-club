@@ -37,13 +37,13 @@ for (let arena = 0; arena < ARENAS.length; arena++) {
       random,
     });
     let combat = false;
-    for (let n = 0; n < 120 * 150 && w.round === 1; n++) {
+    // Random container layouts can let machinery settle the opening round.
+    // Check sustained play within the same time budget, including the next round.
+    for (let n = 0; n < 120 * 150 && (w.round === 1 || !combat); n++) {
       w.step(STEP);
+      combat ||= w.events.some(event => event.type === "shoot" || event.type === "swing");
       if (n % 120 === 0) {
         assert.ok(validSnapshot(w.snapshot()), name);
-        combat ||= w.events.some(
-          (event) => event.type === "shoot" || event.type === "swing",
-        );
       }
     }
     assert.ok(combat, `${name} must have AI combat`);

@@ -1,21 +1,20 @@
+import { SPILLS } from './barrels.js';
+import { liquidBounds } from './liquid-geometry.js';
 import { segmentBox } from './collision.js';
 const TAU = Math.PI * 2;
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
 const noise = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
 
-// The finite 32-unit simulation columns remain a contact envelope. Airborne
-// artwork breaks that envelope into downward, tapered strands, never pool bars.
+// The visible strand occupies exactly the shared falling contact envelope.
 export function fallingWaterStrands(q, time) {
-  const count = Math.min(5,Math.max(2,Math.ceil(q.h/5))), speed = clamp(q.vy/1000,0,1);
-  return Array.from({length:count},(_,i) => {
-    const seed = q.id*7+i*19, phase = noise(seed), sway = Math.sin(time*5+seed)*1.8;
-    const length = 8 + speed*(20+phase*27) + Math.sqrt(q.h)*2;
-    const bottom = q.y+q.h-(i ? phase*Math.min(q.h+speed*20,30) : 0);
-    const x = q.x+q.w*(i+.5)/count+sway;
-    return {x, bottom, length, bend:Math.sin(seed+time*3)*(1.5+speed*2),
-      radius:clamp(Math.sqrt(q.w*q.h/count/length)*.85,1.2,5), seed};
-  });
+  const b=liquidBounds(q);
+  return [{x:b.x+b.w/2,bottom:b.y+b.h,length:b.h,radius:b.w/2,
+    bend:Math.sin(time*4+q.id)*b.w*.08,seed:q.id}];
 }
+const palette=q=>SPILLS[q.kind] ? {top:SPILLS[q.kind].rim,mid:SPILLS[q.kind].color,
+  bottom:q.kind==='molten'?'#ae3423':SPILLS[q.kind].color,rim:SPILLS[q.kind].rim}:
+  {top:q.charge?'#77e6efac':'#75dbed91',mid:'#229ec19e',bottom:'#145782be',rim:'#d2f8ffc5'};
+const all=state=>[...(state.water||[]),...(state.spills||[])];
 
 export class WaterImpacts {
   constructor() { this.previous = new Map(); this.bursts = []; this.time = null; this.round = null; this.arena = null; }
@@ -26,12 +25,12 @@ export class WaterImpacts {
     }
     if (this.time === time && this.round === state.round && this.arena === state.arenaIndex) return this.bursts;
     this.bursts = this.bursts.filter(b => time-b.time < .42);
-    for (const q of state.water || []) {
+    for (const q of all(state)) {
       const old = this.previous.get(q.id);
       if (!q.frozen && q.grounded && old && !old.grounded && old.vy > 80 && this.bursts.length < 32)
-        this.bursts.push({x:q.x+q.w/2,y:q.y,time,force:clamp(old.vy/600,.25,1),seed:q.id});
+        this.bursts.push({x:q.x+q.w/2,y:q.y,time,force:clamp(old.vy/600,.25,1),seed:q.id,color:palette(q).rim});
     }
-    this.previous = new Map((state.water || []).map(q => [q.id,{grounded:q.grounded,vy:q.vy}]));
+    this.previous = new Map((all(state)).map(q => [q.id,{grounded:q.grounded,vy:q.vy}]));
     this.time = time; this.round = state.round; this.arena = state.arenaIndex;
     return this.bursts;
   }
@@ -43,7 +42,7 @@ const impacts = new WeakMap();
 export function waterSurfaces(water,platforms=[]) {
   const rows=new Map();
   for(const q of water)if(q.grounded && !q.frozen && q.h>.02) {
-    const key=Math.round((q.y+q.h)*2);
+    const key=`${q.kind||'water'}:${Math.round((q.y+q.h)*2)}`;
     if(!rows.has(key))rows.set(key,[]);rows.get(key).push(q);
   }
   const runs=[];
@@ -63,6 +62,7 @@ export function waterSurfaces(water,platforms=[]) {
 }
 
 function drawPool(c,run,time) {
+  const colors=palette(run[0]);
   const first=run[0],last=run.at(-1),bottom=first.y+first.h;
   const top=Math.min(...run.map(q=>q.y)),charged=run.some(q=>q.charge);
   const wave=(x,h)=> (Math.sin(x*.032+time*2.8)+Math.sin(x*.067-time*3.6)*.35)*Math.min(1.6,h*.1);
@@ -76,9 +76,9 @@ function drawPool(c,run,time) {
   };
   c.beginPath();surface();c.lineTo(last.x+last.w,bottom);c.lineTo(first.x,bottom);c.closePath();
   const fill=c.createLinearGradient(0,top,0,Math.max(top+1,bottom));
-  fill.addColorStop(0,charged?'#77e6efac':'#75dbed91');
-  fill.addColorStop(.22,charged?'#32acc6a6':'#229ec19e');
-  fill.addColorStop(1,'#145782be');c.fillStyle=fill;c.fill();
+  fill.addColorStop(0,colors.top);
+  fill.addColorStop(.22,colors.mid);
+  fill.addColorStop(1,colors.bottom);c.fillStyle=fill;c.fill();
   c.save();c.clip();
   // Broad refracted highlights drift with the current, within the real volume.
   for(const [i,q] of run.entries())if(q.h>12 && i%4===1) {
@@ -88,62 +88,45 @@ function drawPool(c,run,time) {
     c.strokeStyle='#b0f4ef25';c.lineWidth=1+Math.min(2,Math.abs(flow));c.stroke();
   }
   c.restore();
-  c.beginPath();surface();c.strokeStyle=charged?'#dcffffdf':'#d2f8ffc5';c.lineWidth=1.65;c.stroke();
+  c.beginPath();surface();c.strokeStyle=charged?'#dcffffdf':colors.rim;c.lineWidth=1.65;c.stroke();
   for(const q of run)if(Math.abs(q.vx||0)>70 && q.h>2) {
     const phase=(time*.7+noise(q.id))%1,x=q.x+phase*q.w;
     c.beginPath();c.moveTo(x,q.y+1);c.quadraticCurveTo(x+4,q.y-.5,x+9,q.y+1);
-    c.strokeStyle='#f0ffffa8';c.lineWidth=1.8;c.stroke();
+    c.strokeStyle=colors.rim;c.lineWidth=1.8;c.stroke();
   }
 }
 
 export function drawWater(c,state,time) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
-  for(const run of waterSurfaces(state.water||[],state.platforms||[]))drawPool(c,run,time);
-  // Joining neighbouring airborne columns turns a ruptured tank into a sheet
-  // with a single silhouette, rather than a rack of identical vertical tubes.
-  const airborne=[];
-  for(const q of [...(state.water||[])].filter(q=>!q.grounded&&!q.frozen).sort((a,b)=>a.x-b.x)) {
-    const old=airborne.at(-1);
-    if(old && q.h>22 && old.h>22 && Math.abs(old.x+old.w-q.x)<2 &&
-      Math.abs(old.y+old.h-q.y-q.h)<2 && Math.abs(old.y-q.y)<20 && Math.abs((old.vx||0)-(q.vx||0))<80) {
-      const right=q.x+q.w;old.y=Math.min(old.y,q.y);old.h=q.y+q.h-old.y;old.w=right-old.x;
-    } else airborne.push({...q});
+  for(const run of waterSurfaces(all(state),state.platforms||[]))drawPool(c,run,time);
+  const falling=[];
+  for(const q of all(state).filter(q=>!q.frozen&&!q.grounded&&q.h>1e-8).sort((a,b)=>a.x-b.x)) {
+    const box={...liquidBounds(q)},last=falling.at(-1),a=last?.box;
+    if(last && last.kind===q.kind && box.w>20 && a.w>20 && box.h>22 && a.h>22 &&
+      Math.abs(a.x+a.w-box.x)<.5 && Math.abs(a.y+a.h-box.y-box.h)<2 && Math.abs(a.y-box.y)<16) {
+      const bottom=Math.max(a.y+a.h,box.y+box.h);a.y=Math.min(a.y,box.y);a.h=bottom-a.y;a.w=box.x+box.w-a.x;
+      last.charge=Math.max(last.charge||0,q.charge||0);
+    } else falling.push({...q,box});
   }
-  for (const q of airborne) {
-    if (q.frozen || q.grounded || q.h<.02) continue;
-    if(q.h>22) {
-      const x=q.x+q.w/2,y=q.y,r=q.w*.48,bend=clamp((q.vx||0)*.025,-12,12);
-      c.beginPath();c.moveTo(x-r*.7,y+3);
-      c.bezierCurveTo(x-r,y+q.h*.25,x-r+bend,y+q.h*.75,x-r*.6+bend,y+q.h-2);
-      c.quadraticCurveTo(x+bend,y+q.h+2,x+r*.6+bend,y+q.h-2);
-      c.bezierCurveTo(x+r+bend,y+q.h*.75,x+r,y+q.h*.25,x+r*.7,y+3);
-      c.quadraticCurveTo(x,y-1,x-r*.7,y+3);
-      const sheen=c.createLinearGradient(q.x,0,q.x+q.w,0);
-      sheen.addColorStop(0,'#b3f2f5a2');sheen.addColorStop(.25,'#62cbe4a8');sheen.addColorStop(1,'#1684b580');
-      c.fillStyle=sheen;c.fill();
-      c.beginPath();c.moveTo(x-r*.65,y+6);c.quadraticCurveTo(x-r*.85,y+q.h*.6,x-r*.4+bend,y+q.h-5);
-      c.strokeStyle='#d2faffad';c.lineWidth=1.3;c.stroke();
-      continue;
-    }
-    for (const s of fallingWaterStrands(q,time)) {
-      const {x,bottom:y,length:l,radius:r,bend:b} = s, top=y-l;
-      c.beginPath();c.moveTo(x+b,top);
-      c.bezierCurveTo(x+b-r*.3,top+l*.4,x-r*1.35,y-r*3,x-r,y-r);
-      c.bezierCurveTo(x-r,y+r*.7,x+r,y+r*.7,x+r,y-r);
-      c.bezierCurveTo(x+r*1.2,y-r*3,x+b+r*.2,top+l*.4,x+b,top);
-      c.fillStyle=q.charge?"#54d9ef8c":"#4fb8e082";c.fill();
-      c.beginPath();c.moveTo(x+b,top+l*.25);c.quadraticCurveTo(x-r*.4,y-l*.25,x-r*.3,y-r);
-      c.strokeStyle="#c9f6ffd0";c.lineWidth=Math.max(.8,r*.4);c.stroke();
-      // Detached satellite droplets keep thick spills from reading as icicles.
-      const lag=(time*1.8+noise(s.seed+3))%1;
-      c.beginPath();c.ellipse(x+b*1.7,y-l-4-lag*9,r*.45,1.5+q.vy*.003,0,0,TAU);
-      c.fillStyle="#96e0fba0";c.fill();
-    }
+  for(const q of falling) {
+    const box=q.box,colors=palette(q),x=box.x,y=box.y,w=box.w,h=box.h;
+    // A rounded continuous ribbon, bounded by the exact collision silhouette.
+    // Internal highlights move; no decorative droplets imply a false circuit.
+    c.beginPath();c.moveTo(x+w*.5,y);
+    c.bezierCurveTo(x+w*.08,y,x,y+h*.4,x,y+h*.78);
+    c.bezierCurveTo(x,y+h,x+w,y+h,x+w,y+h*.78);
+    c.bezierCurveTo(x+w,y+h*.4,x+w*.92,y,x+w*.5,y);
+    const sheen=c.createLinearGradient(x,0,x+Math.max(.01,w),0);
+    sheen.addColorStop(0,colors.top);sheen.addColorStop(.3,colors.mid);sheen.addColorStop(1,colors.bottom);
+    c.fillStyle=sheen;c.fill();
+    c.save();c.clip();c.beginPath();
+    c.moveTo(x+w*.3,y+h*.18);c.quadraticCurveTo(x+w*(.15+.06*Math.sin(time*4+q.id)),y+h*.55,x+w*.3,y+h*.9);
+    c.strokeStyle=colors.rim;c.lineWidth=Math.min(1.3,w*.2);c.stroke();c.restore();
   }
   let tracker=impacts.get(c);if(!tracker){tracker=new WaterImpacts();impacts.set(c,tracker);}
   for(const b of tracker.update(state)) {
     const age=state.time-b.time,life=1-age/.42;
-    c.globalAlpha=life*.75;c.strokeStyle="#bceeff";c.lineWidth=1.2;
+    c.globalAlpha=life*.75;c.strokeStyle=b.color||"#bceeff";c.lineWidth=1.2;
     c.beginPath();c.ellipse(b.x,b.y,5+age*48*b.force,1+age*3,0,Math.PI,TAU);c.stroke();
     for(let i=0;i<5;i++) {
       const vx=(i-2)*30*b.force,vy=-(45+noise(b.seed+i)*65)*b.force;

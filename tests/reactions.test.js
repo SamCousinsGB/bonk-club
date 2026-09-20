@@ -250,7 +250,7 @@ test("black holes retain captured fluid in bounded persistent matter samples",()
 test("new rounds clear transient reactions and restore finite container supplies",()=>{
   const w=new World({arena:ARENAS.findIndex(a=>a.transmission)});const b=w.cover.find(b=>b.kind==="canister");w.damageCover(b,1);
   addWater(w,1000,700,100);w.players[0].soaked=2;w.startRound();
-  assert.ok(w.cover.filter(b=>b.kind==="canister").every(b=>!b.leak));assert.ok(w.cover.find(b=>b.kind==="waterTank").waterLeft===1200);
+  assert.ok(w.cover.filter(b=>b.kind==="canister").every(b=>!b.leak));assert.equal(w.cover.find(b=>b.kind==="waterTank").waterLeft,w.cover.find(b=>b.kind==="waterTank").waterCapacity);
   assert.equal(w.players[0].soaked,undefined);assert.equal(w.gas.length,0);assert.ok(validSnapshot(w.snapshot()));
 });
 

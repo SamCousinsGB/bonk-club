@@ -75,6 +75,7 @@ export function updateFurnace(world, h, dt) {
     if (h.active && h.type === "furnace") world.event("hazard", { x: h.x, y: h.y, kind: "tesla" });
   }
   if (world.prediction) return;
+  if(h.type==='slag')return; // Its finite pool owns contact and drains through actual holes.
   const heat = furnaceHeat(h);
   if (!h.active && heat <= 0) return;
   h.hitTimer -= dt;

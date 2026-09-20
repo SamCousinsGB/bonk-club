@@ -33,6 +33,9 @@ export class RenderSnapshots {
       const source = state[key][i];
       if (!this.ids.has(source)) this.ids.set(source, ++this.nextId);
       entity.netId = this.ids.get(source);
+      // A sub-pixel liquid film can close a live circuit. Do not round its
+      // positive volume to zero and invalidate the entire world snapshot.
+      if((key==='water'||key==='spills') && source.h>0)entity.h=Math.max(.000001,Math.round(source.h*1e6)/1e6);
       if (key === "fields" && source.matter) {
         const orbit=matterRecipe(source.matter);
         if(orbit)entity.matter.orbit=orbit;
@@ -148,6 +151,7 @@ export function interpolateStates(a, b, t, mode = "all") {
         if(previous.grounded !== p.grounded || !!previous.frozen !== !!p.frozen) return p;
         const q=blend(previous,p,t);
         q.h=lerp(previous.h,p.h,t);q.vx=lerp(previous.vx||0,p.vx||0,t);q.vy=lerp(previous.vy,p.vy,t);
+        if(p.fallDistance!==undefined)q.fallDistance=lerp(previous.fallDistance??p.fallDistance,p.fallDistance,t);
         return q;
       }
       return blend(previous,p,t);

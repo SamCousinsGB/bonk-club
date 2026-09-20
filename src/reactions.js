@@ -1,3 +1,6 @@
+import { absorbShipWater, shipWaterAt, shipWaterRegions } from './ship.js';
+import { randomizeLiquidContainers } from './liquid-containers.js';
+import { liquidBounds, isLiquid, liquidPolygonHit } from './liquid-geometry.js';
 import { W, H } from "./scale.js";
 import { segmentBox, playerBox } from "./collision.js";
 import { bodyBounds, bodyInBlast, impulseProp, prepareProp, fractureProp } from "./props.js";
@@ -7,7 +10,7 @@ import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
-import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, moveLiquid, waterForces, waterWireContact } from './liquid.js';
+import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact } from './liquid.js';
 export { WATER_LIMIT, WATER_WIDTH } from './liquid.js';
 import { poweredWirePieces } from "./powerline-circuit.js";
 
@@ -15,7 +18,7 @@ import { poweredWirePieces } from "./powerline-circuit.js";
 // state; neither fluid motion nor damage is re-simulated by a guest.
 export const GAS_LIMIT = 24;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const centre = b => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+const centre = b => {const q=isLiquid(b)?liquidBounds(b):b;return {x:q.x+q.w/2,y:q.y+q.h/2};};
 const overlap = (a, b, pad = 0) => a.x < b.x + b.w + pad && a.x + a.w > b.x - pad &&
   a.y < b.y + b.h + pad && a.y + a.h > b.y - pad;
 const flammable = b => ["wood", "fabric"].includes(b.material) || b.panel === "wood";
@@ -34,13 +37,16 @@ function bulletIgnites(world, shot, fuel) {
   seen.add(fuel);
   return world.random() < .3;
 }
-const near = (b, x, y, radius) => b.mass ? bodyInBlast(b, { x, y, radius }) :
-  Math.hypot(x - clamp(x, b.x, b.x + b.w), y - clamp(y, b.y, b.y + b.h)) <= radius;
+const near = (b, x, y, radius) => {
+  if(b.mass)return bodyInBlast(b,{x,y,radius});
+  if(isLiquid(b))b=liquidBounds(b);
+  return Math.hypot(x-clamp(x,b.x,b.x+b.w),y-clamp(y,b.y,b.y+b.h))<=radius;
+};
 
 export function resetReactions(world) {
   world.water = []; world.gas = []; world.spills = []; world.reactionSerial = 0; world.reactionClock = 0;
   world.reactionHeatAt = 0;
-  if (world.arena.survival) return;
+  if (world.arena.survival) {randomizeLiquidContainers(world);return;}
 
   const variants = ["barrel", "oilBarrel", "glueBarrel", "tarBarrel"];
   let barrelIndex = 0;
@@ -77,6 +83,11 @@ export function resetReactions(world) {
       }
     }
   }
+  randomizeLiquidContainers(world);
+  // Standing crucibles are finite volumes in the same solver as their streams.
+  for(const h of world.hazards.filter(h=>h.type==='slag'))
+    for(let x=Math.ceil((h.x-h.w/2)/32)*32;x+32<=h.x+h.w/2;x+=32)
+      emitLiquid(world,'molten',x+16,h.y,h.h,{depth:h.h});
   // Electrical fixtures can reach small existing puddles when they cycle on.
   // The puddle is safe while the fixture is off, and can be frozen or drained.
   for (const h of world.hazards.filter(h => h.type === "tesla" && !h.assemblyStation).slice(0, 2))
@@ -85,27 +96,8 @@ export function resetReactions(world) {
 
 // Separate finite parcels share the water solver, but preserve material identity
 // and viscosity. Unaccepted liquid remains in its container at the hard limit.
-export function addSpill(world, kind, x, y, amount, fire = false) {
-  const type = SPILLS[kind];
-  if (!type || !(amount > 0) || !Number.isFinite(x+y+amount)) return 0;
-  let left = amount;
-  for (let n=0; n<SPILL_LIMIT && left>.001; n++) {
-    const offset=n ? Math.ceil(n/2)*(n%2?1:-1) : 0;
-    const column=Math.floor(x/WATER_WIDTH)*WATER_WIDTH+offset*WATER_WIDTH;
-    if(column<0||column+WATER_WIDTH>W)continue;
-    if(!clear(world,{x,y:y-1},{x:column+WATER_WIDTH/2,y:y-1}))continue;
-    let q=world.spills.find(q=>q.kind===kind&&q.x===column&&Math.abs(q.y+q.h-y)<12);
-    if(q&&q.h>=24)continue;
-    if(!q) {
-      if(world.spills.length>=SPILL_LIMIT)break;
-      q={id:++world.reactionSerial,kind,x:column,y,w:WATER_WIDTH,h:0,vy:0,grounded:false,
-        life:type.life,fire:0,cold:0};
-      world.spills.push(q);
-    }
-    const take=Math.min(left,24-q.h);q.h+=take;q.y-=take;left-=take;
-    if(fire&&type.burn&&!q.fire&&!q.cold)q.fire=type.burn;
-  }
-  return amount-left;
+export function addSpill(world, kind, x, y, amount, fire = false, velocity = {}) {
+  return emitLiquid(world,kind,x,y,amount,{...velocity,fire});
 }
 
 // Amount is cross-sectional area divided by a column width. Transfers conserve
@@ -157,7 +149,7 @@ export function propReactionDamage(world, b, damage, point) {
   if (contents && damage > 0 && !b.spent) {
     b.liquidLeft ??= 96; b.leak=1;
     if (damage >= b.hp) {
-      b.liquidLeft -= addSpill(world, contents, b.x+b.w/2, b.y+b.h/2, b.liquidLeft, b.fire>0);
+      b.liquidLeft -= addSpill(world, contents, b.x+b.w/2, b.y+b.h/2, b.liquidLeft, b.fire>0, {burst:340,vx:b.vx||0,vy:Math.min(100,b.vy||0)});
       if(b.liquidLeft>.01)return Math.max(0,b.hp-1);
       b.spent=true;
     }
@@ -232,9 +224,13 @@ export function surfaceReaction(world, shot, surface) {
 
 export function reactionContacts(world, shot, x, y, ex, ey) {
   const out = [];
+  if(['flame','tesla'].includes(shot.kind))for(const q of shipWaterRegions(world)) {
+    const hit=liquidPolygonHit(q.polygon,x,y,ex,ey,shot.r);
+    if(hit)out.push({reaction:q,hit});
+  }
   if (["flame", "frost", "tesla"].includes(shot.kind))
-    for (const q of world.water) if (!q.frozen && q.h >= .5) {
-      const hit = segmentBox(x, y, ex, ey, q, shot.r);
+    for (const q of world.water) if (!q.frozen && q.h > 1e-8) {
+      const hit = segmentBox(x, y, ex, ey, liquidBounds(q), shot.r);
       if (hit) out.push({ reaction: q, hit });
     }
   if (ballistic(shot) || ["flame", "spark", "plasma", "rocket", "tesla"].includes(shot.kind))
@@ -243,8 +239,8 @@ export function reactionContacts(world, shot, x, y, ex, ey) {
       if (hit) out.push({ reaction: g, gas: true, hit });
     }
   if (ballistic(shot) || ["flame","spark","plasma","rocket","tesla","frost"].includes(shot.kind))
-    for (const q of world.spills) if(q.h>=.5 && (!ballistic(shot) || (SPILLS[q.kind].burn && !q.fire && !q.cold))) {
-      const hit=segmentBox(x,y,ex,ey,q,shot.r);
+    for (const q of world.spills) if(q.h>1e-8 && (!ballistic(shot) || (SPILLS[q.kind].burn && !q.fire && !q.cold))) {
+      const hit=segmentBox(x,y,ex,ey,liquidBounds(q),shot.r);
       if(hit)out.push({reaction:q,spill:true,hit});
     }
   return out;
@@ -253,6 +249,7 @@ export function contactReaction(world, shot, collision) {
   const q = collision.reaction;
   if (ballistic(shot) && !bulletIgnites(world, shot, q)) return false;
   if (collision.spill) {
+    if(q.kind==='molten' && shot.kind==='tesla')q.spark=.7;
     if(shot.kind==="frost"){q.cold=3;q.fire=0;}
     else if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;
     return shot.kind==="flame"||shot.kind==="spark"||shot.kind==="frost";
@@ -290,72 +287,14 @@ export function explosionReaction(world, b) {
     if (!g.lit && Math.hypot(g.x-b.x,g.y-b.y)<radius+g.r*.5 && clear(world,b,g)) { g.lit=.22; g.owner=b.owner ?? 0; }
 }
 
-function moveWater(world, dt, key = "water") {
-  const parcels = world[key], spill = key === "spills", limit = spill ? SPILL_LIMIT : WATER_LIMIT;
-  const cell = (q,x=q.x,y=q.y+q.h) => `${q.kind||"water"}:${x}:${Math.round(y)}`;
-  const platforms = world.platforms.filter(p => p.hp !== 0);
-  const existing = new Map(parcels.filter(q=>q.grounded&&!q.frozen).map(q=>[cell(q),q]));
-  for (const q of [...parcels]) {
-    if (q.h <= 0) continue;
-    if (q.frozen) {
-      const ps = platforms.filter(p=>p.waterId===q.id);
-      const area = ps.reduce((sum,p)=>sum+p.w*p.h,0);
-      if (Math.abs(area-q.w*q.h)>.1) { q.h=0; thawWater(world,q); continue; }
-      q.frozen=Math.max(0,q.frozen-dt);
-      if (!q.frozen) thawWater(world,q);
-      continue;
-    }
-    const x=q.x+q.w/2, bottom=q.y+q.h;
-    const f=platforms.filter(p=>p.waterId!==q.id&&x>p.x&&x<p.x+p.w&&p.y>=bottom-.8)
-      .sort((a,b)=>a.y-b.y)[0];
-    q.vy=Math.min(1000,q.vy+1000*dt);
-    if (f && bottom+q.vy*dt>=f.y) { q.y=f.y-q.h; q.vy=0; q.grounded=true; }
-    else { q.y+=q.vy*dt; q.grounded=false; }
-    const fuel = spill && SPILLS[q.kind].burn;
-    if (!q.grounded || q.h<(fuel ? .85 : 4.1)) continue;
-    const floorY=q.y+q.h;
-    for (const dir of [-1,1]) {
-      const nx=q.x+dir*q.w;
-      if(nx<0||nx+q.w>W)continue;
-      let other=existing.get(cell(q,nx,floorY));
-      if(other?.frozen)continue;
-      const transfer=Math.min(5,Math.max(0,(q.h-(other?.h||0)-(fuel ? .35 : 2))*.22)) * (spill ? SPILLS[q.kind].flow : 1);
-      if(transfer<(fuel ? .06 : .2))continue;
-      const a={x:q.x+q.w/2,y:floorY-Math.min(q.h,other?.h||q.h)/2};
-      const b={x:nx+q.w/2,y:a.y};
-      if(platforms.some(p=>segmentBox(a.x,a.y,b.x,b.y,p)))continue;
-      if(!other) {
-        if(parcels.length>=limit)continue;
-        other={id:++world.reactionSerial,x:nx,y:floorY,w:q.w,h:0,vy:0,grounded:false,
-          ...(spill ? {kind:q.kind,life:q.life,fire:q.fire,cold:q.cold} : {frozen:0,spark:0,charge:0})};
-        parcels.push(other);existing.set(cell(q,nx,floorY),other);
-      }
-      q.h-=transfer;q.y+=transfer;other.h+=transfer;other.y-=transfer;
-    }
-  }
-  // Falling parcels merge on landing. This also prevents a broken tank from
-  // accumulating hundreds of overlapping packets on the same floor.
-  const merged=new Map();
-  for(const q of parcels) if(q.grounded&&!q.frozen&&q.h>0) {
-    const key=cell(q), old=merged.get(key);
-    if(old&&old.h+q.h<=48){
-      old.h+=q.h;old.y-=q.h;
-      if(spill){old.fire=Math.max(old.fire,q.fire);old.life=Math.min(old.life,q.life);old.cold=Math.max(old.cold,q.cold);}
-      else old.spark=Math.max(old.spark,q.spark);
-      q.h=0;
-    }
-    else merged.set(key,q);
-  }
-  world[key]=parcels.filter(q=>q.h>.05&&q.y<H+80);
-}
-
 function conduction(world, dt, wires) {
+  if(world.ship)for(let i=0;i<5;i++)if(world.ship.volumes[i]<=.001)world.ship.charges[i]=world.ship.sparks[i]=0;
   const nodes=conductorNodes(world);
   const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
     const powered=b.spark>0||waterWireContact(b)||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
-      wires.some(s=>segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
+      wires.some(s=>b.polygon?liquidPolygonHit(b.polygon,s.a.x,s.a.y,s.b.x,s.b.y,5):segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
     if(powered){live.add(i);queue.push(i);}
   }
   // No propagated stored charge: breaking a metal contact or draining a gap
@@ -370,7 +309,7 @@ function conduction(world, dt, wires) {
   for(const p of world.players) {
     p.shockWait=Math.max(0,(p.shockWait||0)-dt);
     if(!p.alive||p.shockWait>0)continue;
-    const box=playerBox(p), i=queue.find(i=>overlap(box,boxes[i],3));
+    const box=playerBox(p), i=queue.find(i=>nodes[i].polygon?conductorsTouch(nodes[i],box,world.platforms,boxes[i],box):overlap(box,boxes[i],3));
     if(i===undefined)continue;
     p.shockWait=.48;p.xray=.3;
     const from=centre(nodes[i]);
@@ -395,7 +334,8 @@ function containers(world, dt, bs) {
     if(contents) {
       if(b.cold>0||b.spent)continue;
       for(const p of outlets) b.liquidLeft-=addSpill(world,contents,p.x,p.y,
-        Math.min(b.liquidLeft,32*dt/outlets.length),b.fire>0);
+        Math.min(b.liquidLeft,(32+Math.sqrt(b.liquidLeft)*1.3)*dt/outlets.length),b.fire>0,
+        {vx:(b.vx||0)+p.nx*Math.sqrt(b.liquidLeft)*7,vy:(b.vy||0)+p.ny*Math.sqrt(b.liquidLeft)*5});
       if(b.liquidLeft<.01){b.leak=0;b.fire=0;b.spent=true;}
       continue;
     }
@@ -439,19 +379,28 @@ function containers(world, dt, bs) {
 function updateSpills(world, dt, bs, ps) {
   for(const q of world.spills) {
     q.life=Math.max(0,q.life-dt);q.cold=Math.max(0,q.cold-dt);
-    const touchingWater=world.water.some(w=>!w.frozen&&overlap(q,w,2));
+    const box=liquidBounds(q);
+    const touchingWater=world.water.some(w=>!w.frozen&&overlap(box,liquidBounds(w),2)) || shipWaterAt(world,box.x+box.w/2,box.y+box.h);
     if(touchingWater){
       q.fire=0;q.cold=.25;
       if(q.kind==="glue") {const wash=Math.min(q.h,dt*12);q.h-=wash;q.y+=wash;}
     }
-    if(!q.life||q.h<=.05){q.h=0;continue;}
-    const origin=centre(q), heated=SPILLS[q.kind].burn&&!q.cold;
+    if(!q.life||q.h<=1e-8){q.h=0;continue;}
+    if(q.kind==='molten') {
+      for(const p of ps)if(p.alive && liquidTouches(q,playerBox(p)))
+        world.kill(p,{effect:'burn',cause:'burn',ash:true});
+      for(const b of bs)if(b.hp>0 && liquidTouches(q,bodyBounds(b))) {
+        if(b.chunk)b.hp=0;else world.damageCover(b,1000);
+      }
+      continue;
+    }
+    const origin=centre(box), heated=SPILLS[q.kind].burn&&!q.cold;
     if(heated&&!q.fire && (
-      bs.some(b=>b.fire>0&&overlap(bodyBounds(b),q,10)&&clear(world,centre(b),origin)) ||
-      ps.some(p=>p.burn>0&&overlap(playerBox(p),q,5)&&clear(world,p,origin)) ||
-      world.hazards.some(h=>h.type==="geyser"&&h.active&&!h.done&&overlap(q,hazardZone(h)))
+      bs.some(b=>b.fire>0&&overlap(bodyBounds(b),box,10)&&clear(world,centre(b),origin)) ||
+      ps.some(p=>p.burn>0&&overlap(playerBox(p),box,5)&&clear(world,p,origin)) ||
+      world.hazards.some(h=>h.type==="geyser"&&h.active&&!h.done&&overlap(box,hazardZone(h)))
     ))q.fire=SPILLS[q.kind].burn;
-    for(const p of ps)if(!(p.soaked>0)&&overlap(playerBox(p),q,2)) {
+    for(const p of ps)if(!(p.soaked>0)&&overlap(playerBox(p),box,2)) {
       const key=q.kind==="oil"?"oiled":q.kind==="glue"?"glued":"tarred";
       p[key]=Math.max(p[key]||0,q.kind==="glue"?.55:q.kind==="tar"?.8:.3);
     }
@@ -460,12 +409,12 @@ function updateSpills(world, dt, bs, ps) {
     // cannot create new fuel. Flames only reach through open space.
     const used=q.h*Math.min(1,dt/q.fire);q.h-=used;q.y+=used;q.fire=Math.max(0,q.fire-dt);
     for(const other of world.spills)if(other!==q&&!other.fire&&!other.cold&&SPILLS[other.kind].burn&&
-      overlap(q,other,5)&&clear(world,origin,centre(other)))other.fire=SPILLS[other.kind].burn;
-    for(const b of bs)if(overlap(bodyBounds(b),q,10)&&clear(world,origin,centre(b)))ignite(b);
-    for(const p of ps)if(overlap(playerBox(p),q,16)&&clear(world,origin,p))igniteFighter(p);
+      overlap(box,liquidBounds(other),5)&&clear(world,origin,centre(other)))other.fire=SPILLS[other.kind].burn;
+    for(const b of bs)if(overlap(bodyBounds(b),box,10)&&clear(world,origin,centre(b)))ignite(b);
+    for(const p of ps)if(overlap(playerBox(p),box,16)&&clear(world,origin,p))igniteFighter(p);
     for(const g of world.gas)if(!g.lit&&near(q,g.x,g.y,g.r)&&clear(world,origin,g))g.lit=.22;
   }
-  world.spills=world.spills.filter(q=>q.h>.05&&q.life>0);
+  world.spills=world.spills.filter(q=>q.h>1e-8&&q.life>0);
 }
 
 export function updateReactions(world, dt) {
@@ -475,14 +424,13 @@ export function updateReactions(world, dt) {
   dt=Math.min(.075,world.reactionClock);world.reactionClock=0;
   const wires=poweredWirePieces(world);
   moveLiquid(world,dt,wires,thawWater);
-  waterForces(world,dt);
-  moveWater(world,dt,"spills");
+  liquidForces(world,dt);
   const bs=bodies(world), ps=world.players.filter(p=>p.alive);
   for(const b of [...bs,...ps]) {
     b.soaked=Math.max(0,(b.soaked||0)-dt);b.cold=Math.max(0,(b.cold||0)-dt);
     for(const k of ["glued","tarred","oiled"])if(b[k]>0)b[k]=Math.max(0,b[k]-dt);
     const box=b.mass?bodyBounds(b):playerBox(b);
-    if(world.water.some(q=>!q.frozen&&q.h>=.5&&overlap(box,q,2)))wet(b);
+    if(world.water.some(q=>!q.frozen&&q.h>1e-8&&liquidTouches(q,box)))wet(b);
   }
   containers(world,dt,bs);
   updateSpills(world,dt,bs,ps);
@@ -520,6 +468,7 @@ export function updateReactions(world, dt) {
   }
   world.gas=world.gas.filter(g=>g.life>0&&g.y>-100&&g.y<H+100&&g.x>-100&&g.x<W+100);
   conduction(world,dt,wires);
+  absorbShipWater(world);
 }
 
 export function consumeReactionArea(world, blast) {
@@ -532,25 +481,26 @@ export function consumeReactionArea(world, blast) {
 }
 
 export function reactionDanger(world, x, y) {
-  return world.water.some(q=>q.charge&&!q.frozen&&overlap({x:x-18,y:y-28,w:36,h:60},q,6)) ||
-    world.spills.some(q=>q.fire>0&&near(q,x,y,65)) ||
+  return (world.ship?.charges.some(q=>q>0) && shipWaterAt(world,x,y) && world.ship.charges[shipWaterAt(world,x,y).i]>0) ||
+    world.water.some(q=>q.charge&&!q.frozen&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
+    world.spills.some(q=>(q.fire>0||q.kind==='molten')&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
     world.cover.some(b=>b.hp>0&&((explosiveBarrel(b)&&b.leak&&!b.cold&&b.fuse<1.5&&Math.hypot(x-centre(b).x,y-centre(b).y)<230)||
       (b.fire&&near(b,x,y,65))));
 }
 
 const number=(n,min,max)=>typeof n==="number"&&Number.isFinite(n)&&n>=min&&n<=max;
 export function validReactionObject(b) {
-  return validContainerLeaks(b) && ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","waterCapacity","liquidLeft","glued","tarred","oiled"].every(k=>
-    b[k]===undefined||number(b[k],0,(k==="waterLeft"||k==="waterCapacity")?TANK_CAPACITY:k==="liquidLeft"?96:k==="charge"||k==="leak"||["glued","tarred","oiled"].includes(k)?1:12)) &&
+  return (b.fallDistance===undefined||number(b.fallDistance,0,72)) && validContainerLeaks(b) && ["soaked","cold","fire","fuel","spark","charge","leak","fuse","gasFuel","waterLeft","waterCapacity","liquidLeft","liquidCapacity","glued","tarred","oiled"].every(k=>
+    b[k]===undefined||number(b[k],0,["waterLeft","waterCapacity","liquidLeft","liquidCapacity"].includes(k)?TANK_CAPACITY:k==="charge"||k==="leak"||["glued","tarred","oiled"].includes(k)?1:12)) &&
     (b.spent===undefined||typeof b.spent==="boolean");
 }
 export function validReactions(s) {
   return Array.isArray(s.spills)&&s.spills.length<=SPILL_LIMIT&&s.spills.every(q=>
     q&&Object.hasOwn(SPILLS,q.kind)&&Number.isInteger(q.id)&&q.id>0&&q.id<=10000000&&
-    number(q.x,0,W-WATER_WIDTH)&&number(q.y,-200,H+150)&&q.w===WATER_WIDTH&&number(q.h,.01,48)&&
-    number(q.vy,0,1000)&&typeof q.grounded==="boolean"&&number(q.life,0,SPILLS[q.kind].life)&&
-    number(q.fire,0,SPILLS[q.kind].burn)&&number(q.cold,0,3.2))&&
-    Array.isArray(s.water)&&s.water.length<=WATER_LIMIT&&s.water.every(q=>
+    number(q.x,0,W-WATER_WIDTH)&&number(q.y,-200,H+150)&&q.w===WATER_WIDTH&&number(q.h,1e-9,WATER_DEPTH)&&
+    number(q.vx??0,-900,900)&&number(q.vy,-600,1000)&&typeof q.grounded==="boolean"&&number(q.life,0,SPILLS[q.kind].life)&&
+    number(q.fire,0,SPILLS[q.kind].burn)&&number(q.cold,0,3.2)&&validReactionObject(q))&&
+    Array.isArray(s.water)&&s.water.length+s.spills.length<=WATER_LIMIT&&s.water.every(q=>
     Number.isInteger(q.id)&&q.id>0&&q.id<=10000000&&number(q.x,0,W-WATER_WIDTH)&&number(q.y,-200,H+150)&&
     q.w===WATER_WIDTH&&number(q.h,1e-9,WATER_DEPTH)&&number(q.vx??0,-900,900)&&number(q.vy,-600,1000)&&typeof q.grounded==="boolean"&&
     number(q.frozen,0,7)&&validReactionObject(q))&&new Set(s.water.map(q=>q.id)).size===s.water.length&&

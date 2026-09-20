@@ -1,3 +1,4 @@
+import { updateReactions } from '../src/reactions.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
@@ -17,7 +18,7 @@ const fixture=(theme="railway")=>{
   w.phase="fight";w.weaponTimer=w.grenadeTimer=999;return w;
 };
 const place=(p,x,y,extra={})=>Object.assign(p,{x,y,vx:0,vy:0,ground:false,support:null,rig:null,prone:false,dropThrough:0,jumps:0,...extra});
-const tick=w=>updateHazards(w,STEP);
+const tick=w=>{updateHazards(w,STEP);updateReactions(w,STEP);};
 
 test("train gives two seconds warning, crosses at speed and alternates directions",()=>{
   const w=fixture(),h=w.hazards[0];h.age=3;tick(w);assert.ok(h.warning>1.9&&!h.active);
@@ -85,7 +86,7 @@ test("both new arenas connect all spawn positions to their contested weapons",()
 });
 
 test("foundry molten pits kill and destroyed machinery stays absent until reset",()=>{
-  const w=fixture("foundry");place(w.players[0],790,1250);tick(w);assert.equal(w.players[0].alive,false);assert.equal(w.lastDeathCause,"burn");
+  const w=fixture("foundry");place(w.players[0],790,1250);for(let i=0;i<6;i++)tick(w);assert.equal(w.players[0].alive,false);assert.equal(w.lastDeathCause,"burn");
   const press=w.hazards.find(h=>h.type==="crusher");carveExplosion(w,{x:press.bodyX,y:press.bodyY,radius:75});tick(w);
   assert.ok(press.done);const s=new RenderSnapshots().make(w.snapshot());assert.ok(validSnapshot(s));
   w.startRound();assert.ok(w.hazards.every(h=>!h.done));
@@ -95,6 +96,8 @@ test("ladles warn before pouring, kill only in the stream and stop after a mount
   const w=fixture("foundry"),h=w.hazards.find(h=>h.type==="ladle"),p=w.players[0];
   place(p,790,960);h.age=4.5;tick(w);assert.ok(h.warning>0&&!h.active);assert.equal(p.hp,100);
   h.age=6.5;place(w.players[1],880,960);tick(w);
+  assert.equal(p.alive,true); // Pouring must travel from the mouth to the fighter.
+  for(let i=0;i<100 && p.alive;i++)tick(w);
   assert.equal(p.alive,false);assert.equal(w.players[1].hp,100);assert.equal(w.ragdolls[0].effect,"burn");
   assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
   carveExplosion(w,{x:790,y:570,radius:75});tick(w);assert.ok(h.done&&!h.active);

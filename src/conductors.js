@@ -1,12 +1,19 @@
+import { shipWaterRegions } from './ship.js';
+import { liquidBounds, isLiquid } from './liquid-geometry.js';
 import { bodyBounds, bodyPoints } from "./props.js";
 import { segmentBox } from "./collision.js";
 
 export const conductive = b => b.material === "metal" || b.kind === "canister" || b.kind === "waterTank";
-export const conductorBounds = b => b.mass ? bodyBounds(b) : b;
-export const conductorPolygon = b => b.mass ? bodyPoints(b) : [
-  {x:b.x,y:b.y},{x:b.x+b.w,y:b.y},{x:b.x+b.w,y:b.y+b.h},{x:b.x,y:b.y+b.h}];
+export const conductorBounds = b => b.mass ? bodyBounds(b) : isLiquid(b)?liquidBounds(b):b;
+export const conductorPolygon = b => {
+  if(b.mass)return bodyPoints(b);
+  if(b.polygon)return b.polygon;
+  b=conductorBounds(b);
+  return [{x:b.x,y:b.y},{x:b.x+b.w,y:b.y},{x:b.x+b.w,y:b.y+b.h},{x:b.x,y:b.y+b.h}];
+};
 export function conductorNodes(state) {
-  return [...(state.water || []).filter(q => !q.frozen && q.h >= .5),
+  return [...shipWaterRegions(state),...(state.water || []).filter(q => !q.frozen && q.h > 1e-8),
+    ...(state.spills || []).filter(q => q.kind==='molten' && q.h>1e-8),
     ...(state.cover || []).filter(b => b.hp > 0 && conductive(b)),
     ...(state.chunks || []).filter(b => b.hp > 0 && conductive(b)),
     ...state.platforms.filter(p => p.hp !== 0 && p.material === "metal" && !p.wreckId)];
@@ -25,6 +32,6 @@ export function conductorsTouch(a, b, platforms, aa = conductorBounds(a), bb = c
     if (Math.max(...av) < Math.min(...bv)-1.2 || Math.max(...bv) < Math.min(...av)-1.2) return false;
   }
   if (a.grounded !== undefined && b.grounded !== undefined && platforms.some(p =>
-    p.hp !== 0 && !p.waterId && segmentBox(a.x+a.w/2,a.y+a.h/2,b.x+b.w/2,b.y+b.h/2,p))) return false;
+    p.hp !== 0 && !p.waterId && segmentBox(aa.x+aa.w/2,aa.y+aa.h/2,bb.x+bb.w/2,bb.y+bb.h/2,p))) return false;
   return true;
 }

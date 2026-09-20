@@ -103,7 +103,7 @@ test('deep moving water and larger tanks survive compressed hot join and interpo
   const copy=expandSnapshot(await decodeState(await encodeState(compactSnapshot(a))),validSnapshot);
   assert.deepEqual(copy.water,a.water);assert.deepEqual(copy.cover,a.cover);
   advance(w,2);const view=interpolateStates(a,renders.make(w.snapshot()),.5);assert.ok(validSnapshot(view));
-  w.startRound();assert.equal(w.water.length,0);assert.equal(w.cover.filter(b=>b.kind==='waterTank' && b.waterLeft===1200).length,8);
+  w.startRound();assert.equal(w.water.length,0);assert.equal(w.cover.filter(b=>b.kind==='waterTank' && b.waterLeft===b.waterCapacity && b.waterLeft>400).length,8);
 });
 
 test('malformed flow, impossible depths and oversized tanks are rejected',()=>{

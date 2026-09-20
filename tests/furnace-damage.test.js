@@ -1,3 +1,6 @@
+import { moveLiquid } from '../src/liquid.js';
+import { updateReactions } from '../src/reactions.js';
+import { liquidBounds } from '../src/liquid-geometry.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { World, ARENAS, STEP } from '../src/engine.js';
@@ -9,7 +12,7 @@ import { updateCables, blastCables } from '../src/heavy-cables.js';
 import { validSnapshot } from '../src/network.js';
 import { RenderSnapshots, interpolateStates } from '../src/render-state.js';
 import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
-import { furnaceStreams, updateFurnaceFlow } from '../src/furnace-flow.js';
+import { furnaceOutlets, updateFurnaceFlow } from '../src/furnace-flow.js';
 import { firePhaser } from '../src/phaser.js';
 
 function lab() {
@@ -114,29 +117,33 @@ test('prediction cannot damage machinery, change its cycle or apply wire shocks'
 });
 
 
-test('molten stream starts at the actual breach, bends under gravity and stops at the first surviving platform',()=>{
-  const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
+test('molten emits at the actual breach and the shared solver lands it on surviving terrain',()=>{
+  const {w,h}=lab();w.spills=[];blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
   w.platforms=[{id:'catch',x:500,y:1250,w:800,h:24}];
-  const s=furnaceStreams(h,w.platforms)[0];assert.ok(s.landed);
-  assert.equal(s.points[0].x,1080);assert.equal(s.points[0].y,1160);
-  assert.ok(s.points.at(-1).x<1050);assert.ok(s.points.at(-1).y<1250);
-  const last=s.points.at(-1);w.platforms=[];
-  assert.ok(furnaceStreams(h,w.platforms)[0].points.at(-1).y>last.y+100);
+  const outlet=furnaceOutlets(h)[0];assert.equal(outlet.x,1080);assert.equal(outlet.y,1160);assert.ok(outlet.vx<0);
+  updateFurnaceFlow(w,h,.05);const first=w.spills[0];
+  assert.equal(first.kind,'molten');assert.equal(first.y+first.h,1160);
+  for(let i=0;i<16;i++)moveLiquid(w,.05);
+  assert.ok(w.spills.some(q=>q.grounded && q.x<1050));assert.ok(w.spills.every(q=>q.y+q.h<=1250.01));
+  w.platforms=[];for(let i=0;i<8;i++)moveLiquid(w,.05);
+  assert.ok(w.spills.some(q=>q.y+q.h>1300));
 });
 
-test('only contact with the real molten stream burns; a platform shields fighters below it',()=>{
-  const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
+test('real molten contact burns while a platform shields fighters below it',()=>{
+  const {w,h}=lab();w.spills=[];blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
   w.platforms=[{id:'catch',x:500,y:1250,w:800,h:24}];
-  const s=furnaceStreams(h,w.platforms)[0],q=s.points[Math.floor(s.points.length/2)];
-  Object.assign(w.players[0],{x:q.x,y:q.y,hp:100,alive:true});Object.assign(w.players[1],{x:s.points.at(-1).x,y:1330,hp:100,alive:true});
-  updateFurnaceFlow(w,h,STEP);assert.equal(w.players[0].alive,false);assert.equal(w.players[1].hp,100);
+  updateFurnaceFlow(w,h,.1);moveLiquid(w,.2);
+  const b=liquidBounds(w.spills[0]);Object.assign(w.players[0],{x:b.x+b.w/2,y:b.y+b.h/2,hp:100,alive:true});
+  Object.assign(w.players[1],{x:b.x+b.w/2,y:1330,hp:100,alive:true});
+  updateReactions(w,.05);assert.equal(w.players[0].alive,false);assert.equal(w.players[1].hp,100);
 });
 
-test('leaking lowers the finite melt below a breach, stopping its stream; intact or empty vessels do not leak',()=>{
-  const {w,h}=lab();assert.deepEqual(furnaceStreams(h),[]);blastFurnace(w,{x:1080,y:1160,radius:45});h.age=2;
-  for(let i=0;i<120*90;i++)updateFurnaceFlow(w,h,STEP);
-  assert.ok(h.furnaceMelt<.555);assert.deepEqual(furnaceStreams(h),[]);
-  h.furnaceMelt=0;assert.deepEqual(furnaceStreams(h),[]);
+test('finite melt stops below the breach and emitted metal keeps moving after its source empties',()=>{
+  const {w,h}=lab();w.spills=[];w.platforms=[];assert.deepEqual(furnaceOutlets(h),[]);
+  blastFurnace(w,{x:1080,y:1160,radius:45});h.age=2;
+  for(let i=0;i<1800;i++){updateFurnaceFlow(w,h,.05);moveLiquid(w,.05);}
+  assert.ok(h.furnaceMelt<.555);assert.deepEqual(furnaceOutlets(h),[]);
+  h.furnaceMelt=0;assert.deepEqual(furnaceOutlets(h),[]);
 });
 
 test('a projectile can pass through a bored hole and every later cut keeps existing voids open',()=>{
@@ -150,7 +157,7 @@ test('a projectile can pass through a bored hole and every later cut keeps exist
 test('consuming all vessel metal cannot leave streams pouring from an invisible reservoir',()=>{
   const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});assert.equal(h.furnaceLeaks.length,1);
   blastFurnace(w,{x:1280,y:1175,radius:400});assert.equal(h.furnaceMelt,0);assert.deepEqual(h.furnaceLeaks,[]);
-  h.age=3;assert.deepEqual(furnaceStreams(h),[]);assert.ok(!h.done);
+  h.age=3;assert.deepEqual(furnaceOutlets(h),[]);assert.ok(!h.done);
 });
 
 test('angled beam cuts through previously cratered steel keep valid quantized geometry',()=>{

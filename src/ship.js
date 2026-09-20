@@ -1,3 +1,4 @@
+import { flowLiquidReservoirs, liquidDrag, liquidTransfer } from './liquid.js';
 import { segmentBox } from './collision.js';
 import { impulseProp } from './props.js';
 
@@ -36,10 +37,10 @@ export function waterLevel(i,volume,angle) {
 export const seaLevel = (s,x) => 800+(SHIP.sea-800-s.sink)/Math.cos(s.angle)-Math.tan(s.angle)*(x-1280);
 export const compartmentLevel = (s,i,x) => waterLevel(i,s.volumes[i],s.angle)-Math.tan(s.angle)*(x-1280);
 export function createShip(arena) {
-  return arena.ship ? {angle:0,omega:0,sink:0,vy:0,age:0,volumes:[0,0,0,0,0],currents:[0,0,0,0,0]} : null;
+  return arena.ship ? {angle:0,omega:0,sink:0,vy:0,age:0,volumes:[0,0,0,0,0],currents:[0,0,0,0,0],charges:[0,0,0,0,0],sparks:[0,0,0,0,0]} : null;
 }
 export function validShip(s) {
-  return !!s && ['angle','omega','sink','vy','age'].every(k=>Number.isFinite(s[k])) &&
+  return !!s && ['charges','sparks'].every(k=>Array.isArray(s[k])&&s[k].length===5&&s[k].every(v=>Number.isFinite(v)&&v>=0&&v<=1)) && ['angle','omega','sink','vy','age'].every(k=>Number.isFinite(s[k])) &&
     Math.abs(s.angle)<=.56 && Math.abs(s.omega)<=.3 && s.sink>=-60 && s.sink<=1100 && Math.abs(s.vy)<=100 && s.age>=0 &&
     Array.isArray(s.volumes)&&s.volumes.length===5&&s.volumes.every((v,i)=>Number.isFinite(v)&&v>=0&&v<=shipCapacity(i)+.02) &&
     Array.isArray(s.currents)&&s.currents.length===5&&s.currents.every(v=>Number.isFinite(v)&&Math.abs(v)<=240);
@@ -87,24 +88,18 @@ export function shipWaterAt(world,x,y) {
 export function updateShip(world,dt) {
   const s=world.ship;if(!s||world.prediction)return;
   s.age+=dt;
-  const levels=shipLevels(s),slope=-Math.tan(s.angle),delta=[0,0,0,0,0],flow=[0,0,0,0,0];
+  const levels=shipLevels(s),slope=-Math.tan(s.angle),ports=[];
   const transfer=(i,j,x,y,width)=>{
     const a=levels[i]+slope*(x-1280),b=j<0?seaLevel(s,x):levels[j]+slope*(x-1280);
     const headA=Math.max(0,y-a),headB=Math.max(0,y-b),head=headB-headA;
-    if(Math.abs(head)<.02)return;
-    let amount=Math.sign(head)*width*Math.sqrt(2*980*Math.abs(head))*.16*dt;
-    // Each opening is bounded by both available water and receiver capacity.
-    amount=clamp(amount,-Math.max(0,s.volumes[i]+delta[i]),Math.max(0,shipCapacity(i)-s.volumes[i]-delta[i]));
-    if(j>=0)amount=clamp(amount,-Math.max(0,shipCapacity(j)-s.volumes[j]-delta[j]),Math.max(0,s.volumes[j]+delta[j]));
-    delta[i]+=amount;if(j>=0)delta[j]-=amount;
-    const direction=j<0?(x<1280?1:-1):-1;
-    flow[i]+=amount*direction;if(j>=0)flow[j]+=amount*direction;
+    ports.push({i,j,head,width,direction:j<0?(x<1280?1:-1):-1});
   };
   for(const b of shipOpenings(world))transfer(b.i,b.j,b.x,b.y,b.width);
   // Open hatches/downflooding once a deck edge is underwater. This is driven
   // by the ocean level, so a dry above-water hole cannot magically flood.
   for(let i=0;i<5;i++)for(const x of [SHIP.edges[i]+80,SHIP.edges[i+1]-80])transfer(i,-1,x,680,45);
-  for(let i=0;i<5;i++) {s.volumes[i]=clamp(s.volumes[i]+delta[i],0,shipCapacity(i));s.currents[i]+=(clamp(flow[i]/Math.max(dt,1e-6)/320,-240,240)-s.currents[i])*Math.min(1,dt*3);}
+  const flow=flowLiquidReservoirs(s.volumes,s.volumes.map((_,i)=>shipCapacity(i)),ports,dt);
+  for(let i=0;i<5;i++) {s.currents[i]+=(clamp(flow[i]/Math.max(dt,1e-6)/320,-240,240)-s.currents[i])*Math.min(1,dt*3);}
   const flooded=s.volumes.reduce((a,b)=>a+b,0),lift=displacement(s);
   // Lost reserve buoyancy changes heave; asymmetric flood mass creates torque.
   // Fully flooded hulls have more weight than maximum displacement and sink.
@@ -120,15 +115,15 @@ export function updateShip(world,dt) {
     const wet=shipWaterAt(world,b.x+b.w/2,b.y+b.h*.7),fraction=wet?clamp(wet.depth/Math.max(12,b.h),0,1):0;
     if(wet){b.fire=0;b.cold=Math.max(b.cold||0,.3);b.soaked=2;}
     const lift=1400*(b.material==='wood'?1.35:b.material==='metal'?.48:.75)*fraction;
-    const drag=1-Math.exp(-dt*fraction*3);
+    const drag=liquidDrag(dt,fraction,3);
     impulseProp(b,(gx*dt+((wet?.vx||0)-b.vx)*drag)*b.mass,(gy*dt-lift*dt-b.vy*drag)*b.mass);
   }
   for(const list of [world.drops,world.debris,world.blood,world.projectiles])for(const p of list||[]) {
-    const wet=shipWaterAt(world,p.x,p.y),drag=wet?Math.exp(-dt*(list===world.projectiles?1.4:3)):1;
+    const wet=shipWaterAt(world,p.x,p.y),drag=wet?(1-liquidDrag(dt,1,list===world.projectiles?1.4:3)):1;
     if(Number.isFinite(p.vx)){p.vx=p.vx*drag+gx*dt;p.vy=p.vy*drag+(gy-(wet&&list!==world.projectiles?1050:0))*dt;}
   }
   for(const rag of world.ragdolls||[])for(const q of rag.points||[]) {
-    const wet=shipWaterAt(world,q.x,q.y),drag=wet?Math.exp(-dt*3):1;
+    const wet=shipWaterAt(world,q.x,q.y),drag=wet?(1-liquidDrag(dt,1,3)):1;
     q.px=q.x-(q.x-q.px)*drag-gx*dt*dt;q.py=q.y-(q.y-q.py)*drag-(gy-(wet?1550:0))*dt*dt;
   }
 }
@@ -146,7 +141,7 @@ export function swimPlayer(world,p,input,dt) {
   const angle=world.ship.angle;
   p.vx+=1800*Math.sin(angle)*dt;p.vy+=1800*(Math.cos(angle)-1)*dt;
   if(!p.swimming)return input;
-  const immersion=clamp(wet.depth/65,0,1),drag=Math.exp(-dt*3.7*immersion);
+  const immersion=clamp(wet.depth/65,0,1),drag=(1-liquidDrag(dt,immersion,3.7));
   p.vx=(p.vx-(wet.vx||0))*drag+(wet.vx||0);p.vy=p.vy*drag-1810*immersion*dt;
   if(p.knockdown>0)for(const q of p.rig||[]){q.px=q.x-(q.x-q.px)*drag;q.py=q.y-(q.y-q.py)*drag+1810*immersion*dt*dt;}
   const able=!p.freeze&&p.stun<=0&&!p.knockdown;
@@ -168,4 +163,44 @@ export function shipSwimControls(world,p) {
   let dx=-Math.sin(world.ship.angle)*90,dy=-130;
   if(overhead){const left=overhead.x-45,right=overhead.x+overhead.w+45;dx=(Math.abs(p.x-left)<Math.abs(p.x-right)?left:right)-p.x;dy=-25;}
   return {left:false,right:false,jump:false,duck:false,attack:true,block:false,throw:false,aim:Math.atan2(dy,dx)};
+}
+
+
+// Reservoir water joins the same electrical graph as free droplets and metal.
+// Clip the actual hull cross-section by compartment edges and the free surface.
+export function shipWaterRegions(state) {
+  const s=state.ship;if(!s)return [];
+  const levels=shipLevels(s),slope=-Math.tan(s.angle);
+  return s.volumes.flatMap((volume,i)=>{
+    if(volume<=.001)return [];
+    let poly=[{x:230,y:680},{x:440,y:1130},{x:2120,y:1130},{x:2350,y:680}];
+    for(const distance of [p=>p.x-SHIP.edges[i],p=>SHIP.edges[i+1]-p.x,p=>p.y-levels[i]-slope*(p.x-1280)]) {
+      const next=[];
+      for(let n=0;n<poly.length;n++) {
+        const a=poly[n],b=poly[(n+1)%poly.length],da=distance(a),db=distance(b);
+        if(da>=0)next.push(a);
+        if((da>=0)!==(db>=0)){const t=da/(da-db);next.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});}
+      }
+      poly=next;
+    }
+    if(poly.length<3)return [];
+    const x=Math.min(...poly.map(p=>p.x)),y=Math.min(...poly.map(p=>p.y));
+    return [{id:`ship-water-${i}`,shipCell:i,x,y,w:Math.max(...poly.map(p=>p.x))-x,h:Math.max(...poly.map(p=>p.y))-y,
+      grounded:true,polygon:poly,get charge(){return s.charges[i];},set charge(v){s.charges[i]=v;},
+      get spark(){return s.sparks[i];},set spark(v){s.sparks[i]=v;}}];
+  });
+}
+
+export function absorbShipWater(world) {
+  const s=world.ship;if(!s || world.prediction)return;
+  for(const q of world.water) {
+    if(q.frozen || q.h<=0)continue;
+    const x=q.x+q.w/2,y=q.y+q.h,i=shipCell(x);
+    if(i<0 || y<680 || y>shipBottom(x)+3)continue;
+    if(!shipWaterAt(world,x,y) && !(q.grounded && y>=shipBottom(x)-3))continue;
+    const take=liquidTransfer(q.w*q.h,q.w*q.h,shipCapacity(i)-s.volumes[i]);
+    if(take>0){s.sparks[i]=Math.max(s.sparks[i],q.spark||0);s.charges[i]=Math.max(s.charges[i],q.charge||0);}
+    s.volumes[i]+=take;q.h-=take/q.w;q.y+=take/q.w;
+  }
+  world.water=world.water.filter(q=>q.h>1e-8);
 }

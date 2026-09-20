@@ -110,21 +110,9 @@ export function drawLadle(c,h,time,reduced){
   const tilt=h.active?.65:h.warning>0?.65*(1-h.warning/2):phase>=9?.65*Math.max(0,10-phase):0;
   c.save();c.translate(h.x,660);c.rotate(tilt);
   c.beginPath();c.moveTo(-66,-46);c.lineTo(66,-46);c.lineTo(52,49);c.quadraticCurveTo(0,68,-52,49);c.closePath();c.fillStyle="#716459";c.fill();c.strokeStyle="#adb3a3";c.lineWidth=7;c.stroke();
-  c.fillStyle="#ffbd61";c.fillRect(-53,-42,106,15);
+  if(h.ladleLeft>0){c.fillStyle="#ffbd61";c.fillRect(-53,-42,106,15*Math.min(1,h.ladleLeft/3000));}
   for(let y=-10;y<40;y+=20)line(c,-51,y,51,y,"#343b40",7);
   c.restore();
   dot(c,h.x+95,602,10,h.active?"#ff7850":h.warning>0&&(reduced||Math.sin(time*9)>0)?"#ffe197":"#415055");
-  if(h.active){
-    // The visible white-hot core is exactly the authoritative stream footprint.
-    const g=c.createLinearGradient(0,705,0,h.y);g.addColorStop(0,"#fff5b8");g.addColorStop(1,"#ff9342");
-    c.fillStyle="#f05c2580";c.fillRect(h.x-28,705,56,h.y-705);
-    c.fillStyle=g;c.fillRect(h.x-22,705,44,h.y-705);
-    line(c,h.x-11,705,h.x-11,h.y,"#fff6c5",8);
-    for(let i=0;i<22;i++){
-      const age=((reduced?0:time)*1.5+i*.137)%1,side=i%2?-1:1;
-      const x=h.x+side*age*95,y=1220-Math.sin(age*Math.PI)*70;
-      dot(c,x,y,2+(1-age)*3,"#ffd981");
-    }
-  }
   c.restore();
 }
