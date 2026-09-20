@@ -36,9 +36,9 @@ export function drawTrain(c,h,time,reduced){
     if(h.warning>0&&(reduced||Math.sin(time*9)>0))dot(c,x,h.y-278,10,"#ffcc65");
   }
   if(!h.active){c.restore();return;}
-  c.translate(h.bodyX,h.y);c.scale(h.dir,1);
+  c.translate(h.bodyX,h.bodyY ?? h.y-h.h/2);c.rotate(h.angle||0);c.scale(h.dir,1);c.translate(0,h.h/2);
   const l=-h.w/2,r=h.w/2;
-  if(!reduced){
+  if(!reduced&&!h.derailed){
     // Wide, bounded horizontal smears imply shutter exposure without blurring
     // the whole canvas or adding transparent collision outside the train.
     const streak=c.createLinearGradient(l-430,0,r,0);
@@ -56,7 +56,7 @@ export function drawTrain(c,h,time,reduced){
   c.beginPath();c.moveTo(r-223,-h.h+20);c.lineTo(r-162,-h.h+28);c.lineTo(r-88,-69);c.lineTo(r-200,-79);c.closePath();c.fillStyle="#16364d";c.fill();
   for(let x=l+140;x<r-130;x+=300){line(c,x,-h.h+2,x,-13,"#506979",5);dot(c,x-45,-9,17,"#182c3a");dot(c,x+45,-9,17,"#182c3a");}
   dot(c,r-26,-30,8,"#fff7cf");
-  if(!reduced){
+  if(!reduced&&!h.derailed){
     for(let y=-h.h+18;y<-15;y+=15){
       const smear=c.createLinearGradient(l-140,0,r-170,0);
       smear.addColorStop(0,"#dbefff00");smear.addColorStop(.25,"#dbefff45");smear.addColorStop(1,"#dbefff99");
@@ -64,7 +64,7 @@ export function drawTrain(c,h,time,reduced){
     }
     for(let x=l+60;x<r-260;x+=80)line(c,x-100,-h.h+48,x+50,-h.h+48,"#24485d66",18);
   }
-  if(!reduced)for(let i=0;i<7;i++)line(c,l-35-i*28,-25-i*17,l+80-i*15,-25-i*17,"#bbddeb55",3);
+  if(!reduced&&!h.derailed)for(let i=0;i<7;i++)line(c,l-35-i*28,-25-i*17,l+80-i*15,-25-i*17,"#bbddeb55",3);
   c.restore();
 }
 export function drawTrack(c,state){

@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 61;
+export const PROTOCOL = 62;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -869,7 +869,9 @@ export function validSnapshot(s) {
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
         (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
-        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 && Math.abs(h.bodyX) <= 6000)) &&
+        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 &&
+          typeof h.derailed === "boolean" && finite(h.angle) && Math.abs(h.angle) <= Math.PI && finite(h.vx) && Math.abs(h.vx) <= 6400 &&
+          finite(h.spin) && Math.abs(h.spin) <= 7 && Math.abs(h.bodyX) <= 8000 && h.bodyY >= -2500 && h.bodyY <= 6000)) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 4) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
           integer(h.assemblyWork, 0, 10000000) &&

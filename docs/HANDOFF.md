@@ -2,6 +2,31 @@
 
 Updated 20 September 2026. Read the root `AGENTS.md` first.
 
+## Physical Bullet Train - 20 September 2026
+
+- v0.40.0, protocol 62. Refresh every player's tab and create a new room.
+- The scheduled 3,200-unit train keeps its two-second warning, alternating direction,
+  6,400-unit entry speed, projectile cover and swept contact while the track is intact.
+- A wheel set reaching carved rail now derails the live train. It retains momentum,
+  falls under gravity, rotates about its centre and gains further torque from impacts.
+  Repeated contacts bleed speed without turning the train into a scripted animation.
+- The rotated body has authoritative collision. It kills fighters and fallen bodies,
+  smashes props, hurls persistent fragments and loose weapons, blocks shots and carves
+  rails, catwalks and lower platforms in its path. Entrance damage still cancels later
+  services as before.
+- Derail position, velocity, angle and spin use the normal validated snapshot, compact
+  transport, interpolation, hot-join and round-reset paths. Malformed or excessive
+  motion is rejected.
+- Added focused checks for real wheel-to-gap timing, falling/rotation, rotated contact,
+  platform destruction, matter impacts, compact hot joins, validation and reset.
+  All 1,061 tests pass; the production build and diff check pass.
+- A deterministic 1600 x 900 source render was inspected at full tumble with no page
+  errors. The train remained one continuous rotated body while its collision path and
+  the visible holes in track/platforms agreed. Evidence is outside Git at
+  `../physical-train-tumble-clean.png` and `../physical-train-visual.mjs`.
+- Source worktree: `../bonk-club-qa/physical-bullet-train`, branch
+  `codex/physical-bullet-train`. Release verification follows after publication.
+
 ## Assembly paint booth and supplied robots - 20 September 2026
 
 - v0.39.0 / protocol 61. Refresh every player's tab and create a new room.

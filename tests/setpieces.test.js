@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards, hazardZone } from "../src/hazards.js";
 import { prepareProp } from "../src/props.js";
-import { trainPose } from "../src/trains.js";
+import { trainBox, trainIntersects, trainPose } from "../src/trains.js";
 import { carveExplosion } from "../src/terrain.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { validSnapshot } from "../src/network.js";
@@ -157,3 +157,44 @@ test("train impacts keep fresh and existing debris within snapshot motion limits
   assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
   tick(w);assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
 });
+
+test("a passing train derails into a physical fall when a wheel reaches missing track",()=>{
+  const w=fixture(),h=w.hazards[0];
+  carveExplosion(w,{x:1280,y:1060,radius:85});
+  assert.ok(w.platforms.some(p=>p.y===1060&&p.x<1280&&p.x+p.w<1280));
+  h.age=5.35;
+  for(let i=0;i<30&&!h.derailed;i++)tick(w);
+  assert.ok(h.derailed);assert.ok(h.active);assert.ok(Math.abs(h.vx)>1000);
+  const start={y:h.bodyY,angle:h.angle};
+  for(let i=0;i<30;i++)tick(w);
+  assert.ok(h.bodyY>start.y);assert.ok(Math.abs(h.angle-start.angle)>.02);
+  assert.ok(validSnapshot(w.snapshot()));
+});
+
+test("the derailed train has rotated collision, destroys platforms and wipes out matter in its path",()=>{
+  const w=fixture(),h=w.hazards[0],p=w.players[0];
+  carveExplosion(w,{x:1120,y:1060,radius:90});h.age=5.25;
+  for(let i=0;i<20&&!h.derailed;i++)tick(w);
+  assert.ok(h.derailed);
+  Object.assign(h,{bodyX:1280,bodyY:825,vx:900,vy:500,angle:.42,spin:1.1,crashCooldown:0});
+  place(p,1280,825);w.drops.push({x:1420,y:890,vx:0,vy:0,type:"blaster",ammo:10,life:100});
+  const before=w.platforms.length,box=trainBox(h);
+  assert.ok(box.h>h.h*5);assert.ok(trainIntersects(h,playerBoxForTest(p)));
+  for(let i=0;i<4;i++)tick(w);
+  assert.equal(p.alive,false);assert.equal(w.lastDeathCause,"train");
+  assert.ok(w.platforms.length!==before||w.platforms.some(q=>q.id?.startsWith("cut")));
+  assert.ok(Math.abs(w.drops.at(-1).vx)>100);
+});
+
+test("derail state survives compact hot join, rejects malformed motion and resets next round",()=>{
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;
+  for(let i=0;i<30&&!h.derailed;i++)tick(w);
+  const s=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
+  const train=s.hazards[0];assert.ok(train.derailed);assert.ok(Math.abs(train.angle-h.angle)<.01);assert.ok(Math.abs(train.vx-h.vx)<.01);
+  for(const [key,value] of [["angle",Math.PI+1],["vx",7000],["spin",8],["derailed","yes"]]){
+    const bad=structuredClone(s);bad.hazards[0][key]=value;assert.equal(validSnapshot(bad),false,key);
+  }
+  w.startRound();assert.equal(w.hazards[0].derailed,false);assert.equal(w.hazards[0].angle,0);
+});
+
+function playerBoxForTest(p){return{x:p.x-18,y:p.y-28,w:36,h:56};}

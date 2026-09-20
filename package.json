@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.39.0",
-  "releaseNotes": "Paint booth, supplied wheel robots and independent car assembly with rebuilt maintenance routes",
+  "version": "0.40.0",
+  "releaseNotes": "Bullet trains derail, fall and tear through damaged track and platforms",
   "private": true,
   "type": "module",
   "scripts": {

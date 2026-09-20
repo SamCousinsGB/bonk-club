@@ -83,7 +83,7 @@ export function carveExplosion(world, blast, { fixtures = true } = {}) {
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
   for (const h of fixtures ? world.hazards : []) {
-    if (h.type === "powerline" || h.type === "furnace") continue; // Cut conductors keep their power cycle.
+    if (h.type === "powerline" || h.type === "furnace" || h.type === "train") continue; // Cut conductors keep their power cycle; track damage derails the train instead of deleting it.
     if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,

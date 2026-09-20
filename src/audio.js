@@ -206,6 +206,10 @@ export class Sound {
       return;
     }
     if(type==='hazard'&&detail.kind==='train')return; // State owns the single pass-by voice.
+    if(type==='hazard'&&detail.kind==='train-derail'){
+      this.sample('heavy-impact',detail,{priority:true});
+      return;
+    }
     if(type==='hazard'&&detail.kind?.startsWith('assembly-')){
       const name=({'assembly-servo':'assembly-servo','assembly-spray':'assembly-spray','assembly-impact':'heavy-impact','assembly-fit':'cover'})[detail.kind];
       if(name)this.sample(name,detail);
