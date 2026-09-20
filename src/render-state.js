@@ -86,6 +86,10 @@ export function blend(a, b, t) {
     const items = new Map(a.items.map(p => [p.id,p]));
     out.items = b.items.map(p => blend(items.get(p.id),p,t));
   }
+  if (a.carriages && b.carriages) {
+    const cars=new Map(a.carriages.map(car=>[car.id,car]));
+    out.carriages=b.carriages.map(car=>blend(cars.get(car.id),car,t));
+  }
   for (const key of ["rig", "points", "spine", "outline"])
     if (Array.isArray(a[key]) && Array.isArray(b[key]))
       out[key] = b[key].map((p, i) => {

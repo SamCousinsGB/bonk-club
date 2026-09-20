@@ -4,6 +4,25 @@ Updated 20 September 2026. Read the root `AGENTS.md` first. This file is deliber
 short; completed release history through v0.40.0 is preserved in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
+## Pending integration: articulated Bullet Train carriages
+
+- Candidate v0.40.1, protocol 63. Refresh every player's tab and create a new room.
+- The derail is eight independent weighted carriage bodies rather than one 3,200-unit
+  rectangle. Each coach owns position, velocity, angle, spin, bogie support and collision.
+- Physical couplers propagate loads through the consist. Severe stretching or jackknifing
+  breaks links; coach-to-coach collision prevents bodies passing through one another.
+- Intact bogies stay supported until they reach missing rail. Unsupported coaches fall,
+  articulate, tumble, carve platforms and retain lethal fighter, ragdoll, prop, debris,
+  weapon and projectile impacts.
+- Guests interpolate stable carriage identities. Carriage motion, support and coupler
+  topology are bounded and validated through compact snapshots and hot joins.
+- All 1,061 tests, production build and diff check passed before rebasing. A deterministic
+  1600 x 900 source render was inspected with no page errors. Evidence is outside Git at
+  `../physical-train-carriages.png` and `../physical-train-visual.mjs`.
+- Worktree: `../bonk-club-qa/physical-bullet-train`; branch
+  `codex/physical-bullet-train`. Re-run the current fast suite/build after integration;
+  release verification remains outstanding.
+
 ## Current release
 
 - Current source: `origin/main` at `f85b099c73ae580039782c5943da8ba4624c54ef`.

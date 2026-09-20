@@ -1,6 +1,6 @@
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
-import { trainBox } from "./trains.js";
+import { trainCollisionBoxes } from "./trains.js";
 import { TRAIN_ARENA, FOUNDRY_ARENA } from "./setpiece-arenas.js";
 import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
@@ -1331,7 +1331,7 @@ export class World {
         endY = y + b.vy * dt;
       const shotSolids = [...this.solids(), ...furnaceHits(this)];
       for (const h of this.hazards) if (h.type === "train" && h.active && !h.done)
-        shotSolids.push({ ...trainBox(h), id: `train${h.id}`, material: "metal" });
+        trainCollisionBoxes(h).forEach((box,i)=>shotSolids.push({ ...box, id: `train${h.id}:${i}`, material: "metal" }));
       const collisions = shotSolids.map((s) => ({
         s,
         hit: segmentBox(x, y, endX, endY, s, b.r),

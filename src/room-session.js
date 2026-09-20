@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 62;
+export const PROTOCOL = 63;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -756,6 +756,11 @@ const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integ
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
   Math.abs(c.angle) <= Math.PI+.01 && Math.abs(c.spin) <= 18.01 && COVER_KINDS.includes(c.kind) &&
   typeof c.material === "string" && Object.hasOwn(PROP_MATERIALS,c.material) && propShape(c.shape);
+const validTrainCarriages = h => !h.derailed ? h.carriages === undefined :
+  list(h.carriages,8,c=>integer(c.id,0,7)&&xy(c)&&[c.vx,c.vy,c.angle,c.spin].every(finite)&&
+    Math.abs(c.x)<=8000&&c.y>=-2500&&c.y<=6000&&Math.abs(c.vx)<=7000&&Math.abs(c.vy)<=3000&&
+    Math.abs(c.angle)<=Math.PI+.01&&Math.abs(c.spin)<=7.01&&typeof c.onRail==="boolean"&&typeof c.coupled==="boolean") &&
+  h.carriages.length===8&&new Set(h.carriages.map(c=>c.id)).size===8&&h.carriages.at(-1).coupled===false;
 export function validSnapshot(s) {
   return (
     (s?.inputAcks === undefined || Array.isArray(s.inputAcks) && s.inputAcks.length === 4 && s.inputAcks.every(validInputSequence)) &&
@@ -871,7 +876,7 @@ export function validSnapshot(s) {
         (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
         (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 &&
           typeof h.derailed === "boolean" && finite(h.angle) && Math.abs(h.angle) <= Math.PI && finite(h.vx) && Math.abs(h.vx) <= 6400 &&
-          finite(h.spin) && Math.abs(h.spin) <= 7 && Math.abs(h.bodyX) <= 8000 && h.bodyY >= -2500 && h.bodyY <= 6000)) &&
+          finite(h.spin) && Math.abs(h.spin) <= 7 && Math.abs(h.bodyX) <= 8000 && h.bodyY >= -2500 && h.bodyY <= 6000 && validTrainCarriages(h))) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 4) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
           integer(h.assemblyWork, 0, 10000000) &&
