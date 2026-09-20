@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.36.0",
-  "releaseNotes": "Bullet Train and Scrap Foundry arenas; hold down to drop through thin platforms and wires",
+  "version": "0.36.1",
+  "releaseNotes": "Physical assembly cars and continuous conveyors; safe crusher return strokes",
   "private": true,
   "type": "module",
   "scripts": {

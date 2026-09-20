@@ -54,6 +54,11 @@ export function blend(a, b, t) {
   const out = { ...b };
   for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
+  // Assembly adds height upwards from the wheels. Interpolating the old top
+  // with the new height briefly draws the completed shell through the belt.
+  if(a.kind==="car" && a.carStage!==b.carStage && a.h!==b.h) {
+    out.y=lerp(a.y+a.h,b.y+b.h,t)-b.h;
+  }
   if(a.assemblyWork===b.assemblyWork)for(const key of ["assemblyOffset","assemblyPhase"])
     if(Number.isFinite(a[key])&&Number.isFinite(b[key]))out[key]=lerp(a[key],b[key],t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {

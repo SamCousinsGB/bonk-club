@@ -196,3 +196,15 @@ test("PHASER consumes car bodies without leaving collision or rebuilding them",(
   Object.assign(p,{x:b.x-100,y:b.y+30,rig:null,weapon:'phaser',ammo:2,aimAngle:0});
   w.attack(p);advance(w,.1);assert.equal(carBody(w,car),undefined);assert.equal(carTiles(w,car.id).length,0);assert.ok(validSnapshot(w.snapshot()));
 });
+
+
+test("interpolated assembly growth keeps the car bottom on the belt",()=>{
+  for(const [before,after] of [[0,1],[1,2]]) {
+    const oldHeight=before===0?32:70,newHeight=after===1?70:134;
+    const a={kind:'car',carStage:before,x:100,y:1190-oldHeight,w:250,h:oldHeight};
+    const b={...a,carStage:after,x:101,y:1190-newHeight,h:newHeight};
+    for(const t of [0,.25,.5,.75,1]) {
+      const view=blend(a,b,t);assert.equal(view.y+view.h,1190);assert.equal(view.x,100+t);
+    }
+  }
+});
