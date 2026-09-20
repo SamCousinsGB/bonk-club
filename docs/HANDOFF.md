@@ -6,44 +6,44 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- v0.45.0 / protocol 68 is prepared on `codex/plane-wing-failure`; publication
-  verification is pending. Four-engine wings now span beyond the screen. Actual
-  loss of structural connection latches a whole-aircraft roll and spiral, with
-  shared host/guest cabin gravity, falling wing collision and attached engines.
-  Hull texture/breach caches reuse unchanged geometry; plane AI traces are batched
-  and prioritise the playable decks. Local unit/focused stress checks and source
-  browser host/guest, changed-world hot join, reset and reduced-motion checks pass.
-  See `scripts/plane-profile.mjs` for the reproducible timing fixture.
-
-- Source release: `origin/main` at `e6af58b` (v0.44.0 Car Wash pass).
-- Game version: v0.44.0, protocol 67. Refresh every player tab before creating or
+- Source release: `origin/main` at `d90551a` (v0.45.0 aircraft wing failure).
+- Game version: v0.45.0, protocol 68. Refresh every player tab before creating or
   joining a room.
 - Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
-  overhead lights, tapered wings, swept-blade turbofans and layered clouds.
+  overhead lights, swept-blade turbofans and layered clouds. Wings now extend
+  well beyond both screen edges, with four engines and thicker structural spars.
   Interior area is 10.7% larger, with wider walkways and cargo floor. The whole
   aircraft banks and shifts; input aiming compensates for its displayed pose.
   Hull destruction opens local outward pressure jets affecting fighters, cargo,
   weapons, bodies, fragments and fluids, including through guest prediction.
+- Actual loss of wing/fuselage connectivity latches a roll toward the broken side
+  and a sustained spiral. Dents retain the connection; isolated hull plating does
+  not count as an anchor. Detached sections keep falling collision and engines
+  until leaving the arena. Shared host/guest gravity follows the roll, pointer and
+  controller aim follows the displayed pose, and the cabin stays inside the frame.
+  Offscreen wings are excluded from weapon and late-join spawn selection.
+- Plane bot flight searches yield every eight traces and prioritise playable decks.
+  Hull texture and breach-ray caches reuse unchanged geometry across snapshots.
+  `node scripts/plane-profile.mjs` reduced the largest navigation stall from 248 ms
+  to around 4–6 ms on the development machine. Sustained source-browser drawing
+  measured roughly 1.7–2.1 ms p95; these are local CPU timings, not internet latency.
 - Car Wash now has a tiled hall, suspended service decks, cloth brush cylinders,
   rinse arch and twin dryer fans. The seven contiguous belts start on the first
   combat tick and reverse every eight seconds after an amber warning. The shaped
   physical car stays in play between breakable end stops. Steel floor/decks resist
   bullets and retain circular blast cuts; removed contacts cannot drive the car.
   Individual brush/rinse/dryer mounts disable their matching art and effects.
-- Local source-browser checks passed actual host/guest controls, immediate car
-  movement, rinse, reversed belts, changed-world hot join, round reset, small
-  viewport and reduced motion with no browser errors. Focused car-wash simulation
-  passed bot combat and sustained four-player input.
-- Release run [35534186478](https://github.com/SamCousinsGB/bonk-club/actions/runs/35534186478)
-  passed 1,087 game tests, three server tests, all six arena-stress shards,
+- Source-browser checks passed left/right wing loss, inverted and sustained rolls,
+  reduced-motion framing, actual host/guest replication, a late join after wing
+  failure and aircraft restoration. Temporary blast/inspection controls were removed.
+- Release run [35535896441](https://github.com/SamCousinsGB/bonk-club/actions/runs/35535896441)
+  passed 1,094 game tests, three server tests, all six arena-stress shards,
   Windows/Linux desktop checks, release consistency and Pages. The full local
-  76-case stress run also completed successfully; final integrated Car Wash
-  stress and the full game suite passed after incorporating the aircraft release.
-- All 17 public files match the exact CI artifact. An unmodified public v0.44.0
-  browser session passed map selection, host/guest movement and jumping, ongoing
-  bot combat, a third player's hot join and a small viewport, with no page or
-  console errors. Public snapshots were observed through normal gameplay;
-  deliberate changed-world/reset assertions were performed in the source build.
+  76-case stress run and both focused Cargo Plane stress cases passed too.
+- All 17 public files match the exact CI artifact. Unmodified public v0.45.0
+  passed plane map selection, host/guest joining, ready/start and ongoing bot combat
+  through the next round, with clean browser logs. Deliberate structural failure,
+  changed-world hot join and reset assertions were performed in the source build.
 
 ## Reconciled WIP
 
