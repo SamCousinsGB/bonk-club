@@ -1,3 +1,4 @@
+import { synthesizeTrain } from "./train-sound.js";
 // Original procedural recordings. Render layered pressure transients, turbulent
 // air and damped material resonances once, then reuse them as short PCM samples.
 // No downloaded assets or per-shot DSP graph.
@@ -44,6 +45,7 @@ export function weaponSound(detail = {}) {
 }
 
 export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
+  if (name === "train") return synthesizeTrain(rate, variant);
   if (!SOUND_NAMES.includes(name)) throw new Error(`Unknown sound: ${name}`);
   let seed = 2166136261 ^ variant * 7919;
   for (const ch of name) seed = Math.imul(seed ^ ch.charCodeAt(0), 16777619);

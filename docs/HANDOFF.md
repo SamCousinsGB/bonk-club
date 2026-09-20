@@ -46,7 +46,7 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 ## Bullet Train, Scrap Foundry and drop-through platforms - 15 September 2026
 
 - v0.36.0 / protocol 58. Refresh all players and create a new room.
-- Bullet Train runs at 2,000 units/second, alternates direction every eleven
+- Bullet Train is 3,200 units long and runs at 6,400 units/second, alternates direction every eleven
   seconds, and warns for two seconds. Upper walkways or a timed double jump clear
   it. Swept contacts launch physical remains, props and weapons; shots hit the
   body. Destroyed approaches stop later services; an arriving train finishes.
@@ -67,6 +67,10 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   canonical edits are preserved. No dependencies, production hooks or Pi changes.
   External evidence: train-foundry-online.mjs/json, train-foundry-online-*.png,
   train-foundry-mobile-touch.png and train-foundry-visual.mjs in ../bonk-club-qa.
+- The final express pass takes 0.9 seconds, with horizontal motion smears and
+  a swept stereo wind/pressure recording. Reduced motion omits the smear. Sound
+  seeks on hot join/unmute and stops on exit, results or destruction; repeated
+  stale frames never restart it. Dedicated audio lifecycle/headroom tests pass.
 - Full-suite, production-bundle and Pages verification will follow below.
 
 ## Physical assembly cars - 15 September 2026

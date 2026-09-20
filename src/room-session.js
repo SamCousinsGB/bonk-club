@@ -869,7 +869,7 @@ export function validSnapshot(s) {
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
         (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
-        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 980 && h.h === 150 && h.y === 1060 && h.x === 1280 && Math.abs(h.bodyX) <= 5000)) &&
+        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 && Math.abs(h.bodyX) <= 6000)) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 3) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
           integer(h.assemblyWork, 0, 10000000) &&
@@ -882,7 +882,7 @@ export function validSnapshot(s) {
           finite,
         ) &&
         h.w > 0 &&
-        h.w <= (h.type === "train" ? 980 : h.type === "turbine" ? 500 : h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
+        h.w <= (h.type === "train" ? 3200 : h.type === "turbine" ? 500 : h.type === "furnace" ? 600 : h.type === "slag" ? 900 : h.type === "saw" ? 2400 : h.type === "powerline" ? 1100 : 400) &&
         (h.beltSpeed === undefined || (h.type === "conveyor" && finite(h.beltSpeed) && h.beltSpeed >= 80 && h.beltSpeed <= 800)) &&
         (h.beltForce === undefined || (h.type === "conveyor" && finite(h.beltForce) && h.beltForce >= 100 && h.beltForce <= 3000)) &&
         (h.motionSpeed === undefined || (h.type === "saw" && finite(h.motionSpeed) && h.motionSpeed >= .2 && h.motionSpeed <= 2)) &&

@@ -21,14 +21,14 @@ const tick=w=>updateHazards(w,STEP);
 test("train gives two seconds warning, crosses at speed and alternates directions",()=>{
   const w=fixture(),h=w.hazards[0];h.age=3;tick(w);assert.ok(h.warning>1.9&&!h.active);
   assert.deepEqual(hazardZone(h),{x:0,y:910,w:2560,h:150});
-  h.age=5.5;tick(w);const x=h.bodyX;tick(w);assert.ok(Math.abs(h.bodyX-x-2000*STEP)<.001);
+  h.age=5.5;tick(w);const x=h.bodyX;tick(w);assert.ok(Math.abs(h.bodyX-x-6400*STEP)<.001);
   h.age=16.5;tick(w);assert.equal(h.dir,-1);const right=h.bodyX;tick(w);assert.ok(h.bodyX<right);
   assert.ok(validSnapshot(w.snapshot()));
 });
 
 test("swept train contact kills prone and recovering fighters and moves severed bodies",()=>{
   for(const extra of [{},{prone:true},{knockdown:1},{freeze:1},{block:true}]){
-    const w=fixture(),h=w.hazards[0],p=w.players[0];h.age=5.6;
+    const w=fixture(),h=w.hazards[0],p=w.players[0];h.age=5.2;
     place(p,1210,1020,extra);tick(w);assert.equal(p.alive,false);assert.equal(w.lastDeathCause,"train");
     const rag=w.ragdolls[0];assert.equal(rag.effect,"blend");const before=structuredClone(rag.points);
     for(let i=0;i<20;i++){w.updateRagdolls(STEP);tick(w);}
@@ -39,16 +39,16 @@ test("swept train contact kills prone and recovering fighters and moves severed 
 test("warning is safe and a real timed double jump clears the train",()=>{
   const w=fixture(),h=w.hazards[0],p=w.players[0];place(p,1280,1030,{ground:true,support:w.platforms[8].id});
   h.age=4.8;tick(w);assert.equal(p.hp,100);
-  h.age=5.22;let clear=false;
+  h.age=4.85;let clear=false;
   for(let i=0;i<180;i++){
-    w.move(p,cleanInput({jump:i===0||i===45}),STEP);tick(w);
+    w.move(p,cleanInput({jump:i===0||i===30}),STEP);tick(w);
     if(h.active&&h.bodyX+h.w/2>1280&&h.bodyX-h.w/2<1280){assert.ok(p.y+30<=910);clear=true;}
   }
   assert.ok(clear&&p.alive);assert.equal(p.hp,100);
 });
 
 test("train strikes props and loose weapons while the upper route stays safe",()=>{
-  const w=fixture(),h=w.hazards[0];h.age=5.55;
+  const w=fixture(),h=w.hazards[0];h.age=5.2;
   place(w.players[0],1000,750);Object.assign(w.cover[0],{x:1000,y:990});
   w.drops.push({x:1040,y:1030,vx:0,vy:0,type:"blaster",ammo:10,life:100});tick(w);
   assert.equal(w.players[0].hp,100);assert.equal(w.cover[0].hp,0);
@@ -66,7 +66,7 @@ test("train validation rejects malformed geometry and interpolation never sweeps
   const w=fixture(),r=new RenderSnapshots();w.hazards[0].age=4.99;tick(w);const a=r.make(w.snapshot());
   w.hazards[0].age=5.04;tick(w);const b=r.make(w.snapshot());
   assert.equal(interpolateStates(a,b,.5).hazards[0].bodyX,b.hazards[0].bodyX);
-  for(const [key,value] of [["w",981],["y",900],["bodyX",Infinity],["h",151]]){
+  for(const [key,value] of [["w",3201],["y",900],["bodyX",Infinity],["h",151]]){
     const bad=structuredClone(b);bad.hazards[0][key]=value;assert.equal(validSnapshot(bad),false,key);
   }
   w.prediction=true;const age=w.hazards[0].age;tick(w);assert.equal(w.hazards[0].age,age);
@@ -103,8 +103,8 @@ test("ladles warn before pouring, kill only in the stream and stop after a mount
 });
 
 test("fast shots collide with the passing train and cannot shoot through it",()=>{
-  const w=fixture(),h=w.hazards[0];h.age=5.65;tick(w);
-  w.projectiles.push({kind:"bullet",x:h.bodyX-650,y:990,vx:30000,vy:0,r:3,life:Infinity,damage:20,force:200,owner:0,weapon:"blaster"});
+  const w=fixture(),h=w.hazards[0];h.age=5.45;tick(w);
+  w.projectiles.push({kind:"bullet",x:h.bodyX-h.w/2-70,y:990,vx:30000,vy:0,r:3,life:Infinity,damage:20,force:200,owner:0,weapon:"blaster"});
   w.updateProjectiles(1/30);assert.equal(w.projectiles.length,0);
 });
 

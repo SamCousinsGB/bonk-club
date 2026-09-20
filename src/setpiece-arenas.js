@@ -2,9 +2,9 @@ const solid = (x,y,w,h=40) => ({x,y,w,h,material:"stone"});
 const grate = (x,y,w) => ({x,y,w,h:12,material:"metal",oneWay:true});
 
 export const TRAIN_Y = 1060;
-export const TRAIN_LENGTH = 980;
+export const TRAIN_LENGTH = 3200;
 export const TRAIN_HEIGHT = 150;
-export const TRAIN_SPEED = 2000;
+export const TRAIN_SPEED = 6400;
 export const TRAIN_CYCLE = 11;
 export const TRAIN_START = 5;
 export const TRAIN_ARENA = {

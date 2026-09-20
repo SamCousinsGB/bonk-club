@@ -176,8 +176,8 @@ Keep this constitution for durable rules and the handoff for current work.
   Every crusher, including assembly and survival presses, crushes only beneath
   its descending lower face. Return strokes, tops and sides do not deal crush
   damage; steam and separate hazards retain their own contact rules.
-- BULLET TRAIN has a fast train crossing after two seconds of signal/horn warning,
-  alternating directions. Preserve jumpable clearance, upper bypasses, swept
+- BULLET TRAIN has a 3,200-unit train crossing at 6,400 units/second after two seconds of signal/horn warning,
+  alternating directions, motion blur and a rushing stereo wind pass. Preserve jumpable clearance, upper bypasses, swept
   physical contacts, projectile cover and disabled services after approach cuts.
 - SCRAP FOUNDRY has two tilting ladles pouring lethal molten streams into pits,
   inward conveyors, a central press and upper catwalks. Amber warnings precede

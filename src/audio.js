@@ -1,3 +1,4 @@
+import { TrainSound } from './train-sound.js';
 import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
 import { W } from './scale.js';
 import { Landings } from './landings.js';
@@ -16,12 +17,13 @@ export class Sound {
     this.alarm = null;
     this.landings = new Landings();
     this.furnace = new FurnaceSound();
+    this.train = new TrainSound();
   }
   get muted() { return this._muted; }
   set muted(value) {
     this._muted = !!value;
     if (this.master?.gain) this.master.gain.setTargetAtTime(value ? 0 : .8, this.context.currentTime, .008);
-    if (value) { this.stopAlarm(); this.furnace.stop(this); }
+    if (value) { this.stopAlarm(); this.furnace.stop(this); this.train.stop(this); }
   }
   connect() {
     const c = this.context;
@@ -106,7 +108,7 @@ export class Sound {
     gain.gain.linearRampToValueAtTime(0, end);
     source.start(now, offset, Math.max(.001, length));
     this.active++;
-    const voice = { source, gain, end: now + length, stopped: false };
+    const voice = { source, gain, pan, end: now + length, stopped: false };
     source.onended = () => { voice.stopped = true; source.disconnect(); gain.disconnect(); pan.disconnect(); this.active--; };
     return voice;
   }
@@ -138,6 +140,7 @@ export class Sound {
   }
   update(state) {
     this.furnace.update(this, state);
+    this.train.update(this, state);
     for (const contact of this.landings.update(state)) this.sample(contact.name, contact);
     const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
       .reduce((first, b) => !first || b.life < first.life ? b : first, null);
@@ -202,6 +205,7 @@ export class Sound {
       if(detail.urgent)this.tone(940,1250,.08,.12,'triangle');
       return;
     }
+    if(type==='hazard'&&detail.kind==='train')return; // State owns the single pass-by voice.
     const swing = ['bat', 'sword', 'hammer', 'powerfist'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
     const name = { hazard: ['train','train-warning'].includes(detail.kind) ? detail.kind : detail.kind === 'tesla' ? 'tesla' : 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];
