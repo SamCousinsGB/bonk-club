@@ -1,6 +1,7 @@
 import { drawTrain, drawLadle } from "./setpiece-art.js";
 import { drawTurbine } from "./turbine-art.js";
 import { drawFurnaceFixture } from "./furnace-art.js";
+import { drawAirflow, drawCarWash } from "./compact-setpiece-art.js";
 import { isScanner } from "./scanner.js";
 const line=(c,points,color,width=3)=>{c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=color;c.fill();};
@@ -39,6 +40,8 @@ export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platf
     if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced,platforms);continue;}
     if(h.type==="powerline")continue;
     if(h.type==="turbine"){if(layer!=="front")drawTurbine(c,h,reduced,time);continue;}
+    if(h.type==="airflow"){drawAirflow(c,h,time,layer,reduced);continue;}
+    if(h.type==="carwash"){drawCarWash(c,h,time,layer,reduced);continue;}
     if(layer==="back"&&!isScanner(h))continue;
     if(layer==="front"&&isScanner(h)){
       c.save();scannerFront(c,h);c.restore();continue;

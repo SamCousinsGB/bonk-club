@@ -210,6 +210,10 @@ export class Sound {
       this.sample('heavy-impact',detail,{priority:true});
       return;
     }
+    if(type==='hazard'&&['airflow','carwash-dryer','carwash-rinse'].includes(detail.kind)){
+      this.sample(detail.kind==='carwash-rinse'?'wash':'airflow',detail);
+      return;
+    }
     if(type==='hazard'&&detail.kind?.startsWith('assembly-')){
       const name=({'assembly-servo':'assembly-servo','assembly-spray':'assembly-spray','assembly-impact':'heavy-impact','assembly-fit':'cover'})[detail.kind];
       if(name)this.sample(name,detail);

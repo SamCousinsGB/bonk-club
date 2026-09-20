@@ -671,6 +671,13 @@ export function drawCover(c, p) {
       "#15202a",
       3,
     );
+  if (p.strapped) {
+    for (const f of [.28, .72]) {
+      const xx = x + w * f;
+      line(c, [[xx - 5, y - 3], [xx + 5, y + h + 3]], "#e2b75e", 7);
+      line(c, [[xx - 2, y - 3], [xx + 8, y + h + 3]], "#73512f", 2);
+    }
+  }
   c.restore();
   return true;
 }

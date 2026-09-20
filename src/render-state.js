@@ -11,6 +11,7 @@ const simulationOnly = new Set([
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
   "dropThrough", "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
   "crashCooldown",
+  "jetTick",
 ]);
 const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas", "spills"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;

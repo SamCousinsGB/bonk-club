@@ -1,4 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
+import { drawCompactSetpieceHall } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
@@ -919,6 +920,7 @@ export class Renderer {
         if (arena.turbine) drawTurbineHall(layer.getContext("2d"));
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
         if (arena.setpiece) drawSetpieceHall(layer.getContext("2d"),arena);
+        if (arena.compactSetpiece) drawCompactSetpieceHall(layer.getContext("2d"), arena);
         // Keep only a few backdrops in memory on phones.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);

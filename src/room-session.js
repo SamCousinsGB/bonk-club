@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 63;
+export const PROTOCOL = 64;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -750,7 +750,9 @@ const propSourceArt = b => {
     a[0]>=0 && a[1]>=0 && a[2]>0 && a[3]>0 && a[4]>0 && a[4]<=250 && a[5]>0 && a[5]<=200 &&
     a[0]+a[2]<=a[4]+.02 && a[1]+a[3]<=a[5]+.02;
 };
-const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integer(c.carPaint,0,3) && finite(c.carCoat) && c.carCoat>=0 && c.carCoat<=1) && validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
+const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integer(c.carPaint,0,3) && finite(c.carCoat) && c.carCoat>=0 && c.carCoat<=1) &&
+  (c.strapped === undefined || (typeof c.strapped === "boolean" && ["crate","pallet"].includes(c.kind) && finite(c.strapHp) && c.strapHp >= 0 && c.strapHp <= 40)) &&
+  validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
