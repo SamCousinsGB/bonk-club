@@ -25,4 +25,9 @@ export class InputDelivery {
     });
     this.held = out; return out;
   }
+  acknowledge(seq) {
+    // A second tap may still need its separating release tick. Do not tell
+    // prediction to discard that command before the press reaches simulation.
+    return this.edges.reduce((ack, edge, i) => edge > this.applied[i] ? Math.min(ack, edge - 1) : ack, seq);
+  }
 }

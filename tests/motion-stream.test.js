@@ -11,7 +11,7 @@ test("an actor replay finishing after a round transition cannot replace the new 
   const w=new World(),snapshots=new RenderSnapshots();
   const world={...snapshots.make(w.snapshot()),inputAcks:[0,0,0,0]},actors=motionState(world);
   room.worldState=world;room.connection={open:true,close(){}};
-  let finish;room.codec.stop();room.codec={run:()=>new Promise(resolve=>{finish=resolve;}),stop(){}};
+  let finish;room.motionCodec.stop();room.motionCodec={run:()=>new Promise(resolve=>{finish=resolve;}),stop(){}};
   try {
     room.receiveFrame(room.connection,{t:'state',seq:1,motion:true,state:{base:0,state:actors}});
     await new Promise(resolve=>setImmediate(resolve));assert.ok(finish);

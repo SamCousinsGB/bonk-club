@@ -105,7 +105,9 @@ export function interpolateStates(a, b, t, mode = "all") {
   const out = { ...b };
   if (mode !== "world") out.players = b.players.map(p => {
     const old = a.players.find(q => q.id === p.id);
-    return old && old.occupant === p.occupant && old.alive === p.alive ? blend(old, p, t) : p;
+    return old && old.occupant === p.occupant && old.alive === p.alive &&
+      !!old.knockdown === !!p.knockdown && !!old.freeze === !!p.freeze && old.morph === p.morph
+      ? blend(old, p, t) : p;
   });
   out.time = lerp(a.time,b.time,t);
   if (mode !== "actors") {

@@ -64,6 +64,8 @@ export class RoomSession {
     this.snapshots = new SnapshotHistory();
     this.motionSnapshots = new SnapshotHistory();
     this.codec = new StateCodec();
+    // Actor work must never queue behind world reconstruction/compression.
+    this.motionCodec = new StateCodec();
     this.receivedSequence = 0;
     this.receivedMotionSequence = 0;
     this.running = false;
@@ -151,7 +153,8 @@ export class RoomSession {
     const decoderKey = frame.motion ? "motionDecoder" : "decoder";
     c[decoderKey] ||= new LatestFrameDecoder(async m => {
       try {
-        const decoded = m.t === "frame" ? await this.codec.run("decode", m.bytes) : m.state;
+        const codec = m.motion ? this.motionCodec : this.codec;
+        const decoded = m.t === "frame" ? await codec.run("decode", m.bytes) : m.state;
         if (this.closed || this.connection !== c) return;
         const history = m.motion ? this.motionSnapshots : this.snapshots;
         const ackKey = m.motion ? "receivedMotionSequence" : "receivedSequence";
@@ -163,14 +166,14 @@ export class RoomSession {
           // The full world establishes the epoch and collision state. A hot
           // join never renders actors against a missing or different arena.
           if (!this.worldState || this.worldState.round !== compact.round || this.worldState.arenaIndex !== compact.arenaIndex) return;
-          const expanded = await this.codec.run("motion", compact);
+          const expanded = await codec.run("motion", compact);
           if (this.closed || this.connection !== c) return;
           if (this.worldState.round !== expanded.round || this.worldState.arenaIndex !== expanded.arenaIndex) return;
           if (!validSnapshot({ ...this.worldState, ...expanded })) throw new Error("Invalid motion snapshot");
           state = mergeMotion(this.worldState, expanded);
           this.motionState = expanded;
         } else {
-          const expanded = await this.codec.run("expand", compact);
+          const expanded = await codec.run("expand", compact);
           if (this.closed || this.connection !== c) return;
           if (!validSnapshot(expanded)) throw new Error("Invalid snapshot");
           this.worldState = expanded;
@@ -192,7 +195,7 @@ export class RoomSession {
           this.emittedState = state; this.emit("onState", state);
         }
       } catch {
-        this.emit("onNotice", "A game update could not be read. Waiting for the next update.");
+        if (!this.closed) this.emit("onNotice", "A game update could not be read. Waiting for the next update.");
       } finally {
         if (m.ack) this.send(c, { t: "ack", seq: m.seq, stateAck: this.receivedSequence });
       }
@@ -333,7 +336,8 @@ export class RoomSession {
       )
         return;
       if (m.t === "input" && this.running) {
-        if (realtimeOpen(c)) return;
+        // A peer may fall back before our local channel reports its closure.
+        // Both paths use the same sequence guard, so duplicates remain harmless.
         if (!validInputSequence(m.seq) || m.seq <= (c.inputSequence || 0)) return;
         this.acknowledgeState(c, m.stateAck); this.acknowledgeState(c, m.motionAck, true);
         c.inputSequence = m.seq;
@@ -580,9 +584,9 @@ export class RoomSession {
     const out = {};
     for (const id in this.lastInputs) {
       const c = this.connections.get(Number(id)), stale = now - (this.inputTimes[id] || 0) >= 700;
-      if (consume) this.appliedInputs[id] = c?.inputSequence || 0;
       const input = stale ? cleanInput(null) : this.lastInputs[id];
       out[id] = consume && c?.inputDelivery ? c.inputDelivery.sample(input, stale) : input;
+      if (consume) this.appliedInputs[id] = c?.inputDelivery?.acknowledge(c.inputSequence || 0) ?? (c?.inputSequence || 0);
     }
     return out;
   }
@@ -590,77 +594,93 @@ export class RoomSession {
     if (!this.host || !this.running || this.closed) return;
     this.latestState = state;
     this.chat.setRound(state.round);
-    if (this.encoding) return;
     const now = performance.now();
-    const ready = [...this.connections.values()].filter(
+    const ready = this.encoding ? [] : [...this.connections.values()].filter(
       (c) =>
         c.open &&
         now >= (c.nextFrameAt || 0) &&
         (realtimeOpen(c)
           ? c.realtime.bufferedAmount === 0
           : !c.bufferSize && (c.dataChannel?.bufferedAmount || 0) < 16384 &&
-            (c.inFlight.length < 4 || now - c.frameSentAt > 1200)),
+            c.inFlight.length < 4),
     );
-    const motionReady = [...this.connections.values()].filter(c => c.open && realtimeOpen(c) &&
+    const motionReady = this.encodingMotion ? [] : [...this.connections.values()].filter(c => c.open && realtimeOpen(c) &&
       !c.realtime.bufferedAmount && now >= (c.nextMotionAt || 0));
     if (!ready.length && !motionReady.length) return;
-    this.encoding = true;
+    try {
+      // Capture once, before any await: World.snapshot() contains live references.
+      const view = { ...this.renderSnapshots.make(ready.length ? state : motionState(state)), inputAcks: [...this.appliedInputs] };
+      const seq = ++this.sequence, jobs = [];
+      if (motionReady.length) jobs.push(this.sendStream(compactFlights(motionState(view)), seq, motionReady, true));
+      if (ready.length) jobs.push(this.sendStream(compactSnapshot(view), seq, ready, false));
+      await Promise.all(jobs);
+    } catch {
+      if (!this.closed) this.emit("onNotice", "A game update could not be sent. Retrying.");
+    }
+  }
+  async sendStream(state, seq, ready, fast) {
+    const lock = fast ? "encodingMotion" : "encoding";
+    this[lock] = true;
     const encodeAt = performance.now();
     try {
-      const view = { ...this.renderSnapshots.make(ready.length ? state : motionState(state)), inputAcks: [...this.appliedInputs] };
-      const motion = compactFlights(motionState(view));
-      state = ready.length ? compactSnapshot(view) : null;
-      const seq = ++this.sequence;
-      const encodings = new Map();
-      const jobs = [...motionReady.map(c => ({ c, fast: true })), ...ready.map(c => ({ c, fast: false }))];
-      const deliveries = await Promise.all(jobs.map(async ({ c, fast }) => {
-        const history = fast ? this.motionSnapshots : this.snapshots;
-        const envelope = history.encode(fast ? motion : state, (fast ? c.motionAck : c.stateAck) || 0);
+      const history = fast ? this.motionSnapshots : this.snapshots;
+      const codec = fast ? this.motionCodec : this.codec;
+      const envelopes = new Map(), encodings = new Map();
+      history.remember(seq, state);
+      const deliveries = await Promise.allSettled(ready.map(async c => {
+        let base = (fast ? c.motionAck : c.stateAck) || 0;
+        const previous = history.states.get(base);
+        if (!previous || previous.round !== state.round || previous.arenaIndex !== state.arenaIndex) base = 0;
+        // Recipients on the same baseline share the tree walk and compression.
+        if (!envelopes.has(base)) envelopes.set(base, history.encode(state, base));
+        const envelope = envelopes.get(base);
         const compressed = this.compression && c.metadata?.compression;
-        const key = `${fast}:${envelope.base}:${compressed}`;
-        if (!encodings.has(key)) encodings.set(key, compressed ? this.codec.run("encode", envelope) : envelope);
-        return { c, fast, value: await encodings.get(key), compressed };
-      }));
-      if (this.closed) return;
-      if (state) this.snapshots.remember(seq, state);
-      if (motionReady.length) this.motionSnapshots.remember(seq, motion);
-      this.streamStats.encodeMs = Math.round(performance.now() - encodeAt);
-      this.streamStats.maxEncodeMs = Math.max(this.streamStats.maxEncodeMs || 0, this.streamStats.encodeMs);
-      this.streamStats.sent = (this.streamStats.sent || 0) + 1;
-      const permitted = new Set([...ready, ...motionReady].filter(c => !realtimeOpen(c) || !c.realtime.bufferedAmount));
-      for (const { c, fast, value, compressed } of deliveries) {
-        if (!c.open || ![...this.connections.values()].includes(c)) continue;
+        const key = `${base}:${!!compressed}`;
+        if (!encodings.has(key)) encodings.set(key, compressed ? codec.run("encode", envelope) : envelope);
+        const value = await encodings.get(key);
+        if (this.closed || !c.open || ![...this.connections.values()].includes(c)) return;
         const packets = compressed ? framePackets(value, seq, fast) : null;
-        const history = fast ? this.motionSnapshots : this.snapshots, sentKey = fast ? "sentMotionStates" : "sentStates";
-        c[sentKey] ||= new Set(); c[sentKey].add(seq);
-        for (const old of c[sentKey]) if (!history.states.has(old)) c[sentKey].delete(old);
         if (packets && realtimeOpen(c)) {
-          if (permitted.has(c)) {
+          // The two bounded streams captured in one tick may share an enqueue
+          // opportunity. Otherwise one wins the race and starves the other.
+          if (!c.realtime.bufferedAmount || c.realtimeGeneration === seq) {
             try { for (const packet of packets) c.realtime.send(packet); }
-            catch { /* Drop the frame; the next complete one is independent. */ }
+            catch { return; /* Next complete frame is independent. */ }
+            c.realtimeGeneration = seq;
             c[fast ? "nextMotionAt" : "nextFrameAt"] = performance.now() +
               (value.byteLength + packets.length * 10) * 1000 / (fast ? MOTION_BYTES_PER_SECOND : STATE_BYTES_PER_SECOND);
-          }
-          continue;
-        }
-        if (fast) continue;
-        if (now - c.frameSentAt > 1200) c.inFlight = [];
-        c.inFlight.push(seq);
-        c.frameSequence = seq;
-        c.frameSentAt = performance.now();
-        const bytes = compressed ? value.byteLength : new TextEncoder().encode(JSON.stringify(value)).byteLength;
-        c.nextFrameAt = c.frameSentAt + bytes * 1000 / STATE_BYTES_PER_SECOND;
-        this.send(
-          c,
-          compressed
+          } else { this.streamStats.backpressureDrops = (this.streamStats.backpressureDrops || 0) + 1; return; }
+        } else {
+          if (fast) return;
+          // Recheck after asynchronous work: transport pressure may have changed.
+          if (c.bufferSize || (c.dataChannel?.bufferedAmount || 0) >= 16384) return;
+          // Reliable acknowledgements are cumulative. A timeout must not reopen
+          // this window: a suspended receiver may still ACK transport bytes while
+          // its application is unable to consume them. Resume on its actual ACK.
+          if (c.inFlight.length >= 4) return;
+          c.inFlight.push(seq);
+          c.frameSequence = seq;
+          c.frameSentAt = performance.now();
+          const bytes = compressed ? value.byteLength : new TextEncoder().encode(JSON.stringify(value)).byteLength;
+          c.nextFrameAt = c.frameSentAt + bytes * 1000 / STATE_BYTES_PER_SECOND;
+          this.send(c, compressed
             ? { t: "frame", seq, bytes: value }
-            : { t: "state", seq, state: value },
-        );
-      }
+            : { t: "state", seq, state: value });
+        }
+        const sentKey = fast ? "sentMotionStates" : "sentStates";
+        c[sentKey] ||= new Set(); c[sentKey].add(seq);
+        for (const old of c[sentKey]) if (!history.states.has(old)) c[sentKey].delete(old);
+      }));
+      if (deliveries.some(result => result.status === "rejected")) throw new Error("Frame delivery failed");
+      const ms = Math.round(performance.now() - encodeAt);
+      this.streamStats[fast ? "motionEncodeMs" : "encodeMs"] = ms;
+      const maxKey = fast ? "maxMotionEncodeMs" : "maxEncodeMs";
+      this.streamStats[maxKey] = Math.max(this.streamStats[maxKey] || 0, ms);
+      this.streamStats.sent = (this.streamStats.sent || 0) + 1;
     } catch {
-      this.emit("onNotice", "A game update could not be sent. Retrying.");
+      if (!this.closed) this.emit("onNotice", "A game update could not be sent. Retrying.");
     } finally {
-      this.encoding = false;
+      this[lock] = false;
     }
   }
   ping() {
@@ -692,7 +712,8 @@ export class RoomSession {
     if (this.closed) return;
     this.roomServiceAtClose = this.roomServiceState();
     this.closed = true;
-    this.codec.stop(); this.snapshots.states.clear(); this.motionSnapshots.states.clear();
+    this.codec.stop(); this.motionCodec.stop(); this.snapshots.states.clear(); this.motionSnapshots.states.clear();
+    this.connection?.decoder?.close(); this.connection?.motionDecoder?.close();
     this.worldState = this.motionState = this.emittedState = null;
     this.chat.reset();
     this.diagnostics.close();

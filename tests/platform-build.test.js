@@ -19,6 +19,8 @@ test('both targets use identical game inputs while the Steam bundle excludes bro
   const modules = result => result.filter(f => f.type === 'chunk').flatMap(f => f.moduleIds).map(id => id.replaceAll('\\', '/'));
   assert.ok(modules(web).some(id => id.endsWith('/src/network.js')));
   assert.ok(modules(web).some(id => id.includes('/node_modules/peerjs/')));
+  assert.ok(web.some(f => /^assets\/state-codec-worker-.*\.js$/.test(f.fileName)),
+    'production must include the standalone codec worker and its imports');
   for (const id of modules(steam)) assert.doesNotMatch(id, /\/src\/(network|ice|room-service|connection-diagnostics)\.js$|\/node_modules\/peerjs\//, id);
   assert.ok(modules(steam).some(id => id.endsWith('/src/engine.js')));
   const metadata = result => JSON.parse(result.find(f => f.fileName === 'build-metadata.json').source);

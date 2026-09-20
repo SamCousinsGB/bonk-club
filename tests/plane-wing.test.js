@@ -87,6 +87,18 @@ test('guest movement agrees with host gravity during a spiral without mutating r
   assert.deepEqual(state,saved);
 });
 
+test('prediction collision drops falling wing sections when they leave the arena',()=>{
+  const {w,h}=fixture();cut(w,-1);updatePlane(w,h,STEP);h.age=w.time=2.7;w.movePlatforms();
+  const state={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]};
+  const guest=new GuestPrediction();guest.receive(state,1,1000);
+  const count=guest.context.platforms.filter(p=>p.wingLoose).length;assert.ok(count>0);
+  for(let seq=1;seq<=14;seq++) {
+    guest.advance(cleanInput({}),seq,1000+seq*1000/60);
+    assert.deepEqual(guest.context.solids(guest.player),World.prototype.solids.call(guest.context,guest.player));
+  }
+  assert.ok(guest.context.platforms.filter(p=>p.wingLoose).length<count);
+});
+
 test('unchanged snapshot clones reuse breach rays and hull texture; damage invalidates both',()=>{
   const {w}=fixture(),first=cachedPlaneBreaches(w.platforms);
   assert.equal(cachedPlaneBreaches(structuredClone(w.platforms)),first);

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.46.0",
-  "releaseNotes": "Smoother water, live electrical paths and larger tanks with forceful flooding",
+  "version": "0.46.1",
+  "releaseNotes": "Improves multiplayer update scheduling and guest performance",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
     "test": "node --test --test-reporter=dot tests/*.test.js",
     "test:stress": "node --test --test-reporter=dot tests/*.stress.js",
     "test:release": "npm test && npm run test:stress",
+    "benchmark:netcode": "node scripts/benchmark-netcode.mjs",
     "desktop:build": "node scripts/build-desktop.mjs",
     "desktop:package": "node scripts/package-desktop.mjs",
     "steam:prepare": "node scripts/prepare-steam.mjs"

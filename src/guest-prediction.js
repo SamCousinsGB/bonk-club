@@ -12,6 +12,18 @@ const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "facing", "aimAngle
   "swingDuration", "meleeMove", "comboStep", "comboTime", "recoilTime", "block", "blockTime", "carryPoint"];
 const controllable = p => p?.alive && !p.knockdown && !p.freeze && !p.strands && !p.morph;
 
+// Prediction advances platforms but never changes world topology or prop poses.
+// Keep the platform references live while reusing the same collision strips for
+// every replayed command. Host simulation still rebuilds after physical edits.
+function predictionSolids(player) {
+  if (!this.collisionSolids || this.collisionPlatforms !== this.platforms || this.collisionCarrier !== player?.carryId) {
+    this.collisionSolids = World.prototype.solids.call(this, player);
+    this.collisionPlatforms = this.platforms;
+    this.collisionCarrier = player?.carryId;
+  }
+  return this.collisionSolids;
+}
+
 // Simulate only our own fighter. The shared movement/attack code has an explicit
 // prediction mode: no damage, projectiles, pickups, terrain edits or scores.
 export class GuestPrediction {
@@ -54,7 +66,7 @@ export class GuestPrediction {
       players: [this.player], projectiles: [],
       projectileCount:state.projectiles.length,
       attack(p,alternate) { World.prototype.attack.call(this,p,alternate); },
-      spikes: () => state.spikes, solids: World.prototype.solids,
+      spikes: () => state.spikes, solids: predictionSolids,
       random: () => .5, event() {}, hit() {}, kill() {}, damageCover() {},
     };
     if (controllable(p) && state.phase === "fight")
@@ -122,6 +134,7 @@ export class GuestPrediction {
           // render sample: it never becomes replay state or changes authority.
           this.future = structuredClone(this.player);
           const context = { ...this.context, players: [this.future],
+            collisionSolids: null,
             platforms: this.context.platforms.map(p => ({ ...p })),
             cover: this.context.cover.map(p => ({ ...p })), chunks: this.context.chunks.map(p => ({ ...p })),
           };
