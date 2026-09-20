@@ -4,7 +4,7 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 
 ## Arc Furnace component damage - 20 September 2026
 
-- v0.35.0, protocol 57. Refresh every player and create a new room.
+- Published in v0.35.1, protocol 57. Refresh every player and create a new room.
 - Three shell panels, three electrodes and six terminals take independent bullet,
   explosion, PHASER, power-fist, nuclear and black-hole damage. Losing the grate
   cannot delete the controller or every cable. Removed parts stay gone until reset.
@@ -25,7 +25,26 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   addressed by the concurrent AI completion on main (c8322d4); its dedicated
   safe replacement and crowded retreat regressions supersede the local repair.
   Furnace behavior is unchanged in integrated v0.35.1 / protocol 57.
-  Final release verification follows below.
+- Published revision: c8322d41b0709368b871314883b3e497885a5c0b.
+  [Release run 35513478929](https://github.com/SamCousinsGB/bonk-club/actions/runs/35513478929)
+  passed all 1,023 game tests, three server tests, browser build, seven desktop
+  unit tests per OS, executable smoke, packaging, source consistency and Pages.
+- All 17 public content files match the exact LF build and CI artifact by SHA-256.
+  Source hash: db893ba7168465fd0c96ec53f5d51d6e0fb6cc6b23d0ba887aa315f2e356ff9f.
+  Exact checkout: ../bonk-club-qa/furnace-final-exact; CI: furnace-final-ci;
+  evidence: furnace-final-live-verification.json and furnace-final-ci-tests.log.
+- Real source host/guest/late join verified independent component damage, falling
+  live wires, a 70-damage host-owned shock visible on the guest, varied discharge
+  lengths, changed-map hot join and reset with selected relay/relay pairs.
+  External fixture advances 0.2 seconds after shock so buffered guest rendering
+  reaches the changed health state; no production hooks were introduced.
+- Unmodified public v0.35.1 passed map selection, a live furnace round, audible
+  electrical output, mute/unmute and selected relay/relay with no browser errors.
+  Source damaged and small-screen visuals and public active visuals were inspected.
+  Evidence: furnace-damage-browser.json, furnace-damage-live.json and PNGs.
+  These peers ran on one QA PC; this is not a cross-ISP latency measurement.
+- Task preview port 5563 is stopped. Canonical unrelated work is preserved.
+
 
 ## AI completion - 20 September 2026
 
