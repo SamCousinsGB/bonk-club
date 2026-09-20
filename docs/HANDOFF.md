@@ -2,6 +2,31 @@
 
 Updated 20 September 2026. Read the root `AGENTS.md` first.
 
+## Arc Furnace component damage - 20 September 2026
+
+- v0.35.0, protocol 57. Refresh every player and create a new room.
+- Three shell panels, three electrodes and six terminals take independent bullet,
+  explosion, PHASER, power-fist, nuclear and black-hole damage. Losing the grate
+  cannot delete the controller or every cable. Removed parts stay gone until reset.
+- Damage destabilizes the power cycle: irregular restarts and discharge lengths,
+  always retaining a 1.2-second amber warning before timed activation. Surviving
+  supplied electrodes retain their own arc lanes. Existing beacons and electrical
+  strain/roar/cooling audio follow the actual phase; no countdown screens.
+- Six pass-through conductors use the tower cable solver. Cut tails fall and drape
+  with gravity and damping; wall feeds and surviving opposite electrode leads can
+  supply them. Actual live contact shocks fighters. Different phases can short
+  while touching; completely isolated runs have no supply. Water conducts contact.
+- Component health, clock and electrode lanes are validated and carried through
+  guest snapshots/hot joins; interpolation cannot restore removed components.
+  Black holes retain removed machinery as bounded metal wreckage.
+- Source: ../bonk-club-qa/furnace-damage, branch codex/furnace-damage. Canonical
+  unrelated edits remain preserved. QA files: ../bonk-club-qa/furnace-damage-*.
+- The first integrated CI passed 1,020/1,021 checks. Its menu-bot failure is
+  addressed by the concurrent AI completion on main (c8322d4); its dedicated
+  safe replacement and crowded retreat regressions supersede the local repair.
+  Furnace behavior is unchanged in integrated v0.35.1 / protocol 57.
+  Final release verification follows below.
+
 ## AI completion - 20 September 2026
 
 - v0.35.1 includes the AI pass below plus the current Turbine Hall, physical
