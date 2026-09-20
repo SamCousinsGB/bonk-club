@@ -6,7 +6,7 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: v0.44.0 Car Wash art and gameplay pass; public verification pending.
+- Source release: `origin/main` at `e6af58b` (v0.44.0 Car Wash pass).
 - Game version: v0.44.0, protocol 67. Refresh every player tab before creating or
   joining a room.
 - Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
@@ -24,8 +24,17 @@ history through v0.40.0 is archived in
 - Local source-browser checks passed actual host/guest controls, immediate car
   movement, rinse, reversed belts, changed-world hot join, round reset, small
   viewport and reduced motion with no browser errors. Focused car-wash simulation
-  passed bot combat and sustained four-player input. Integrated full checks and
-  public artifact/browser verification are pending.
+  passed bot combat and sustained four-player input.
+- Release run [35534186478](https://github.com/SamCousinsGB/bonk-club/actions/runs/35534186478)
+  passed 1,087 game tests, three server tests, all six arena-stress shards,
+  Windows/Linux desktop checks, release consistency and Pages. The full local
+  76-case stress run also completed successfully; final integrated Car Wash
+  stress and the full game suite passed after incorporating the aircraft release.
+- All 17 public files match the exact CI artifact. An unmodified public v0.44.0
+  browser session passed map selection, host/guest movement and jumping, ongoing
+  bot combat, a third player's hot join and a small viewport, with no page or
+  console errors. Public snapshots were observed through normal gameplay;
+  deliberate changed-world/reset assertions were performed in the source build.
 
 ## Reconciled WIP
 
