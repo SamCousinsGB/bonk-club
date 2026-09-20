@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.42.0",
-  "releaseNotes": "Rebuilds the cargo plane with turbulence and hull decompression",
+  "version": "0.43.0",
+  "releaseNotes": "Refines the cargo plane artwork and expands its interior",
   "private": true,
   "type": "module",
   "scripts": {

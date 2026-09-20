@@ -6,24 +6,23 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source release: `origin/main` at `8bc62c9`.
-- Game version: v0.42.0, protocol 65. Refresh every player tab before creating or
+- Source release: v0.43.0 aircraft art pass; release verification pending.
+- Game version: v0.43.0, protocol 66. Refresh every player tab before creating or
   joining a room.
-- Cargo Plane Hold is an oval cutaway with wings and exposed turbines. The whole
+- Cargo Plane Hold has a smooth riveted cutaway, recessed cabin structure, warm
+  overhead lights, tapered wings, swept-blade turbofans and layered clouds.
+  Interior area is 10.7% larger, with wider walkways and cargo floor. The whole
   aircraft banks and shifts; input aiming compensates for its displayed pose.
   Hull destruction opens local outward pressure jets affecting fighters, cargo,
   weapons, bodies, fragments and fluids, including through guest prediction.
   Car Wash has a slippery conveyor
   floor, a heavy physical car, striking brushes, finite rinse water and an opposing
   dryer. Both preserve authoritative hazard and prop state through reset and hot join.
-- Release run [35530173579](https://github.com/SamCousinsGB/bonk-club/actions/runs/35530173579)
-  passed 1,079 game tests, three server tests, all six arena-stress shards,
-  Windows/Linux desktop checks, release consistency and Pages. The full local
-  76-case arena stress run also passed. All 17 public files match the CI artifact.
-- Source browser checks verified whole-plane motion, actual roof/side holes and
-  upward/outward ejection. A real guest joined a damaged plane and retained the
-  existing breaches, jets and displaced cargo. The same changed-world hot join
-  passed on the public v0.42.0 build; host and guest consoles had no errors.
+- Local validation: 1,083 game tests and production build passed. Source browser
+  checks verified intact/breached artwork, complete engine breakup, bot combat,
+  reduced motion and a clean console. Cabin artwork is cached; physics and
+  decompression strength are unchanged. Exhaustive stress and release checks,
+  public artifact parity and public changed-world hot join are pending.
 
 ## Reconciled WIP
 

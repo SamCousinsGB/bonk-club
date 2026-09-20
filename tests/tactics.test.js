@@ -202,7 +202,7 @@ test("arena surfaces preserve their material rules and bounded starting geometry
   for (let arena = 0; arena < ARENAS.length; arena++) {
     const w = new World({ arena });
     const panels = w.platforms.filter((p) => p.destructible);
-    if(w.arena.cargoPlane)assert.ok(panels.length===190&&panels.every(p=>p.planeHull&&p.panel==="metal"));
+    if(w.arena.cargoPlane)assert.ok(panels.length===198&&panels.every(p=>p.planeHull&&p.panel==="metal"));
     else if(w.arena.setpiece||w.arena.survival||w.arena.transmission||w.arena.furnace||w.arena.assembly||w.arena.turbine)assert.equal(panels.length,0,"steel structures resist bullets");
     else assert.ok(panels.length > 0 && panels.length <= 6, ARENAS[arena].name);
     assert.ok(w.platforms.some((p) => !p.destructible));

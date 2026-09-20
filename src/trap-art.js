@@ -1,5 +1,6 @@
 import { drawTrain, drawLadle } from "./setpiece-art.js";
 import { drawTurbine } from "./turbine-art.js";
+import { drawPlaneEngine } from "./plane-art.js";
 import { drawFurnaceFixture } from "./furnace-art.js";
 import { drawCarWash } from "./compact-setpiece-art.js";
 import { isScanner } from "./scanner.js";
@@ -39,7 +40,7 @@ export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platf
     if(h.type==="train"){if(layer!=="front")drawTrain(c,h,time,reduced);continue;}
     if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced,platforms);continue;}
     if(h.type==="powerline")continue;
-    if(h.type==="turbine"){if(layer!=="front")drawTurbine(c,h,reduced,time);continue;}
+    if(h.type==="turbine"){if(layer!=="front")(theme==="cargo-plane"?drawPlaneEngine:drawTurbine)(c,h,reduced,time);continue;}
     if(h.type==="airflow")continue;
     if(h.type==="carwash"){drawCarWash(c,h,time,layer,reduced);continue;}
     if(layer==="back"&&!isScanner(h))continue;
