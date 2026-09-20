@@ -206,6 +206,11 @@ export class Sound {
       return;
     }
     if(type==='hazard'&&detail.kind==='train')return; // State owns the single pass-by voice.
+    if(type==='hazard'&&detail.kind?.startsWith('assembly-')){
+      const name=({'assembly-servo':'assembly-servo','assembly-spray':'assembly-spray','assembly-impact':'heavy-impact','assembly-fit':'cover'})[detail.kind];
+      if(name)this.sample(name,detail);
+      return;
+    }
     const swing = ['bat', 'sword', 'hammer', 'powerfist'].includes(detail.weapon) ? weaponSound(detail) : 'whoosh';
     const name = { hazard: ['train','train-warning'].includes(detail.kind) ? detail.kind : detail.kind === 'tesla' ? 'tesla' : 'burn', parry: 'parry', swing, throw: 'whoosh',
       coverhit: 'cover', break: 'debris', jump: 'jump', pickup: 'pickup', fight: 'fight', round: 'round' }[type];

@@ -31,7 +31,7 @@ export function collectMatter(world, f, source, kind) {
       ...(kind === "fighter" ? { ...appearance, facing: source.facing === -1 ? -1 : 1 } : {}),
       type: kind === "weapon" ? (source.type || source.weapon) : null,
       sourceKind: source.sourceKind || (kind === "prop" && source.kind !== "prop" ? source.kind : null) || null,
-      ...(source.kind === "car" || source.sourceKind === "car" ? {carStage:source.carStage??0,carPaint:source.carPaint??0} : {}),
+      ...(source.kind === "car" || source.sourceKind === "car" ? {carStage:source.carStage??0,carPaint:source.carPaint??0,carCoat:source.carCoat??0} : {}),
       vx: source.vx || 0, vy: source.vy || 0,
       spin: source.spin || source.angularVelocity || 0,
     });

@@ -123,7 +123,7 @@ function addWreck(world, f, s, kind = "platform") {
     hp: 120,
     kind,
     sourceKind: s.kind || null,
-    ...(s.kind === "car" ? {carStage:s.carStage??0,carPaint:s.carPaint??0} : {}),
+    ...(s.kind === "car" ? {carStage:s.carStage??0,carPaint:s.carPaint??0,carCoat:s.carCoat??0} : {}),
     sourceChunk: !!s.chunk,
     shape: s.shape,
     sourceArt: s.sourceArt,

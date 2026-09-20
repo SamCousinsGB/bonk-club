@@ -2,6 +2,33 @@
 
 Updated 20 September 2026. Read the root `AGENTS.md` first.
 
+## Assembly paint booth and supplied robots - 20 September 2026
+
+- v0.39.0 / protocol 61. Refresh every player's tab and create a new room.
+- Four stations stamp, weld, fetch/fit each wheel and spray paint. Parts are
+  independent; no damaged/missing-stage rejection or health restoration. Losing
+  an upstream machine leaves visibly incomplete cars moving through later work.
+- A rigid wheel arm makes two trips to its rear magazine and seats each wheel
+  separately. Interrupting it retains the fitted wheel. Paint fan jets match the
+  car colour; interrupted coverage stays on the car, fragments and captured matter.
+- Added paint plenum, pressure pots, extraction ducts, magazine feed, tooling
+  cues and matching spray/servo audio. Empty/broken machines cannot work. Amber
+  warns before work; active tooling is red. Paint contact is dangerous only inside
+  the active booth; existing descending-underside crusher and steam rules remain.
+- Suspended service galleries and end landings replace arbitrary small ledges.
+  Crown mounts form a lower route; intact upper routes remain safe. Decoration
+  follows surviving platform sections and cannot bridge destroyed collision.
+- 36 focused assembly/audio checks passed, including full production, separate
+  wheels, missing upstream work, persistent partial paint, invalid transport,
+  destruction, resets and an actual gallery jump. Production build passed.
+- Real source host/guest/changed-map hot join passed production, actual guest
+  movement/jump, falling damaged cars and partial paint after machine destruction.
+  Selected relay/relay pairs and no browser errors. These peers share one QA PC;
+  this is not a cross-ISP latency measurement. Desktop and small-screen evidence:
+  ../bonk-club-qa/paint-line-online.json and paint-line-*.png.
+- Worktree: ../bonk-club-qa/car-assembly, branch codex/assembly-paint-station.
+  Canonical unrelated edits remain preserved. Final release verification follows.
+
 ## Arc Furnace carved breaches and molten leaks - 20 September 2026
 
 - v0.38.0 / protocol 60 supersedes the rejected panel-damage appearance below.

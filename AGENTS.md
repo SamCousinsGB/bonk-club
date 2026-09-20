@@ -161,7 +161,8 @@ Keep this constitution for durable rules and the handoff for current work.
   bottom ring-out. Bots must not route onto intact turbine beds. Preserve machine
   destruction and remains through validated guest state and hot joins.
 - CAR ASSEMBLY uses a host-owned production clock and continuously moving conveyor:
-  stamp panels, weld the cabin, fit wheels and finish the car. Cars are heavy
+  stamp panels, weld the cabin, fetch and fit each wheel, then spray the car in
+  a separate paint booth. Cars are heavy
   physical props with shaped collision, bullet/blast damage, momentum and rotation.
   The belt drives cars only through surviving contact; broken sections let them
   tip and fall through, and finished cars fall from the outfeed. Never stop cars
@@ -169,12 +170,17 @@ Keep this constitution for durable rules and the handoff for current work.
   matching physical metal pieces. Preserve stage/paint through debris, black-hole
   capture, validated snapshots and hot joins. Keep bounded feed queues, permanent
   destruction, raised bypasses and full round reset; never repair damaged cars.
-  Machines latch aligned passing cars before working. Robot tools track programmed
-  weld points with fixed-length links. Empty stations park without welding or
-  steam; amber means warning/waiting, red means active work or a labelled
-  damaged-car, rejected-stage, jam or broken-machine fault. Keep the heavy press
-  die, timed steam jets and distinct stages. Active tools and lingering in steam
-  are lethal; never electrify the whole belt as a side effect of welding.
+  Machines accept passing cars regardless of damage or missing upstream parts.
+  Body panels, cabin, each wheel and paint are independent; each station adds
+  only its own work and never restores health. Partial paint and single-wheel
+  fitting persist if work is interrupted. Empty stations park; only broken
+  machinery faults red. Amber warns before work and red marks active tooling.
+  The wheel robot retrieves two visible wheels from the rear magazine, fitting
+  each separately with rigid links. Paint fan jets match the car colour and
+  leave persistent coverage. Suspended service galleries, end access landings
+  and machine crowns provide readable alternate routes with jump clearance.
+  Keep the heavy press die, timed steam jets and distinct stages. Active tools,
+  paint spray and lingering steam are dangerous; never electrify the whole belt.
   Every crusher, including assembly and survival presses, crushes only beneath
   its descending lower face. Return strokes, tops and sides do not deal crush
   damage; steam and separate hazards retain their own contact rules.

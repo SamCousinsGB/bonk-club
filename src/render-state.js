@@ -52,14 +52,14 @@ const lerp = (a, b, t) => a + (b - a) * t;
 export function blend(a, b, t) {
   if (!a || a === b || t === 1) return b;
   const out = { ...b };
-  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing"])
+  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing", "carCoat"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
   // Assembly adds height upwards from the wheels. Interpolating the old top
   // with the new height briefly draws the completed shell through the belt.
   if(a.kind==="car" && a.carStage!==b.carStage && a.h!==b.h) {
     out.y=lerp(a.y+a.h,b.y+b.h,t)-b.h;
   }
-  if(a.assemblyWork===b.assemblyWork)for(const key of ["assemblyOffset","assemblyPhase"])
+  if(a.assemblyWork===b.assemblyWork)for(const key of ["assemblyOffset","assemblyPhase","assemblyBottom","assemblyAngle"])
     if(Number.isFinite(a[key])&&Number.isFinite(b[key]))out[key]=lerp(a[key],b[key],t);
   if (Number.isFinite(a.aimAngle) && Number.isFinite(b.aimAngle)) {
     const turn = Math.atan2(Math.sin(b.aimAngle - a.aimAngle), Math.cos(b.aimAngle - a.aimAngle));

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.38.0",
-  "releaseNotes": "Blast-carved furnace holes and flowing molten-metal leaks",
+  "version": "0.39.0",
+  "releaseNotes": "Paint booth, supplied wheel robots and independent car assembly with rebuilt maintenance routes",
   "private": true,
   "type": "module",
   "scripts": {

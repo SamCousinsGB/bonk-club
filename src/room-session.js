@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 60;
+export const PROTOCOL = 61;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -728,7 +728,7 @@ const matter = c => c && c.kind === "matter" && xy(c) && integer(c.id,1,1000000)
     typeof q.color==="string" && /^#[0-9a-f]{6}$/i.test(q.color) &&
     (q.kind!=="fighter" || (validAppearance(q) && [1,-1].includes(q.facing))) &&
     (q.type===null || weaponTypes.includes(q.type)) && (q.sourceKind===null || COVER_KINDS.includes(q.sourceKind)) &&
-    (q.sourceKind!=="car" || Number.isInteger(q.carStage)&&q.carStage>=0&&q.carStage<=3&&Number.isInteger(q.carPaint)&&q.carPaint>=0&&q.carPaint<=3)) &&
+    (q.sourceKind!=="car" || Number.isInteger(q.carStage)&&q.carStage>=0&&q.carStage<=31&&Number.isInteger(q.carPaint)&&q.carPaint>=0&&q.carPaint<=3&&finite(q.carCoat)&&q.carCoat>=0&&q.carCoat<=1)) &&
   new Set(c.items.map(q=>q.id)).size===c.items.length;
 const propShape = shape => {
   if (shape === undefined) return true;
@@ -750,7 +750,7 @@ const propSourceArt = b => {
     a[0]>=0 && a[1]>=0 && a[2]>0 && a[3]>0 && a[4]>0 && a[4]<=250 && a[5]>0 && a[5]<=200 &&
     a[0]+a[2]<=a[4]+.02 && a[1]+a[3]<=a[5]+.02;
 };
-const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,3) && integer(c.carPaint,0,3)) && validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
+const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integer(c.carPaint,0,3) && finite(c.carCoat) && c.carCoat>=0 && c.carCoat<=1) && validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
   c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
@@ -831,7 +831,7 @@ export function validSnapshot(s) {
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
         (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&
         (p.assemblyHead === undefined || (p.assemblyHead === true && !!s.assembly)) &&
-        (p.assemblyMount === undefined || (integer(p.assemblyMount, 1, 3) && !!s.assembly)) &&
+        (p.assemblyMount === undefined || (integer(p.assemblyMount, 1, 4) && !!s.assembly)) &&
         (p.circuit === undefined || (integer(p.circuit,0,1) && p.material === "cable")) &&
         (p.material !== "cable" || integer(p.circuit,0,1)) &&
         (p.waterId === undefined || (integer(p.waterId, 1, 10000000) && p.ice === true && p.material === "ice")) &&
@@ -870,12 +870,14 @@ export function validSnapshot(s) {
         HAZARD_TYPES.includes(h.type) &&
         (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
         (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 && Math.abs(h.bodyX) <= 6000)) &&
-        (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 3) && !!s.assembly &&
+        (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 4) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&
           integer(h.assemblyWork, 0, 10000000) &&
-          finite(h.assemblyPhase) && h.assemblyPhase>=0 && h.assemblyPhase<=3.11 &&
-          finite(h.assemblyOffset) && Math.abs(h.assemblyOffset)<=200 &&
-          ["none", "empty", "damaged", "stage", "jam", "broken"].includes(h.assemblyFault))) &&
+          finite(h.assemblyPhase) && h.assemblyPhase>=0 && h.assemblyPhase<=3.51 &&
+          finite(h.assemblyOffset) && Math.abs(h.assemblyOffset)<=240 &&
+          finite(h.assemblyBottom) && h.assemblyBottom>=950 && h.assemblyBottom<=1370 &&
+          finite(h.assemblyAngle) && Math.abs(h.assemblyAngle)<=Math.PI*2 &&
+          ["none", "empty", "broken"].includes(h.assemblyFault))) &&
         validFurnace(h) &&
         (h.type !== "powerline" || integer(h.circuit,0,1)) &&
         [h.x, h.y, h.w, h.h, h.warning, h.age, h.duration, h.bodyX, h.bodyY, h.vy].every(
@@ -953,7 +955,7 @@ export function validSnapshot(s) {
     list(s.wreckage,60,w => w.kind === "matter" ? matter(w) : xy(w) && integer(w.id,1,1000000) && [w.w,w.h,w.angle,w.hp].every(finite) &&
       w.w>0 && w.w<=150 && w.h>0 && w.h<=90 && w.hp>=0 && w.hp<=120 && ["platform","trap","prop"].includes(w.kind) &&
       (w.sourceKind==null || COVER_KINDS.includes(w.sourceKind)) &&
-      (w.sourceKind!=="car" || Number.isInteger(w.carStage)&&w.carStage>=0&&w.carStage<=3&&Number.isInteger(w.carPaint)&&w.carPaint>=0&&w.carPaint<=3) &&
+      (w.sourceKind!=="car" || Number.isInteger(w.carStage)&&w.carStage>=0&&w.carStage<=31&&Number.isInteger(w.carPaint)&&w.carPaint>=0&&w.carPaint<=3&&finite(w.carCoat)&&w.carCoat>=0&&w.carCoat<=1) &&
       (w.sourceChunk===undefined || typeof w.sourceChunk==="boolean") &&
       (!w.sourceChunk || (w.kind==="prop" && typeof w.material==="string" && Object.hasOwn(PROP_MATERIALS,w.material))) && propShape(w.shape) && propSourceArt(w) &&
       (w.elevator===undefined || typeof w.elevator==="boolean") &&

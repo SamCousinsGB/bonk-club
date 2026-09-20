@@ -62,7 +62,7 @@ export function drawBlackhole(r, f, time) {
 // geometry changes: bend points are never drawn as outlines or crossbars.
 function wreckArtwork(r, w) {
   const key = JSON.stringify([
-    w.kind, w.sourceKind, w.carStage, w.carPaint, w.trapType, w.material, w.surface, w.panel,
+    w.kind, w.sourceKind, w.carStage, w.carPaint, w.carCoat, w.trapType, w.material, w.surface, w.panel,
     w.ice, w.elevator, w.w, w.h, w.sourceChunk, w.shape, w.sourceArt,
   ]);
   const cache = (r.wreckArt ||= new Map());

@@ -34,9 +34,9 @@ function regions(b) {
     const stage=b.carStage??0, height=carHeight(stage);
     const transform=ps=>ps.map(([x,y])=>[(x+125)*w/250,(y-1190+height)*h/height]);
     const pieces=[[transform(rect(-125,1158,250,16)),'metal',2]];
-    if(stage>=1)pieces.push([transform(CAR_BODY),'metal',3]);
-    if(stage>=2)pieces.push([transform(CAR_CABIN),'metal',2]);
-    for(const x of [-81,81])pieces.push([transform(rect(x-20,stage===3?1143:1174,40,stage===3?47:16)),'metal',1]);
+    if(stage&1)pieces.push([transform(CAR_BODY),'metal',3]);
+    if(stage&2)pieces.push([transform(CAR_CABIN),'metal',2]);
+    for(const [x,part] of [[-81,4],[81,8]])if(stage&part)pieces.push([transform(rect(x-23,1144,46,46)),'metal',1]);
     return pieces;
   }
   // Separate cushions/mattress from frames and avoid filling the air under beds.

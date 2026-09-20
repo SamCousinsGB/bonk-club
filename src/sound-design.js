@@ -35,6 +35,7 @@ export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
   'burn', 'explosion', 'nuclear', 'siren', 'debris', 'cover', 'parry',
   'jump', 'pickup', 'fight', 'round', 'death', 'landing', 'train', 'train-warning',
+  'assembly-servo', 'assembly-spray',
 ])]);
 
 export function weaponSound(detail = {}) {
@@ -99,7 +100,12 @@ export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
     for (let n = 0; n < 9; n++) noise(.12 + random() * length * .65, .06 + random() * .12, .08 * gain, 4300, 1100);
   }
 
-  if (guns[name]) {
+  if(name==='assembly-spray'){
+    for(let i=0;i<8;i++)noise(i*.075,.19,.42,7400,2400,.025);
+    mechanics(0,.12);mechanics(.61,.08);
+  } else if(name==='assembly-servo'){
+    modes(0,.6,.23,[112,227,454]);noise(.025,.55,.6,650,90,.045,38);mechanics(.42,.25);
+  } else if (guns[name]) {
     const [tail, body, gain, action] = guns[name];
     noise(0, .026, (name === 'smg' ? 1.25 : 1.05) * gain, name === 'smg' ? 10000 : 7500, 1800, .0002);
     noise(.001, tail, 2.8 * gain, body * 7, 65, .0007);

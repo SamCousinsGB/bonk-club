@@ -49,7 +49,7 @@ export function prepareProp(c, id = c.id) {
   const type = PROP_TYPES[c.kind];
   if (!type) return c;
   c.id = id;
-  if(c.kind === "car"){c.carStage ??= 0;c.carPaint ??= 0;}
+  if(c.kind === "car"){c.carStage ??= 0;c.carPaint ??= 0;c.carCoat ??= 0;}
   c.mass ??= type.mass;
   c.material ??= type.material;
   c.vx ??= 0; c.vy ??= 0; c.angle ??= 0; c.spin ??= 0;
@@ -226,7 +226,7 @@ export function fractureProp(world, b) {
     const width = w, height = h;
     const chunk = { id: `chunk${++world.chunkSerial}`, chunk: true, kind: b.kind, material,
       x: origin.x + dx - width / 2, y: origin.y + dy - height / 2, w: width, h: height,
-      ...(b.kind === "car" ? {carStage:b.carStage,carPaint:b.carPaint} : {}),
+      ...(b.kind === "car" ? {carStage:b.carStage,carPaint:b.carPaint,carCoat:b.carCoat} : {}),
       mass: b.mass * shardArea / area, hp: 24, maxHp: 24, shape, sourceArt,
       vx: clamp(b.vx - b.spin * dy + dx * 1.3, -MAX_SPEED, MAX_SPEED),
       vy: clamp(b.vy + b.spin * dx + dy * 1.3 - 35, -MAX_SPEED, MAX_SPEED),
