@@ -216,7 +216,10 @@ function ownInput() {
   if (touchInput.aim !== null) i.aim = touchInput.aim;
   if (renderer.planeFrame && (pad.aim !== null || touchInput.aim !== null))
     i.aim -= planePose(renderer.planeFrame.age,renderer.reduced,renderer.planeFrame).angle;
-  if(renderer.shipFrame && (pad.aim !== null || touchInput.aim !== null)) i.aim-=renderer.shipFrame.angle;
+  if(renderer.shipFrame && (pad.aim !== null || touchInput.aim !== null)) {
+    const local=i.aim-renderer.shipFrame.angle;
+    i.aim=Math.atan2(Math.sin(local),Math.cos(local));
+  }
   return i;
 }
 function clearInput() {
