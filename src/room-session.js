@@ -37,7 +37,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 67;
+export const PROTOCOL = 68;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -834,6 +834,9 @@ export function validSnapshot(s) {
       (p) =>
         xy(p) && validReactionObject(p) &&
         (p.planeHull === undefined || (p.planeHull === true && ARENAS[s.arenaIndex]?.cargoPlane === true && p.material === "metal")) &&
+        (p.planeWing === undefined || ([-1,1].includes(p.planeWing) && ARENAS[s.arenaIndex]?.cargoPlane === true && p.material === "metal")) &&
+        (p.wingLoose === undefined || (p.wingLoose === true && !!p.planeWing && finite(p.wingAt) && p.wingAt >= 0 &&
+          [p.wingX??0,p.wingY??0].every(finite) && Math.abs(p.wingX??0)<=2000 && (p.wingY??0)>=0 && (p.wingY??0)<=3000)) &&
         (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
@@ -876,6 +879,13 @@ export function validSnapshot(s) {
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
+        (h.failedAt === undefined || (h.type === "airflow" && ARENAS[s.arenaIndex]?.cargoPlane === true &&
+          [h.failedAt,h.leftWingAt,h.rightWingAt].every(v=>finite(v)&&(v===-1||v>=0)&&v<=h.age+.02) &&
+          [-1,1].includes(h.rollDir) && (h.failedAt<0 ? h.leftWingAt===-1&&h.rightWingAt===-1 :
+            h.failedAt===Math.min(...[h.leftWingAt,h.rightWingAt].filter(v=>v>=0))))) &&
+        (!(ARENAS[s.arenaIndex]?.cargoPlane && h.type==="airflow") || h.failedAt!==undefined) &&
+        (h.planeWing === undefined || (h.type==="turbine" && ARENAS[s.arenaIndex]?.cargoPlane === true && [-1,1].includes(h.planeWing))) &&
+        (h.wingLoose === undefined || (h.wingLoose===true && !!h.planeWing && finite(h.wingAt) && h.wingAt>=0)) &&
         (h.type !== "ladle" || (ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
         (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 &&
           typeof h.derailed === "boolean" && finite(h.angle) && Math.abs(h.angle) <= Math.PI && finite(h.vx) && Math.abs(h.vx) <= 6400 &&

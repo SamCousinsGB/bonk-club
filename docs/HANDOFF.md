@@ -6,6 +6,15 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- v0.45.0 / protocol 68 is prepared on `codex/plane-wing-failure`; publication
+  verification is pending. Four-engine wings now span beyond the screen. Actual
+  loss of structural connection latches a whole-aircraft roll and spiral, with
+  shared host/guest cabin gravity, falling wing collision and attached engines.
+  Hull texture/breach caches reuse unchanged geometry; plane AI traces are batched
+  and prioritise the playable decks. Local unit/focused stress checks and source
+  browser host/guest, changed-world hot join, reset and reduced-motion checks pass.
+  See `scripts/plane-profile.mjs` for the reproducible timing fixture.
+
 - Source release: `origin/main` at `e6af58b` (v0.44.0 Car Wash pass).
 - Game version: v0.44.0, protocol 67. Refresh every player tab before creating or
   joining a room.

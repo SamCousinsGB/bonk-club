@@ -1,5 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
-import { drawPlaneSky, transformPlane, drawPlaneInterior, drawPlaneHull, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
+import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
@@ -892,7 +892,7 @@ export class Renderer {
       return;
     }
     const arena = menuArena || ARENAS[state.arenaIndex];
-    this.planeFrame = arena.cargoPlane ? { age: state.hazards.find(h=>h.type==="airflow")?.age || 0 } : null;
+    this.planeFrame = arena.cargoPlane ? state.hazards.find(h=>h.type==="airflow") || {age:0} : null;
     c.save();
     if (menuArena) {
       const { width, height } = this.menuSize;
@@ -915,7 +915,7 @@ export class Renderer {
       // The continuous menu arena has its own background and camera above.
     } else if (arena.cargoPlane) {
       drawPlaneSky(c,time,this.reduced);
-      transformPlane(c,this.planeFrame.age,this.reduced);
+      transformPlane(c,this.planeFrame.age,this.reduced,this.planeFrame);
       if (!this.scenery.has("plane-interior")) {
         const layer=document.createElement("canvas");layer.width=W;layer.height=H;
         drawPlaneInterior(layer.getContext("2d"));this.scenery.set("plane-interior",layer);
@@ -967,7 +967,7 @@ export class Renderer {
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     if(arena.carWash)drawCarWashStructure(c,state);
-    if(arena.cargoPlane)drawPlaneHull(c,state.platforms);
+    if(arena.cargoPlane)(this.planeHullLayer ||= new PlaneHullLayer()).draw(c,state.platforms);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";
       for (let x = s.x; x < s.x + s.w; x += 20) {

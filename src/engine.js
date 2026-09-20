@@ -1,4 +1,4 @@
-import { updatePlane } from "./plane.js";
+import { updatePlane, movePlaneWings } from "./plane.js";
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
 import { trainCollisionBoxes } from "./trains.js";
@@ -356,7 +356,7 @@ export class World {
         : previous;
     if (p !== previous) {
       const surfaces = this.platforms.filter(
-        (s) => s.hp !== 0 && !s.move && !s.travel && s.w >= 100,
+        (s) => s.hp !== 0 && !s.move && !s.travel && !s.planeWing && s.w >= 100,
       );
       const choices = surfaces
         .flatMap((s) =>
@@ -571,6 +571,7 @@ export class World {
       p.dx = p.x - oldX;
       p.dy = p.y - oldY;
     }
+    if(this.arena.cargoPlane)movePlaneWings(this,this.hazards.find(h=>h.type==="airflow")?.age || 0);
   }
   move(p, i, dt) {
     let solids = this.solids(p);
@@ -1097,7 +1098,7 @@ export class World {
     if (!type || !this.weaponPool.includes(type) || type === "nuke") return;
     // Grenade rolls run at the old cadence independently of these slower rolls.
     if (!scheduledType && WEAPONS[type].kind === "grenade") return;
-    const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90 && !p.planeHull);
+    const platforms = this.platforms.filter((p) => p.hp !== 0 && p.w >= 90 && !p.planeHull && !p.planeWing);
     // Prefer accessible, unoccupied landings near the current fight. Avoid
     // repeatedly piling weapons on a single ledge or abandoned rooftop.
     const living = this.players.filter(p => p.alive);

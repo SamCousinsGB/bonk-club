@@ -1,4 +1,4 @@
-import { PLANE, planePose, planeBreaches } from "./plane.js";
+import { PLANE, planePose, cachedPlaneBreaches, planeHullKey } from "./plane.js";
 
 const TAU = Math.PI * 2;
 const line = (c, points, color, width = 3) => {
@@ -43,8 +43,8 @@ export function drawPlaneSky(c,time,reduced) {
   }
 }
 
-export function transformPlane(c,age,reduced) {
-  const p=planePose(age,reduced);
+export function transformPlane(c,age,reduced,flight) {
+  const p=planePose(age,reduced,flight);
   c.translate(PLANE.x+p.x,PLANE.y+p.y); c.rotate(p.angle); c.scale(p.scale,p.scale); c.translate(-PLANE.x,-PLANE.y);
 }
 
@@ -135,23 +135,23 @@ export function drawPlaneHull(c,platforms) {
 
 export function drawPlanePlatform(c,p) {
   c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
-  const wing=(p.x+p.w<=490||p.x>=2070)&&p.y>=700&&p.y+p.h<=732;
-  const top=wing?700:p.y,height=wing?32:p.h;
+  const wing=!!p.planeWing;
+  const top=p.y,height=p.h;
   if(wing) {
-    const left=p.x<1280,tip=left?50:2510,root=left?490:2070;
-    c.beginPath();c.moveTo(tip,700);c.lineTo(root,700);c.bezierCurveTo(root,742,tip+ (left?160:-160),715,tip,710);c.closePath();c.clip();
+    // Broad metallic spars, a rolled leading edge and individual inspection bays.
+    // The geometry itself is tapered in three structural sections.
+    c.fillStyle="#183a50";c.fillRect(p.x,p.y,p.w,p.h);
   }
   c.fillStyle=gradient(c,0,top,0,top+height,[[0,wing?"#d5ded9":"#95a8ab"],[.18,"#657e88"],[.35,"#344e60"],[1,"#122b3c"]]);
   c.fillRect(p.x,p.y,p.w,p.h);
   line(c,[[p.x,top+1.5],[p.x+p.w,top+1.5]],"#dce7df",3);
   if(wing) {
-    line(c,[[p.x,729],[p.x+p.w,729]],"#1b3c50",4);
-    for(let bx=Math.ceil(p.x/60)*60;bx<p.x+p.w;bx+=60) {
-      line(c,[[bx,704],[bx+16,732]],"#e7eee24a",1);
-      ellipse(c,bx+5,707,1.6,1.6,"#233f50");
-    }
-    for(const [bx,color] of [[53,"#fa6b52"],[2498,"#9eddb2"]]) {
-      c.fillStyle=color;c.fillRect(bx,701,9,4);
+    line(c,[[p.x,top+height-4],[p.x+p.w,top+height-4]],"#17364b",6);
+    line(c,[[p.x,top+height*.38],[p.x+p.w,top+height*.38]],"#b2c5c166",2);
+    for(let bx=Math.ceil(p.x/100)*100;bx<p.x+p.w;bx+=100) {
+      line(c,[[bx,top+5],[bx+22*p.planeWing,top+height-5]],"#e7eee24a",1);
+      ellipse(c,bx+5,top+8,1.6,1.6,"#233f50");
+      c.fillStyle="#9db3b52b";c.fillRect(bx+32,top+height*.5,38,Math.max(4,height*.25));
     }
   } else {
     for(let bx=Math.ceil(p.x/18)*18;bx<p.x+p.w;bx+=18) {
@@ -169,8 +169,9 @@ export function drawPlaneEngine(c,h,reduced,time=h.age) {
   const r=h.w/2;
   c.save();c.translate(h.bodyX,h.bodyY);
   // Streamlined pylon, rolled intake lip, deep duct and swept fan blades.
-  c.beginPath();c.moveTo(-24,-r-12);c.lineTo(-18,700-h.bodyY+20);
-  c.lineTo(19,700-h.bodyY+20);c.lineTo(37,-r-5);c.closePath();
+  const mount=720-(h.y-30);
+  c.beginPath();c.moveTo(-24,-r-12);c.lineTo(-18,mount);
+  c.lineTo(19,mount);c.lineTo(37,-r-5);c.closePath();
   c.fillStyle=gradient(c,-30,0,40,0,[[0,"#355369"],[.4,"#b5c6c7"],[.65,"#7e969e"],[1,"#254459"]]);c.fill();
   ellipse(c,0,5,r+24,r+25,"#274456");
   const lip=gradient(c,-r,-r,r,r,[[0,"#fff1d4"],[.2,"#d6e2dc"],[.45,"#8babb6"],[.62,"#45657e"],[.8,"#b6c9cd"],[1,"#eff0db"]]);
@@ -202,12 +203,8 @@ export function drawPlaneEngine(c,h,reduced,time=h.age) {
   c.restore();
 }
 
-let previousPlatforms=null,previousHullCount=-1,breaches=[];
 export function drawPlaneOutflows(c,state,time,reduced) {
-  const count=state.platforms.filter(p=>p.planeHull&&p.hp!==0).length;
-  if(previousPlatforms!==state.platforms||previousHullCount!==count) {
-    breaches=planeBreaches(state.platforms); previousPlatforms=state.platforms;previousHullCount=count;
-  }
+  const breaches=cachedPlaneBreaches(state.platforms);
   for(const b of breaches) {
     c.save();c.translate(b.x,b.y);c.rotate(Math.atan2(b.ny,b.nx));
     for(let i=0;i<18;i++) {
@@ -217,5 +214,20 @@ export function drawPlaneOutflows(c,state,time,reduced) {
       line(c,[[x-55,spread*(width+12)],[x,spread*width]],x<0?"#d5f6ff55":"#ecfcffbb",i%3?2:4);
     }
     c.restore();
+  }
+}
+
+// One cache per renderer: thousands of hull drawing calls become one texture
+// draw. Damage rebuilds it from the exact surviving geometry, including hot joins.
+export class PlaneHullLayer {
+  draw(c,platforms,create=()=>document.createElement("canvas")) {
+    const key=planeHullKey(platforms);
+    if(!this.canvas)this.canvas=create();
+    if(this.key!==key) {
+      this.canvas.width=1680;this.canvas.height=1210;
+      const layer=this.canvas.getContext("2d");layer.translate(-440,-105);
+      drawPlaneHull(layer,platforms);this.key=key;
+    }
+    c.drawImage(this.canvas,440,105);
   }
 }

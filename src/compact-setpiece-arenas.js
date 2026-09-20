@@ -1,4 +1,4 @@
-import { planeHull } from "./plane.js";
+import { planeHull, planeWings } from "./plane.js";
 import { carShape } from "./assembly-geometry.js";
 const solid = (x, y, w, h = 42, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
 const grate = (x, y, w, extra = {}) => ({ x, y, w, h: 16, material: "metal", oneWay: true, ...extra });
@@ -16,7 +16,7 @@ export const CARGO_PLANE_ARENA = {
     grate(520, 910, 490), grate(1550, 910, 490),
     grate(730, 660, 430), grate(1400, 660, 430),
     grate(1040, 410, 480),
-    solid(50, 700, 440, 32), solid(2070, 700, 440, 32),
+    ...planeWings(),
   ],
   spawns: [[680, 878], [1880, 878], [900, 628], [1660, 628]],
   weapons: [[1170, 378], [1390, 378]],
@@ -31,8 +31,10 @@ export const CARGO_PLANE_ARENA = {
   hazards: ["airflow", "turbine"],
   traps: [
     { type: "airflow", x: 1280, y: 710, w: 300, h: 240, dir: 1 },
-    { type: "turbine", x: 275, y: 935, w: 250, h: 250, dir: 1 },
-    { type: "turbine", x: 2285, y: 935, w: 250, h: 250, dir: -1 },
+    { type: "turbine", x: 235, y: 985, w: 290, h: 290, dir: 1, planeWing: -1 },
+    { type: "turbine", x: 2325, y: 985, w: 290, h: 290, dir: -1, planeWing: 1 },
+    { type: "turbine", x: -440, y: 940, w: 250, h: 250, dir: 1, planeWing: -1 },
+    { type: "turbine", x: 3000, y: 940, w: 250, h: 250, dir: -1, planeWing: 1 },
   ],
 };
 

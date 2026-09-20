@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.44.0",
-  "releaseNotes": "Rebuilds Car Wash with moving cover and connected fighting routes",
+  "version": "0.45.0",
+  "releaseNotes": "Larger cargo-plane wings, structural wing failure and smoother bot navigation",
   "private": true,
   "type": "module",
   "scripts": {

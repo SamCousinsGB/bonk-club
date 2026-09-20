@@ -71,6 +71,8 @@ export class GuestPrediction {
   step(input, p = this.player, w = this.context) {
     for (let n = 0; n < 2; n++) {
       w.time += STEP;
+      const flight=w.arena.cargoPlane?w.hazards.find(h=>h.type==="airflow"):null;
+      if(flight)flight.age=(this.latest.hazards.find(h=>h.type==="airflow")?.age||0)+w.time-this.latest.time-STEP;
       World.prototype.movePlatforms.call(w);
       const x = p.x, y = p.y;
       World.prototype.move.call(w, p, input, STEP);
@@ -85,7 +87,7 @@ export class GuestPrediction {
       updateRig(p, STEP, w.solids(p), w.time);
       if(w.arena.cargoPlane) {
         const age = (this.latest.hazards.find(h=>h.type==="airflow")?.age || 0) + w.time - this.latest.time;
-        applyPlanePlayer(p,age,worldBreaches(w),w.platforms.filter(s=>s.planeHull),STEP);
+        applyPlanePlayer(p,age,worldBreaches(w),w.platforms.filter(s=>s.planeHull),STEP,flight);
       }
     }
   }
