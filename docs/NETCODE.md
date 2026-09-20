@@ -6,7 +6,7 @@ and interpolate other actors. Browser discovery/transport is WebRTC; the shared
 room protocol is also the boundary for the future Steam adapter. See
 [`PLATFORMS.md`](PLATFORMS.md) for the unimplemented Steam/account work.
 
-## v0.44.1 changes
+## v0.45.1 changes
 
 - Motion and world state have independent encoding jobs **and workers**. A
   blocked world encode/reconstruction cannot occupy the actor worker. Each lane
@@ -28,14 +28,14 @@ room protocol is also the boundary for the future Steam adapter. See
   press reaches simulation. Hitstop still defers consumption. Guests cannot
   provide positions, health or other authoritative state through controls.
 - Prediction reuses collision strips within each immutable world snapshot.
-  Moving platforms retain live references; new world state and render lookahead
-  get independent caches. Exact cached/uncached movement and pose comparisons
+  Moving platforms retain live references; removed falling wings invalidate the
+  cache. New world state and render lookahead get independent caches. Exact cached/uncached movement and pose comparisons
   cover every arena, moving supports and destroyed terrain.
 - Remote knockdown/freeze/transformation transitions use their authoritative pose
   immediately. The warp shader skips inactive sources without changing its
   geometry, amplitude, reduced-motion behaviour or physics.
 
-The wire shape remains protocol **67**. World and motion histories are separate,
+The wire shape remains protocol **68**. World and motion histories are separate,
 retain at most 32 snapshots, and deltas use only acknowledged baselines. Missing
 baselines request a full state. Compressed frames are limited to 250 KB and
 decompression to 1 MB. Each stream assembler retains at most two partial frames.
@@ -69,8 +69,10 @@ Edge, 1280 x 720, one Windows QA machine, source builds, three remote guests.
 Baseline: v0.44.0 (`b614d61`). These samples are local CPU/render/delivery
 measurements, **not** cross-ISP latency or hardware certification. Short samples
 vary with operating-system scheduling, rendering and actual relay conditions.
+The comparison was recorded before integrating the parallel v0.45.0 aircraft
+release; none of the measured scenarios uses the aircraft arena.
 
-| Measurement (95th percentile) | v0.44.0 | v0.44.1 |
+| Measurement (95th percentile) | v0.44.0 | v0.45.1 |
 | --- | ---: | ---: |
 | Guest reconciliation, two black holes | 3.0 ms | 1.8 ms |
 | Guest reconciliation, impaired link and 4x CPU throttle | 26.7 ms | 14.8 ms |

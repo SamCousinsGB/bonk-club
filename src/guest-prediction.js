@@ -16,8 +16,9 @@ const controllable = p => p?.alive && !p.knockdown && !p.freeze && !p.strands &&
 // Keep the platform references live while reusing the same collision strips for
 // every replayed command. Host simulation still rebuilds after physical edits.
 function predictionSolids(player) {
-  if (!this.collisionSolids || this.collisionCarrier !== player?.carryId) {
+  if (!this.collisionSolids || this.collisionPlatforms !== this.platforms || this.collisionCarrier !== player?.carryId) {
     this.collisionSolids = World.prototype.solids.call(this, player);
+    this.collisionPlatforms = this.platforms;
     this.collisionCarrier = player?.carryId;
   }
   return this.collisionSolids;

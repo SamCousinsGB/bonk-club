@@ -6,6 +6,14 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- Candidate on `codex/netcode-performance`: v0.45.1, protocol 68, integrates the
+  aircraft release below. Motion/world workers and encoding are independent;
+  codec faults are bounded; asymmetric fallback retains controls; pending taps
+  wait for application before acknowledgement. Guest collision replay reuses
+  geometry and invalidates on falling-wing removal. See `docs/NETCODE.md` for
+  reproducible checks, measurements and remaining network/hardware qualification.
+  Final integrated CI, Pages publication and public parity are pending.
+
 - Source release: `origin/main` at `d90551a` (v0.45.0 aircraft wing failure).
 - Game version: v0.45.0, protocol 68. Refresh every player tab before creating or
   joining a room.
