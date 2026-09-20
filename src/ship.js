@@ -25,7 +25,11 @@ export function volumeAt(i,level,slope) {
 }
 export function waterLevel(i,volume,angle) {
   if(volume<=.001)return 1800;
-  const slope=-Math.tan(angle);let lo=-1000,hi=2100;
+  const slope=-Math.tan(angle);
+  // A saturated compartment has a plateau of equally full solutions. Choose
+  // the lowest full surface instead of inventing an arbitrarily high head.
+  if(volume>=shipCapacity(i)-.001)return Math.min(...[SHIP.edges[i]+13.25,SHIP.edges[i+1]-13.25].map(x=>680-slope*(x-1280)));
+  let lo=-1000,hi=2100;
   for(let n=0;n<22;n++){const mid=(lo+hi)/2;if(volumeAt(i,mid,slope)>volume)lo=mid;else hi=mid;}
   return (lo+hi)/2;
 }

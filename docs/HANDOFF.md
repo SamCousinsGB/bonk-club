@@ -27,7 +27,7 @@ history through v0.40.0 is archived in
 - Focused physics checks cover sealing, single side plates, pressure flow,
   volume conservation, overtopping, list/sinking, oxygen/drowning, swim controls,
   cargo/death bodies, guest prediction, validation, aim transforms and reset.
-  All 1,142 compact tests and the production build passed.
+  The 1,142-test compact suite and production build passed; the final saturated-pressure regression brings the suite to 1,143 tests.
   Both Ocean Liner stress cases passed. The full arena stress run is in progress.
 - Source-browser checks passed real relay/relay host/guest controls, ship map
   selection, guest mouse-directed and real touch swimming, oxygen use, exact damaged-world

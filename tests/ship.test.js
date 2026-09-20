@@ -56,6 +56,12 @@ test('tilted free surfaces preserve finite compartment volume',()=>{
     assert.ok(Math.abs(volumeAt(i,shipLevels(w.ship)[i],-Math.tan(angle))-w.ship.volumes[i])<1);
   }
 });
+test('saturated compartments have bounded pressure at their upper edge',()=>{
+  const w=fixture();for(const angle of [-.5,0,.5])for(let i=0;i<5;i++) {
+    w.ship.angle=angle;w.ship.volumes[i]=shipCapacity(i);const level=shipLevels(w.ship)[i];
+    assert.ok(level>100&&level<1200);assert.ok(Math.abs(volumeAt(i,level,-Math.tan(angle))-shipCapacity(i))<.001);
+  }
+});
 test('head immersion drains oxygen, dry air restores it, and drowning has a truthful cause',()=>{
   const w=fixture(),p=w.players[0];Object.assign(p,{x:1200,y:1050,rig:null});w.ship.volumes[2]=160000;
   for(let n=0;n<600;n++)swimPlayer(w,p,cleanInput({}),STEP);
