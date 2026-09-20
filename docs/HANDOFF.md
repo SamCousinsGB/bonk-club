@@ -25,7 +25,15 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   the visible holes in track/platforms agreed. Evidence is outside Git at
   `../physical-train-tumble-clean.png` and `../physical-train-visual.mjs`.
 - Source worktree: `../bonk-club-qa/physical-bullet-train`, branch
-  `codex/physical-bullet-train`. Release verification follows after publication.
+  `codex/physical-bullet-train`. Canonical unrelated edits remain preserved.
+- Published revision: f85b099c73ae580039782c5943da8ba4624c54ef.
+  [Release run 35517996996](https://github.com/SamCousinsGB/bonk-club/actions/runs/35517996996)
+  passed all 1,061 game tests, three server tests, desktop tests and executable
+  smoke/package checks on Windows and Linux, release consistency and Pages.
+- All 17 public files match the exact CI artifact by SHA-256. The CI source hash is
+  a2b64f8580568bdf645f1c7de9c5148ea7ea131dd342725298edf5ae29870d2d.
+  The public v0.40.0 menu and a Bullet Train-only match were checked in-browser
+  with no console errors. No production debug hooks, dependencies or Pi changes.
 
 ## Assembly paint booth and supplied robots - 20 September 2026
 
