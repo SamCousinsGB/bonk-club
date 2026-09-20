@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { World, ARENAS, STEP, cleanInput } from "../src/engine.js";
 import { updateHazards } from "../src/hazards.js";
-import { TURBINE_BED } from "../src/turbine-arena.js";
 import { carveExplosion } from "../src/terrain.js";
 import { deathJoints } from "../src/death-effects.js";
 import { navigation, routesFrom, surfaceAt } from "../src/navigation.js";
@@ -62,23 +61,24 @@ test("already sliced bodies become valid separate pieces on entering a rotor", (
   assert.ok(validSnapshot(w.snapshot()));assert.equal(w.lastDeathCause,"rail");
 });
 
-test("destroying a rotor or its mounting is permanent; the sump still contains falls", () => {
-  const w=fixture();carveExplosion(w,{x:213,y:1390,radius:130});tick(w);
+test("destroying a rotor or its mounting is permanent; its opening has no floor", () => {
+  const w=fixture();carveExplosion(w,{x:213,y:1430,radius:130});tick(w);
   assert.ok(w.hazards[0].done);assert.ok(!w.hazards[1].done);
   const p=w.players[0];place(p,213,1190);
-  for(let i=0;i<240;i++){w.move(p,cleanInput({}),STEP);tick(w);}
-  assert.ok(p.alive&&p.ground);assert.ok(p.y<1428);assert.equal(w.lastDeathCause,null);
-  assert.ok(w.solids().some(s=>s.id==="hall-bed0"));
+  for(let i=0;i<240&&p.alive;i++)w.step(STEP,{});
+  assert.equal(p.alive,false);assert.equal(p.ground,false);assert.equal(w.lastDeathCause,"turbine");
+  assert.ok(!w.solids().some(s=>s.boundary&&s.w>80));
   w.startRound();assert.ok(w.hazards.every(h=>!h.done));assert.ok(w.cables.every(c=>c.links.every(Boolean)));
 });
 
-test("side walls and bottom retain high-speed fighters even after every deck is removed", () => {
+test("side walls retain horizontal impacts without adding a bottom floor", () => {
   const w=fixture();w.platforms=[];tick(w);
   for(const [x,vx] of [[20,-1600],[2540,1600]]){
-    const p=w.players[0];place(p,x,1200,{vx,vy:1500});
-    for(let i=0;i<240;i++)w.move(p,cleanInput({}),STEP);
-    assert.ok(p.alive&&p.x>=0&&p.x<=2560&&p.y<1428,JSON.stringify([p.x,p.y]));
+    const p=w.players[0];place(p,x,300,{vx,vy:0});
+    for(let i=0;i<30;i++)w.move(p,cleanInput({}),STEP);
+    assert.ok(p.alive&&p.x>=0&&p.x<=2560,JSON.stringify([p.x,p.y]));
   }
+  assert.deepEqual(w.solids().filter(s=>s.boundary).map(s=>s.id).sort(),["hall-left","hall-right"]);
 });
 
 test("narrow routes require double jumps and all four spawns can reach both pickups", () => {
@@ -111,14 +111,11 @@ test("guest prediction uses the same solid hall boundaries without editing host 
   assert.deepEqual(s,saved);
 });
 
-test("six recessed troughs replace the flat floor and the wires are removed", () => {
+test("the turbine row has no floor and the wires are removed", () => {
   const w=fixture();assert.equal(w.cables.length,0);assert.equal(w.hazards.length,6);
   assert.ok(w.hazards.every(h=>h.type==="turbine"));
-  for(let rotor=0;rotor<6;rotor++){
-    const bed=TURBINE_BED.slice(rotor*16,(rotor+1)*16);
-    assert.ok(bed[7].y-bed[0].y>110);assert.ok(bed.every(p=>p.w<30));
-  }
-  assert.ok(!w.platforms.some(p=>p.y>1200&&p.w>60));
+  assert.deepEqual(w.solids().filter(s=>s.boundary).map(s=>s.id).sort(),["hall-left","hall-right"]);
+  assert.ok(!w.platforms.some(p=>p.y>1200));
 });
 
 test("remains keep jumbling through a long fight and the result with bounded valid physics", () => {
@@ -130,8 +127,8 @@ test("remains keep jumbling through a long fight and the result with bounded val
   for(let frame=0;frame<240;frame++){
     advance(1);rag.points.forEach((p,i)=>{ranges[i].min=Math.min(ranges[i].min,p.y);ranges[i].max=Math.max(ranges[i].max,p.y);});
   }
-  assert.ok(ranges.every(r=>r.max-r.min>25),"every piece must lift and tumble, not just shuffle on the concrete");
-  assert.ok(rag.points.every(p=>Number.isFinite(p.x)&&p.y<1430&&p.x>=0&&p.x<=2560));
+  assert.ok(ranges.every(r=>r.max-r.min>25),"every piece must lift and tumble through the rotor row");
+  assert.ok(rag.points.every(p=>Number.isFinite(p.x)&&p.y<1600&&p.x>=0&&p.x<=2560));
   assert.ok(validSnapshot(w.snapshot()));assert.equal(w.lastDeathCause,"turbine");
   w.startRound();assert.equal(w.ragdolls.length,0);
 });

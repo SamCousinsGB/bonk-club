@@ -2,6 +2,20 @@
 
 Updated 20 September 2026. Read the root `AGENTS.md` first.
 
+## Floorless Turbine Hall - 20 September 2026
+
+- v0.37.0, protocol 59. Refresh every player's tab and create a new room.
+- Removed the complete scalloped concrete bed from Turbine Hall artwork and
+  collision. Only the two vertical side boundaries remain. The rotors have no
+  mounting platforms or other horizontal collision below them.
+- Active rotors use bounded blade forces to throw each separated body piece back
+  through the visible rotor row. There is no hidden support surface. Destroyed
+  openings drop fighters into off-screen machinery instead of a floor or a normal
+  bottom ring-out.
+- Focused checks cover every bottom entry and seam, absence of horizontal boundary
+  collision, destroyed openings, actual double jumps, guest prediction, persistent
+  six-piece tumbling, reset and validated hot-join state. Release verification follows.
+
 ## Arc Furnace component damage - 20 September 2026
 
 - Published in v0.35.1, protocol 57. Refresh every player and create a new room.

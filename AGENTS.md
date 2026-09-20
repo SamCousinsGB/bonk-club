@@ -149,15 +149,17 @@ Keep this constitution for durable rules and the handoff for current work.
   Broken spans fall, drape over surviving structure and remain attached only at
   surviving mounts. Keep cable cuts, attachments and moving geometry in validated
   guest snapshots and hot joins; never clear all wires when a machine breaks.
-- TURBINE HALL has six continuously running rotors, recessed scalloped concrete
-  troughs, staggered double-jump routes, wider fighting ledges and moving steps.
+- TURBINE HALL has six continuously running rotors above an open machinery void,
+  staggered double-jump routes, wider fighting ledges and moving steps. There is
+  no floor, visible trough, lower platform or collision surface below the rotors.
   Keep the dark, slower blade artwork subordinate to the fighting. There are no
   wires on this map. Blade contact blends living fighters and fallen bodies into
   physical pieces; individual rotor impulses keep the remains tumbling through
   the result screen until reset. Preserve gravity, contacts and bounded state.
-  The sump and side boundaries contain destroyed rotor pits without a flat floor
-  or bottom ring-out. Bots must not route onto intact turbine beds. Preserve
-  machine destruction and remains through validated guest state and hot joins.
+  Only the vertical side walls contain the hall. Falling through a destroyed
+  rotor opening reaches the off-screen machinery void rather than a floor or a
+  bottom ring-out. Bots must not route onto intact turbine beds. Preserve machine
+  destruction and remains through validated guest state and hot joins.
 - CAR ASSEMBLY uses a host-owned production clock and continuously moving conveyor:
   stamp panels, weld the cabin, fit wheels and finish the car. Cars are heavy
   physical props with shaped collision, bullet/blast damage, momentum and rotation.

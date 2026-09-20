@@ -1,4 +1,4 @@
-import { drawTurbineHall, drawTurbineBed } from "./turbine-art.js";
+import { drawTurbineHall } from "./turbine-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
@@ -970,7 +970,6 @@ export class Renderer {
     drawCraters(this, state);
     drawGas(c, state, time);
     drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced);
-    if(arena.turbine)drawTurbineBed(c);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);

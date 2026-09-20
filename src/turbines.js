@@ -1,7 +1,6 @@
 import { playerBox } from "./collision.js";
 import { deathPose } from "./death-effects.js";
 import { bloodBurst } from "./gore.js";
-import { turbineBedY } from "./turbine-arena.js";
 import { impulseProp } from "./props.js";
 
 export const turbineZone = h => ({ x: h.bodyX - h.w / 2, y: h.bodyY - h.w / 2, w: h.w, h: h.w });
@@ -13,9 +12,6 @@ const contact = (h, box) => inside(h, {
 
 export function updateTurbine(world, h, dt) {
   if (world.prediction) return;
-  if (!world.platforms.some(p => p.hp !== 0 && Math.abs(p.y - h.y) < 2 && p.x <= h.x && p.x + p.w >= h.x)) {
-    h.done = true; h.active = false; h.warning = 0; return;
-  }
   h.age += dt; h.active = true; h.warning = 0; h.cooldown = 0; h.duration = 1;
   for (const p of world.players) {
     if (!p.alive || !contact(h, playerBox(p))) continue;
@@ -50,17 +46,28 @@ export function tumbleTurbineBody(world, rag, dt) {
       const dx = p.x - h.bodyX, dy = p.y - h.bodyY, d = Math.hypot(dx, dy) || 1;
       p.px -= (-dy / d * h.dir * 750 + dx / d * 220) * dt * dt;
       p.py -= dx / d * h.dir * 450 * dt * dt;
+      // The lower half of the exposed rotor throws loose matter back upward.
+      // This is blade force, not a hidden supporting surface.
+      const lower = Math.max(0, Math.min(1, (p.y - (h.bodyY - 35)) / 150));
+      p.py += lower * 5200 * dt * dt;
     }
     // A blade catches a whole severed piece, with off-centre torque. Driving
     // both ends together avoids the length constraint swallowing its impulse.
     const pieces = [[0], [1,2], [3,4], [5,6], [7,8], [9,10]];
     for (const [i, ids] of pieces.entries()) {
       const phase = world.time * 1.35 + i * .173 + h.id * .31;
-      if (Math.floor(phase) === Math.floor(phase - dt * 1.35)) continue;
       const points = ids.map(i => rag.points[i]);
-      if (!points.some(p => inside(h, p, 5) && p.y > turbineBedY(p.x) - 70)) continue;
       const cx = points.reduce((n,p)=>n+p.x,0)/points.length;
       const cy = points.reduce((n,p)=>n+p.y,0)/points.length;
+      if (points.some(p=>inside(h,p,5)) && cy > h.bodyY + 105) {
+        for (const p of points) {
+          const vx=(p.x-p.px)/dt+h.dir*190,vy=Math.min((p.y-p.py)/dt,-620);
+          p.px=p.x-Math.max(-800,Math.min(800,vx))*dt;
+          p.py=p.y-Math.max(-800,Math.min(800,vy))*dt;
+        }
+      }
+      if (Math.floor(phase) === Math.floor(phase - dt * 1.35) ||
+          !points.some(p => inside(h, p, 5) && p.y > h.bodyY - 80)) continue;
       for (const p of points) {
         const spin = i % 2 ? 9 : -9;
         const vx = (p.x-p.px)/dt + h.dir*(160+i%3*35) - (p.y-cy)*spin;

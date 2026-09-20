@@ -510,7 +510,11 @@ export class World {
     if (active) {
       for (const p of this.players) {
         if (!p.alive) continue;
-        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) this.kill(p, { cause: "fall", source: powerSource(p) });
+        if (p.y > H + 100 || p.x < -130 || p.x > W + 130) {
+          const turbineVoid = this.arena.turbine && p.y > H + 100;
+          this.kill(p, { cause: turbineVoid ? "turbine" : "fall",
+            effect: turbineVoid ? "blend" : undefined, source: powerSource(p) });
+        }
         for (const s of this.spikes()) impale(this,p,s);
         if (this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;

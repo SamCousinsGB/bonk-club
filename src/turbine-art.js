@@ -1,5 +1,3 @@
-import { TURBINE_BED } from "./turbine-arena.js";
-
 const line = (c, a, b, color, width = 3) => {
   c.strokeStyle = color; c.lineWidth = width; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
 };
@@ -40,13 +38,6 @@ export function drawTurbineHall(c) {
     line(c, [x - 3, 200], [x - 3, 1100], "#456069", 12);
     for (let y = 210; y < 1120; y += 110) line(c, [x - 19, y], [x + 19, y], "#637675", 6);
   }
-}
-
-export function drawTurbineBed(c) {
-  c.beginPath(); c.moveTo(0, 1600);
-  for (const bed of TURBINE_BED) { c.lineTo(bed.x, bed.y); c.lineTo(bed.x + bed.w, bed.y); }
-  c.lineTo(2560, 1600); c.closePath(); c.fillStyle = "#17262c"; c.fill();
-  c.strokeStyle = "#4a5657"; c.lineWidth = 4; c.stroke();
 }
 
 export function drawTurbine(c, h, reduced, time = h.age) {

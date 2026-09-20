@@ -73,8 +73,8 @@ test("magnetic scanner pulls armed fighters and loose metal, with walls shieldin
   assert.ok(validSnapshot(w.snapshot()));
 });
 
-test("all new fixtures disable when their floor is destroyed and reject malformed wire state",()=>{
-  for(const type of HAZARD_TYPES.slice(6).filter(type=>type!=="furnace")){
+test("mounted fixtures disable when their floor is destroyed and reject malformed wire state",()=>{
+  for(const type of HAZARD_TYPES.slice(6).filter(type=>!["furnace","turbine"].includes(type))){
     const {w,h,p}=fixture(type);h.active=true;
     w.platforms[0].hp=0;advance(w,.1);assert.equal(h.done,true);assert.equal(p.hp,100);
     assert.ok(validSnapshot(w.snapshot()));
