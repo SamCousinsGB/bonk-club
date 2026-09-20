@@ -6,14 +6,18 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Source before this documentation cleanup: `origin/main` at `5d9fa69`.
-- Game version: v0.40.2, protocol 63. Refresh the host tab before creating a room.
-- Hosts may start a one-player test match when all opponent slots are empty or
-  Closed. Normal hot-join, death/reset and populated-lobby rules remain.
-- Release run [35521310427](https://github.com/SamCousinsGB/bonk-club/actions/runs/35521310427)
-  passed 1,061 game tests, three server tests, all six arena-stress shards,
+- Source release: `origin/main` at `9695c3c`.
+- Game version: v0.41.0, protocol 64. Refresh every player tab before creating or
+  joining a room.
+- Cargo Plane Hold is a compact multi-level hold with bank forces, a warned opening
+  ramp and breakable restraints on physical cargo. Car Wash has a slippery conveyor
+  floor, a heavy physical car, striking brushes, finite rinse water and an opposing
+  dryer. Both preserve authoritative hazard and prop state through reset and hot join.
+- Release run [35528248946](https://github.com/SamCousinsGB/bonk-club/actions/runs/35528248946)
+  passed 1,071 game tests, three server tests, all six arena-stress shards,
   Windows/Linux desktop checks, release consistency and Pages. All 17 public files
-  matched the CI browser artifact; public one-player control QA passed without errors.
+  matched the CI browser artifact; public rendered gameplay and a changed-world
+  host/guest hot join passed without browser errors.
 
 ## Reconciled WIP
 
