@@ -15,10 +15,17 @@ short; completed release history through v0.40.0 is preserved in
   Linux desktop checks, release consistency and Pages. All 17 public files matched
   the exact CI artifact, and the published v0.40.0 game passed browser checks.
 
-## Current infrastructure work
+## Test and release pipeline
 
-- Exhaustive bot and finite-combat simulations are being moved out of the normal
-  test suite without reducing coverage. CI divides all 29 arenas across six jobs.
+- PR #2 merged as `58c39d7a055d51877664e39c966f5e3d9ed454e8`. Release run
+  [35519218539](https://github.com/SamCousinsGB/bonk-club/actions/runs/35519218539)
+  passed and deployed in 3 minutes 46 seconds; the comparable prior release took
+  14 minutes. Public build metadata reports the exact merged revision.
+- Exhaustive bot and finite-combat simulations retain all coverage. CI divides all
+  29 arenas across six jobs; the slowest production shard took 2 minutes 45 seconds.
+- The fast suite plus server tests took 2 minutes 7 seconds, browser build 14 seconds,
+  Linux desktop 1 minute 4 seconds and Windows desktop 1 minute 16 seconds. These ran
+  concurrently. Release consistency took 7 seconds and Pages deployment 9 seconds.
 - `npm test` is the compact fast suite. `npm run test:stress` runs every exhaustive
   arena simulation locally. `npm run test:release` runs both.
 - Pull requests cancel superseded runs. Browser building and main-release desktop
