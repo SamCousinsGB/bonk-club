@@ -74,7 +74,7 @@ export function damageFurnaceWhere(world,touches) {
     // Beam/swept-tool cuts keep the same bounded eight-unit edge resolution.
     for(let y=p.y;y<p.y+p.h;y+=8)for(let x=p.x;x<p.x+p.w;x+=8){
       const q={...p,x,y,w:Math.min(8,p.x+p.w-x),h:Math.min(8,p.y+p.h-y)};
-      if(!touches({...q,x:x+h.x,y:y+h.y}))keep.push(q);
+      if(!touches({...q,x:x+h.x,y:y+h.y})&&q.w>=.5&&q.h>=.5)keep.push(q);
       else if(!found&&p.part<3){Object.assign(breach,{x:x+q.w/2,y:y+q.h/2});found=true;}
     }
     return keep;

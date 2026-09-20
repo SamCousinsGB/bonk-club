@@ -152,3 +152,13 @@ test('consuming all vessel metal cannot leave streams pouring from an invisible 
   blastFurnace(w,{x:1280,y:1175,radius:400});assert.equal(h.furnaceMelt,0);assert.deepEqual(h.furnaceLeaks,[]);
   h.age=3;assert.deepEqual(furnaceStreams(h),[]);assert.ok(!h.done);
 });
+
+test('angled beam cuts through previously cratered steel keep valid quantized geometry',()=>{
+  for(const angle of [0,.09,.21]){
+    const {w,h}=lab();for(let i=0;i<8;i++)blastFurnace(w,{x:1050+i*32.31,y:1050+i*17.17,radius:31.23});
+    const p=w.players[0];Object.assign(p,{x:600,y:1100,weapon:'phaser',aimAngle:angle,rig:null});
+    firePhaser(w,p,Math.cos(angle),Math.sin(angle));
+    const s=new RenderSnapshots().make(w.snapshot());assert.ok(validSnapshot(s));
+    assert.ok(h.furnacePieces.every(p=>p.w>=.5&&p.h>=.5));
+  }
+});
