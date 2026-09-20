@@ -16,42 +16,58 @@ export async function decodeState(bytes) {
   return JSON.parse(await new Blob(chunks).text());
 }
 
-// Keep JSON/compression off the rendering thread. At most one frame generation
-// (two streams for three recipients) or two guest decodes are in flight.
+// Each stream has its own worker. Bound outstanding work and recover from a
+// crashed or unresponsive worker without stalling the other stream.
 export class StateCodec {
-  constructor() { this.pending = new Map(); this.serial = 0; this.closed = false; this.terrain = new WreckReplayer();
+  constructor({ WorkerClass = globalThis.Worker, timeoutMs = 1000 } = {}) {
+    this.WorkerClass = WorkerClass; this.timeoutMs = timeoutMs;
+    this.pending = new Map(); this.serial = 0; this.closed = false; this.terrain = new WreckReplayer();
     this.flights = new FlightReplayer(); this.motionFlights = new FlightReplayer(); this.matter = new MatterReplayer(); }
   async run(operation, value) {
     const fallback = () => operation === "motion" ? this.motionFlights.expand(value) :
       operation === "expand" ? expandSnapshot(value, () => true, this.terrain, this.flights, this.matter) :
       operation === "encode" ? encodeState(value) : decodeState(value);
     if (this.closed) throw new Error("Codec closed");
-    if (typeof Worker === "undefined" || this.failed) return fallback();
-    try {
-      if (!this.worker) {
-        this.worker = new Worker(new URL("./state-codec-worker.js", import.meta.url), { type: "module" });
-        this.worker.onmessage = ({ data }) => {
-          const request = this.pending.get(data.id); if (!request) return;
-          this.pending.delete(data.id);
-          if (data.error) request.reject(new Error("Invalid frame")); else request.resolve(data.value);
-        };
-        this.worker.onerror = () => this.stop(false);
+    if (!this.WorkerClass || this.unavailable) return fallback();
+    if (!this.worker) {
+      try {
+        // Keep the production constructor literal so Vite bundles the worker
+        // and its imports. The alternate class is only a test worker double.
+        this.worker = this.WorkerClass === globalThis.Worker
+          ? new Worker(new URL("./state-codec-worker.js", import.meta.url), { type: "module" })
+          : new this.WorkerClass();
+      } catch {
+        // Environments that cannot create a worker retain the bounded codec.
+        this.unavailable = true; return fallback();
       }
-      if (this.pending.size >= 6) throw new Error("Codec busy");
-      return await new Promise((resolve, reject) => {
-        const id = ++this.serial; this.pending.set(id, { resolve, reject });
-        // Do not transfer the caller's input: fallback still needs those bytes.
-        try { this.worker.postMessage({ id, operation, value }); }
-        catch (error) { this.pending.delete(id); reject(error); }
-      });
-    } catch (error) {
-      if (this.closed) throw error;
-      return fallback();
+      const worker = this.worker;
+      worker.onmessage = ({ data }) => {
+        if (this.worker !== worker) return;
+        const request = this.pending.get(data.id); if (!request) return;
+        this.pending.delete(data.id); clearTimeout(request.timer);
+        if (data.error) request.reject(new Error("Invalid frame")); else request.resolve(data.value);
+      };
+      worker.onerror = worker.onmessageerror = () => {
+        if (this.worker === worker) this.stop(false);
+      };
     }
+    // Invalid data, overload and a crashed worker must not retry expensive work
+    // on the rendering thread. Discard that frame; a fresh worker handles the next.
+    if (this.pending.size >= 6) throw new Error("Codec busy");
+    return await new Promise((resolve, reject) => {
+      const id = ++this.serial;
+      const timer = setTimeout(() => { if (this.pending.has(id)) this.stop(false); }, this.timeoutMs);
+      this.pending.set(id, { resolve, reject, timer });
+      // The caller may retain the bytes as an acknowledged baseline.
+      try { this.worker.postMessage({ id, operation, value }); }
+      catch { this.stop(false); }
+    });
   }
   stop(closed = true) {
-    this.closed = closed; this.failed = true; this.worker?.terminate(); this.worker = null;
-    for (const request of this.pending.values()) request.reject(new Error("Codec stopped"));
+    this.closed ||= closed; this.worker?.terminate(); this.worker = null;
+    for (const request of this.pending.values()) {
+      clearTimeout(request.timer); request.reject(new Error("Codec stopped"));
+    }
     this.pending.clear();
   }
 }

@@ -4,6 +4,16 @@ import { RenderSnapshots, GuestFrames, interpolateStates } from "../src/render-s
 import { World, STEP } from "../src/engine.js";
 import { validSnapshot, encodeState } from "../src/network.js";
 
+test('remote knockdown, freeze and transformation transitions apply without blending old poses', () => {
+  const encoder = new RenderSnapshots(), w = new World();
+  const before = encoder.make(w.snapshot());
+  for (const transition of [{ knockdown: .5 }, { freeze: 1 }, { morph: 'crate' }]) {
+    const after = structuredClone(before);
+    Object.assign(after.players[1], transition, { x: after.players[1].x + 100 });
+    assert.equal(interpolateStates(before, after, .2).players[1], after.players[1]);
+  }
+});
+
 test("render snapshots reduce transmitted bytes without mutating authoritative physics", async () => {
   const w = new World({players:[0,1,2,3],arena:21,random:()=>.45});
   for (let i=0;i<120;i++) w.step(STEP);

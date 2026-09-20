@@ -77,6 +77,102 @@ async function readyGuests(host) {
   for (const c of host.connections.values()) c.other.send({ t: 'ready', value: true, revision: host.revision });
   await tick();
 }
+
+function realtimePair(host, guest) {
+  const h = host.connections.get(guest.id), g = guest.connection;
+  const channels = [0, 1].map(i => ({ readyState: 'open', bufferedAmount: 0,
+    close() { this.readyState = 'closed'; },
+    send(data) {
+      const copy = ArrayBuffer.isView(data) ? data.slice().buffer : structuredClone(data);
+      queueMicrotask(() => channels[1 - i].onmessage({ data: copy }));
+    },
+  }));
+  [h, g].forEach((c, i) => { c.peerConnection = { createDataChannel: () => channels[i] }; });
+  host.compression = guest.compression = true; h.metadata.compression = true;
+  host.setupRealtime(h); guest.setupRealtime(g);
+  channels.forEach(c => c.onopen());
+  return { h, g, channels };
+}
+
+test('motion keeps advancing while world compression is stalled and streams stay bounded', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); host.start(); await guest.join(host.code);
+    const { h, g } = realtimePair(host, guest); await tick();
+    const w = new World(); await host.sendState(w.snapshot()); await tick(); await g.decoder.done;
+    const run = host.codec.run.bind(host.codec); let release, worldJobs = 0;
+    host.codec.run = async (...args) => { worldJobs++; await new Promise(r => release = r); return run(...args); };
+    const stream = host.sendStream.bind(host); let motion;
+    host.sendStream = (...args) => { const job = stream(...args); if (args[3]) motion = job; return job; };
+    h.nextFrameAt = h.nextMotionAt = 0; w.time += .04;
+    const blocked = host.sendState(w.snapshot());
+    await motion; assert.ok(release);
+    for (let i = 0; i < 8; i++) {
+      h.nextMotionAt = 0; w.time += .04; w.players[1].x += 4;
+      await host.sendState(w.snapshot()); await tick(); await g.motionDecoder.done;
+    }
+    assert.equal(worldJobs, 1, 'only one world generation is in flight');
+    assert.equal(guest.emittedState.players[1].x, w.players[1].x);
+    assert.ok(guest.emittedState.time > guest.worldState.time + .25);
+    release(); await blocked; await tick(); await g.decoder.done;
+    assert.equal(guest.emittedState.players[1].x, w.players[1].x, 'late terrain cannot rewind actors');
+    assert.ok(host.snapshots.states.size <= 32 && host.motionSnapshots.states.size <= 32);
+  } finally { guest.close(); host.close(); }
+});
+
+test('asymmetric channel failure accepts newer reliable controls and rejects duplicates from either path', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); host.start(); await guest.join(host.code);
+    const { h, channels } = realtimePair(host, guest); await tick();
+    guest.sendInput({ right: true }); await tick(); assert.equal(host.getInputs()[1].right, true);
+    channels[1].close(); assert.equal(h.realtime.readyState, 'open');
+    const seq = guest.sendInput({ left: true }); await tick();
+    assert.equal(host.getInputs()[1].left, true);
+    h.realtime.onmessage({ data: JSON.stringify({ t: 'input', seq: seq - 1, input: { right: true } }) });
+    guest.connection.send({ t: 'input', seq, input: { right: true } }); await tick();
+    assert.equal(host.getInputs()[1].left, true);
+  } finally { guest.close(); host.close(); }
+});
+
+test('bounded motion and world packets from one tick both send when the channel becomes buffered', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); host.start(); await guest.join(host.code);
+    const { h, g, channels } = realtimePair(host, guest); await tick();
+    const send = channels[0].send;
+    channels[0].send = function (data) { this.bufferedAmount += data.byteLength; send.call(this, data); };
+    await host.sendState(new World().snapshot()); await tick(); await g.decoder.done;
+    assert.equal(h.sentStates.size, 1); assert.equal(h.sentMotionStates.size, 1);
+    const count = host.sequence;
+    await host.sendState(new World().snapshot()); assert.equal(host.sequence, count, 'the next tick cannot accumulate behind a queue');
+    assert.ok(channels[0].bufferedAmount < 250000);
+  } finally { guest.close(); host.close(); }
+});
+
+test('recipients sharing an acknowledged baseline share the diff as well as compression', async () => {
+  const host = new Room({}, FakePeer), guests = Array.from({ length: 3 }, () => new Room({}, FakePeer));
+  try {
+    await host.create(); host.start(); for (const g of guests) await g.join(host.code);
+    const encode = host.snapshots.encode.bind(host.snapshots); let diffs = 0;
+    host.snapshots.encode = (...args) => { diffs++; return encode(...args); };
+    await host.sendState(new World().snapshot()); await tick();
+    assert.equal(diffs, 1);
+    assert.ok(guests.every(g => g.worldState));
+  } finally { guests.forEach(g => g.close()); host.close(); }
+});
+
+test('rapid taps are acknowledged only after their press reaches a simulation tick', async () => {
+  const host = new Room({}, FakePeer), guest = new Room({}, FakePeer);
+  try {
+    await host.create(); host.start(); await guest.join(host.code);
+    guest.sendInput({ jump: true }); await tick(); assert.equal(host.getInputs()[1].jump, true);
+    guest.sendInput({}); const press = guest.sendInput({ jump: true }); await tick();
+    assert.equal(host.getInputs()[1].jump, false, 'release separates presses');
+    assert.ok(host.appliedInputs[1] < press, 'pending jump is not acknowledged early');
+    assert.equal(host.getInputs()[1].jump, true); assert.equal(host.appliedInputs[1], press);
+  } finally { guest.close(); host.close(); }
+});
 test("host acknowledges applied inputs, rejects stale sequences and never accepts guest movement authority", async () => {
   const states = [], host = new Room({}, FakePeer), guest = new Room({ onState: s => states.push(s) }, FakePeer);
   try {

@@ -27,6 +27,7 @@ varying vec2 uv;
 uniform sampler2D scene;
 uniform vec2 resolution;
 uniform vec4 holes[4]; // centre in screen-height units, strength, field age
+uniform int holeCount;
 
 void main() {
   vec2 aspect = vec2(resolution.x / resolution.y, 1.);
@@ -35,6 +36,7 @@ void main() {
   vec2 fringe = vec2(0.);
   float total = 0.;
   for (int i = 0; i < 4; i++) {
+    if (i >= holeCount) break;
     vec2 delta = position - holes[i].xy;
     float distance = length(delta);
     vec2 radial = delta / max(.001, distance);
@@ -103,6 +105,7 @@ function createWarp() {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     Object.assign(warp, { texture, pixels: 0,
       resolution: gl.getUniformLocation(program, "resolution"),
+      holeCount: gl.getUniformLocation(program, "holeCount"),
       holes: gl.getUniformLocation(program, "holes[0]"), values: new Float32Array(MAX_HOLES * 4),
     });
     return true;
@@ -185,6 +188,7 @@ export function drawSpacetimeWarp(renderer, fields) {
     values.fill(0);
     sources.forEach((f, i) => values.set([f.x, f.y, f.strength, f.time], i * 4));
     gl.uniform4fv(warp.holes, values); gl.uniform2f(warp.resolution, width, height);
+    gl.uniform1i(warp.holeCount, sources.length);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     c.clearRect(0, 0, width, height);
     c.drawImage(canvas, 0, 0);

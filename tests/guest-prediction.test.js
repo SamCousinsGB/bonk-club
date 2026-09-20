@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { World, STEP, cleanInput } from "../src/engine.js";
+import { World, STEP, ARENAS, cleanInput } from "../src/engine.js";
 import { RenderSnapshots, GuestFrames } from "../src/render-state.js";
 import { GuestPrediction } from "../src/guest-prediction.js";
 import { validSnapshot, encodeState, decodeState } from "../src/network.js";
@@ -46,6 +46,44 @@ test("prediction carries a fighter on a moving lift using the same support motio
   }
   assert.ok(Math.abs(prediction.player.y - w.players[1].y) < .5);
   assert.equal(prediction.player.ground, true);
+});
+
+test('cached prediction collision matches uncached replay, lookahead and changed-world updates', () => {
+  const a = fixture(), b = fixture();
+  for (const f of [a, b]) {
+    Object.assign(f.w.platforms[0], { baseX: 0, baseY: 500, travel: 40, speed: 2 });
+    f.w.cover = [prepareProp({ id: 'obstacle', kind: 'crate', x: 435, y: 448, w: 45, h: 45, hp: 80, maxHp: 80, angle: .25 })];
+    f.w.time += STEP; f.prediction.receive(f.snapshot(), 1, 1001);
+  }
+  b.prediction.context.solids = World.prototype.solids;
+  for (let seq = 1; seq <= 14; seq++) {
+    const input = { right: true, jump: seq === 4, duck: seq > 10 };
+    advance(a.prediction, input, seq); advance(b.prediction, input, seq);
+    assert.deepEqual(a.prediction.player, b.prediction.player, `same physical replay at ${seq}`);
+    assert.deepEqual(a.prediction.sample(a.snapshot(), 1003 + seq * 1000 / 60),
+      b.prediction.sample(b.snapshot(), 1003 + seq * 1000 / 60));
+  }
+  const old = a.prediction.context.solids(a.prediction.player);
+  a.w.cover = []; a.w.platforms = []; a.w.time += STEP;
+  a.prediction.receive(a.snapshot(14), 1, 1240);
+  assert.notEqual(a.prediction.context.solids(a.prediction.player), old);
+  assert.equal(a.prediction.context.solids(a.prediction.player).length, 0);
+});
+
+test('cached collision preserves exact movement and physical poses on every arena', () => {
+  for (let arena = 0; arena < ARENAS.length; arena++) {
+    const w = new World({ players: [0, 1], arena, shuffle: false, random: () => .45 });
+    w.phase = 'fight'; w.time = 1;
+    const state = { ...new RenderSnapshots().make(w.snapshot()), inputAcks: [0, 0, 0, 0] };
+    const cached = new GuestPrediction(), reference = new GuestPrediction();
+    cached.receive(state, 1, 1000); reference.receive(state, 1, 1000);
+    reference.context.solids = World.prototype.solids;
+    for (let seq = 1; seq <= 12; seq++) {
+      const input = cleanInput({ right: true, jump: seq === 3 || seq === 9, duck: seq > 10 });
+      for (const p of [cached, reference]) p.advance(input, seq, 1000 + seq * 1000 / 60);
+      assert.deepEqual(cached.player, reference.player, `${ARENAS[arena].name} input ${seq}`);
+    }
+  }
 });
 
 test("held prop artwork follows predicted movement without changing ownership or the received world", () => {
