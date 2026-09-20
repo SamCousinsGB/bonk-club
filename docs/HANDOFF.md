@@ -6,13 +6,17 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- v0.47.1 adds deck-mounted lifeboat davits, walkway bracing, footplates and
+- Published v0.47.1 (`ab679c5d6ef45b6f4b089ec542461fc608f3d6bd`) adds
+  deck-mounted lifeboat davits, walkway bracing, footplates and
   suspension cables. The fittings follow the ship frame and disappear when
   their main-deck mounting points are destroyed. No gameplay/protocol changes.
   Intact, listing, sinking, damaged-mount and small-screen source views were
-  checked; all 18 ship tests, 1,143 compact tests and the build passed. Publication
-  verification is pending.
-- Ocean Liner is published as v0.47.0 / protocol 70. Gameplay revision:
+  checked; all 18 ship tests, 1,143 compact tests and the build passed.
+  [Release run 35540236546](https://github.com/SamCousinsGB/bonk-club/actions/runs/35540236546)
+  passed every check and Pages. All 17 public files match the exact CI artifact;
+  both artifact and public browsers passed host/guest controls, hot join and
+  small-screen rendering with clean logs. Evidence: `bonk-club-qa/lifeboat-*`.
+- Ocean Liner was introduced in v0.47.0 / protocol 70. Gameplay revision:
   `e3654640ddb4c467f2d1d5ea3d7d49efb1df23bd`. Refresh every player tab before
   creating or joining a room.
 - New cutaway ocean vessel has five finite flood compartments. Collision-derived
