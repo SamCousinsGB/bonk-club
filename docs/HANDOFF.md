@@ -4,35 +4,23 @@ Updated 20 September 2026. Read the root `AGENTS.md` first. This file is deliber
 short; completed release history through v0.40.0 is preserved in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
-## Pending integration: articulated Bullet Train carriages
-
-- Candidate v0.40.1, protocol 63. Refresh every player's tab and create a new room.
-- The derail is eight independent weighted carriage bodies rather than one 3,200-unit
-  rectangle. Each coach owns position, velocity, angle, spin, bogie support and collision.
-- Physical couplers propagate loads through the consist. Severe stretching or jackknifing
-  breaks links; coach-to-coach collision prevents bodies passing through one another.
-- Intact bogies stay supported until they reach missing rail. Unsupported coaches fall,
-  articulate, tumble, carve platforms and retain lethal fighter, ragdoll, prop, debris,
-  weapon and projectile impacts.
-- Guests interpolate stable carriage identities. Carriage motion, support and coupler
-  topology are bounded and validated through compact snapshots and hot joins.
-- All 1,061 tests, production build and diff check passed before rebasing. A deterministic
-  1600 x 900 source render was inspected with no page errors. Evidence is outside Git at
-  `../physical-train-carriages.png` and `../physical-train-visual.mjs`.
-- Worktree: `../bonk-club-qa/physical-bullet-train`; branch
-  `codex/physical-bullet-train`. Re-run the current fast suite/build after integration;
-  release verification remains outstanding.
-
 ## Current release
 
-- Current source: `origin/main` at `f85b099c73ae580039782c5943da8ba4624c54ef`.
-- Game version: v0.40.0, protocol 62.
-- Latest gameplay change: Bullet Train can derail at carved track, retain physical
-  momentum and collision, damage the arena and preserve its state for guests and
+- Current source: `origin/main` at `9323960cefe54e20abc856419b964641cfac9832`.
+- Game version: v0.40.1, protocol 63. Refresh every player's tab and create a new room.
+- Bullet Train now consists of eight independently weighted carriage bodies with
+  bogie support, articulated breakable couplers, coach collision and per-carriage
+  destruction. Derailing coaches tumble, damage the arena and retain lethal physical
+  interaction. Guests receive bounded, validated and interpolated carriage state for
   hot joins.
-- Release run 35517996996 passed 1,061 game tests, three server tests, Windows and
-  Linux desktop checks, release consistency and Pages. All 17 public files matched
-  the exact CI artifact, and the published v0.40.0 game passed browser checks.
+- PR #3 integrated the checked worker commit. Release run
+  [35520338415](https://github.com/SamCousinsGB/bonk-club/actions/runs/35520338415)
+  passed 1,061 game tests, three server tests, all six arena-stress shards, Windows
+  and Linux desktop checks, release consistency and Pages in about three minutes.
+  Public build metadata reports v0.40.1 at the exact merged revision above.
+- A deterministic 1600 x 900 source render was inspected with no page errors before
+  integration; focused train, render-state and network tests and the production build
+  were repeated after rebasing.
 
 ## Test and release pipeline
 
