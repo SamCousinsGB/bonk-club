@@ -33,6 +33,11 @@ const brushes = [770, 1580];
 const rinseZone = { x: 1010, y: 760, w: 430, h: 400 };
 const dryerZone = { x: 1810, y: 720, w: 750, h: 440 };
 
+export function carWashFixtures(platforms) {
+  const support=(x,y)=>platforms.some(p=>p.hp!==0&&Math.abs(p.y-y)<2&&p.x<=x&&p.x+p.w>=x);
+  return {brushes:brushes.filter(x=>support(x,800)),rinse:support(1225,650),dryer:support(2416,1160)};
+}
+
 export function carWashPhase(age) {
   const cycle = age % 16;
   return {
@@ -50,7 +55,9 @@ export function updateCarWash(world, h, dt) {
   h.age += dt;
   h.hitTimer -= dt;
   if (h.hitTimer <= 0) { h.hitIds = []; h.hitTimer = .38; }
-  const phase = carWashPhase(h.age), wasActive = h.active;
+  const phase = carWashPhase(h.age), wasActive = h.active, fixtures=carWashFixtures(world.platforms);
+  phase.rinse &&= fixtures.rinse; phase.rinseWarning &&= fixtures.rinse;
+  phase.dryer &&= fixtures.dryer; phase.dryerWarning &&= fixtures.dryer;
   h.warning = phase.rinseWarning ? 5 - phase.cycle : phase.dryerWarning ? 10.8 - phase.cycle : 0;
   h.active = phase.rinse || phase.dryer;
   h.bodyX = phase.dryer ? 2240 : phase.rinse ? 1225 : h.x;
@@ -58,7 +65,7 @@ export function updateCarWash(world, h, dt) {
   if (h.active && !wasActive)
     world.event("hazard", { x: h.bodyX, y: h.bodyY, kind: phase.rinse ? "carwash-rinse" : "carwash-dryer" });
 
-  for (const x of brushes) {
+  for (const x of fixtures.brushes) {
     const zone = { x: x - 82, y: 830, w: 164, h: 330 };
     for (const p of world.players) {
       if (!p.alive || h.hitIds.includes(p.id) || !overlap(playerBox(p), zone)) continue;
@@ -80,7 +87,7 @@ export function updateCarWash(world, h, dt) {
       p.vy += 180 * dt;
     }
   }
-  if (phase.dryer) pushLoose(world, -960, dt, box => overlap(box, dryerZone));
+  if (phase.dryer) pushLoose(world, -1500, dt, box => overlap(box, dryerZone));
 }
 
 export function compactHazardZone(h) {

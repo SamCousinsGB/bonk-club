@@ -42,7 +42,7 @@ export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platf
     if(h.type==="powerline")continue;
     if(h.type==="turbine"){if(layer!=="front")(theme==="cargo-plane"?drawPlaneEngine:drawTurbine)(c,h,reduced,time);continue;}
     if(h.type==="airflow")continue;
-    if(h.type==="carwash"){drawCarWash(c,h,time,layer,reduced);continue;}
+    if(h.type==="carwash"){drawCarWash(c,h,time,layer,reduced,platforms);continue;}
     if(layer==="back"&&!isScanner(h))continue;
     if(layer==="front"&&isScanner(h)){
       c.save();scannerFront(c,h);c.restore();continue;
@@ -125,6 +125,12 @@ export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platf
         c.restore();
       }
     }else if(h.type==="conveyor"){
+      if(theme==="car-wash") {
+        c.beginPath();
+        for(const p of platforms)if(p.hp!==0&&Math.abs(p.y-h.y)<2)
+          c.rect(p.x,h.y-16,p.w,p.h+16);
+        c.clip();
+      }
       c.fillStyle="#142632";c.fillRect(left,h.y-10,h.w,18);
       line(c,[[left,h.y-10],[left+h.w,h.y-10]],"#c9a867",3);
       for(let x=left+9;x<left+h.w-5;x+=25)circle(c,x,h.y,6,"#708a91");

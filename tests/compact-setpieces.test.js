@@ -7,6 +7,7 @@ import { updateHazards } from "../src/hazards.js";
 import { RenderSnapshots } from "../src/render-state.js";
 import { validSnapshot } from "../src/network.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
+import { hazardProps } from "../src/props.js";
 
 const worldFor = theme => {
   const arena = ARENAS.findIndex(a => a.theme === theme);
@@ -94,16 +95,62 @@ test("rinse water is finite and the dryer opposes the wash conveyor", () => {
 
 test("the wash conveyor moves the heavy car as a damaging physical prop", () => {
   const world = worldFor("car-wash"), car = world.cover.find(p => p.kind === "car");
-  const belt = world.hazards.find(h => h.type === "conveyor" && h.x === 430);
-  Object.assign(car, { x: 310, y: 1060, vx: 0, vy: 0, angle: 0, spin: 0 });
-  belt.cooldown = 0;
   const start = car.x;
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 60; i++) {
     world.updateCover(STEP);
     updateHazards(world, STEP);
   }
   assert.ok(car.x > start + 20);
   assert.ok(car.vx > 0);
+  assert.ok(validSnapshot(world.snapshot()));
+});
+
+test("the wash starts immediately, warns, reverses the car and resets its drive", () => {
+  const world = worldFor("car-wash"), car = world.cover.find(p => p.kind === "car");
+  const advance = n => { for(let i=0;i<n;i++) {world.time+=STEP;world.updateCover(STEP);updateHazards(world,STEP);} };
+  advance(1);
+  assert.ok(world.hazards.filter(h=>h.type==="conveyor").every(h=>h.active&&h.cooldown===0));
+  assert.ok(car.vx>0);
+  advance(59);
+  assert.ok(car.x>280, "the actual starting car should move visibly in the first half second");
+  advance(840);
+  assert.ok(world.hazards.filter(h=>h.type==="conveyor").every(h=>h.warning>0&&h.dir===1));
+  const before=car.x;
+  advance(360);
+  assert.ok(car.x<before-300 && car.vx<0, "the same physical car returns through the arena");
+  assert.ok(validSnapshot(world.snapshot()));
+  world.startRound();
+  assert.equal(world.cover.find(p=>p.kind==="car").x,180);
+  assert.ok(world.hazards.filter(h=>h.type==="conveyor").every(h=>h.age===0&&h.dir===1&&h.cooldown===0));
+});
+
+test("a wash belt cannot drive a car over a missing contact surface", () => {
+  const world=worldFor("car-wash"),car=world.cover.find(p=>p.kind==="car");
+  const belt=world.hazards.find(h=>h.type==="conveyor");
+  world.platforms=world.platforms.filter(p=>!p.washFloor);
+  // Keep the motor's mounting, but remove the surface under the body.
+  world.platforms.push({x:190,y:1160,w:20,h:50,hp:100});
+  Object.assign(car,{x:230,y:1026,vx:0,vy:0});
+  hazardProps(world,belt,{x:20,y:1140,w:360,h:20},STEP);
+  assert.equal(car.vx,0);
+  for(let i=0;i<90;i++)world.updateCover(STEP);
+  assert.ok(car.y>1200,"the unsupported car falls through the belt hole");
+});
+
+test("wash destruction and reversed machinery survive a hot join, then reset", () => {
+  const world=worldFor("car-wash");
+  carveExplosion(world,{x:680,y:1160,radius:125});
+  carveExplosion(world,{x:1280,y:650,radius:110});
+  for(const h of world.hazards)h.age=8.5;
+  updateHazards(world,STEP);
+  world.damageCover(world.cover.find(p=>p.kind==="car"),500,400,-200);
+  const state=expandSnapshot(compactSnapshot(new RenderSnapshots().make(world.snapshot())),validSnapshot);
+  assert.deepEqual(state.platforms,new RenderSnapshots().make(world.snapshot()).platforms);
+  assert.ok(state.hazards.some(h=>h.type==="conveyor"&&h.dir===-1));
+  assert.ok(state.chunks.some(c=>c.kind==="car"));
+  world.startRound();
+  assert.equal(world.chunks.length,0);
+  assert.equal(world.platforms.length,world.arena.platforms.length);
   assert.ok(validSnapshot(world.snapshot()));
 });
 
@@ -118,6 +165,22 @@ test("car wash water, car motion and machinery phase are valid for hot joins", (
   assert.ok(snapshot.water.length > 0);
   assert.ok(snapshot.cover.some(p => p.kind === "car"));
   assert.ok(snapshot.hazards.find(h => h.type === "carwash").active);
+});
+
+test("destroying a wash machine mounting removes only that machine's effects", () => {
+  const world=worldFor("car-wash"),wash=world.hazards.find(h=>h.type==="carwash");
+  carveExplosion(world,{x:770,y:800,radius:100});
+  place(world.players[0],770,1128);place(world.players[1],1580,1128);
+  updateHazards(world,STEP);
+  assert.equal(world.players[0].hp,100);
+  assert.equal(world.players[1].hp,96);
+  carveExplosion(world,{x:1225,y:650,radius:100});
+  wash.age=5.1;updateHazards(world,STEP);
+  assert.equal(wash.active,false);assert.equal(world.water.length,0);
+  carveExplosion(world,{x:2416,y:1160,radius:100});
+  wash.age=11;updateHazards(world,STEP);
+  assert.equal(wash.active,false);
+  assert.ok(validSnapshot(world.snapshot()));
 });
 
 test("malformed compact set-piece state is rejected", () => {

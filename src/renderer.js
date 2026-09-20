@@ -1,6 +1,6 @@
 import { drawTurbineHall } from "./turbine-art.js";
 import { drawPlaneSky, transformPlane, drawPlaneInterior, drawPlaneHull, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
-import { drawCompactSetpieceHall } from "./compact-setpiece-art.js";
+import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
@@ -966,6 +966,7 @@ export class Renderer {
     if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
+    if(arena.carWash)drawCarWashStructure(c,state);
     if(arena.cargoPlane)drawPlaneHull(c,state.platforms);
     for (const s of state.spikes) {
       c.fillStyle = "#e6a384";

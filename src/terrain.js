@@ -11,7 +11,7 @@ export function preparePlatforms(arena, arenaIndex) {
   if (arena.assembly) return arena.platforms.map(p => ({ ...p }));
   if (arena.furnace) return arena.platforms.map(p => ({ ...p }));
   // Machinery floors resist bullets but still use the same circular blast cuts.
-  if (arena.survival || arena.transmission) return arena.platforms.map(p => ({ ...p }));
+  if (arena.survival || arena.transmission || arena.carWash) return arena.platforms.map(p => ({ ...p }));
   const candidates = arena.platforms
     .map((p, i) => ({ p, i }))
     .filter(

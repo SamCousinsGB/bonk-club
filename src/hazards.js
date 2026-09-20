@@ -24,7 +24,7 @@ export function createHazards(world) {
     done:false,hitIds:[],hitTimer:0,...(h.type==="powerline"?{circuit:h.circuit??0}:{}),
     ...(h.type === "loader" ? {cooldown: 3.5} : {}),
     ...(h.type === "train" ? {derailed:false,angle:0,vx:0,spin:0} : {}),
-    ...(world.arena.survival && h.type === "conveyor" ? {cooldown: 0} : {}),
+    ...((world.arena.survival || world.arena.carWash) && h.type === "conveyor" ? {cooldown: 0} : {}),
   }));
 }
 export function hazardZone(h) {
@@ -95,6 +95,12 @@ export function updateHazards(world,dt) {
       if(h.cooldown>0){h.cooldown=Math.max(0,h.cooldown-dt);h.warning=h.cooldown<1?h.cooldown:0;continue;}
       h.warning=0;
       h.active=true;
+      if (world.arena.carWash && h.type === "conveyor") {
+        // One shared clock, including the first combat tick and every hot join.
+        h.dir = h.age % 16 < 8 ? 1 : -1;
+        const remaining = 8 - h.age % 8;
+        h.warning = remaining < 1 ? remaining : 0;
+      }
       if(h.type==="pendulum") {
         const angle=Math.sin(h.age*1.8)*.85,length=h.h-35;
         h.bodyX=h.x+Math.sin(angle)*length;
