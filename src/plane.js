@@ -2,7 +2,7 @@ import { segmentBox } from "./collision.js";
 import { carryImpulse } from "./impact.js";
 import { impulseProp } from "./props.js";
 
-export const PLANE = Object.freeze({ x: 1280, y: 710, rx: 800, ry: 570, innerX: 752, innerY: 522, radius: 520 });
+export const PLANE = Object.freeze({ x: 1280, y: 710, rx: 830, ry: 594, innerX: 790, innerY: 550, radius: 520 });
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 

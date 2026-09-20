@@ -1,5 +1,5 @@
 import { drawTurbineHall } from "./turbine-art.js";
-import { drawPlaneSky, transformPlane, drawPlaneInterior, drawPlaneHull, drawPlaneOutflows } from "./plane-art.js";
+import { drawPlaneSky, transformPlane, drawPlaneInterior, drawPlaneHull, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
@@ -417,6 +417,7 @@ export class Renderer {
   platform(p, time) {
     if (p.hp === 0) return;
     if (p.planeHull) return;
+    if (this.planeFrame && !p.wreckId && !p.waterId) { drawPlanePlatform(this.ctx,p); return; }
     if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
     if (p.oneWay) {
       const c=this.ctx;
@@ -915,7 +916,11 @@ export class Renderer {
     } else if (arena.cargoPlane) {
       drawPlaneSky(c,time,this.reduced);
       transformPlane(c,this.planeFrame.age,this.reduced);
-      drawPlaneInterior(c);
+      if (!this.scenery.has("plane-interior")) {
+        const layer=document.createElement("canvas");layer.width=W;layer.height=H;
+        drawPlaneInterior(layer.getContext("2d"));this.scenery.set("plane-interior",layer);
+      }
+      c.drawImage(this.scenery.get("plane-interior"),0,0);
     } else if (arena.theme) {
       if (!this.scenery.has(state.arenaIndex)) {
         const layer = document.createElement("canvas");

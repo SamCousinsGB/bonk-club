@@ -26,7 +26,11 @@ export class HazardBreaks {
   }
 }
 
-export function hazardArtBounds(h) {
+export function hazardArtBounds(h,theme) {
+  if (h.type === "turbine" && theme === "cargo-plane") {
+    const top=Math.min(720,h.bodyY-h.w/2-26);
+    return {x:h.bodyX-h.w/2-26,y:top,w:Math.max(1,Math.min(880,h.w+52)),h:Math.max(1,Math.min(440,h.bodyY+h.w/2+32-top))};
+  }
   if (h.type === "turbine") return {x:h.bodyX-h.w/2-8,y:h.bodyY-h.w/2-8,w:h.w+16,h:h.w+16};
   if (h.type === "furnace") return {x:h.x-345,y:h.y-220,w:690,h:580};
   if (h.type === "slag") return {x:h.x-h.w/2-12,y:h.y-h.h-8,w:Math.min(924,h.w+24),h:Math.min(320,h.h+16)};
@@ -47,8 +51,8 @@ export function hazardArtBounds(h) {
 
 // A shared jittered mesh partitions the actual casing artwork. Neighbouring
 // shards meet at the same crack, including across slender rods and moving heads.
-export function hazardShardMesh(h) {
-  const bounds = hazardArtBounds(h), cols = Math.min(8, Math.max(3, Math.ceil(bounds.w / 42)));
+export function hazardShardMesh(h,theme) {
+  const bounds = hazardArtBounds(h,theme), cols = Math.min(8, Math.max(3, Math.ceil(bounds.w / 42)));
   const rows = Math.min(6, Math.max(2, Math.ceil(bounds.h / 48))), seed = h.id * 31;
   const points = Array.from({length: rows + 1}, (_, y) => Array.from({length: cols + 1}, (_, x) => ({
     x: (x + (x && x < cols ? (noise(seed + y * 19 + x) - .5) * .55 : 0)) * bounds.w / cols,
@@ -65,7 +69,7 @@ function inside(x, y, poly) {
 }
 
 function fracture(burst, theme) {
-  const {h} = burst, {bounds, shards} = hazardShardMesh(h);
+  const {h} = burst, {bounds, shards} = hazardShardMesh(h,theme);
   const canvas = document.createElement("canvas"); canvas.width = bounds.w; canvas.height = bounds.h;
   const c = canvas.getContext("2d", {willReadFrequently: true}); c.translate(-bounds.x, -bounds.y);
   // Powered fields and warning overlays are not pieces of the broken machine.

@@ -16,7 +16,7 @@ const fixture = () => {
   w.phase="fight";w.weaponTimer=w.grenadeTimer=999;
   return {w,h:w.hazards.find(h=>h.type==="airflow")};
 };
-const breach = w => carveExplosion(w,{x:2080,y:710,radius:140});
+const breach = w => carveExplosion(w,{x:PLANE.x+PLANE.rx,y:PLANE.y,radius:140});
 
 test("large destructive weapons cannot consume the plane's virtual pressure controller",()=>{
   for(const kind of ["blackhole","nuke","phaser"]) {
@@ -36,14 +36,14 @@ test("large destructive weapons cannot consume the plane's virtual pressure cont
 
 test("dents stay sealed, through cuts vent locally, and multiple holes retain distinct directions",()=>{
   const {w}=fixture();
-  carveExplosion(w,{x:2110,y:710,radius:42});
+  carveExplosion(w,{x:PLANE.x+PLANE.rx+25,y:PLANE.y,radius:42});
   assert.deepEqual(planeBreaches(w.platforms),[]);
   breach(w);
   let holes=planeBreaches(w.platforms),hull=w.platforms.filter(p=>p.planeHull);
   assert.ok(breachForce({x:1890,y:710},holes,hull).x>3500);
   assert.deepEqual(breachForce({x:1100,y:710},holes,hull),{x:0,y:0});
   assert.ok(breachForce({x:2150,y:710},holes,hull).x>0,"jet continues outward beyond the opening");
-  carveExplosion(w,{x:480,y:710,radius:140});
+  carveExplosion(w,{x:PLANE.x-PLANE.rx,y:PLANE.y,radius:140});
   holes=planeBreaches(w.platforms);hull=w.platforms.filter(p=>p.planeHull);
   assert.equal(holes.length,2);
   assert.ok(breachForce({x:650,y:710},holes,hull).x< -3000);
@@ -88,7 +88,7 @@ test("a nearby pressure jet tears cargo restraints and ejects an actual fighter 
 test("turbulence transform keeps the full plane visible and pointer aim follows the rotating frame",()=>{
   for(let age=0;age<80;age+=.13)for(const reduced of [false,true]) {
     const pose=planePose(age,reduced),c=Math.cos(pose.angle),s=Math.sin(pose.angle);
-    for(const point of [{x:100,y:710},{x:2460,y:710},{x:1280,y:140},{x:1280,y:1280},{x:1790,y:850}]) {
+    for(const point of [{x:50,y:700},{x:2510,y:724},{x:PLANE.x,y:PLANE.y-PLANE.ry},{x:PLANE.x,y:PLANE.y+PLANE.ry},{x:1790,y:850}]) {
       const x=point.x-PLANE.x,y=point.y-PLANE.y;
       const screen={x:PLANE.x+pose.x+pose.scale*(x*c-y*s),y:PLANE.y+pose.y+pose.scale*(x*s+y*c)};
       const local=planeLocalPoint(screen,age,reduced);
