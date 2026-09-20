@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { World, ARENAS, STEP } from '../src/engine.js';
 import { updateHazards } from '../src/hazards.js';
 import { carveExplosion } from '../src/terrain.js';
-import { damageFurnacePart, furnacePartBox } from '../src/furnace-parts.js';
+import { damageFurnacePart, furnacePartBox, blastFurnace, furnaceHits, initialFurnacePieces } from '../src/furnace-parts.js';
 import { powerlineCircuit, poweredWirePieces } from '../src/powerline-circuit.js';
 import { updateCables, blastCables } from '../src/heavy-cables.js';
 import { validSnapshot } from '../src/network.js';
 import { RenderSnapshots, interpolateStates } from '../src/render-state.js';
 import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
+import { furnaceStreams, updateFurnaceFlow } from '../src/furnace-flow.js';
 import { firePhaser } from '../src/phaser.js';
 
 function lab() {
@@ -18,12 +19,16 @@ function lab() {
 }
 const tick=(w,n=1)=>{for(let i=0;i<n;i++){w.time+=STEP;updateCables(w,STEP);updateHazards(w,STEP);}};
 
-test('local blast damages shell sections without deleting the furnace or unrelated parts; repeat damage removes only those sections',()=>{
-  const {w,h}=lab();const b=furnacePartBox(h,0),blast={x:b.x+70,y:b.y+120,radius:25};
-  carveExplosion(w,blast);assert.equal(h.done,false);assert.equal(h.furnaceParts[0],35);
-  assert.ok(h.furnaceParts.slice(1).every(hp=>hp===100));
-  carveExplosion(w,blast);assert.equal(h.furnaceParts[0],0);assert.ok(!h.done);
-  tick(w);assert.ok(h.furnaceFault>0);w.startRound();assert.ok(w.hazards[0].furnaceParts.every(hp=>hp===100));
+const metalAt=(h,x,y)=>h.furnacePieces.some(p=>x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h);
+test('blast carves a circular hole rather than deleting a panel; another impact extends that hole and reset restores steel',()=>{
+  const {w,h}=lab();const cut={x:1100,y:1160,radius:40};
+  carveExplosion(w,cut);assert.ok(!h.done);assert.ok(!metalAt(h,-180,160));
+  assert.ok(metalAt(h,-240,160));assert.ok(metalAt(h,-180,220));
+  assert.ok(h.furnaceParts[0]>80);assert.equal(h.furnaceParts[1],100);
+  const area=()=>h.furnacePieces.reduce((n,p)=>n+p.w*p.h,0),before=area();
+  carveExplosion(w,{...cut,x:1130});assert.ok(area()<before);assert.ok(!metalAt(h,-140,160));
+  assert.ok(h.furnaceLeaks.length>0);tick(w);assert.ok(h.furnaceFault>0);
+  w.startRound();assert.deepEqual(w.hazards[0].furnacePieces,initialFurnacePieces());assert.deepEqual(w.hazards[0].furnaceLeaks,[]);
 });
 
 test('ordinary projectile hits damage the actual shell and respect nearer cover',()=>{
@@ -31,7 +36,7 @@ test('ordinary projectile hits damage the actual shell and respect nearer cover'
     const {w,h}=lab();w.platforms=cover?[{id:'shield',x:940,y:1090,w:20,h:100}]:[];
     w.projectiles=[{x:900,y:1140,vx:3000,vy:0,life:1,r:3,kind:'bullet',damage:30,force:100,owner:0}];
     w.updateProjectiles(.08);
-    assert.equal(h.furnaceParts[0],cover?100:70);assert.ok(!h.done);
+    assert.ok(cover?h.furnaceParts[0]===100:h.furnaceParts[0]<100&&h.furnaceParts[0]>90);if(!cover){assert.ok(!metalAt(h,-253,140));assert.ok(metalAt(h,-253,190));assert.equal(h.furnaceLeaks.length,1);}assert.ok(!h.done);
   }
 });
 
@@ -79,24 +84,26 @@ test('different phases short on contact during a safe interval; matching phases 
 });
 
 test('lost terminals detach only their cables; loss of a grate support cannot delete the whole machine',()=>{
-  const {w,h}=lab();damageFurnacePart(w,h,6,100);tick(w);
+  const {w,h}=lab();blastFurnace(w,{x:1035,y:600,radius:17});tick(w);
   assert.deepEqual(w.cables[0].attached,[true,false]);assert.ok(w.cables.slice(1).every(c=>c.attached.every(Boolean)));
   carveExplosion(w,{x:1280,y:1000,radius:50});tick(w);assert.ok(!h.done);assert.ok(h.furnaceParts.some(hp=>hp===100));
 });
 
 test('phaser damage removes intersected machinery only and never drops the controller or cable state',()=>{
   const {w,h}=lab(),p=w.players[0];Object.assign(p,{x:500,y:1150,weapon:'phaser',aimAngle:0,rig:null});
-  firePhaser(w,p,1,0);assert.ok(w.hazards.includes(h));assert.ok(h.furnaceParts.slice(0,3).every(hp=>hp===0));
+  const beam=firePhaser(w,p,1,0);assert.ok(w.hazards.includes(h));assert.ok(h.furnaceParts.slice(0,3).every(hp=>hp>0&&hp<100));
   assert.ok(h.furnaceParts.slice(3).some(hp=>hp===100));assert.equal(w.cables.length,6);
+  w.platforms=[];w.projectiles=[{x:800,y:beam.y,vx:4000,vy:0,life:1,r:3,kind:'bullet',damage:30,force:100,owner:0}];
+  w.updateProjectiles(.25);assert.equal(w.projectiles.length,1);assert.ok(w.projectiles[0].x>1700,'shots cross the open beam cut');
 });
 
 test('damaged machinery, irregular power and cut geometry survive compact hot join and cannot interpolate back to pristine parts',()=>{
   const {w,h}=lab();const before=new RenderSnapshots().make(w.snapshot());damageFurnacePart(w,h,0,100);w.cables[0].links[12]=false;tick(w,400);
   const s=new RenderSnapshots().make(w.snapshot());assert.ok(validSnapshot(s));
   const hot=expandSnapshot(JSON.parse(JSON.stringify(compactSnapshot(s))),validSnapshot);assert.deepEqual(hot.hazards,s.hazards);
-  const view=interpolateStates(before,hot,.2);assert.equal(view.hazards[0].furnaceParts[0],0);
+  const view=interpolateStates(before,hot,.2);assert.deepEqual(view.hazards[0].furnacePieces,hot.hazards[0].furnacePieces);assert.deepEqual(view.hazards[0].furnaceLeaks,hot.hazards[0].furnaceLeaks);
   assert.deepEqual(poweredWirePieces(hot),poweredWirePieces(s));
-  for(const patch of [{furnaceParts:[100]},{furnaceParts:Array(12).fill(-1)},{furnaceStage:3},{furnaceLeft:Infinity},{furnaceFault:2},{furnaceCooling:3},{done:true},{furnaceLanes:[1,true,true]}]){
+  for(const patch of [{furnaceParts:[100]},{furnaceParts:Array(12).fill(-1)},{furnaceStage:3},{furnaceLeft:Infinity},{furnaceFault:2},{furnaceCooling:3},{done:true},{furnaceLanes:[1,true,true]},{furnacePieces:[{part:99,x:0,y:0,w:10,h:10}]},{furnaceMelt:2},{furnaceLeaks:[{x:0,y:100,r:200,born:0}]}]){
     const bad=structuredClone(s);Object.assign(bad.hazards[0],patch);assert.equal(validSnapshot(bad),false);
   }
 });
@@ -104,4 +111,44 @@ test('damaged machinery, irregular power and cut geometry survive compact hot jo
 test('prediction cannot damage machinery, change its cycle or apply wire shocks',()=>{
   const {w,h}=lab();w.prediction=true;const before=structuredClone(h);damageFurnacePart(w,h,0,100);updateHazards(w,1);
   assert.deepEqual(h,before);assert.ok(w.players.every(p=>p.hp===100));
+});
+
+
+test('molten stream starts at the actual breach, bends under gravity and stops at the first surviving platform',()=>{
+  const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
+  w.platforms=[{id:'catch',x:500,y:1250,w:800,h:24}];
+  const s=furnaceStreams(h,w.platforms)[0];assert.ok(s.landed);
+  assert.equal(s.points[0].x,1080);assert.equal(s.points[0].y,1160);
+  assert.ok(s.points.at(-1).x<1050);assert.ok(s.points.at(-1).y<1250);
+  const last=s.points.at(-1);w.platforms=[];
+  assert.ok(furnaceStreams(h,w.platforms)[0].points.at(-1).y>last.y+100);
+});
+
+test('only contact with the real molten stream burns; a platform shields fighters below it',()=>{
+  const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});h.age=1;
+  w.platforms=[{id:'catch',x:500,y:1250,w:800,h:24}];
+  const s=furnaceStreams(h,w.platforms)[0],q=s.points[Math.floor(s.points.length/2)];
+  Object.assign(w.players[0],{x:q.x,y:q.y,hp:100,alive:true});Object.assign(w.players[1],{x:s.points.at(-1).x,y:1330,hp:100,alive:true});
+  updateFurnaceFlow(w,h,STEP);assert.equal(w.players[0].alive,false);assert.equal(w.players[1].hp,100);
+});
+
+test('leaking lowers the finite melt below a breach, stopping its stream; intact or empty vessels do not leak',()=>{
+  const {w,h}=lab();assert.deepEqual(furnaceStreams(h),[]);blastFurnace(w,{x:1080,y:1160,radius:45});h.age=2;
+  for(let i=0;i<120*90;i++)updateFurnaceFlow(w,h,STEP);
+  assert.ok(h.furnaceMelt<.555);assert.deepEqual(furnaceStreams(h),[]);
+  h.furnaceMelt=0;assert.deepEqual(furnaceStreams(h),[]);
+});
+
+test('a projectile can pass through a bored hole and every later cut keeps existing voids open',()=>{
+  const {w,h}=lab();w.platforms=[];blastFurnace(w,{x:1080,y:1160,radius:100});
+  assert.ok(!furnaceHits(w).some(p=>p.x<=1080&&p.x+p.w>=1080&&p.y<=1160&&p.y+p.h>=1160));
+  for(let i=0;i<100;i++)blastFurnace(w,{x:1030+(i*37)%500,y:1040+(i*53)%260,radius:8+i%17});
+  assert.ok(!metalAt(h,-200,160));assert.ok(h.furnacePieces.length<=2048);assert.ok(h.furnaceLeaks.length<=12);
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
+});
+
+test('consuming all vessel metal cannot leave streams pouring from an invisible reservoir',()=>{
+  const {w,h}=lab();blastFurnace(w,{x:1080,y:1160,radius:45});assert.equal(h.furnaceLeaks.length,1);
+  blastFurnace(w,{x:1280,y:1175,radius:400});assert.equal(h.furnaceMelt,0);assert.deepEqual(h.furnaceLeaks,[]);
+  h.age=3;assert.deepEqual(furnaceStreams(h),[]);assert.ok(!h.done);
 });

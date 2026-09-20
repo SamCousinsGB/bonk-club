@@ -30,13 +30,13 @@ function scannerFront(c,h) {
 }
 // Default draws the complete fixture for destruction artwork. Gameplay splits
 // scanners around the fighters: left/rear post first, right/front post last.
-export function drawHazards(c,hazards,time,theme,layer="all",reduced=false){
+export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platforms=[]){
   for(const h of hazards||[]){
     if(h.done)continue;
     if(h.assemblyStation)continue;
     if(h.type==="ladle"){if(layer!=="front")drawLadle(c,h,time,reduced);continue;}
     if(h.type==="train"){if(layer!=="front")drawTrain(c,h,time,reduced);continue;}
-    if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced);continue;}
+    if(h.type==="furnace"||h.type==="slag"){drawFurnaceFixture(c,h,time,layer,reduced,platforms);continue;}
     if(h.type==="powerline")continue;
     if(h.type==="turbine"){if(layer!=="front")drawTurbine(c,h,reduced,time);continue;}
     if(layer==="back"&&!isScanner(h))continue;

@@ -2,6 +2,27 @@
 
 Updated 20 September 2026. Read the root `AGENTS.md` first.
 
+## Arc Furnace carved breaches and molten leaks - 20 September 2026
+
+- v0.38.0 / protocol 60 supersedes the rejected panel-damage appearance below.
+  Refresh all players and create a new room.
+- Furnace steel retains geometric fragments from the same circular carve used
+  by platforms. Bullets cut at their contact; blasts/PHASER/tools remove local
+  metal and preserve surrounding artwork. Shots pass through opened gaps.
+- Vessel breaches pour molten metal from their actual openings. Host and guest
+  derive the same gravity arc, first platform contact and splash footprint.
+  Contact burns; platforms shield the space below. Finite melt falls below high
+  openings, stopping their streams; wholly consumed vessels leave no outlet.
+- Severed electrode/riser continuity still controls surviving power feeds.
+  Existing unstable cycles, amber beacons, electrical sound and live cut cables
+  remain. Geometry, leak mouths and melt amount are validated for hot join/reset.
+- Source: ../bonk-club-qa/furnace-damage, branch codex/furnace-breaches. Existing
+  canonical unrelated work is preserved. External source host/guest/late join
+  passed actual curved cuts, enlargement, flowing metal, burn death and reset
+  with selected relay/relay pairs. Large and small reduced-motion visuals were
+  inspected. Evidence: ../bonk-club-qa/furnace-breach-browser.json and PNGs.
+- Final release verification follows below.
+
 ## Floorless Turbine Hall - 20 September 2026
 
 - v0.37.0, protocol 59. Refresh every player's tab and create a new room.

@@ -969,7 +969,7 @@ export class Renderer {
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
     drawGas(c, state, time);
-    drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced);
+    drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced, state.platforms);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);
@@ -1021,7 +1021,7 @@ export class Renderer {
     for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) if(cover.kind!=="car"||!arena.assembly)this.table(cover);
-    drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced);
+    drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     this.fragments(state.debris);
     drawChunks(this, state.chunks);

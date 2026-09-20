@@ -1,4 +1,5 @@
-import { FURNACE_PARTS, furnacePartBox } from './furnace-parts.js';
+import { furnaceStreams } from './furnace-flow.js';
+import { clipFurnace } from './furnace-parts.js';
 import { powerlineCircuit } from './powerline-circuit.js';
 import { electricArc } from "./electricity-art.js";
 import { furnaceHeat } from "./furnace.js";
@@ -77,6 +78,7 @@ export function drawFurnaceHall(c) {
 
 export function drawFurnaceCables(c, cables, h, time) {
   c.save(); c.lineCap = "round"; c.lineJoin = "round";
+  clipFurnace(c,h);
   const circuit=powerlineCircuit({cables,hazards:h?[h]:[]});
   for (const cable of cables) {
     const spec = cableLayout(cable.id);
@@ -139,7 +141,7 @@ function beacons(c, h, time, reduced) {
   }
 }
 
-export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
+export function drawFurnaceFixture(c, h, time, layer, reduced = false, platforms = []) {
   if (reduced) time = 0;
   if (h.done) return;
   c.save(); c.lineJoin = "round"; c.lineCap = "round";
@@ -157,16 +159,12 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     glow(c, h.x, top, 480, "#fa662323");
     c.restore(); return;
   }
-  if (layer === "front") { beacons(c, h, time, reduced); c.restore(); return; }
+  if (layer === "front") { beacons(c, h, time, reduced); drawFurnaceFlow(c,h,platforms,time,reduced); c.restore(); return; }
   const x = h.x, y = h.y, heat = furnaceHeat(h);
   glow(c, x, y + 100, 460, h.active ? "#f8863f45" : "#ee572024");
   c.save();
-  // Retain the surviving original artwork; removed sections never regenerate.
-  if(h.furnaceParts?.some(hp=>hp===0)) {
-    c.beginPath();c.rect(-4000,-4000,12000,12000);
-    h.furnaceParts.forEach((hp,i)=>{if(!hp){const b=furnacePartBox(h,i);c.rect(b.x,b.y,b.w,b.h);}});
-    c.clip('evenodd');
-  }
+  // The same surviving steel geometry determines bullet contacts and artwork.
+  clipFurnace(c,h);
   // Refractory vessel below the narrow grate. Its wall is background scenery.
   line(c, [[x - 270, y + 70], [x - 225, y + 300], [x + 225, y + 300], [x + 270, y + 70]], "#101821", 24);
   const steel = c.createLinearGradient(x - 240, y, x + 240, y);
@@ -182,10 +180,6 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     circle(c, x + side * 260, y + 142, 9, "#252c35");
     line(c, [[x + side * 295, y + 142], [x + side * 330, y + 310]], "#303c44", 19);
   }
-  // Tapping stream leads into the dangerous molten trough below.
-  const flow = 1 + Math.sin(time * 4) * .15;
-  line(c, [[x + 145, y + 245], [x + 160, y + 285], [x + 170, y + 357]], "#c65127", 24 * flow);
-  line(c, [[x + 145, y + 245], [x + 160, y + 285], [x + 170, y + 357]], "#ffcb66", 9 * flow);
   // Three graphite electrodes, with bright tips only while drawing current.
   for (const dx of [-145, 0, 145]) {
     line(c, [[x + dx, y - 215], [x + dx, y - 50]], "#131b25", 30);
@@ -195,11 +189,6 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
       const charge = 1 - h.warning / 2;
       glow(c, x + dx, y - 53, 45 + charge * 35, `rgba(255,185,80,${.12 + charge * .22})`);
     }
-  }
-  for(let i=0;i<FURNACE_PARTS.length;i++)if(h.furnaceParts?.[i]>0&&h.furnaceParts[i]<100) {
-    const b=furnacePartBox(h,i),cx=b.x+b.w/2,cy=b.y+b.h*.5;
-    line(c,[[cx-b.w*.35,cy-b.h*.2],[cx-4,cy],[cx+7,cy-12],[cx+b.w*.35,cy+b.h*.22]],"#10141c",4);
-    if(h.active||h.warning>0)glow(c,cx,cy,Math.min(60,b.w),"#ffb35445");
   }
   c.restore();
   if (layer === undefined || layer === "all") { c.restore(); return; } // Casing-only destruction mesh.
@@ -236,5 +225,35 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false) {
     }
   }
   if (heat > 0 && !h.active) glow(c, x, y, 240, `rgba(255,96,32,${heat * .2})`);
+  c.restore();
+}
+
+function drawFurnaceFlow(c,h,platforms,time,reduced) {
+  c.save();c.lineJoin='round';c.lineCap='round';
+  for(const s of furnaceStreams(h,platforms)) {
+    const mouth=s.points[0],end=s.points.at(-1),pts=s.points.map(p=>[p.x,p.y]);
+    glow(c,mouth.x,mouth.y,s.r*5,'#ff731a88');
+    circle(c,mouth.x,mouth.y,s.r*1.5,'#612617');
+    circle(c,mouth.x,mouth.y,s.r*1.1,'#fff0a0');
+    line(c,pts,'#b43c1d',s.r*2.5);
+    line(c,pts,'#ff841f',s.r*2);
+    line(c,pts,'#ffe18a',s.r*1.15);
+    line(c,pts,'#fff6c5',Math.max(2,s.r*.3));
+    if(!reduced)for(let i=0;i<9;i++) {
+      const u=(time*1.8+i/9)%1,k=Math.min(s.points.length-2,Math.floor(u*(s.points.length-1)));
+      const a=s.points[k],b=s.points[k+1],v=u*(s.points.length-1)-k;
+      circle(c,a.x+(b.x-a.x)*v,a.y+(b.y-a.y)*v,s.r*.65,'#fff2b2');
+    }
+    if(s.landed) {
+      glow(c,end.x,end.y,80,'#ff8a2944');
+      line(c,[[end.x-s.r*2,end.y],[end.x+s.r*2,end.y]],'#f67b27',s.r);
+      line(c,[[end.x-s.r*1.7,end.y-2],[end.x+s.r*1.7,end.y-2]],'#ffebb0',s.r*.4);
+      for(let i=0;i<10;i++) {
+        const u=reduced?.3:(time*1.5+i*.137)%1,side=i%2?1:-1;
+        const x=end.x+side*(s.r*2+u*38),y=end.y-Math.sin(u*Math.PI)*(18+i%3*10);
+        circle(c,x,y,1.5+(1-u)*2,'#ffcb64');
+      }
+    }
+  }
   c.restore();
 }

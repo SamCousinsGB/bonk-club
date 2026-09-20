@@ -198,17 +198,20 @@ Keep this constitution for durable rules and the handoff for current work.
   supports and lifts resist bullets. Keep cover useful and destructible.
   Destruction must update collision, navigation and guest state, including hot
   join and spikes. Restore the original terrain at the next round.
-- ARC FURNACE uses six pass-through physical cable simulations, a central grated
-  crossing and an intact 16-second cycle (nine open, two warning, five active).
-  Shell panels, electrodes and cable terminals take independent permanent damage;
-  never destroy the furnace as one entity. Damage makes restart and discharge
-  timing irregular, with at least 1.2 seconds of amber warning. Only surviving,
-  supplied electrodes arc. Keep overhead machinery pass-through for fighters.
-  Cut cables fall using the transmission-wire solver and shock on actual contact
-  while wall-fed or back-fed through a surviving complete electrode lead. Different
-  phases touching short continuously while supplied; fully isolated runs go dead.
-  The grate cools over 2.5 seconds and molten metal remains dangerous below.
-  Preserve host-only damage, validated changed-map hot joins and full round reset.
+- ARC FURNACE uses six pass-through physical cables and a central grated crossing.
+  Its furnace metal takes circular geometric cuts using the same carving as
+  platforms. Bullets cut at the actual impact; successive blasts and beam cuts
+  remove only intersected steel. Never restore panel health bars, whole-panel
+  deletion or destruction of the machine as one entity. Rendered holes and shot
+  collision use the same surviving geometry. Breaches in the vessel pour finite
+  molten-metal streams from the actual openings, with gravity, platform contact,
+  visible splashes and host-owned burn damage along the flow. Empty or consumed
+  vessels cannot produce invisible streams; reset restores metal and contents.
+  Damage makes the intact 16-second power cycle irregular, retaining amber
+  warning before timed activation. Surviving supplied electrodes retain arcs.
+  Cut cables fall and shock while wall-fed or back-fed through surviving leads;
+  different phases can short while touching. Keep fully isolated runs dead.
+  Preserve hot joins, validated cuts/leaks, grate cooling and the molten trough.
   Warn through caged amber beacons, electrode glow and rising transformer strain;
   never restore countdown screens or status signs. Live arcs have sustained
   electrical roar/cracks and a cooling tail, tied to the existing hazard phase.

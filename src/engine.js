@@ -1362,7 +1362,7 @@ export class World {
           continue;
         }
         if (s) {
-          if(s.furnaceHazard && b.kind !== 'grenade' && b.kind !== 'rocket')damageFurnacePart(this,s.furnaceHazard,s.furnaceIndex,b.kind==='rail'?100:b.damage);
+          if(s.furnaceHazard && b.kind !== 'grenade' && b.kind !== 'rocket')damageFurnacePart(this,s.furnaceHazard,s.furnaceIndex,b.kind==='rail'?100:b.damage,{x:b.x,y:b.y});
           surfaceReaction(this, b, s);
           if (breakable(s) && !b.nuclear && b.kind !== "rocket") {
             const speed = Math.hypot(b.vx,b.vy) || 1;

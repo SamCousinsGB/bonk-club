@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.37.0",
-  "releaseNotes": "Removed the Turbine Hall floor and opened the machinery void",
+  "version": "0.38.0",
+  "releaseNotes": "Blast-carved furnace holes and flowing molten-metal leaks",
   "private": true,
   "type": "module",
   "scripts": {

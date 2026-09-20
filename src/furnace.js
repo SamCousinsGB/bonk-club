@@ -1,3 +1,4 @@
+import { updateFurnaceFlow } from './furnace-flow.js';
 import { furnaceFault, furnaceFeed } from './furnace-parts.js';
 import { powerlineCircuit } from './powerline-circuit.js';
 import { playerBox, segmentBox } from "./collision.js";
@@ -22,6 +23,7 @@ export function updateFurnace(world, h, dt) {
   h.age += dt;
   const oldActive=h.active,phase=(h.age+1e-9)%FURNACE_CYCLE;
   if(h.type==='furnace') {
+    updateFurnaceFlow(world,h,dt);
     const fault=furnaceFault(world,h);
     if(fault>0&&h.furnaceFault===0) {
       // First damage accelerates the next warning, but never skips it.
