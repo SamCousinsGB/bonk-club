@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.41.0",
-  "releaseNotes": "Adds Cargo Plane Hold and Car Wash arenas",
+  "version": "0.42.0",
+  "releaseNotes": "Rebuilds the cargo plane with turbulence and hull decompression",
   "private": true,
   "type": "module",
   "scripts": {

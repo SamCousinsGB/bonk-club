@@ -30,7 +30,7 @@ export function updateTurbine(world, h, dt) {
 // Keep the machine acting on individual physical pieces during the result too.
 // This never awards a second death and never resurrects consumed/ash remains.
 export function tumbleTurbineBody(world, rag, dt) {
-  if (dt <= 0 || world.prediction || !world.arena.turbine || !["fight", "result"].includes(world.phase) ||
+  if (dt <= 0 || world.prediction || !(world.arena.turbine || world.arena.cargoPlane) || !["fight", "result"].includes(world.phase) ||
       rag.capturedBy || rag.ash || rag.effect === "singularity") return;
   for (const h of world.hazards) {
     if (h.type !== "turbine" || h.done || !rag.points.some(p => inside(h, p, 5))) continue;

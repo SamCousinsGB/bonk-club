@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ARENAS, STEP, World } from "../src/engine.js";
+import { carveExplosion } from "../src/terrain.js";
+import { planeBreaches } from "../src/plane.js";
 import { updateHazards } from "../src/hazards.js";
 import { RenderSnapshots } from "../src/render-state.js";
 import { validSnapshot } from "../src/network.js";
@@ -29,35 +31,36 @@ test("cargo restraints absorb a hit, release under fire and preserve physical ca
   assert.ok(validSnapshot(world.snapshot()));
 });
 
-test("the cargo ramp warns, opens and pulls fighters and released cargo toward the exit", () => {
+test("a sealed hull has no decompression, while a physical breach pulls toward its opening", () => {
   const world = worldFor("cargo-plane"), airflow = world.hazards.find(h => h.type === "airflow");
-  const cargo = world.cover.find(p => p.strapped), player = world.players[0];
-  place(player, 2200, 1128);
-  airflow.age = 5.1;
+  const player = world.players[0];
+  place(player, 1900, 710);
+  airflow.age = 7;
   updateHazards(world, STEP);
-  assert.ok(airflow.warning > 1 && !airflow.active);
-  const fixedX = cargo.x;
-  updateHazards(world, STEP);
-  assert.equal(cargo.x, fixedX);
-  world.damageCover(cargo, 30, 0, 0);
-  airflow.age = 6.7;
+  assert.equal(airflow.active, false);
+  assert.deepEqual(planeBreaches(world.platforms), []);
+  carveExplosion(world, {x:2080,y:710,radius:145});
+  player.vx=0;
   updateHazards(world, STEP);
   assert.ok(airflow.active);
-  assert.ok(player.vx > 0);
-  assert.ok(cargo.vx > 0);
+  assert.ok(player.vx > 25);
+  assert.equal(airflow.done, false);
 });
 
-test("cargo ramp and released restraints survive hot join and reset with the round", () => {
+test("hull breaches and released restraints survive hot join and reset with the round", () => {
   const world = worldFor("cargo-plane"), airflow = world.hazards.find(h => h.type === "airflow");
   const cargo = world.cover.find(p => p.strapped);
   world.damageCover(cargo, 30, 500, 0);
   airflow.age = 7;
+  carveExplosion(world, {x:2080,y:710,radius:145});
   updateHazards(world, STEP);
   const snapshot = expandSnapshot(compactSnapshot(new RenderSnapshots().make(world.snapshot())), validSnapshot);
   assert.ok(snapshot.hazards.find(h => h.type === "airflow").active);
   assert.equal(snapshot.cover.find(p => p.id === cargo.id).strapped, false);
   assert.ok(validSnapshot(snapshot));
+  assert.deepEqual(planeBreaches(snapshot.platforms),planeBreaches(world.platforms));
   world.startRound();
+  assert.deepEqual(planeBreaches(world.platforms),[]);
   assert.ok(world.cover.filter(p => p.strapHp !== undefined).every(p => p.strapped && p.strapHp > 0));
   assert.equal(world.hazards.find(h => h.type === "airflow").age, 0);
 });

@@ -102,6 +102,12 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
+- **Cargo Plane Hold:** a compact oval cutaway fuselage with wings and exposed
+  turbines on both sides. The whole aircraft banks and shifts together; aiming
+  follows that frame. Through-hull damage creates local outward decompression,
+  pulling fighters, cargo, weapons, fragments, bodies and fluids through actual
+  openings. Preserve the pressure controller through destructive weapons, guest
+  prediction, changed-world hot joins and round reset.
 - **Transmission Towers:** two pylons, two physical wire crossings, no centre bridge
   ledges. Wires attach at matching lower clamps, alternate 7 seconds safe / 7 live
   with 1-second amber warning, conduct through water, support walking only while

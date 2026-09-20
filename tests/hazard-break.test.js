@@ -19,7 +19,7 @@ function lab(type = "crusher") {
 const tick = (w, tracker, dt = STEP) => { w.time += dt; updateHazards(w, dt); return tracker.update(w.snapshot()); };
 
 test("every fixture breaks once after losing its mounting, stops harming players and restores next round", () => {
-  for (const type of HAZARD_TYPES.filter(type => !['furnace','train','ladle'].includes(type))) {
+  for (const type of HAZARD_TYPES.filter(type => !['furnace','train','ladle','airflow'].includes(type))) {
     const {w, h} = lab(type), tracker = new HazardBreaks(); h.active = true; h.warning = .5;
     tracker.update(w.snapshot());
     if(type==="turbine")carveExplosion(w,{x:h.bodyX,y:h.bodyY,radius:45});

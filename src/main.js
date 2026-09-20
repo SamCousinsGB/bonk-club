@@ -52,6 +52,7 @@ import { BotChat } from "./bot-chat.js";
 import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
 import { MobileScreen } from "./mobile-screen.js";
 import { bindMouseControls } from "./mouse.js";
+import { planeLocalPoint, planePose } from "./plane.js";
 import { gameViewport, screenToWorld } from "./viewport.js";
 import { SUDDEN_DEATH } from "./scale.js";
 
@@ -198,8 +199,10 @@ function readInput(device) {
     const p = (!world && guestPrediction.player) || (world?.players || remote?.players || []).find(
       (p) => p.id === controlledId,
     );
-    if (p && mouse.active)
-      i.aim = Math.atan2(mouse.y - (p.y - 10), mouse.x - p.x);
+    if (p && mouse.active) {
+      const point = renderer.planeFrame ? planeLocalPoint(mouse,renderer.planeFrame.age,renderer.reduced) : mouse;
+      i.aim = Math.atan2(point.y - (p.y - 10), point.x - p.x);
+    }
   }
   return i;
 }
@@ -210,6 +213,8 @@ function ownInput() {
   for (const k in i) if (k !== "aim") i[k] ||= pad[k] || touchInput[k];
   if (pad.aim !== null) i.aim = pad.aim;
   if (touchInput.aim !== null) i.aim = touchInput.aim;
+  if (renderer.planeFrame && (pad.aim !== null || touchInput.aim !== null))
+    i.aim -= planePose(renderer.planeFrame.age,renderer.reduced).angle;
   return i;
 }
 function clearInput() {

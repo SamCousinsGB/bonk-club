@@ -1,3 +1,4 @@
+import { applyPlanePlayer, worldBreaches } from "./plane.js";
 import { previewTesla } from "./tesla.js";
 import { World, ARENAS, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
@@ -82,6 +83,10 @@ export class GuestPrediction {
         else if (input.attack) World.prototype.attack.call(w, p);
       }
       updateRig(p, STEP, w.solids(p), w.time);
+      if(w.arena.cargoPlane) {
+        const age = (this.latest.hazards.find(h=>h.type==="airflow")?.age || 0) + w.time - this.latest.time;
+        applyPlanePlayer(p,age,worldBreaches(w),w.platforms.filter(s=>s.planeHull),STEP);
+      }
     }
   }
   advance(input, seq, now) {

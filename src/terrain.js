@@ -5,6 +5,7 @@ import { blastCables, releaseCableMounts } from "./heavy-cables.js";
 // Marked wood and glass panels can be shot out. Every surface also supports
 // circular explosion cuts, including structural supports and lifts.
 export function preparePlatforms(arena, arenaIndex) {
+  if (arena.cargoPlane) return arena.platforms.map(p => ({ ...p }));
   if (arena.setpiece) return arena.platforms.map(p => ({ ...p }));
   if (arena.turbine) return arena.platforms.map(p => ({ ...p }));
   if (arena.assembly) return arena.platforms.map(p => ({ ...p }));
@@ -83,7 +84,7 @@ export function carveExplosion(world, blast, { fixtures = true } = {}) {
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
   for (const h of fixtures ? world.hazards : []) {
-    if (h.type === "powerline" || h.type === "furnace" || h.type === "train") continue; // Cut conductors keep their power cycle; track damage derails the train instead of deleting it.
+    if (h.type === "powerline" || h.type === "furnace" || h.type === "train" || h.type === "airflow") continue; // Cut conductors keep their power cycle; track damage derails the train instead of deleting it.
     if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,

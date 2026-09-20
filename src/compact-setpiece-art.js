@@ -7,33 +7,6 @@ const circle = (c, x, y, r, color) => {
   c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = color; c.fill();
 };
 
-function cargoPlaneHall(c) {
-  const wall = c.createLinearGradient(0, 0, 0, 1440);
-  wall.addColorStop(0, "#14232f"); wall.addColorStop(.68, "#304550"); wall.addColorStop(1, "#17242c");
-  c.fillStyle = wall; c.fillRect(0, 0, 2560, 1440);
-  for (let x = 40; x < 2560; x += 205) {
-    line(c, [[x, 0], [x + 20, 1160]], "#71828a44", 22);
-    line(c, [[x + 8, 0], [x + 28, 1160]], "#c3d0cb22", 3);
-  }
-  c.fillStyle = "#0c1821"; c.fillRect(0, 0, 2560, 115);
-  for (let x = 100; x < 2350; x += 270) {
-    c.fillStyle = "#31434b"; c.fillRect(x, 105, 150, 32);
-    line(c, [[x + 18, 121], [x + 132, 121]], "#d8ddc777", 4);
-  }
-  for (const x of [310, 900, 1480, 2070]) {
-    c.strokeStyle = "#9aa9a566"; c.lineWidth = 7; c.strokeRect(x, 330, 260, 300);
-    for (let n = -160; n < 300; n += 42) line(c, [[x, 330 + n], [x + 260, 590 + n]], "#b0a37544", 4);
-    for (let n = -160; n < 300; n += 42) line(c, [[x + 260, 330 + n], [x, 590 + n]], "#b0a37533", 4);
-  }
-  c.fillStyle = "#101b22"; c.fillRect(0, 1160, 2560, 280);
-  for (let x = 0; x < 2560; x += 80) {
-    c.fillStyle = x % 160 ? "#40515a" : "#2b3c45"; c.fillRect(x, 1160, 76, 50);
-    line(c, [[x + 8, 1182], [x + 68, 1182]], "#a6b6b155", 3);
-  }
-  c.strokeStyle = "#91a3a8"; c.lineWidth = 18; c.strokeRect(2220, 250, 340, 940);
-  for (const y of [300, 1130]) line(c, [[2180, y], [2560, y]], "#d6a957", 9);
-}
-
 function carWashHall(c) {
   const wall = c.createLinearGradient(0, 0, 0, 1440);
   wall.addColorStop(0, "#17323b"); wall.addColorStop(1, "#31515a");
@@ -73,34 +46,7 @@ function carWashHall(c) {
 }
 
 export function drawCompactSetpieceHall(c, arena) {
-  if (arena.compactSetpiece === "cargo-plane") cargoPlaneHall(c);
-  else if (arena.compactSetpiece === "car-wash") carWashHall(c);
-}
-
-export function drawAirflow(c, h, time, layer, reduced = false) {
-  if (layer === "front") return;
-  const cycle = h.age % 18, opening = h.active ? 1 : h.warning > 0 ? 1 - h.warning / 1.8 : cycle >= 10.8 && cycle < 12 ? 1 - (cycle - 10.8) / 1.2 : 0;
-  const top = 270, bottom = 1160, doorBottom = top + (bottom - top) * (1 - opening);
-  c.save(); c.beginPath(); c.rect(2230, top, 330, bottom - top); c.clip();
-  if (opening > 0) {
-    const sky = c.createLinearGradient(2230, top, 2560, bottom);
-    sky.addColorStop(0, "#8bb8cf"); sky.addColorStop(.55, "#d7e2dc"); sky.addColorStop(1, "#536f7c");
-    c.fillStyle = sky; c.fillRect(2230, top, 330, bottom - top);
-    const speed = reduced ? 0 : time * 900;
-    for (let i = 0; i < 16; i++) {
-      const x = 2240 + ((i * 71 + speed) % 400), y = 330 + (i * 83) % 760;
-      line(c, [[x - 90, y], [x, y]], "#eef7f088", 3);
-    }
-  }
-  c.fillStyle = "#293c47"; c.fillRect(2230, top, 330, Math.max(0, doorBottom - top));
-  for (let y = top + 35; y < doorBottom; y += 70) line(c, [[2240, y], [2550, y]], "#91a4a755", 5);
-  c.restore();
-  const alert = h.warning > 0 && (reduced || Math.sin(time * 12) > 0);
-  for (const y of [330, 1080]) circle(c, 2200, y, 11, h.active ? "#ff6a55" : alert ? "#ffd16c" : "#47646b");
-  if (h.active) for (let i = 0; i < 22; i++) {
-    const y = 360 + (i * 47) % 740, x = 1100 + ((i * 137 + (reduced ? 0 : time * 1500)) % 1420);
-    line(c, [[x - 110 - (i % 3) * 30, y], [x, y]], "#d9eef044", 3);
-  }
+  if (arena.compactSetpiece === "car-wash") carWashHall(c);
 }
 
 function brush(c, x, time, direction, reduced) {

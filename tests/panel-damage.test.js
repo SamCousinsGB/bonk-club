@@ -108,7 +108,14 @@ test("bullet-destroyed panels persist through guest transport and interpolation,
     const wire = new RenderSnapshots(), before = wire.make(w.snapshot());
     const panels = w.platforms.filter(p => p.destructible);
     for (const panel of panels) {
-      shot(w, { x: panel.x + panel.w / 2, y: panel.y }, Math.PI / 2, "railgun");
+      if(panel.planeHull) {
+        const left=panel.x<1280;
+        // Wing attachment plates must also be reachable from inside the cabin.
+        for(let n=0;n<8&&panel.hp>0;n++) {
+          const fromLeft=n%2===0?left:!left;
+          shot(w,{x:fromLeft?panel.x:panel.x+panel.w,y:panel.y+panel.h/2},fromLeft?0:Math.PI,"railgun");
+        }
+      } else shot(w, { x: panel.x + panel.w / 2, y: panel.y }, Math.PI / 2, "railgun");
       assert.equal(panel.hp, 0, `${ARENAS[arena].name} ${panel.id}`);
     }
     const state = wire.make(w.snapshot());

@@ -1,9 +1,7 @@
+import { planeHull } from "./plane.js";
 const solid = (x, y, w, h = 42, extra = {}) => ({ x, y, w, h, material: "metal", ...extra });
 const grate = (x, y, w, extra = {}) => ({ x, y, w, h: 16, material: "metal", oneWay: true, ...extra });
 
-const cargoFloor = Array.from({ length: 8 }, (_, i) => solid(i * 320, 1160, 320, 50, {
-  cargoFloor: true,
-}));
 
 export const CARGO_PLANE_ARENA = {
   name: "CARGO PLANE HOLD",
@@ -12,29 +10,28 @@ export const CARGO_PLANE_ARENA = {
   cargoPlane: true,
   compactSetpiece: "cargo-plane",
   platforms: [
-    ...cargoFloor,
-    grate(80, 840, 520),
-    grate(720, 780, 420),
-    grate(1420, 780, 420),
-    grate(1960, 840, 520),
-    grate(1040, 500, 480),
-    grate(20, 570, 280),
-    grate(2260, 570, 280),
+    ...planeHull(),
+    solid(870, 1150, 820, 26),
+    grate(550, 910, 460), grate(1550, 910, 460),
+    grate(760, 660, 400), grate(1400, 660, 400),
+    grate(1040, 410, 480),
+    solid(100, 700, 420, 24), solid(2040, 700, 420, 24),
   ],
-  spawns: [[170, 1128], [2390, 1128], [210, 808], [2350, 808]],
-  weapons: [[930, 748], [1630, 748]],
+  spawns: [[680, 878], [1880, 878], [900, 628], [1660, 628]],
+  weapons: [[1170, 378], [1390, 378]],
   starterWeapons: [],
   spikes: [],
   cover: [
-    { x: 390, y: 1078, w: 118, h: 82, kind: "crate", hp: 95, maxHp: 95, strapped: true, strapHp: 18 },
-    { x: 760, y: 1090, w: 128, h: 70, kind: "pallet", hp: 70, maxHp: 70, strapped: true, strapHp: 18 },
-    { x: 1665, y: 1070, w: 132, h: 90, kind: "crate", hp: 100, maxHp: 100, strapped: true, strapHp: 22 },
-    { x: 2030, y: 1088, w: 135, h: 72, kind: "pallet", hp: 75, maxHp: 75, strapped: true, strapHp: 20 },
+    { x: 910, y: 1068, w: 118, h: 82, kind: "crate", hp: 95, maxHp: 95, strapped: true, strapHp: 18 },
+    { x: 1100, y: 1080, w: 128, h: 70, kind: "pallet", hp: 70, maxHp: 70, strapped: true, strapHp: 18 },
+    { x: 1350, y: 1060, w: 132, h: 90, kind: "crate", hp: 100, maxHp: 100, strapped: true, strapHp: 22 },
+    { x: 1500, y: 1078, w: 135, h: 72, kind: "pallet", hp: 75, maxHp: 75, strapped: true, strapHp: 20 },
   ],
-  hazards: ["airflow", "conveyor"],
+  hazards: ["airflow", "turbine"],
   traps: [
-    { type: "airflow", x: 1680, y: 1160, w: 300, h: 240, dir: 1 },
-    { type: "conveyor", x: 1280, y: 1160, w: 320, h: 20, dir: 1, beltSpeed: 280, beltForce: 760 },
+    { type: "airflow", x: 1280, y: 710, w: 300, h: 240, dir: 1 },
+    { type: "turbine", x: 275, y: 935, w: 250, h: 250, dir: 1 },
+    { type: "turbine", x: 2285, y: 935, w: 250, h: 250, dir: -1 },
   ],
 };
 
