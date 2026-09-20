@@ -29,6 +29,22 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
 
 ## AI completion - 20 September 2026
 
+- Published and publicly verified as **v0.35.1**, revision
+  `c8322d41b0709368b871314883b3e497885a5c0b`, protocol 57.
+  [Release run 35513478929](https://github.com/SamCousinsGB/bonk-club/actions/runs/35513478929)
+  passed all **1,023 game/network tests**, three server tests, Windows/Linux
+  desktop unit and executable smoke/packaging checks, source consistency and Pages.
+- All **17 public files** match the exact committed build and CI artifact by
+  SHA-256. Shared source hash:
+  `db893ba7168465fd0c96ec53f5d51d6e0fb6cc6b23d0ba887aa315f2e356ff9f`.
+  Actual source, production-bundle and unmodified public host/guest/hot-join
+  browsers passed with selected relay/relay candidates and no page errors.
+  Bot shots/movement were observed at the host, and desktop/844x390 guest
+  rendering was inspected. Peers shared one QA PC; this is not a latency claim.
+- Evidence: ../bonk-club-qa/ai-public-online.json, ai-live-manifest.json,
+  ai-release-complete.log and ai-public-*.png. Exact build: ai-integrated-exact;
+  artifact: ai-ci. Preview ports 5565/5566 were stopped. No production debug hooks.
+  Later releases already on main include this AI work and have their own gates.
 - v0.35.1 includes the AI pass below plus the current Turbine Hall, physical
   assembly-car and sectional furnace releases. Protocol 57 is unchanged by AI.
 - Crowded explosive carriers reject walking retreats through another fighter.
@@ -40,8 +56,8 @@ Updated 20 September 2026. Read the root `AGENTS.md` first.
   continuing rounds and varied weapons in each seed, and real melee across the
   three-seed sample. They no longer require a swing in every individual sample
   when a melee bot has already collected a gun before making contact.
-- The earlier integrated suite passed 1,009/1,010; the menu assertion was its only
-  failure. The final full suite, CI and public verification follow below.
+- The earlier integrated suite passed 1,009/1,010; its menu regression is fixed
+  and the final full suite above passes.
 
 ## Bullet Train, Scrap Foundry and drop-through platforms - 15 September 2026
 
