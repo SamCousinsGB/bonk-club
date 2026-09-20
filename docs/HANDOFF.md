@@ -4,11 +4,11 @@ Updated 20 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
-## Current work
+## Current release
 
-- Ocean Liner candidate: v0.47.0 / protocol 70. All players must refresh before
-  creating or joining a room. Last verified public release remains v0.46.1 until
-  this candidate completes CI, Pages and public artifact/browser verification.
+- Ocean Liner is published as v0.47.0 / protocol 70. Gameplay revision:
+  `e3654640ddb4c467f2d1d5ea3d7d49efb1df23bd`. Refresh every player tab before
+  creating or joining a room.
 - New cutaway ocean vessel has five finite flood compartments. Collision-derived
   hull openings admit or drain water according to pressure head; dents remain
   sealed. Intact bulkheads retain water until overtopped or physically breached.
@@ -27,14 +27,23 @@ history through v0.40.0 is archived in
 - Focused physics checks cover sealing, single side plates, pressure flow,
   volume conservation, overtopping, list/sinking, oxygen/drowning, swim controls,
   cargo/death bodies, guest prediction, validation, aim transforms and reset.
-  The 1,142-test compact suite and production build passed; the final saturated-pressure regression brings the suite to 1,143 tests.
-  Both Ocean Liner stress cases passed. The full arena stress run is in progress.
+  All 1,143 compact tests and the production build passed. The full local
+  78-case arena stress run passed; both Ocean Liner cases passed again after
+  the final saturated-compartment pressure correction.
 - Source-browser checks passed real relay/relay host/guest controls, ship map
-  selection, guest mouse-directed and real touch swimming, oxygen use, exact damaged-world
-  hot-join parity, small viewport/reduced motion and restored rounds, with no
-  page errors. QA artifacts are in the adjacent `bonk-club-qa/ship-*` files.
+  selection, guest mouse-directed and real touch swimming, oxygen use, exact
+  damaged-world hot-join parity, small viewport/reduced motion and restored
+  rounds, with no page errors. These relay checks ran on one machine.
+- Release run [35539621507](https://github.com/SamCousinsGB/bonk-club/actions/runs/35539621507)
+  passed shared/server tests, all six arena stress groups, Windows/Linux desktop
+  checks, release consistency and Pages. All 17 public files match the exact CI
+  artifact. That artifact and the unmodified public v0.47.0 both passed ship
+  selection, host/guest movement and jumping, ongoing combat, a third-player hot
+  join and small viewport rendering with clean browser logs. Deliberate flooding,
+  oxygen/swimming and changed-world parity were tested in the source build.
+  QA evidence is in the adjacent `bonk-club-qa/ship-*` files.
 - Existing v0.46.1 scheduling/replay improvements and finite parcel water remain
-  intact; see `docs/NETCODE.md`. Previous aircraft and machinery arenas remain.
+  intact; see [`NETCODE.md`](NETCODE.md). Previous aircraft and machinery arenas remain.
 
 ## Development and release
 

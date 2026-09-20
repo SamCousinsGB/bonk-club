@@ -29,6 +29,13 @@ Choose **Single player** to start immediately against three AI opponents. **Onli
 
 Weapons are picked up automatically when an unarmed player walks close enough. Throw the held weapon to free the slot; a thrown weapon retains its ammunition and can knock a living opponent into a physical tumble. Heavier weapons deliver more force and a longer knockdown. Fighters recover control once they can get up into clear space, including beneath low ceilings and on moving platforms.
 
+On **Ocean Liner**, underwater hull breaches flood five separate compartments.
+Intact bulkheads contain water until broken or overtopped; flood weight makes
+the ship list and sink. While immersed, hold **left click** and aim with the
+mouse to swim; controller and touch use the same aim/primary action. The oxygen
+bar above a submerged fighter drains over twelve seconds and refills in air.
+An empty bar causes drowning damage. Water also moves cargo and loose bodies.
+
 On phones, use **Online multiplayer** with one player per device. Single player supports the same touch controls against three AI opponents.
 
 | Touch area    | Gesture                                                                                        |
