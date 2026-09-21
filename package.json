@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.49.3",
-  "releaseNotes": "Ocean Liner sinking and round endings",
+  "version": "0.49.4",
+  "releaseNotes": "Arc Furnace breach pours",
   "private": true,
   "type": "module",
   "scripts": {

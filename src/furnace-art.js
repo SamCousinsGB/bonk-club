@@ -152,7 +152,7 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false, platforms
     // Molten contents are drawn from the shared liquid state.
     c.restore(); return;
   }
-  if (layer === "front") { beacons(c, h, time, reduced); drawFurnaceFlow(c,h,platforms,time,reduced); c.restore(); return; }
+  if (layer === "front") { beacons(c, h, time, reduced); drawFurnaceFlow(c,h); c.restore(); return; }
   const x = h.x, y = h.y, heat = furnaceHeat(h);
   glow(c, x, y + 100, 460, h.active ? "#f8863f45" : "#ee572024");
   c.save();
@@ -221,10 +221,14 @@ export function drawFurnaceFixture(c, h, time, layer, reduced = false, platforms
   c.restore();
 }
 
-function drawFurnaceFlow(c,h,platforms,time,reduced) {
+function drawFurnaceFlow(c,h) {
   for(const p of furnaceOutlets(h)) {
-    glow(c,p.x,p.y,p.r*5,'#ff731a88');
-    circle(c,p.x,p.y,p.r*1.5,'#612617');
-    circle(c,p.x,p.y,p.r*1.1,'#fff0a0');
+    // This is the exposed edge of the real shell breach, not a glowing round
+    // nozzle.  The shared molten parcels begin here and own the rest of the
+    // moving stream, collision and damage.
+    const dir=Math.sign(p.vx)||1, length=Math.min(15,5+p.r*.4);
+    glow(c,p.x,p.y,p.r*2.4,'#ff731a42');
+    line(c,[[p.x-dir*2,p.y-2],[p.x+dir*length,p.y+4]],'#6f291c',Math.max(4,p.r*.72));
+    line(c,[[p.x,p.y],[p.x+dir*length,p.y+4]],'#ffbd67',Math.max(1.5,p.r*.27));
   }
 }
