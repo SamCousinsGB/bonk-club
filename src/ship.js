@@ -5,7 +5,7 @@ import { impulseProp } from './props.js';
 
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 export const SHIP = Object.freeze({ x:1280, y:800, sea:900, top:680, bottom:1130, oxygen:12,
-  edges:[230,654,1078,1502,1926,2350] });
+  escapeSink:1100, maxSink:1900, edges:[230,654,1078,1502,1926,2350] });
 export const shipBottom = x => Math.min(1130,680+(x-230)*450/210,680+(2350-x)*450/230);
 export const shipCell = x => x<230 || x>2350 ? -1 : Math.min(4,Math.floor((x-230)/424));
 export function shipHull() {
@@ -35,18 +35,24 @@ export function waterLevel(i,volume,angle) {
   for(let n=0;n<22;n++){const mid=(lo+hi)/2;if(volumeAt(i,mid,slope)>volume)lo=mid;else hi=mid;}
   return (lo+hi)/2;
 }
-export const seaLevel = (s,x) => 800+(SHIP.sea-800-s.sink)/Math.cos(s.angle)-Math.tan(s.angle)*(x-1280);
+// The simulation uses the liner's local frame while rendering translates that
+// frame as the hull founders. Convert the fixed world ocean into that local
+// frame so the sea neither follows the ship nor tilts with it on screen.
+export const seaLevel = (s,x) => {
+  const p=shipPose(s),c=Math.cos(p.angle);
+  return 800+(SHIP.sea-800-p.y)/(p.scale*c)-Math.tan(p.angle)*(x-1280);
+};
 export const compartmentLevel = (s,i,x) => waterLevel(i,s.volumes[i],s.angle)-Math.tan(s.angle)*(x-1280);
 export function createShip(arena) {
   return arena.ship ? {angle:0,omega:0,sink:0,vy:0,age:0,volumes:[0,0,0,0,0],currents:[0,0,0,0,0],charges:[0,0,0,0,0],sparks:[0,0,0,0,0]} : null;
 }
 export function validShip(s) {
   return !!s && ['charges','sparks'].every(k=>Array.isArray(s[k])&&s[k].length===5&&s[k].every(v=>Number.isFinite(v)&&v>=0&&v<=1)) && ['angle','omega','sink','vy','age'].every(k=>Number.isFinite(s[k])) &&
-    Math.abs(s.angle)<=.56 && Math.abs(s.omega)<=.3 && s.sink>=-60 && s.sink<=1100 && Math.abs(s.vy)<=100 && s.age>=0 &&
+    Math.abs(s.angle)<=.56 && Math.abs(s.omega)<=.3 && s.sink>=-60 && s.sink<=SHIP.maxSink && Math.abs(s.vy)<=100 && s.age>=0 &&
     Array.isArray(s.volumes)&&s.volumes.length===5&&s.volumes.every((v,i)=>Number.isFinite(v)&&v>=0&&v<=shipCapacity(i)+.02) &&
     Array.isArray(s.currents)&&s.currents.length===5&&s.currents.every(v=>Number.isFinite(v)&&Math.abs(v)<=240);
 }
-export function shipPose(s) {return {angle:s?.angle||0,x:0,y:(s?.sink||0)*.25,scale:.9};}
+export function shipPose(s) {return {angle:s?.angle||0,x:0,y:s?.sink||0,scale:.9};}
 export function shipLocalPoint(p,s) {
   const pose=shipPose(s),c=Math.cos(pose.angle),sn=Math.sin(pose.angle),x=(p.x-1280)/pose.scale,y=(p.y-800-pose.y)/pose.scale;
   return {x:1280+x*c+y*sn,y:800-x*sn+y*c};
@@ -86,6 +92,10 @@ export function shipWaterAt(world,x,y) {
   const level=inside?shipLevels(s)[i]-Math.tan(s.angle)*(x-1280):seaLevel(s,x);
   return y>level ? {depth:y-level,vx:inside?s.currents[i]:24*Math.sin(s.age*.7),i:inside?i:-1} : null;
 }
+export function shipEscapee(world,p) {
+  return shipWaterAt(world,p.x,p.y+16)?.i === -1;
+}
+export const shipSunk = world => (world.ship?.sink||0)>=SHIP.escapeSink;
 // The same controls and host-owned oxygen apply in Waterworks' free pool.
 export function swimmingWaterAt(world,x,y) {
   if(world.ship)return shipWaterAt(world,x,y);
@@ -115,8 +125,8 @@ export function updateShip(world,dt) {
   // Lost reserve buoyancy changes heave; asymmetric flood mass creates torque.
   // Fully flooded hulls have more weight than maximum displacement and sink.
   const acceleration=clamp((dryDisplacement+flooded-lift)/2800,-85,95)-s.vy*1.4;
-  s.vy=clamp(s.vy+acceleration*dt,-50,95);s.sink=clamp(s.sink+s.vy*dt,-60,1100);
-  if(s.sink===1100)s.vy=0;
+  s.vy=clamp(s.vy+acceleration*dt,-50,95);s.sink=clamp(s.sink+s.vy*dt,-60,SHIP.maxSink);
+  if(s.sink===SHIP.maxSink)s.vy=0;
   const moment=s.volumes.reduce((m,v,i)=>m+v*((SHIP.edges[i]+212-1280)/1060),0);
   const target=clamp(moment/350000,-.50,.50)+.009*Math.sin(s.age*.72);
   s.omega=clamp(s.omega+((target-s.angle)*.75-s.omega*1.6)*dt,-.28,.28);

@@ -165,8 +165,8 @@ function waterPolygon(c,x0,x1,level,slope,bottom=1900,wave=0,time=0) {
 export function drawShipWater(c,state,time,reduced,foreground=false,interiorOnly=false) {
   const s=state.ship;if(!s)return;
   const slope=-Math.tan(s.angle),levels=shipLevels(s),clock=reduced?0:time;
-  // Ocean lies outside the real hull cross-section. Drawing the same plane
-  // through the inverse ship transform keeps it level while the vessel lists.
+  // Ocean lies outside the real hull cross-section. seaLevel converts its
+  // fixed screen-space plane into the descending, listing ship frame.
   if(!interiorOnly){c.save();c.beginPath();c.rect(-3500,-3500,9500,9500);c.moveTo(230,680);c.lineTo(440,1130);c.lineTo(2120,1130);c.lineTo(2350,680);c.closePath();c.clip('evenodd');
   waterPolygon(c,-3400,5800,seaLevel(s,1280),slope,5000,reduced?0:4,clock);
   c.fillStyle=foreground?'#2b71852b':gradient(c,600,1800,[[0,'#538e9a'],[.3,'#143d52'],[1,'#071c30']]);c.fill();

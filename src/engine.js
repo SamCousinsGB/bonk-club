@@ -2,7 +2,7 @@ import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { resetWaterworks } from "./waterworks.js";
 import { cleanEscapedEntities, escapedPoints } from "./world-cleanup.js";
 import { updatePlane, movePlaneWings } from "./plane.js";
-import { createShip, updateShip, swimPlayer } from './ship.js';
+import { createShip, updateShip, swimPlayer, shipEscapee, shipSunk } from './ship.js';
 import { SHIP_ARENA } from './ship-arena.js';
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
@@ -532,6 +532,11 @@ export class World {
           this.kill(p, { cause: turbineVoid ? "turbine" : "fall",
             effect: turbineVoid ? "blend" : undefined, source: powerSource(p) });
         }
+        // The liner's local frame falls with the hull. Fighters escape only
+        // after reaching the fixed exterior sea; remaining aboard are taken
+        // under with the ship rather than surviving in an off-screen room.
+        if (p.alive && this.arena.ship && shipSunk(this) && !shipEscapee(this,p))
+          this.kill(p, { cause: "drowning" });
         for (const s of this.spikes()) impale(this,p,s);
         if (this.players.length >= 2 && this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
@@ -543,7 +548,9 @@ export class World {
         this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
         this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
-      if (alive.length <= 1 && !pendingBlast && (this.players.length >= 2 || alive.length === 0)) {
+      // A delayed blast can still turn one survivor into a draw, but once
+      // everyone is already dead there is no combat outcome left to resolve.
+      if (alive.length <= 1 && (alive.length === 0 || !pendingBlast) && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         this.victoryCause = this.winner === null ? null : this.lastDeathCause;
         if (this.winner !== null) this.scores[this.winner]++;
