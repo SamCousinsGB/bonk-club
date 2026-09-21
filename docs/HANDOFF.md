@@ -6,7 +6,8 @@ history through v0.40.0 is archived in
 
 ## Current release
 
-- Waterworks source: v0.49.1 / protocol 72. Refresh all player tabs before joining.
+- Live: v0.49.1 / protocol 72, gameplay revision `310cad6`. Refresh all player tabs
+  before joining.
 - Six breakable mains feed a 1,216-unit central basin with shared finite-volume
   water, overflow and drainage through actual blast cuts. Eight movable generators
   cycle 7 seconds off / 1 amber warning / 4 live. Only connected water and metal
@@ -29,8 +30,14 @@ history through v0.40.0 is archived in
   passed real lobby selection, host/guest movement, guest swimming, powered water,
   damaged pipe/basin hot-join parity, small-screen/reduced-motion drawing and reset.
   Evidence: `bonk-club-qa/waterworks-*`.
-- Full arena stress and release CI/Pages/artifact/public verification are pending.
-  Do not treat this source entry as a claim that v0.49.1 is already public.
+- [Release workflow 35551871352](https://github.com/SamCousinsGB/bonk-club/actions/runs/35551871352)
+  passed the full 80-case arena stress suite, validation, Windows/Linux desktop
+  checks, release verification and Pages deployment. All 17 CI browser files
+  matched the clean tested local build and the public site byte for byte.
+- Fresh public v0.49.1 browsers passed host/guest readiness and match start, then
+  a third player hot joined the running flooded round with damaged scenery and
+  live electrical effects. All three tabs reported no console errors. Evidence:
+  `bonk-club-qa/waterworks-patch-parity.json` and `waterworks-public-v0.49.1.md`.
 - Existing v0.48.0 shared-liquid, Ocean Liner, aircraft and networking behaviour
   remains. See the relevant source/tests and `NETCODE.md`; the browser checks above
   run on one machine and do not constitute separate-ISP or native Steam qualification.
