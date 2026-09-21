@@ -95,7 +95,7 @@ export class GuestPrediction {
       p.throwHeld=input.throw;
       if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
         if (input.block && p.weapon) World.prototype.attack.call(w, p, true);
-        else if (input.attack && !p.swimming) World.prototype.attack.call(w, p);
+        else if (input.attack) World.prototype.attack.call(w, p);
       }
       updateRig(p, STEP, w.solids(p), w.time);
       if(w.arena.cargoPlane) {

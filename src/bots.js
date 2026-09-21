@@ -1,5 +1,4 @@
 import { BOT_DIFFICULTIES, cleanDifficulty, combatPerception } from "./bot-difficulty.js";
-import { shipSwimControls } from './ship.js';
 import { WEAPONS, COMBO, firingRecoil } from "./arsenal.js";
 import { segmentBox } from "./collision.js";
 import { W, H, RUN_SPEED } from "./scale.js";
@@ -219,8 +218,6 @@ export class BotController {
     const inputs = {};
     for (const p of world.players)
       if (p.bot && p.alive) {
-        const swim=shipSwimControls(world,p);
-        if(swim){inputs[p.id]=swim;continue;}
         let b = this.bots.get(p.id);
         if (!b || b.occupant !== p.occupant) {
           b = {
