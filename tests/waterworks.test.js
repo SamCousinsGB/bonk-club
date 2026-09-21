@@ -71,7 +71,7 @@ test('flooding, cut outlets and generator removal survive compressed hot join an
   p.rig=makeRig(p);
   const s={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]};assert.ok(validSnapshot(s));
   const copy=expandSnapshot(await decodeState(await encodeState(compactSnapshot(s))),validSnapshot);
-  assert.deepEqual(copy.water,s.water);assert.deepEqual(copy.platforms,JSON.parse(JSON.stringify(s.platforms)));assert.deepEqual(copy.cover,JSON.parse(JSON.stringify(s.cover)));
+  assert.deepEqual(copy.water,JSON.parse(JSON.stringify(s.water)));assert.deepEqual(copy.platforms,JSON.parse(JSON.stringify(s.platforms)));assert.deepEqual(copy.cover,JSON.parse(JSON.stringify(s.cover)));
   assert.equal(waterworksOutlet(copy.platforms,1),false);
   const guest=new GuestPrediction();guest.receive(copy,0,1000);const water=JSON.stringify(guest.context.water),hp=guest.player.hp;
   guest.step({attack:true,aim:-Math.PI/2});assert.equal(guest.player.swimming,true);assert.ok(guest.player.vy<0);
@@ -89,4 +89,13 @@ test('pipe identity is validated and unrelated rubble cannot restart a destroyed
   w.platforms=w.platforms.filter(p=>p.waterworksPipe!==0);
   w.platforms.push({x:p.x-40,y:p.y-146,w:80,h:146,material:'stone'});
   assert.equal(waterworksOutlet(w.platforms,0),false);
+});
+
+test('perforated Waterworks catwalks pass water through instead of supporting separate vertical pools',()=>{
+  const w=world();w.players.forEach(p=>p.alive=false);
+  for(let i=0;i<600;i++){w.time+=.05;w.elapsed=i*.05;w.updateCover(.05);updateReactions(w,.05);}
+  const grates=w.platforms.filter(p=>p.oneWay);
+  assert.ok(w.water.filter(q=>q.grounded).every(q=>!grates.some(p=>Math.abs(q.y+q.h-p.y)<.1)));
+  assert.ok(w.water.filter(q=>q.grounded&&q.x>=672&&q.x<1888).every(q=>q.h<440));
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
 });

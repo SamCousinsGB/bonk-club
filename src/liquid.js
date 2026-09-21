@@ -115,7 +115,8 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
   for(const q of liquids(world)){contacts.set(q,false);paths.set(q,[]);}
   const steps=Math.ceil(dt/(1/60)),step=dt/steps;
   for(let tick=0;tick<steps;tick++) {
-    const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable');
+    const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable' &&
+      !(world.arena?.waterworks && p.oneWay));
     for(const q of liquids(world)) {
       if(q.h<=0)continue;
       if(q.frozen) {
@@ -184,7 +185,12 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
         const head=available-(other?.h||0);
         const speed=clamp(liquidPressureSpeed(head)*dir+(q.vx||0)*.45,-900,900);
         const flow=SPILLS[q.kind]?.flow||1;
-        let flux=Math.min(available*.22,flow*(Math.max(0,head-.12)*step*5 + Math.max(0,(q.vx||0)*dir)*available*step/q.w*.24));
+        // Deep water exchanges across its wetted face, not just the height
+        // difference. A diffusion-only term makes continuously fed basins form
+        // tall columns instead of levelling and overflowing their retaining wall.
+        const face=Math.min(available,Math.max(other?.h||0,available*.35));
+        const pressure=liquidPressureSpeed(Math.max(0,head-.12))*face*step/q.w;
+        let flux=Math.min(available*.22,flow*(pressure + Math.max(0,head-.12)*step*5 + Math.max(0,(q.vx||0)*dir)*available*step/q.w*.24));
         if(flux<.008 || other && other.h>=WATER_DEPTH)continue;
         const surface=outletY-Math.min(available,Math.max(other?.h||0,.5))*.5;
         if(solids.some(p=>!p.waterId && segmentBox(q.x+q.w/2,surface,nx+q.w/2,surface,p)))continue;

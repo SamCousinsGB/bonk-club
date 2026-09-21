@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.49.0",
-  "releaseNotes": "Waterworks: flooding pipes, a central pool and electrical generators",
+  "version": "0.49.1",
+  "releaseNotes": "Waterworks flooding, generators and draining catwalks",
   "private": true,
   "type": "module",
   "scripts": {

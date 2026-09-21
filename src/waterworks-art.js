@@ -49,9 +49,9 @@ export function drawWaterworksHall(c) {
     c.strokeStyle='#b4563c';c.lineWidth=3;c.beginPath();c.moveTo(p.x+37,p.y-190);c.lineTo(p.x+43,p.y-199);c.stroke();
   }
   for(const x of [600,1280,1960]) {
-    c.fillStyle='#0b2430';c.fillRect(x-108,8,216,24);c.fillStyle='#e3ead1';c.fillRect(x-90,26,180,8);
-    const glow=c.createRadialGradient(x,40,0,x,40,250);glow.addColorStop(0,'#bfedd91b');glow.addColorStop(1,'#d1f6dc00');
-    c.fillStyle=glow;c.fillRect(x-250,34,500,310);
+    c.fillStyle='#0b2430';c.fillRect(x-108,145,216,24);c.fillStyle='#e3ead1';c.fillRect(x-90,163,180,8);
+    const glow=c.createRadialGradient(x,177,0,x,177,250);glow.addColorStop(0,'#bfedd91b');glow.addColorStop(1,'#d1f6dc00');
+    c.fillStyle=glow;c.fillRect(x-250,171,500,310);
   }
   // Pool depth markings are functional scenery, not extra interface text.
   for(const x of [690,1864])for(let y=1070;y<1340;y+=40){c.fillStyle='#a7d3d176';c.fillRect(x,y,16,3);}
