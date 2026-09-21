@@ -132,20 +132,29 @@ test("bubble duration cannot stack and a heavy follow-up pops it", () => {
   w.hit(q, w.players[0], 24, 80, 1, 0, { projectile: true }); assert.equal(q.bubble, 0);
 });
 
-test("boomerangs turn back, can hit twice, and are caught without damaging their owner", () => {
+test("the Razorang homes toward a visible opponent before its return", () => {
+  const w = fixture(), q = w.players[1];
+  q.x = 830; q.y = 390;
+  w.players.slice(2).forEach(p => { p.alive = false; });
+  const b = fire(w, "boomerang"); projectiles(w, .1);
+  assert.ok(b.vy < -200, "the blade turns up toward its target instead of continuing straight");
+  assert.equal(b.returning, undefined);
+});
+
+test("Razorangs turn back, can hit twice, and are caught without damaging their owner", () => {
   const w = fixture(), p = w.players[0], q = w.players[1]; q.x = 680;
   const b = fire(w, "boomerang"); projectiles(w, .4);
-  assert.equal(q.hp, 62); assert.equal(b.returning, undefined);
+  assert.equal(q.hp, 100 - WEAPONS.boomerang.damage); assert.equal(b.returning, undefined);
   // Step into its curved return path; a moving opponent may be struck again.
   projectiles(w, .4);
   q.x = b.x + b.vx * .09; q.y = b.y + b.vy * .09;
   let returned = false;
   for (let n = 0; n < 300 && w.projectiles.length; n++) { w.updateProjectiles(STEP); returned ||= b.vx < 0; }
-  assert.ok(returned); assert.equal(q.hp, 24); assert.equal(p.hp, 100);
+  assert.ok(returned); assert.equal(q.hp, Math.max(0, 100 - WEAPONS.boomerang.damage * 2)); assert.equal(p.hp, 100);
   assert.equal(w.projectiles.length, 0); assert.ok(w.events.some(e => e.type === "pickup"));
 });
 
-test("a boomerang keeps travelling if its owner dies, and bounces off solid walls", () => {
+test("a Razorang keeps travelling if its owner dies, and bounces off solid walls", () => {
   const w = fixture(); w.players[1].y = 900;
   w.platforms.push({ id: "wall", x: 600, y: 300, w: 20, h: 250 });
   const b = fire(w, "boomerang"); projectiles(w, .3); assert.ok(b.vx < 0);

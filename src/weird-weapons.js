@@ -34,16 +34,40 @@ export function igniteFighter(p) {
   if (p.alive && !(p.soaked > 0) && !(p.cold > 0) && !(p.freeze > 0)) p.burn = BURN_DURATION;
 }
 
+const RAZORANG_HUNT_TIME = .6;
+const RAZORANG_SPEED = 820;
+
+function clearRazorangPath(world, b, target) {
+  return !world.solids().some(s => segmentBox(b.x, b.y, target.x, target.y - 10, s, b.r));
+}
+
+function razorangTarget(world, b) {
+  return world.players
+    .filter(p => p.alive && p.id !== b.owner && !b.hitIds?.includes(p.id) && clearRazorangPath(world, b, p))
+    .sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y) || a.id - c.id)[0];
+}
+
+function turnRazorang(b, target, dt, turnRate) {
+  const current = Math.atan2(b.vy, b.vx);
+  const goal = Math.atan2(target.y - 10 - b.y, target.x - b.x);
+  const delta = Math.atan2(Math.sin(goal - current), Math.cos(goal - current));
+  const angle = current + Math.max(-turnRate * dt, Math.min(turnRate * dt, delta));
+  b.vx = Math.cos(angle) * RAZORANG_SPEED;
+  b.vy = Math.sin(angle) * RAZORANG_SPEED;
+}
+
 export function steerBoomerang(world, b, dt) {
-  if (b.kind !== "boomerang" || (b.age || 0) < .45) return;
-  if (!b.returning) { b.returning = true; b.hitIds = []; }
+  if (b.kind !== "boomerang") return;
   const owner = world.players.find(p => p.id === b.owner && p.alive);
   if (!owner) return;
-  const current = Math.atan2(b.vy, b.vx), goal = Math.atan2(owner.y - 10 - b.y, owner.x - b.x);
-  const delta = Math.atan2(Math.sin(goal - current), Math.cos(goal - current));
-  const angle = current + Math.max(-9 * dt, Math.min(9 * dt, delta));
-  b.vx = Math.cos(angle) * 780; b.vy = Math.sin(angle) * 780;
-  if (b.age > .7 && segmentBox(b.x, b.y, b.x + b.vx * dt, b.y + b.vy * dt, playerBox(owner), b.r)) {
+  if ((b.age || 0) < RAZORANG_HUNT_TIME) {
+    const target = razorangTarget(world, b);
+    if (target) turnRazorang(b, target, dt, 5.6);
+    return;
+  }
+  if (!b.returning) { b.returning = true; b.hitIds = []; }
+  turnRazorang(b, owner, dt, 10);
+  if (b.age > .75 && segmentBox(b.x, b.y, b.x + b.vx * dt, b.y + b.vy * dt, playerBox(owner), b.r)) {
     b.life = 0;
     world.event("pickup", { x: owner.x, y: owner.y - 10, color: owner.color });
   }

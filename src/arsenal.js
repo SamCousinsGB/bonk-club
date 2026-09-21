@@ -174,9 +174,9 @@ const additions = {
     recoil: 12, rarity: "rare", range: 900, color: "#b2edff",
   },
   boomerang: {
-    name: "BOOMERANG", kind: "boomerang", damage: 38, force: 420,
-    cooldown: .9, ammo: 7, speed: 780, life: 2.4, r: 14, bounces: 3,
-    recoil: 35, rarity: "rare", range: 650, color: "#ffce87",
+    name: "RAZORANG", kind: "boomerang", damage: 52, force: 510,
+    cooldown: .95, ammo: 6, speed: 820, life: 2.4, r: 14, bounces: 3,
+    recoil: 50, rarity: "rare", range: 760, color: "#dce9ef",
   },
   duck: {
     name: "RUBBER DUCK LAUNCHER", kind: "duck", damage: 76, force: 1450,
