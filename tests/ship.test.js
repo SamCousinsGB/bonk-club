@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP,cleanInput} from '../src/engine.js';
-import {SHIP,shipOpenings,updateShip,shipWaterAt,shipCapacity,shipLevels,volumeAt,swimPlayer,shipPose,shipLocalPoint} from '../src/ship.js';
+import {SHIP,shipOpenings,updateShip,shipWaterAt,shipCapacity,shipLevels,volumeAt,swimPlayer,shipPose,shipLocalPoint,seaLevel} from '../src/ship.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -44,8 +44,8 @@ test('water overtops intact low bulkheads when its actual free surface reaches t
   assert.ok(w.ship.volumes[0]>0);assert.ok(w.ship.volumes[2]>0);assert.ok(Math.abs(total(w)-160000)<.1);
 });
 test('progressive flooding exhausts reserve buoyancy and sinks the ship',()=>{
-  const w=fixture();for(const x of [510,850,1280,1680,2050])breach(w,x);advance(w,35);
-  assert.ok(w.ship.sink>500);assert.ok(total(w)>650000);assert.ok(validSnapshot(w.snapshot()));
+  const w=fixture();for(const x of [510,850,1280,1680,2050])breach(w,x);advance(w,42);
+  assert.ok(w.ship.sink>SHIP.escapeSink);assert.ok(total(w)>650000);assert.ok(validSnapshot(w.snapshot()));
 });
 test('opposite asymmetric flood weights heel in opposite directions',()=>{
   for(const [cell,sign] of [[0,-1],[4,1]]){const w=fixture();w.ship.volumes[cell]=70000;advance(w,3);assert.ok(w.ship.angle*sign>.04);}
@@ -78,6 +78,19 @@ test('swimming follows aim and permits primary fire',()=>{
 });
 test('ocean exists outside the vessel, but intact dry rooms below sea level contain air',()=>{
   const w=fixture();assert.ok(shipWaterAt(w,100,1000));assert.equal(shipWaterAt(w,850,1050),null);
+});
+test('the ocean stays at one screen height while the liner sinks below it',()=>{
+  const screenSea=s=>{const p=shipPose(s),x=1280,y=seaLevel(s,x);return 800+p.y+p.scale*Math.cos(p.angle)*(y-800);};
+  for(const angle of [-.4,0,.4])for(const sink of [0,800,SHIP.maxSink]) {
+    const s={angle,sink};assert.ok(Math.abs(screenSea(s)-SHIP.sea)<1e-8);assert.equal(shipPose(s).y,sink);
+  }
+});
+test('a foundered liner drowns only fighters who have not reached the exterior sea',()=>{
+  const w=fixture();w.ship.sink=SHIP.escapeSink+100;w.ship.volumes=w.ship.volumes.map((_,i)=>shipCapacity(i));
+  Object.assign(w.players[0],{x:1280,y:900,rig:null});Object.assign(w.players[1],{x:100,y:0,rig:null});
+  w.step(STEP);
+  assert.equal(w.players[0].alive,false);assert.equal(w.players[1].alive,true);
+  assert.equal(w.lastDeathCause,'drowning');assert.equal(w.phase,'result');assert.equal(w.winner,1);
 });
 test('flood water moves physical cargo and dead bodies with buoyancy and drag',()=>{
   const w=fixture();w.ship.volumes[2]=160000;

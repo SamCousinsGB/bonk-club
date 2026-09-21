@@ -245,6 +245,14 @@ test("simultaneous ring-outs produce a draw without awarding a point", () => {
   assert.equal(w.winner, null);
   assert.deepEqual(w.scores, [0, 0, 0, 0]);
 });
+test("an all-dead round resolves even while a delayed blast is active", () => {
+  const w = fight();
+  w.gas = [{ id: 1, x: 40, y: 40, vx: 0, vy: 0, r: 12, life: 2, lit: 1, owner: 0 }];
+  for (const p of w.players) p.y = H + 180;
+  w.step(STEP);
+  assert.equal(w.phase, "result");
+  assert.equal(w.winner, null);
+});
 test("spikes eliminate on contact", () => {
   const w = new World({ arena: 2 });
   w.phase = "fight";
