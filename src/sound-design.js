@@ -27,7 +27,7 @@ export const WEAPON_SOUNDS = Object.freeze({
   railgun: 'rail', plasma: 'plasma', tesla: 'tesla', phaser: 'phaser',
   flame: 'flame', frost: 'frost', saw: 'saw', repulsor: 'force',
   blackhole: 'singularity', crossbow: 'crossbow', harpoon: 'harpoon',
-  firework: 'firework', bubble: 'bubble', boomerang: 'whoosh', duck: 'duck',
+  firework: 'firework', bubble: 'bubble', boomerang: 'saw', duck: 'duck',
   bat: 'whoosh', sword: 'blade', hammer: 'heavy-swing', powerfist: 'heavy-swing',
   jelly: 'jelly', midas: 'gold', tangle: 'tangle',
 });

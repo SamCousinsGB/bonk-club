@@ -34,16 +34,19 @@ function duck(r, x, y, angle = 0) {
   r.line([[-10, 2], [-3, 8], [5, 4]], "#e8b82c", 2);
   c.restore();
 }
-function boomerang(r, x, y, angle) {
+function razorang(r, x, y, angle) {
   const c = r.ctx; c.save(); c.translate(x, y); c.rotate(angle);
-  r.line([[-21, 13], [0, -10], [21, 13]], "#482d2c", 11);
-  r.line([[-21, 13], [0, -10], [21, 13]], "#ffc67b", 7);
-  r.line([[-15, 7], [-10, 1]], "#74e5d1", 6);
-  r.line([[10, 1], [15, 7]], "#74e5d1", 6); c.restore();
+  r.circle(0, 0, 17, "#9fb4c2");
+  for (let n = 0; n < 10; n++) {
+    const a = n * Math.PI / 5;
+    r.line([[Math.cos(a) * 12, Math.sin(a) * 12], [Math.cos(a + .16) * 22, Math.sin(a + .16) * 22]], "#f4fcff", 3.5);
+  }
+  r.circle(0, 0, 7, "#334653");
+  r.circle(0, 0, 3, "#f4b6a2"); c.restore();
 }
 export function drawWeirdWeapon(r, type) {
   const c = r.ctx;
-  if (type === "boomerang") { boomerang(r, 8, 0, -.5); return true; }
+  if (type === "boomerang") { razorang(r, 8, 0, -.5); return true; }
   if (!["bubble", "duck"].includes(type)) return false;
   c.fillStyle = "#37475d"; c.fillRect(-18, -11, 42, 22); c.fillRect(-7, 8, 9, 17);
   c.fillStyle = type === "bubble" ? "#dd9eff" : "#ffe159"; c.fillRect(-16, -9, 30, 6);
@@ -61,8 +64,8 @@ export function drawWeirdWeapon(r, type) {
 export function drawWeirdProjectile(r, b, time) {
   if (b.kind === "bubble") drawBubble(r, b.x, b.y, b.r);
   else if (b.kind === "boomerang") {
-    boomerang(r, b.x, b.y, time * 24);
-    r.circle(b.x, b.y, 26, b.returning ? "#90ffe519" : "#ffcd8714");
+    razorang(r, b.x, b.y, time * 30);
+    r.circle(b.x, b.y, 28, b.returning ? "#90ffe519" : "#bfefff19");
   } else if (b.kind === "duck") {
     duck(r, b.x, b.y, Math.atan2(b.vy, b.vx));
     if (b.life < .65) r.circle(b.x - 7, b.y - 10, 4, Math.sin(time * 30) > 0 ? "#ff603f" : "#fff5b8");

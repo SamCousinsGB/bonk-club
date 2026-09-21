@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.49.4",
-  "releaseNotes": "Arc Furnace breach pours",
+  "version": "0.50.1",
+  "releaseNotes": "Razorang homing sawblade; Arc Furnace breach pours",
   "private": true,
   "type": "module",
   "scripts": {
