@@ -7,7 +7,7 @@ import { WATERWORKS_PIPES } from '../src/waterworks-arena.js';
 import { updateReactions } from '../src/reactions.js';
 import { moveLiquid,WATER_LIMIT } from '../src/liquid.js';
 import { carveExplosion } from '../src/terrain.js';
-import { swimmingWaterAt,swimPlayer,shipSwimControls } from '../src/ship.js';
+import { swimmingWaterAt,swimPlayer } from '../src/ship.js';
 import { RenderSnapshots } from '../src/render-state.js';
 import { validSnapshot,encodeState,decodeState } from '../src/network.js';
 import { compactSnapshot,expandSnapshot } from '../src/snapshot-wire.js';
@@ -57,11 +57,19 @@ test('generator warning is safe; live generators energise connected pool water a
 });
 test('pool swimming, oxygen and escape controls use real water and never let prediction damage a fighter',()=>{
   const w=world(),p=w.players[0];Object.assign(p,{x:1280,y:1240,rig:undefined,vx:0,vy:0,oxygen:12});
-  assert.ok(swimmingWaterAt(w,p.x,p.y));assert.ok(shipSwimControls(w,p));
+  assert.ok(swimmingWaterAt(w,p.x,p.y));
   swimPlayer(w,p,{attack:true,aim:-Math.PI/2},.05);assert.ok(p.swimming&&p.submerged&&p.vy<0);assert.ok(p.oxygen<12);
   w.prediction=true;p.oxygen=0;const hp=p.hp;swimPlayer(w,p,{attack:true,aim:0},.05);assert.equal(p.hp,hp);
   w.prediction=false;swimPlayer(w,p,{},.05);assert.ok(p.hp<hp);
   w.water=[];swimPlayer(w,p,{},.05);assert.equal(p.swimming,false);assert.equal(p.submerged,false);assert.ok(p.oxygen>0);
+});
+test('submerged bots keep their combat decisions and damage each other',()=>{
+  const w=new World({players:[0,1],bots:[0,1],arena:index,shuffle:false,random:()=>.4});
+  w.phase='fight';w.weaponTimer=w.grenadeTimer=999;
+  for(const [id,p] of w.players.entries())Object.assign(p,{x:1120+id*320,y:1240,ground:false,weapon:'blaster',ammo:14,rig:undefined});
+  for(let n=0;n<2/STEP&&w.phase==='fight';n++)w.step(STEP);
+  assert.ok(w.players.some(p=>p.hp<100));
+  assert.ok(w.events.some(e=>e.type==='shoot'));
 });
 test('flooding, cut outlets and generator removal survive compressed hot join and guest swimming',async()=>{
   const w=world();for(let i=0;i<20;i++)updateReactions(w,.05);

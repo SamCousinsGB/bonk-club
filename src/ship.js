@@ -166,18 +166,6 @@ export function swimPlayer(world,p,input,dt) {
   p.jumps=1;p.jumpBuffer=0;
   return {...input,jump:false,duck:false};
 }
-export function shipSwimControls(world,p) {
-  if((swimmingWaterAt(world,p.x,p.y+16)?.depth||0)<=22)return null;
-  // Swim towards open air, routing around intact decks using their nearest end.
-  const overhead=world.platforms.filter(q=>q.hp!==0&&q.y<p.y&&q.y>p.y-230&&p.x>q.x-18&&p.x<q.x+q.w+18)
-    .sort((a,b)=>b.y-a.y)[0];
-  let dx=-Math.sin(world.ship?.angle||0)*90,dy=-130;
-  if(world.arena.waterworks)dx=p.x<1280?-160:160;
-  if(overhead){const left=overhead.x-45,right=overhead.x+overhead.w+45;dx=(Math.abs(p.x-left)<Math.abs(p.x-right)?left:right)-p.x;dy=-25;}
-  return {left:false,right:false,jump:false,duck:false,attack:true,block:false,throw:false,aim:Math.atan2(dy,dx)};
-}
-
-
 // Reservoir water joins the same electrical graph as free droplets and metal.
 // Clip the actual hull cross-section by compartment edges and the free surface.
 export function shipWaterRegions(state) {

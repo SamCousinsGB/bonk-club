@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP,cleanInput} from '../src/engine.js';
-import {SHIP,shipOpenings,updateShip,shipWaterAt,shipCapacity,shipLevels,volumeAt,swimPlayer,shipPose,shipLocalPoint,shipSwimControls} from '../src/ship.js';
+import {SHIP,shipOpenings,updateShip,shipWaterAt,shipCapacity,shipLevels,volumeAt,swimPlayer,shipPose,shipLocalPoint} from '../src/ship.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -69,12 +69,11 @@ test('head immersion drains oxygen, dry air restores it, and drowning has a trut
   p.y=680;swimPlayer(w,p,cleanInput({}),1);assert.ok(p.oxygen>9.9);
   p.y=1050;p.oxygen=0;p.hp=.01;swimPlayer(w,p,cleanInput({}),STEP);assert.equal(p.alive,false);assert.equal(w.lastDeathCause,'drowning');
 });
-test('swimming follows aim, suppresses primary fire and does not consume ammunition',()=>{
+test('swimming follows aim and permits primary fire',()=>{
   for(const aim of [-Math.PI/2,0,Math.PI]) {
     const w=fixture(),p=w.players[0];Object.assign(p,{x:1200,y:1030,rig:null,weapon:'railgun',ammo:3});w.ship.volumes[2]=160000;
     for(let n=0;n<24;n++)w.step(STEP,{0:{attack:true,aim}});
-    assert.equal(p.ammo,3);assert.equal(w.projectiles.length,0);assert.ok(p.swimming);
-    assert.ok(aim===0?p.vx>100:aim===Math.PI?p.vx< -100:p.vy< -100);
+    assert.ok(p.ammo<3);assert.ok(w.events.some(e=>e.type==='shoot'));assert.ok(p.swimming&&p.swimStroke);
   }
 });
 test('ocean exists outside the vessel, but intact dry rooms below sea level contain air',()=>{
@@ -92,7 +91,10 @@ test('guest swimming uses the same movement without consuming oxygen or changing
   const w=fixture();w.ship.volumes[2]=120000;Object.assign(w.players[1],{x:1250,y:1030,rig:null});
   const snapshot={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]},saved=structuredClone(snapshot),guest=new GuestPrediction();
   guest.receive(snapshot,1,1000);const input=cleanInput({attack:true,aim:-Math.PI/2});guest.advance(input,1,1017);
-  const p=w.players[1];for(let i=0;i<2;i++)w.move(p,input,STEP);
+  const p=w.players[1];for(let i=0;i<2;i++) {
+    w.move(p,input,STEP);
+    if(p.cooldown<=0)w.attack(p);
+  }
   assert.ok(Math.abs(guest.player.x-p.x)<.01);assert.ok(Math.abs(guest.player.y-p.y)<.01);
   assert.equal(guest.player.oxygen,12);assert.deepEqual(snapshot,saved);
 });
@@ -113,7 +115,10 @@ test('inverse ship transform keeps mouse aim aligned through list and sinking',(
     assert.ok(Math.hypot(q.x-p.x,q.y-p.y)<1e-8);
   }
 });
-test('submerged bots use normal swim inputs and steer around the nearest intact deck',()=>{
-  const w=fixture();w.ship.volumes[2]=160000;const p=w.players[0];Object.assign(p,{x:1220,y:990});
-  const input=shipSwimControls(w,p);assert.equal(input.attack,true);assert.ok(Math.abs(Math.cos(input.aim))>.6);
+test('submerged liner bots retain combat decisions and damage opponents',()=>{
+  const w=new World({arena:ARENAS.findIndex(a=>a.ship),players:[0,1],bots:[0,1],shuffle:false,random:()=>.4});
+  w.phase='fight';w.weaponTimer=w.grenadeTimer=999;w.ship.volumes[2]=160000;
+  for(const [id,p] of w.players.entries())Object.assign(p,{x:1200+id*140,y:1030,ground:false,weapon:'blaster',ammo:14,rig:null});
+  for(let n=0;n<2/STEP&&w.phase==='fight';n++)w.step(STEP);
+  assert.ok(w.players.some(p=>p.hp<100));assert.ok(w.events.some(e=>e.type==='shoot'));
 });

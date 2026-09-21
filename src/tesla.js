@@ -10,7 +10,7 @@ const distance = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 const pointAt = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 export const castingTesla = (p, i) => p?.alive && p.weapon === "tesla" &&
   (p.ammo > 0 || p.swing > 0) && i?.attack && !i.throw && !p.stun &&
-  !p.freeze && !p.knockdown && !p.strands && !p.carryId && !p.swimming;
+  !p.freeze && !p.knockdown && !p.strands && !p.carryId;
 
 // Geometry is shared with the display-only guest preview. Only fireTesla applies
 // damage or powers a circuit. Rays use the same rotated prop tiles as collision.

@@ -2,7 +2,7 @@ import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { resetWaterworks } from "./waterworks.js";
 import { cleanEscapedEntities, escapedPoints } from "./world-cleanup.js";
 import { updatePlane, movePlaneWings } from "./plane.js";
-import { createShip, updateShip, swimPlayer, swimmingWaterAt } from './ship.js';
+import { createShip, updateShip, swimPlayer } from './ship.js';
 import { SHIP_ARENA } from './ship-arena.js';
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
@@ -488,11 +488,10 @@ export class World {
     for (const p of this.players) {
       if (!p.alive) continue;
       const raw = active ? cleanInput(inputs[p.id]) : emptyInput();
-      // In deep water the primary action is a swim stroke, including when
-      // carrying a prop. Secondary action still releases the held object.
-      const swimming = (swimmingWaterAt(this,p.x,p.y+16)?.depth || 0)>22;
-      const input = objectInput(this, p, swimming ? {...raw,attack:false} : raw);
-      if(swimming) input.attack=raw.attack;
+      // A primary action in deep water still supplies a swim stroke, but it
+      // must also reach combat. Otherwise submerged fighters, especially bots,
+      // can only bob or flee without ever damaging one another.
+      const input = objectInput(this, p, raw);
       actions.set(p.id, input);
       this.move(p, input, dt);
     }
@@ -504,7 +503,7 @@ export class World {
       p.throwHeld = i.throw;
       if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
-        else if (i.attack && !p.swimming) this.attack(p);
+        else if (i.attack) this.attack(p);
       }
     }
     for (let a = 0; a < this.players.length; a++)
