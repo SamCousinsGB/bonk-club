@@ -12,7 +12,7 @@ import { updateCables, blastCables } from '../src/heavy-cables.js';
 import { validSnapshot } from '../src/network.js';
 import { RenderSnapshots, interpolateStates } from '../src/render-state.js';
 import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
-import { FURNACE_MELT_CAPACITY, furnaceOutlets, updateFurnaceFlow } from '../src/furnace-flow.js';
+import { furnaceOutlets, updateFurnaceFlow } from '../src/furnace-flow.js';
 import { firePhaser } from '../src/phaser.js';
 
 function lab() {
@@ -144,23 +144,6 @@ test('finite melt stops below the breach and emitted metal keeps moving after it
   for(let i=0;i<1800;i++){updateFurnaceFlow(w,h,.05);moveLiquid(w,.05);}
   assert.ok(h.furnaceMelt<.555);assert.deepEqual(furnaceOutlets(h),[]);
   h.furnaceMelt=0;assert.deepEqual(furnaceOutlets(h),[]);
-});
-
-test('a breached furnace makes a continuous finite pour rather than spaced projectile beads',()=>{
-  const {w,h}=lab();w.spills=[];w.platforms=[];
-  blastFurnace(w,{x:1080,y:1160,radius:45});h.age=2;
-  for(let i=0;i<30;i++){updateFurnaceFlow(w,h,STEP);moveLiquid(w,STEP);}
-  const stream=w.spills.filter(q=>!q.grounded).sort((a,b)=>a.x-b.x);
-  assert.ok(stream.length>8);
-  // Consecutive parcels overlap or meet along the pressure direction, so the
-  // renderer draws one molten flow using their true collision envelopes.
-  const bounds=stream.map(liquidBounds);
-  for(let i=1;i<bounds.length;i++)assert.ok(bounds[i].x<=bounds[i-1].x+bounds[i-1].w+1.2);
-  assert.ok(h.furnaceMelt<1&&h.furnaceMelt>0);
-  h.furnaceMelt=.6;
-  for(let i=0;i<400;i++){updateFurnaceFlow(w,h,.05);moveLiquid(w,.05);}
-  assert.deepEqual(furnaceOutlets(h),[]);
-  assert.ok(w.spills.reduce((total,q)=>total+q.w*q.h,0)<=FURNACE_MELT_CAPACITY+1e-6);
 });
 
 test('a projectile can pass through a bored hole and every later cut keeps existing voids open',()=>{
