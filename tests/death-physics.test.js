@@ -48,7 +48,7 @@ test("dead bodies and crumbled pieces collide with walls and thin floors",()=>{
 
 test("nuclear and burned skeletons shed joints without stretching detached bone art",()=>{
   for(const effect of [null,"burn","plasma","tesla","phaser"]) {
-    const {w,rag}=fixture(effect);
+    const {w,rag}=fixture(effect,{y:100,vy:0});
     assert.equal(deathJoints(rag).length,10);
     advance(w,effect==="burn"?1:.8);
     assert.ok(deathJoints(rag).length>0&&deathJoints(rag).length<10);

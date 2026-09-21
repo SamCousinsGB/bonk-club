@@ -1,5 +1,8 @@
+import { WATERWORKS_ARENA } from "./waterworks-arena.js";
+import { resetWaterworks } from "./waterworks.js";
+import { cleanEscapedEntities, escapedPoints } from "./world-cleanup.js";
 import { updatePlane, movePlaneWings } from "./plane.js";
-import { createShip, updateShip, swimPlayer, shipWaterAt } from './ship.js';
+import { createShip, updateShip, swimPlayer, swimmingWaterAt } from './ship.js';
 import { SHIP_ARENA } from './ship-arena.js';
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
@@ -24,7 +27,7 @@ import { prepareProp, propSolids, propFor, damageProp, contactProp, updateProps,
 import { THROW_MASS, knockDown, moveKnocked } from "./knockdown.js";
 import { updateTransformedDeath } from "./transmutation.js";
 import { passiveBody } from "./body-physics.js";
-import { advanceFlight, projectileInArena, canSpawnProjectiles } from "./projectile-flight.js";
+import { advanceFlight, projectileInArena, projectileEscaped, canSpawnProjectiles } from "./projectile-flight.js";
 import { recordFlight } from "./flight-replay.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
@@ -84,7 +87,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -208,6 +211,7 @@ export class World {
     this.debris = [];
     this.hazards = createHazards(this);
     resetReactions(this);
+    resetWaterworks(this);
     createAssembly(this);
     this.ragdolls = [];
     this.blood = [];
@@ -417,6 +421,7 @@ export class World {
       this.hitstop -= dt;
       return;
     }
+    cleanEscapedEntities(this);
     this.movePlatforms();
     updateShip(this, dt);
     updateAssembly(this, dt);
@@ -485,7 +490,7 @@ export class World {
       const raw = active ? cleanInput(inputs[p.id]) : emptyInput();
       // In deep water the primary action is a swim stroke, including when
       // carrying a prop. Secondary action still releases the held object.
-      const swimming = this.ship && (shipWaterAt(this,p.x,p.y+16)?.depth || 0)>22;
+      const swimming = (swimmingWaterAt(this,p.x,p.y+16)?.depth || 0)>22;
       const input = objectInput(this, p, swimming ? {...raw,attack:false} : raw);
       if(swimming) input.attack=raw.attack;
       actions.set(p.id, input);
@@ -1329,6 +1334,7 @@ export class World {
   updateProjectiles(dt) {
     for (const b of [...this.projectiles]) {
       if (b.life <= 0) continue;
+      if (projectileEscaped(this,b)) { b.life=0; continue; }
       advanceFlight(b, dt);
       steerSpecial(this, b, dt);
       if (b.life <= 0 && b.kind === "boomerang") continue;
@@ -1475,7 +1481,7 @@ export class World {
       if (impact || b.life <= 0) expireSpecial(this, b);
       if (impact) b.life = 0;
     }
-    this.projectiles = this.projectiles.filter(b => b.life > 0);
+    this.projectiles = this.projectiles.filter(b => b.life > 0 && !projectileEscaped(this,b));
     for (const b of this.projectiles) if (projectileInArena(b)) recordFlight(b, dt);
   }
   updateRagdolls(dt) {
@@ -1504,7 +1510,7 @@ export class World {
         restitution: rag.effect === "ice" ? .3 : .15,
       });
     }
-    this.ragdolls = this.ragdolls.filter((r) => r.life > 0);
+    this.ragdolls = this.ragdolls.filter((r) => r.life > 0 && !escapedPoints(r.points));
   }
   spikes() {
     let spikes = this.spikeTerrain || this.arena.spikes;

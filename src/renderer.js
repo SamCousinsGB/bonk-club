@@ -1,3 +1,4 @@
+import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
 import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
@@ -941,6 +942,7 @@ export class Renderer {
         layer.height = H;
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
+        if (arena.waterworks) drawWaterworksHall(layer.getContext("2d"));
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
         if (arena.turbine) drawTurbineHall(layer.getContext("2d"));
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
@@ -980,6 +982,7 @@ export class Renderer {
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     if(arena.carWash)drawCarWashStructure(c,state);
+    if(arena.waterworks)drawWaterworksPipes(c,state);
     if(arena.cargoPlane)(this.planeHullLayer ||= new PlaneHullLayer()).draw(c,state.platforms);
     if(arena.ship)drawShipShell(c,state.platforms);
     for (const s of state.spikes) {
@@ -1051,6 +1054,7 @@ export class Renderer {
     for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
     for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
     for (const cover of state.cover || []) if(cover.kind!=="car"||!arena.assembly)this.table(cover);
+    if(arena.waterworks)drawWaterworksGenerators(c,state,this.reduced);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
     if(arena.cargoPlane)drawPlaneOutflows(c,state,time,this.reduced);

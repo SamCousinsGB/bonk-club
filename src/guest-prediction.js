@@ -61,7 +61,7 @@ export class GuestPrediction {
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
       arena: ARENAS[state.arenaIndex], hazards: structuredClone(state.hazards),
-      ship: structuredClone(state.ship),
+      ship: structuredClone(state.ship), water: structuredClone(state.water),
       platforms, cover: structuredClone(state.cover), chunks: structuredClone(state.chunks),
       cables: structuredClone(state.cables || []),
       players: [this.player], projectiles: [],

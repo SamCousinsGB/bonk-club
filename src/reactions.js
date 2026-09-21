@@ -1,3 +1,4 @@
+import { updateWaterworks } from "./waterworks.js";
 import { absorbShipWater, shipWaterAt, shipWaterRegions } from './ship.js';
 import { randomizeLiquidContainers } from './liquid-containers.js';
 import { liquidBounds, isLiquid, liquidPolygonHit } from './liquid-geometry.js';
@@ -422,6 +423,7 @@ export function updateReactions(world, dt) {
   world.reactionClock+=dt;
   if(world.reactionClock<.05-1e-8)return;
   dt=Math.min(.075,world.reactionClock);world.reactionClock=0;
+  updateWaterworks(world,dt);
   const wires=poweredWirePieces(world);
   moveLiquid(world,dt,wires,thawWater);
   liquidForces(world,dt);

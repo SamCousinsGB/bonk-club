@@ -216,7 +216,7 @@ export function liquidForces(world,dt) {
     let area=0,vx=0,vy=0,depth=0;
     for(const liquid of all) {
       const q=liquidBounds(liquid);
-      if(liquid.frozen || !overlap(box,q))continue;
+      if(liquid.frozen || !overlap(box,q) || (fighter && world.arena?.waterworks && liquid.grounded && liquid.h>22))continue;
       const a=Math.max(0,Math.min(box.x+box.w,q.x+q.w)-Math.max(box.x,q.x))*
         Math.max(0,Math.min(box.y+box.h,q.y+q.h)-Math.max(box.y,q.y));
       area+=a;vx+=a*(liquid.vx||0);vy+=a*liquid.vy;depth=Math.max(depth,liquid.h);

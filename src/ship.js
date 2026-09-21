@@ -1,3 +1,4 @@
+import { liquidBounds } from './liquid-geometry.js';
 import { flowLiquidReservoirs, liquidDrag, liquidTransfer } from './liquid.js';
 import { segmentBox } from './collision.js';
 import { impulseProp } from './props.js';
@@ -85,6 +86,16 @@ export function shipWaterAt(world,x,y) {
   const level=inside?shipLevels(s)[i]-Math.tan(s.angle)*(x-1280):seaLevel(s,x);
   return y>level ? {depth:y-level,vx:inside?s.currents[i]:24*Math.sin(s.age*.7),i:inside?i:-1} : null;
 }
+// The same controls and host-owned oxygen apply in Waterworks' free pool.
+export function swimmingWaterAt(world,x,y) {
+  if(world.ship)return shipWaterAt(world,x,y);
+  if(!world.arena?.waterworks)return null;
+  for(const q of world.water||[])if(!q.frozen && q.grounded && q.h>22) {
+    const b=liquidBounds(q);
+    if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return {depth:y-b.y,vx:q.vx||0};
+  }
+  return null;
+}
 export function updateShip(world,dt) {
   const s=world.ship;if(!s||world.prediction)return;
   s.age+=dt;
@@ -130,15 +141,15 @@ export function updateShip(world,dt) {
 
 // Called by shared host/guest movement; only authority changes oxygen/health.
 export function swimPlayer(world,p,input,dt) {
-  if(!world.ship)return input;
-  const wet=shipWaterAt(world,p.x,p.y+16),head=shipWaterAt(world,p.rig?.[0]?.x??p.x,p.rig?.[0]?.y??p.y-40);
+  if(!world.ship&&!world.arena?.waterworks)return input;
+  const wet=swimmingWaterAt(world,p.x,p.y+16),head=swimmingWaterAt(world,p.rig?.[0]?.x??p.x,p.rig?.[0]?.y??p.y-40);
   p.submerged=!!head;p.swimming=!!wet&&wet.depth>22;
   if(!world.prediction) {
     p.oxygen=clamp((p.oxygen??12)+(head?-dt:dt*3),0,12);
     if(wet)p.burn=0;
     if(head&&p.oxygen===0&&world.phase==='fight'){p.hp=Math.max(0,p.hp-dt*16);if(!p.hp)world.kill(p,{cause:'drowning'});}
   }
-  const angle=world.ship.angle;
+  const angle=world.ship?.angle||0;
   p.vx+=1800*Math.sin(angle)*dt;p.vy+=1800*(Math.cos(angle)-1)*dt;
   if(!p.swimming)return input;
   const immersion=clamp(wet.depth/65,0,1),drag=(1-liquidDrag(dt,immersion,3.7));
@@ -156,11 +167,12 @@ export function swimPlayer(world,p,input,dt) {
   return {...input,jump:false,duck:false};
 }
 export function shipSwimControls(world,p) {
-  if(!world.ship||(shipWaterAt(world,p.x,p.y+16)?.depth||0)<=22)return null;
+  if((swimmingWaterAt(world,p.x,p.y+16)?.depth||0)<=22)return null;
   // Swim towards open air, routing around intact decks using their nearest end.
   const overhead=world.platforms.filter(q=>q.hp!==0&&q.y<p.y&&q.y>p.y-230&&p.x>q.x-18&&p.x<q.x+q.w+18)
     .sort((a,b)=>b.y-a.y)[0];
-  let dx=-Math.sin(world.ship.angle)*90,dy=-130;
+  let dx=-Math.sin(world.ship?.angle||0)*90,dy=-130;
+  if(world.arena.waterworks)dx=p.x<1280?-160:160;
   if(overhead){const left=overhead.x-45,right=overhead.x+overhead.w+45;dx=(Math.abs(p.x-left)<Math.abs(p.x-right)?left:right)-p.x;dy=-25;}
   return {left:false,right:false,jump:false,duck:false,attack:true,block:false,throw:false,aim:Math.atan2(dy,dx)};
 }

@@ -149,7 +149,8 @@ test("a boomerang keeps travelling if its owner dies, and bounces off solid wall
   const w = fixture(); w.players[1].y = 900;
   w.platforms.push({ id: "wall", x: 600, y: 300, w: 20, h: 250 });
   const b = fire(w, "boomerang"); projectiles(w, .3); assert.ok(b.vx < 0);
-  w.kill(w.players[0]); projectiles(w, 3); assert.ok(w.projectiles.includes(b));
+  w.kill(w.players[0]); projectiles(w, .5); assert.ok(w.projectiles.includes(b));
+  projectiles(w, 3); assert.ok(!w.projectiles.includes(b), "escaped ownerless boomerang is deleted");
 });
 
 test("rubber ducks bounce then explode on a final collision, carving actual terrain once", () => {

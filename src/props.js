@@ -398,12 +398,14 @@ export function updateProps(world, dt) {
   let changed = false;
   for (const b of bodies) {
     const old = starts.get(b); b.dx = b.x - old.x; b.dy = b.y - old.y;
-    if (b.y > H + 130 || b.x < -250 || b.x > W + 250) { b.hp = 0; changed = true; }
+    const box = bodyBounds(b);
+    if (box.y > H + 160 || box.x + box.w < -320 || box.x > W + 320) { b.hp = 0; changed = true; }
     if (!b.chunk && (Math.abs(b.dx) + Math.abs(b.dy) > .1 || Math.abs(b.angle - old.angle) > .01)) changed = true;
   }
   // Bot routes rebuild at a bounded rate, not once per moving sliver per tick.
   if (changed && world.time >= (world.propNavigationAt || 0)) {
     world.terrainVersion++; world.propNavigationAt = world.time + .5;
   }
+  world.cover = world.cover.filter(b => { const q=bodyBounds(b); return q.y<=H+160 && q.x+q.w>=-320 && q.x<=W+320; });
   world.chunks = world.chunks.filter(b => b.hp > 0);
 }

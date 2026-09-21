@@ -38,7 +38,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 71;
+export const PROTOCOL = 72;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -873,6 +873,7 @@ export function validSnapshot(s) {
         (p.assemblyMount === undefined || (integer(p.assemblyMount, 1, 4) && !!s.assembly)) &&
         (p.circuit === undefined || (integer(p.circuit,0,1) && p.material === "cable")) &&
         (p.material !== "cable" || integer(p.circuit,0,1)) &&
+        (p.waterworksPipe === undefined || (integer(p.waterworksPipe,0,5) && ARENAS[s.arenaIndex]?.waterworks===true && p.material==="metal")) &&
         (p.waterId === undefined || (integer(p.waterId, 1, 10000000) && p.ice === true && p.material === "ice")) &&
         typeof p.id === "string" && p.id.length <= 160 &&
         (p.sourceId === undefined || (typeof p.sourceId === "string" && p.sourceId.length <= 160)) &&

@@ -56,8 +56,9 @@ Start new work from current `origin/main` in one clean worktree.
   does not repeat. Weapons cannot block unless they explicitly provide alternate fire.
 - Melee needs directional lunges, forceful contact, feedback and bounded air use.
   Thrown weapons cause recoverable physical knockdowns based on mass.
-- Shots persist until collision, capture, catch or round reset; only grenades retain
-  fuses. Bound admission/render/transport without deleting shots already in flight.
+- Shots persist until collision, capture, catch, escape beyond the playable area or
+  round reset; only grenades retain fuses. Preserve returning flights and high arcs.
+  Delete wholly escaped props, fragments and death bodies from the world and snapshots.
 - Grenade baseline: 450 horizontal speed, upward toss, 2.8-second fuse. All fighters
   start unarmed. Standard refills start after six seconds, then 6–8 seconds; grenade
   rolls keep separate 2-second then 3–5-second clocks. One nuke appears only on every
@@ -101,6 +102,12 @@ Start new work from current `origin/main` in one clean worktree.
   cleared on closure/reset, with readable HUD and reduced-motion support.
 
 ### Arena-specific rules
+
+- **Waterworks:** six breakable mains flood a large central basin through shared
+  water physics. Eight movable generators cycle 7 seconds off, 1 amber warning,
+  4 live, powering only actual connected water/metal. Upper catwalks and pool exits
+  stay traversable; use shared swimming/oxygen and guest prediction. Cut throats
+  stop feeding; breached walls/floors drain real water. Preserve reset/hot join.
 
 - **Ocean Liner:** a cutaway ocean vessel with five finite flood compartments.
   Only through-hull openings below the waterline admit seawater; surviving
