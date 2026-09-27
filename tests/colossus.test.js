@@ -13,6 +13,7 @@ import {navigation,routesFrom,surfaceAt} from '../src/navigation.js';
 import {firePhaser} from '../src/phaser.js';
 import {nuclearField,updateNuclear} from '../src/nuclear.js';
 import {blackholeField,updateBlackhole} from '../src/blackhole.js';
+import {colossusStand} from '../src/colossus-timing.js';
 import {makeRig} from '../src/puppet.js';
 
 function fixture(){const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1,2,3],shuffle:false,random:()=>.42});w.phase='fight';return w;}
@@ -21,10 +22,42 @@ function transport(w){return expandSnapshot(compactSnapshot(new RenderSnapshots(
 
 test('eyes open gradually before the first charge and remain faintly awake between attacks',()=>{
   assert.equal(colossusEyeOpening(0),0);
-  assert.ok(colossusEyeOpening(3)>0&&colossusEyeOpening(3)<colossusEyeOpening(7));
+  assert.ok(colossusEyeOpening(6)>0&&colossusEyeOpening(6)<colossusEyeOpening(7));
   assert.equal(colossusEyeOpening(10),1);
   for(const age of [16,26,32,40,60])assert.equal(colossusEyeOpening(age),1);
   assert.equal(colossusEyeOpening(0),0,"round reset closes the shutters");
+});
+
+test('first attack waits for a complete rise and eye opening; later random attacks keep him standing',()=>{
+  const w=fixture(),h=w.hazards[0];w.cover=[];
+  w.players.forEach(p=>{p.x=70;p.y=750;});
+  let draws=0;w.random=()=>[0,.5,.99][draws++%3];
+  const start=colossusRig(h);
+  advance(w,COLOSSUS.rise);
+  assert.equal(colossusStand(h.age),1);assert.ok(colossusEyeOpening(h.age)<1e-8);
+  assert.ok(start.head.y-colossusRig(h).head.y>40,"rise visibly above the ridge");
+  advance(w,COLOSSUS.eyes);
+  assert.equal(colossusEyeOpening(h.age),1);assert.equal(h.active,false);
+  advance(w,COLOSSUS.charge);
+  assert.equal(h.active,true);assert.equal(draws,0);
+  const rests=[];let previousNext=null;
+  for(let n=0;n<55/STEP;n++){
+    advance(w,STEP);
+    if(h.nextChargeAt!==null&&h.nextChargeAt!==previousNext){
+      rests.push(h.nextChargeAt-h.chargeAt-COLOSSUS.charge-COLOSSUS.fire);
+      previousNext=h.nextChargeAt;
+      const joined=transport(w).hazards[0];
+      assert.ok(Math.abs(joined.nextChargeAt-h.nextChargeAt)<.006);
+      assert.ok(Math.abs(joined.chargeAt-h.chargeAt)<.006);
+    }
+    assert.equal(colossusStand(h.age),1);
+    assert.equal(colossusEyeOpening(h.age),1);
+  }
+  assert.ok(rests.length>=3);assert.ok(Math.abs(rests[0]-3.5)<.001);
+  assert.ok(Math.abs(rests[1]-6.5)<.001);assert.ok(Math.abs(rests[2]-9.44)<.001);
+  assert.equal(draws,rests.length,"only the host samples once after each sweep");
+  w.startRound();assert.equal(w.hazards[0].chargeAt,COLOSSUS.wake);
+  assert.equal(w.hazards[0].nextChargeAt,null);assert.equal(colossusStand(w.hazards[0].age),0);
 });
 
 test('colossus terraces connect every spawn to contested weapons with the distant mech above play',()=>{
@@ -46,12 +79,12 @@ test('gaze has mechanical lag, stays bounded, and follows players without moving
   assert.ok(Math.abs(colossusEye(h).x-untracked.x)<.02);
   advance(w,12);assert.ok(h.gazeX>2050&&h.gazeX<2300);
   h.age=COLOSSUS.wake-STEP;advance(w,STEP);const target=h.strikeX;
-  w.players.forEach(p=>p.x=200);advance(w,9);
-  assert.equal(h.strikeX,target);assert.ok(h.gazeX<1800);
+  w.players.forEach(p=>p.x=200);advance(w,3);
+  assert.equal(h.strikeX,target);assert.ok(h.gazeX<2150);
   assert.ok(h.warning>0&&!h.active);assert.ok(validSnapshot(transport(w)));
 });
 
-test('ten second charge does no damage or terrain edits, then lethal contact respects the visible beam',()=>{
+test('four second charge does no damage or terrain edits, then lethal contact respects the visible beam',()=>{
   const w=fixture(),h=w.hazards[0];h.age=COLOSSUS.wake;h.strikeX=1280;
   const original=structuredClone(w.platforms);advance(w,COLOSSUS.charge-STEP);
   assert.ok(h.warning>0&&!h.active);assert.deepEqual(w.platforms,original);
@@ -66,7 +99,7 @@ test('ten second charge does no damage or terrain edits, then lethal contact res
 });
 
 test('beam carves only its swept contact, releases removed supports and destroys contacted physical props',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=26;
+  const w=fixture(),h=w.hazards[0];h.age=12;
   const beam=colossusBeam(h),near=beamX(beam,1100);
   w.platforms=[{id:'near',x:near-200,y:1100,w:400,h:32,material:'stone'},
     {id:'far',x:100,y:1100,w:220,h:32,material:'stone'}];
@@ -81,7 +114,7 @@ test('beam carves only its swept contact, releases removed supports and destroys
 });
 
 test('the distant beam narrows with perspective and cannot hit outside its visible cone',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=26;h.strikeX=1280;
+  const w=fixture(),h=w.hazards[0];h.age=12;h.strikeX=1280;
   const beam=colossusBeam(h),nearEye=w.players[0],foreground=w.players[1];
   Object.assign(nearEye,{x:beamX(beam,800)-50,y:800,spawnShield:0});
   Object.assign(foreground,{x:beamX(beam,1300)+20,y:1300,spawnShield:0});
@@ -90,7 +123,7 @@ test('the distant beam narrows with perspective and cannot hit outside its visib
 });
 
 test('both moving eyes fire together, damage both paths and leave the space between them intact',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=26;h.strikeX=1280;
+  const w=fixture(),h=w.hazards[0];h.age=12;h.strikeX=1280;
   const beams=colossusBeams(h),xs=beams.map(b=>beamX(b,1300)),middle=(xs[0]+xs[1])/2;
   assert.equal(beams.length,2);assert.ok(beams[1].x>beams[0].x);
   beams.forEach((b,i)=>assert.deepEqual({x:b.x,y:b.y},colossusEye(h,i)));
@@ -122,7 +155,7 @@ test('rig moves visibly within six seconds, keeps rigid limb lengths and planted
       assert.ok(Math.abs(distance(leg.hip,leg.knee)-72*COLOSSUS_SCALE)<1e-8);
       assert.ok(Math.abs(distance(leg.knee,leg.foot)-78*COLOSSUS_SCALE)<1e-8);
     });
-    assert.ok(distance(r.head,next.head)<1.1);
+    assert.ok(distance(r.head,next.head)<2.5);
     r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<2));
     COLOSSUS_EYES.forEach((e,i)=>assert.deepEqual(colossusEye({...h,age},i),rigPoint(r.head,e.x,e.y)));
   }
@@ -159,13 +192,13 @@ test('an unarmed bot walks out of the warning on surviving terrain and survives 
   w.cover=[];w.drops=[];w.weaponTimer=Infinity;w.grenadeTimer=Infinity;
   Object.assign(p,{x:1280,y:1290,vx:0,vy:0,ground:true,support:'floor0'});p.rig=makeRig(p);
   Object.assign(w.players[1],{x:2400,y:1290,vx:0,vy:0,ground:true,support:'floor0'});w.players[1].rig=makeRig(w.players[1]);
-  h.age=22;h.strikeX=1280;
+  h.age=8;h.strikeX=1280;
   let escaped=false;
   // Isolate the dodge from a melee victory ending the round: use the actual
   // controller's movement through shared physics, with a stationary opponent.
-  for(let n=0;n<120*9;n++){
+  for(let n=0;n<120*7;n++){
     w.time+=STEP;const input=w.ai.inputs(w,STEP)[p.id];w.move(p,input,STEP);updateColossus(w,h,STEP);
-    if(h.age<26&&!botDanger(w.hazards,p.x,p.y))escaped=true;
+    if(h.age<12&&!botDanger(w.hazards,p.x,p.y))escaped=true;
   }
   assert.ok(escaped);assert.ok(p.alive);assert.ok(p.y<1400);assert.ok(validSnapshot(w.snapshot()));
 });
@@ -177,7 +210,7 @@ test('a full sweep, second eye and repeated attacks remain bounded and round res
     w.time+=STEP;updateColossus(w,h,STEP);
     if(n%120===0){assert.ok(validSnapshot(w.snapshot()),`invalid at ${h.age}`);assert.ok(w.platforms.length<450);}
   }
-  assert.equal(h.eye,1);assert.equal(h.cycleId,3);assert.ok(w.terrainVersion>0);
+  assert.equal(h.eye,h.cycleId%2);assert.ok(h.cycleId>=7);assert.ok(w.terrainVersion>0);
   assert.ok(w.debris.length<=90&&w.chunks.length<=96);
   w.startRound();assert.equal(w.hazards[0].age,0);assert.equal(w.hazards[0].eye,0);
   assert.equal(w.platforms.length,w.arena.platforms.length);assert.ok(w.platforms.every(p=>!p.sourceId));
@@ -185,7 +218,7 @@ test('a full sweep, second eye and repeated attacks remain bounded and round res
 });
 
 test('damaged-world hot join carries exact optical pose, charge, beam and collision; invalid state is rejected',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=25;advance(w,2.5);
+  const w=fixture(),h=w.hazards[0];h.age=11;advance(w,2.5);
   const s=transport(w),q=s.hazards[0];
   assert.ok(q.active&&s.platforms.some(p=>p.sourceId));
   assert.ok(Math.abs(colossusBeam(q).ex-colossusBeam(h).ex)<.02);
@@ -195,14 +228,15 @@ test('damaged-world hot join carries exact optical pose, charge, beam and collis
   }
   assert.equal(q.eye,h.eye);assert.ok(s.platforms.length===w.platforms.length);
   for(const patch of [{gazeX:Infinity},{gazeY:-1},{attentionX:3000},{strikeX:0},{eye:2},{eye:1},
-    {cycleId:-1},{cycleId:1.5},{warning:11},{duration:9},{done:true},{x:10}]){
+    {cycleId:-1},{cycleId:1.5},{chargeAt:NaN},{chargeAt:9},{chargeAt:-1},
+    {nextChargeAt:1},{nextChargeAt:Infinity},{nextChargeAt:999},{warning:11},{duration:9},{done:true},{x:10}]){
     const bad=structuredClone(s);Object.assign(bad.hazards[0],patch);assert.equal(validSnapshot(bad),false,JSON.stringify(patch));
   }
   const bad=structuredClone(s);bad.arenaIndex=0;assert.equal(validSnapshot(bad),false);
 });
 
 test('guest interpolation smooths slow eyes but never blends across firing or cycle boundaries',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=25;advance(w,.1);const a=transport(w);
+  const w=fixture(),h=w.hazards[0];h.age=11;advance(w,.1);const a=transport(w);
   advance(w,.3);h.gazeX+=100;const b=transport(w),mid=interpolateStates(a,b,.5);
   assert.equal(mid.hazards[0].gazeX,(a.hazards[0].gazeX+b.hazards[0].gazeX)/2);
   advance(w,1);const fired=transport(w),transition=interpolateStates(b,fired,.01);
@@ -210,7 +244,7 @@ test('guest interpolation smooths slow eyes but never blends across firing or cy
 });
 
 test('AI avoids the whole upcoming sweep at its own height while safe terraces remain usable',()=>{
-  const w=fixture(),h=w.hazards[0];h.age=20;advance(w,STEP);
+  const w=fixture(),h=w.hazards[0];h.age=9;advance(w,STEP);
   const beam=colossusBeam(h,.5),x=beamX(beam,1000);
   assert.ok(botDanger(w.hazards,x,1000));assert.equal(botDanger(w.hazards,100,1000),false);
   h.age=35;advance(w,STEP);assert.equal(botDanger(w.hazards,x,1000),false);

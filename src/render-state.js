@@ -130,7 +130,7 @@ export function interpolateStates(a, b, t, mode = "all") {
     });
     out.hazards = b.hazards.map(h => {
       const old = a.hazards.find(q => q.id === h.id);
-      if(h.type==='colossus')return old&&old.cycleId===h.cycleId&&old.active===h.active&&
+      if(h.type==='colossus')return old&&old.cycleId===h.cycleId&&old.chargeAt===h.chargeAt&&old.active===h.active&&
         (old.warning>0)===(h.warning>0)?blend(old,h,t):h;
       if (h.type === "train" && (old?.active !== h.active || old?.dir !== h.dir || old?.derailed !== h.derailed)) return h;
       return h.type === "furnace" ? h : old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;

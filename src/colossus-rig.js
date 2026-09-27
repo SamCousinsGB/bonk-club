@@ -1,12 +1,10 @@
 // Shared mechanical skeleton. The distant machine is assembled from rigid
 // parts, never sampled from a background image. Beam origins use this same rig.
+import {colossusStand} from './colossus-timing.js';
+export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const COLOSSUS_EYES=Object.freeze([{x:-12,y:3.3},{x:12,y:3.3}]);
 export const COLOSSUS_SCALE=.48;
-export function colossusEyeOpening(age){
-  const t=clamp((age-1)/9,0,1);
-  return t*t*(3-2*t);
-}
 export function rigPoint(frame,x,y){
   return {x:frame.x+frame.a*x+frame.c*y,y:frame.y+frame.b*x+frame.d*y};
 }
@@ -21,9 +19,10 @@ function knee(hip,foot,side){
 }
 export function colossusRig(h){
   const t=h.age,look=clamp(((h.gazeX??1280)-1280)/1280,-1,1);
-  const lean=Math.sin(t*.21)*.085;
-  const body=frame(1280+Math.sin(t*.19)*19,641+Math.sin(t*.17)*3,lean);
-  const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-128);
+  const standing=colossusStand(t),crouch=1-standing;
+  const lean=-crouch*.16+Math.sin(t*.21)*.045;
+  const body=frame(1280+Math.sin(t*.19)*19,641+crouch*80+Math.sin(t*.17)*3,lean);
+  const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-128+crouch*25);
   const head=frame(neck.x,neck.y-9,lean+Math.sin(t*.29-.4)*.13,
     .93-Math.sin(t*.23+look*.5)**2*.15);
   const arms=[-1,1].map(side=>{

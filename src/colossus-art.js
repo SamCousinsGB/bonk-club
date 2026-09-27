@@ -103,7 +103,7 @@ function eye(c,h,index,energy) {
 export function drawColossusSky(c,state,reduced=false) {
   warmColossusArt();
   const h=state.hazards.find(h=>h.type==='colossus');if(!h)return;
-  const phase=colossusPhase(h.age),fighting=state.phase==='fight';
+  const phase=colossusPhase(h.age,h.chargeAt),fighting=state.phase==='fight';
   c.fillStyle='#273b4b';c.fillRect(0,0,2560,1440);
   if(backdrop?.complete&&backdrop.naturalWidth)c.drawImage(backdrop,0,0,2560,1440);
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
@@ -142,12 +142,12 @@ export function drawColossusStone(c,p) {
 export function colossusShake(state) {
   const h=state?.phase==='fight'&&state.hazards?.find(h=>h.type==='colossus');
   if(!h)return 0;
-  const p=colossusPhase(h.age);
+  const p=colossusPhase(h.age,h.chargeAt);
   return p.firing?8+9*Math.exp(-p.fire*18):p.charge**4*3;
 }
 export function drawColossusBeam(c,state,reduced=false) {
   const h=state.phase==='fight'&&state.hazards.find(h=>h.type==='colossus');if(!h)return;
-  const phase=colossusPhase(h.age);if(!phase.firing && phase.charge<=0)return;
+  const phase=colossusPhase(h.age,h.chargeAt);if(!phase.firing && phase.charge<=0)return;
   for(const beam of colossusBeams(h))drawColossusRay(c,state,h,phase,beam,reduced);
 }
 function drawColossusRay(c,state,h,phase,beam,reduced) {

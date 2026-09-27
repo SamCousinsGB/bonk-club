@@ -1,5 +1,21 @@
 # Bonk Club — current handoff
 
+## Colossus rise and irregular repeat attacks (v0.61.0 / protocol 84)
+
+- The opening sequence is 5.5 seconds rising from behind the ridge, 2.5 seconds
+  opening the blue eyes, then four seconds charging before the first shot at
+  twelve seconds. He stays upright with open eyes after that first sequence.
+- Both beams sweep for three seconds. The host samples a fresh 3.5–9.5-second
+  rest after each sweep, then warns for four seconds before the next attack.
+  Shared chargeAt/nextChargeAt timestamps govern rendering, sound and hot joins;
+  snapshot validation and interpolation preserve schedule boundaries. Reset
+  restores the crouch, closed eyes and initial schedule. Refresh for protocol 84.
+- Thirty-five focused mechanics, sound and bot tests pass, including varied
+  host-chosen intervals and exact late-join schedule transport. Desktop visuals
+  cover the rise, eye opening, first discharge and an upright reversed attack.
+  Final validation and publishing evidence will be recorded after release.
+  Evidence: bonk-club-qa/colossus-standing.
+
 ## Colossus waking eyes and bot firing stalls (v0.60.3 / protocol 83)
 
 - The eye shutters gradually open during the first ten seconds, revealing faint

@@ -38,7 +38,7 @@ export class ColossusSound {
   update(sound,state){
     const h=state?.phase==='fight'&&state.hazards?.find(h=>h.type==='colossus'&&!h.done);
     if(!h||!sound.ready()){this.stop(sound);return;}
-    const offset=h.age%COLOSSUS.cycle-COLOSSUS.wake;
+    const offset=h.age-h.chargeAt;
     if(offset<0||offset>=COLOSSUS_SOUND_SECONDS){this.stop(sound);return;}
     const key=`${state.arenaIndex}:${state.round}:${h.cycleId}`;
     if(this.current?.key===key){

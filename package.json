@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.60.3",
-  "releaseNotes": "Colossus eye animation and bot firing fixes",
+  "version": "0.61.0",
+  "releaseNotes": "Colossus rises before faster, irregular laser attacks",
   "private": true,
   "type": "module",
   "scripts": {

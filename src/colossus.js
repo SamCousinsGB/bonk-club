@@ -2,33 +2,23 @@ import { playerBox } from './collision.js';
 import { beamTouches } from './phaser.js';
 import { bodyBounds, damageProp } from './props.js';
 import { colossusRig } from './colossus-rig.js';
+import {COLOSSUS,colossusPhase} from './colossus-timing.js';
+export {COLOSSUS,colossusPhase} from './colossus-timing.js';
 
-export const COLOSSUS = Object.freeze({
-  cycle: 40, wake: 16, charge: 10, fire: 4.5, radius: 60, sweep: 380, separation: 320,
-});
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-export function colossusPhase(age) {
-  const phase = (age + 1e-9) % COLOSSUS.cycle;
-  const charge = clamp((phase - COLOSSUS.wake) / COLOSSUS.charge, 0, 1);
-  const firing = phase >= COLOSSUS.wake + COLOSSUS.charge &&
-    phase < COLOSSUS.wake + COLOSSUS.charge + COLOSSUS.fire;
-  return {phase, charge: phase < COLOSSUS.wake + COLOSSUS.charge ? charge : 0,
-    firing, fire: clamp((phase - COLOSSUS.wake - COLOSSUS.charge) / COLOSSUS.fire, 0, 1),
-    cooling: clamp(1 - (phase - COLOSSUS.wake - COLOSSUS.charge - COLOSSUS.fire) / 5, 0, 1)};
-}
 export function initialColossus() {
   return {gazeX:1280, gazeY:1100, attentionX:1280, attentionY:1100,
-    strikeX:1280, eye:0, cycleId:0, cutX:null};
+    strikeX:1280, eye:0, cycleId:0, cutX:null,chargeAt:COLOSSUS.wake,nextChargeAt:null};
 }
 export function colossusEye(h, eye = h.eye) {
   return colossusRig(h).eyes[eye];
 }
-export function colossusBeam(h, progress = colossusPhase(h.age).fire, index=h.eye) {
+export function colossusBeam(h, progress = colossusPhase(h.age,h.chargeAt).fire, index=h.eye) {
   const eye = colossusEye(h,index), dir = h.eye ? -1 : 1;
   const ex=h.strikeX + dir*(progress-.5)*COLOSSUS.sweep+(index-.5)*COLOSSUS.separation,ey=1510;
   return {...eye,eye:index,ex,ey,radius:COLOSSUS.radius,flare:Math.hypot(ex-eye.x,ey-eye.y)};
 }
-export function colossusBeams(h,progress=colossusPhase(h.age).fire) {
+export function colossusBeams(h,progress=colossusPhase(h.age,h.chargeAt).fire) {
   return [colossusBeam(h,progress,0),colossusBeam(h,progress,1)];
 }
 export function beamX(beam, y) {
@@ -101,10 +91,18 @@ export function carveColossusBeam(world, beam, previous = beam) {
 
 export function updateColossus(world,h,dt) {
   if(world.prediction || world.phase!=='fight')return;
-  const before=colossusPhase(h.age), oldBeam=colossusBeam(h);
+  const before=colossusPhase(h.age,h.chargeAt), oldBeam=colossusBeam(h);
   h.age+=dt;
-  const now=colossusPhase(h.age), cycle=Math.floor((h.age+1e-9)/COLOSSUS.cycle);
-  if(cycle!==h.cycleId){h.cycleId=cycle;h.eye=cycle%2;h.cutX=null;h.hitIds=[];}
+  const began=h.nextChargeAt!==null&&h.age+1e-9>=h.nextChargeAt;
+  if(began){
+    h.chargeAt=h.nextChargeAt;h.nextChargeAt=null;h.cycleId++;
+    h.eye=h.cycleId%2;h.cutX=null;h.hitIds=[];
+  }
+  const now=colossusPhase(h.age,h.chargeAt);
+  if(before.firing&&!now.firing){
+    const rest=COLOSSUS.restMin+world.random()*(COLOSSUS.restMax-COLOSSUS.restMin);
+    h.nextChargeAt=h.chargeAt+COLOSSUS.charge+COLOSSUS.fire+rest;
+  }
   const living=world.players.filter(p=>p.alive);
   if(living.length){
     const x=living.reduce((n,p)=>n+p.x,0)/living.length,y=living.reduce((n,p)=>n+p.y,0)/living.length;
@@ -117,12 +115,12 @@ export function updateColossus(world,h,dt) {
       h.gazeY+=(h.attentionY-h.gazeY)*(1-Math.exp(-dt/3.6));
     }
   }
-  if(before.phase<COLOSSUS.wake && now.phase>=COLOSSUS.wake){
+  if(began || (before.phase<0 && now.phase>=0)){
     h.strikeX=clamp(h.gazeX,450,2110);h.cutX=null;h.hitIds=[];
   }
-  h.warning=now.charge>0 ? COLOSSUS.wake+COLOSSUS.charge-now.phase : 0;
+  h.warning=now.charge>0 ? Math.max(0,COLOSSUS.charge-now.phase) : 0;
   h.active=now.firing;
-  h.duration=now.firing ? COLOSSUS.wake+COLOSSUS.charge+COLOSSUS.fire-now.phase : 0;
+  h.duration=now.firing ? Math.max(0,COLOSSUS.charge+COLOSSUS.fire-now.phase) : 0;
   const beam=colossusBeam(h),beams=colossusBeams(h);
   h.bodyX=beam.ex;h.bodyY=beam.ey;
   if(!now.firing)return;
@@ -148,11 +146,18 @@ export function updateColossus(world,h,dt) {
 }
 
 export function validColossus(h,arena) {
-  if(h.type!=='colossus')return !['gazeX','strikeX','eye','cycleId'].some(k=>k in h);
+  if(h.type!=='colossus')return !['gazeX','strikeX','eye','cycleId','chargeAt','nextChargeAt'].some(k=>k in h);
   return arena?.colossus===true && h.x===1280 && h.y===1440 && h.w===320 && h.h===200 &&
     h.done===false && [h.gazeX,h.attentionX].every(v=>Number.isFinite(v)&&v>=0&&v<=2560) &&
     [h.gazeY,h.attentionY].every(v=>Number.isFinite(v)&&v>=0&&v<=1440) &&
     Number.isFinite(h.strikeX)&&h.strikeX>=450&&h.strikeX<=2110 && [0,1].includes(h.eye) &&
     Number.isInteger(h.cycleId)&&h.cycleId>=0&&h.cycleId<=1000000 &&
+    Number.isFinite(h.chargeAt)&&h.chargeAt>=COLOSSUS.wake &&
+    (h.cycleId===0?h.chargeAt===COLOSSUS.wake:h.chargeAt<=h.age+.01&&
+      h.chargeAt>=COLOSSUS.wake+COLOSSUS.charge+COLOSSUS.fire+COLOSSUS.restMin-.01) &&
+    (h.nextChargeAt===null || (Number.isFinite(h.nextChargeAt)&&
+      h.nextChargeAt>=h.chargeAt+COLOSSUS.charge+COLOSSUS.fire+COLOSSUS.restMin-.01&&
+      h.nextChargeAt<=h.chargeAt+COLOSSUS.charge+COLOSSUS.fire+COLOSSUS.restMax+.01&&h.nextChargeAt>=h.age-.01&&
+      h.age>=h.chargeAt+COLOSSUS.charge+COLOSSUS.fire-.01)) &&
     h.eye===h.cycleId%2 && h.warning<=COLOSSUS.charge && h.duration<=COLOSSUS.fire;
 }

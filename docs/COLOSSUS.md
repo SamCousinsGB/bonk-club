@@ -18,15 +18,19 @@ visible above the ridge. The head, shoulders and elbows move independently. At a
 head and hand travel each exceed ten pixels within six seconds. This preserves
 readable slow movement even at the final small scale. Pose comes from validated
 hazard age and gaze, never a separate client animation clock. Foot anchors
-remain fixed below the obscuring ridge. Narrow metallic eye shutters slowly
-open from age one to ten seconds, revealing faint cold-blue light that remains
-between attacks. Round reset closes them. Both light apertures and damaging
-rays use the same head frame.
+remain fixed below the obscuring ridge. He rises from a crouch over the first
+5.5 seconds, then the metallic eye shutters open over 2.5 seconds, revealing
+faint cold-blue light. He stays upright with open eyes for the rest of the round.
+Round reset restores the crouch and closes the eyes. Both light apertures and
+damaging rays use the same head frame.
 
 Living fighters attract the gaze through two slow tracking filters. The host
-runs a forty-second cycle: sixteen quiet seconds, ten seconds of charging,
-a four-and-a-half-second sweep and a long decay. Both eyes charge and fire
-together; successive cycles reverse their direction. The target locks when
+starts the first four-second charge at age eight, after the rise and eye opening.
+Both eyes fire at age twelve for a three-second sweep. After each sweep the host
+samples a 3.5–9.5-second rest, followed by another four-second warning. The two
+transported timestamps, chargeAt and nextChargeAt, keep graphics, audio, bots
+and late joins on the same irregular schedule (protocol 84). Both eyes charge
+and fire together; successive attacks reverse their direction. The target locks when
 charging begins. Two light fans and illuminated stone show the forthcoming
 sweeps; ordinary movement and connected terraces provide escape routes.
 
