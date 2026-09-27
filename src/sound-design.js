@@ -1,4 +1,4 @@
-import { synthesizeTrain } from "./train-sound.js";
+import { synthesizeTrain, synthesizeTrainCrash } from "./train-sound.js";
 // Original procedural recordings. Render layered pressure transients, turbulent
 // air and damped material resonances once, then reuse them as short PCM samples.
 // No downloaded assets or per-shot DSP graph.
@@ -34,7 +34,7 @@ export const WEAPON_SOUNDS = Object.freeze({
 export const SOUND_NAMES = Object.freeze([...new Set([
   ...Object.values(WEAPON_SOUNDS), 'impact', 'heavy-impact', 'slice', 'ice',
   'burn', 'explosion', 'nuclear', 'siren', 'debris', 'cover', 'parry',
-  'jump', 'pickup', 'fight', 'round', 'death', 'landing', 'train', 'train-warning',
+  'jump', 'pickup', 'fight', 'round', 'death', 'landing', 'train', 'train-warning', 'train-crash',
   'assembly-servo', 'assembly-spray', 'airflow', 'wash',
 ])]);
 
@@ -46,6 +46,7 @@ export function weaponSound(detail = {}) {
 }
 
 export function synthesizeSound(name, variant = 0, rate = SOUND_RATE) {
+  if (name === "train-crash") return synthesizeTrainCrash(rate, variant);
   if (name === "train") return synthesizeTrain(rate, variant);
   if (!SOUND_NAMES.includes(name)) throw new Error(`Unknown sound: ${name}`);
   let seed = 2166136261 ^ variant * 7919;

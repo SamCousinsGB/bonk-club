@@ -4,6 +4,7 @@ import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawSh
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
+import { TrainCrashEffects } from './train-wreck-art.js';
 import { drawFurnaceHall, drawFurnaceCables } from "./furnace-art.js";
 import { drawAssemblyHall, drawAssembly, drawCarProp } from "./assembly-art.js";
 import { MenuFight, menuFightCamera, menuFightVeil } from "./menu-fight.js";
@@ -57,6 +58,7 @@ export class Renderer {
     this.lastEvent = 0;
     this.deathCues = new DeathCues();
     this.hazardBreaks = new HazardBreaks();
+    this.trainCrash = new TrainCrashEffects();
     this.cosmetics = new CosmeticMotion();
     this.scenery = new Map();
     this.pickupArt = new Map();
@@ -878,6 +880,7 @@ export class Renderer {
     this.cosmetics.update(state, dt, this.reduced);
     const deathCues = this.deathCues.update(state);
     const hazardBreaks = this.hazardBreaks.update(state);
+    this.trainCrash.update(state,this.reduced);
     const c = this.ctx;
     c.setTransform(this.canvas.width / W, 0, 0, this.canvas.height / H, 0, 0);
     c.clearRect(0, 0, W, H);
@@ -1057,6 +1060,7 @@ export class Renderer {
     if(arena.waterworks)drawWaterworksGenerators(c,state,this.reduced);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);
     drawHazardBreaks(c, hazardBreaks, state.time, arena.theme, this.reduced);
+    this.trainCrash.draw(c);
     if(arena.cargoPlane)drawPlaneOutflows(c,state,time,this.reduced);
     if(arena.ship){drawShipDetails(c,state,time,this.reduced);drawShipWater(c,state,time,this.reduced,true);}
     this.fragments(state.debris);

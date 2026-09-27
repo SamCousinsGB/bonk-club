@@ -171,7 +171,7 @@ test("a passing train derails into a physical fall when a wheel reaches missing 
   assert.ok(h.derailed);assert.ok(h.active);assert.ok(Math.abs(h.vx)>1000);
   assert.equal(h.carriages.length,8);assert.equal(new Set(h.carriages.map(c=>c.id)).size,8);
   const start={y:h.bodyY,angles:h.carriages.map(c=>c.angle)};
-  for(let i=0;i<30;i++)tick(w);
+  for(let i=0;i<90;i++)tick(w);
   const angles=h.carriages.map(c=>c.angle),ys=h.carriages.map(c=>c.y);
   assert.ok(Math.abs(h.vx)<1800);assert.ok(angles.some((angle,i)=>Math.abs(angle-start.angles[i])>.08));
   assert.ok(Math.max(...angles)-Math.min(...angles)>.25);assert.ok(Math.max(...ys)-Math.min(...ys)>25);
@@ -221,6 +221,15 @@ test("derail state survives compact hot join, rejects malformed motion and reset
 
 function playerBoxForTest(p){return{x:p.x-18,y:p.y-28,w:36,h:56};}
 
+test("an isolated tilted carriage loses impact energy and settles onto surviving track",()=>{
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;tick(w);
+  for(const c of h.carriages)Object.assign(c,{x:-3000-c.id*300,y:3300,vx:0,vy:0,spin:0,coupled:false,onRail:false});
+  const car=h.carriages[0];Object.assign(car,{x:600,y:840,vx:140,vy:400,angle:.45,crush:.3,fuse:-1});
+  for(let i=0;i<360;i++)tick(w);
+  assert.ok(Math.abs(Math.sin(car.angle))<.15);assert.ok(Math.abs(car.vy)<50);
+  assert.ok(car.y<1060&&car.y>940);assert.ok(validSnapshot(w.snapshot()));
+});
+
 test("crash braking, ruptures and long-lived wrecks preserve surviving rail in both directions",()=>{
   for(const age of [5.35,16.35]){
     const w=fixture(),h=w.hazards[0];w.cover=[];
@@ -241,14 +250,15 @@ test("crash braking, ruptures and long-lived wrecks preserve surviving rail in b
   }
 });
 
-test("wreck power packs explode once and their finite charge damages nearby fighters only on the host",()=>{
+test("crushed equipment tears once without automatic explosions or an electrical damage aura",()=>{
   const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;tick(w);
   for(const [i,c] of h.carriages.entries())Object.assign(c,{x:-2000-i*300,y:2000,vx:0,vy:0,spin:0,angle:0,coupled:false,onRail:false,fuse:-1});
   const car=h.carriages[3];Object.assign(car,{x:1280,y:500,crush:.5,fuse:0});
   const before=w.events.filter(e=>e.type==='explosion').length;tick(w);
-  assert.equal(w.events.filter(e=>e.type==='explosion').length,before+1);assert.ok(car.ruptured&&car.energy>3.9);
+  assert.equal(w.events.filter(e=>e.type==='explosion').length,before);assert.ok(car.ruptured&&car.energy>3.9);
   const p=w.players[0];place(p,car.x,car.y-150);const hp=p.hp;car.shockWait=0;tick(w);
-  assert.ok(p.hp<hp);assert.ok(p.xray>0);
+  assert.equal(p.hp,hp);assert.ok(!p.xray);
   const energy=car.energy;w.prediction=true;tick(w);assert.equal(car.energy,energy);
-  w.prediction=false;car.fuse=0;tick(w);assert.equal(w.events.filter(e=>e.type==='explosion').length,before+1);
+  w.prediction=false;car.fuse=0;tick(w);assert.equal(w.events.filter(e=>e.type==='explosion').length,before);
+  assert.equal(w.events.filter(e=>e.kind==='train-metal').length,1);
 });

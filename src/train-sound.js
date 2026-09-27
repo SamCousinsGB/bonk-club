@@ -2,6 +2,23 @@ import { TRAIN_LENGTH, TRAIN_SPEED, TRAIN_START, TRAIN_CYCLE } from './setpiece-
 export const TRAIN_PASS_SECONDS = (2560 + TRAIN_LENGTH) / TRAIN_SPEED;
 export const TRAIN_SOUND_SECONDS = TRAIN_PASS_SECONDS + .24;
 
+export function synthesizeTrainCrash(rate,variant=0){
+  const pcm=new Float32Array(Math.round(rate*2.7));let seed=92771+variant*97,low=0,mid=0;
+  for(let i=0;i<pcm.length;i++){
+    const t=i/rate;seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
+    const noise=(seed>>>0)/4294967296*2-1;
+    low+=(1-Math.exp(-2*Math.PI*95/rate))*(noise-low);
+    mid+=(1-Math.exp(-2*Math.PI*1900/rate))*(noise-mid);
+    const scrape=(Math.sin(t*83)*.18+.8)*Math.exp(-t*1.2);
+    const groan=Math.sin(2*Math.PI*(94*t-9*t*t))*.18+Math.sin(2*Math.PI*(347*t-31*t*t))*.055;
+    const impacts=[0,.16,.39,.74,1.08].reduce((sum,at)=>sum+(t>=at?Math.exp(-(t-at)*25):0),0);
+    const envelope=Math.min(1,t/.006,(2.7-t)/.12);
+    pcm[i]=Math.tanh(low*3*impacts+mid*.65*scrape+groan*Math.exp(-t*1.8))*.74*Math.max(0,envelope);
+  }
+  pcm[pcm.length-1]=0;
+  return pcm;
+}
+
 // A single cached pressure/wind recording. Its envelope follows the entire
 // train pass; the noise does not decay away immediately after the nose arrives.
 export function synthesizeTrain(rate, variant=0) {
@@ -37,7 +54,7 @@ export class TrainSound {
     this.current=null;
   }
   update(sound,state){
-    const h=state?.phase==='fight'&&state.hazards?.find(h=>h.type==='train'&&!h.done);
+    const h=state?.phase==='fight'&&state.hazards?.find(h=>h.type==='train'&&!h.done&&!h.derailed);
     if(!h||!sound.ready()){this.stop(sound);return;}
     const offset=h.age%TRAIN_CYCLE-TRAIN_START;
     if(offset<0||offset>=TRAIN_SOUND_SECONDS){this.stop(sound);return;}

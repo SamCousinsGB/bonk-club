@@ -1,9 +1,9 @@
-import { playerBox, segmentBox } from "./collision.js";
+import { playerBox } from "./collision.js";
 import { TRAIN_Y, TRAIN_LENGTH, TRAIN_HEIGHT, TRAIN_SPEED, TRAIN_CYCLE, TRAIN_START } from "./setpiece-arenas.js";
 import { deathPose } from "./death-effects.js";
 import { carveExplosion } from "./terrain.js";
 
-const W=2560,H=1440,GRAVITY=1850,MAX_FALL=2800,MAX_SPIN=7;
+const W=2560,H=1440,GRAVITY=1850,MAX_FALL=2800,MAX_SPIN=3.2;
 export const TRAIN_CARRIAGE_COUNT=8;
 export const TRAIN_CARRIAGE_GAP=12;
 export const TRAIN_CARRIAGE_LENGTH=(TRAIN_LENGTH-TRAIN_CARRIAGE_GAP*(TRAIN_CARRIAGE_COUNT-1))/TRAIN_CARRIAGE_COUNT;
@@ -140,39 +140,29 @@ function derail(world,h,gapX) {
   h.carriages=scheduledCarriages(h);h.crashCooldown=0;
   for(const car of h.carriages)Object.assign(car,{vx:car.vx*.34,crush:.08,ruptured:false,energy:0,fuse:-1});
   const falling=h.carriages.reduce((best,car)=>Math.abs(car.x-gapX)<Math.abs(best.x-gapX)?car:best);
-  falling.onRail=false;falling.vy=110;falling.spin=h.dir*1.2;damageCarriage(falling,.32);
+  falling.onRail=false;falling.vy=110;falling.spin=h.dir*.7;damageCarriage(falling,.32);
   // The following carriage rides up against the suddenly braking bogie.
   const following=h.carriages[falling.id-1];
-  if(following){following.onRail=false;following.vy=-520;following.spin=-h.dir*2;damageCarriage(following,.2);}
+  if(following){following.onRail=false;following.vx*=.88;following.vy=-180;following.spin=-h.dir*.55;damageCarriage(following,.2);}
   world.event("hazard",{x:gapX,y:h.bodyY,kind:"train-derail"});
 }
 
 function damageCarriage(car,amount) {
   car.crush=clamp((car.crush||0)+amount,0,1);
-  if(car.crush>=.22&&!car.ruptured&&car.fuse<0)car.fuse=.25+car.id*.11;
+  if(car.crush>=.55&&!car.ruptured&&car.fuse<0)car.fuse=.25+car.id*.11;
 }
 
-// Power packs rupture once. Their finite charge owns both the drawn arcs and damage.
-function updatePowerPack(world,car,dt) {
+// Severe compression tears the equipment casing. The finite timer is dust/venting,
+// not a radial electric hazard or an explosive charge in every carriage.
+function updateTornCasing(world,car,dt) {
   if(car.fuse>=0&&!car.ruptured){
     car.fuse-=dt;
     if(car.fuse<=0){
-      car.fuse=-1;car.ruptured=true;car.energy=4;damageCarriage(car,.18);
-      world.explode({x:car.x,y:car.y,radius:185,damage:75,force:850,trainWreck:true});
-      car.vy-=160;car.spin=clamp(car.spin+(car.id%2?-.55:.55),-MAX_SPIN,MAX_SPIN);
+      car.fuse=-1;car.ruptured=true;car.energy=4;
+      world.event("hazard",{x:car.x,y:car.y,kind:"train-metal"});
     }
   }
   car.energy=Math.max(0,car.energy-dt);
-  if(!car.energy)return;
-  car.shockWait=Math.max(0,(car.shockWait||0)-dt);
-  if(car.shockWait>0)return;
-  car.shockWait=.2;
-  const x=car.x+Math.sin(car.angle)*carriageShape(car).h/2,y=car.y-Math.cos(car.angle)*carriageShape(car).h/2;
-  for(const p of world.players)if(p.alive&&Math.hypot(p.x-x,p.y-y)<105&&
-    !world.platforms.some(s=>s.hp!==0&&segmentBox(x,y,p.x,p.y,s))){
-    world.hit(p,{x,y,vx:0,vy:0},12,0,Math.sign(p.x-x)||1,0,{effect:"tesla",cause:"train",hitstop:0,blast:true});
-  }
-  world.event("hazard",{x,y,kind:"tesla"});
 }
 
 function impactTerrain(world,car,dt) {
@@ -181,7 +171,13 @@ function impactTerrain(world,car,dt) {
   if(!hits.length)return;
   const rail=hits.find(railPlatform);
   if(rail&&car.vy>=0&&car.y<rail.y){
-    const speed=car.vy;car.y-=Math.max(0,bounds.y+bounds.h-rail.y);car.vy=-speed*.12;
+    const speed=car.vy,shape=carriageShape(car);
+    const feet=bodyCorners(bodyFor(car.x,car.y,car.angle,car.crush)).filter(p=>p.y>=bounds.y+bounds.h-12&&
+      hits.some(s=>railPlatform(s)&&p.x>=s.x-2&&p.x<=s.x+s.w+2));
+    const supportX=feet.length?feet.reduce((sum,p)=>sum+p.x,0)/feet.length:car.x;
+    const inertia=(shape.w*shape.w+shape.h*shape.h)/12;
+    car.spin=clamp(car.spin-(supportX-car.x)*(speed*.6+GRAVITY*dt)/inertia,-MAX_SPIN,MAX_SPIN);
+    car.y-=Math.max(0,bounds.y+bounds.h-rail.y);car.vy=-speed*.035;
     car.vx*=Math.exp(-2.3*dt);car.spin*=Math.exp(-5*dt);
     if(speed>180)damageCarriage(car,Math.min(.3,speed/3000));
   }
@@ -190,7 +186,7 @@ function impactTerrain(world,car,dt) {
   car.onRail=false;car.vx*=Math.exp(-2.8*dt);car.vy*=Math.exp(-.7*dt);
   const lead=destructible.sort((a,b)=>Math.sign(car.vx||1)*(b.x-a.x))[0],cx=clamp(car.x,lead.x,lead.x+lead.w),cy=clamp(car.y,lead.y,lead.y+lead.h);
   const torque=((cx-car.x)*Math.sign(car.vy||1)-(cy-car.y)*Math.sign(car.vx||1))/TRAIN_CARRIAGE_LENGTH;
-  car.spin=clamp(car.spin+torque*1.65*dt*60,-MAX_SPIN,MAX_SPIN);
+  car.spin=clamp(car.spin+torque*.65*dt*60,-MAX_SPIN,MAX_SPIN);
   if(car.crashCooldown>0)return;
   car.crashCooldown=.055;
   damageCarriage(car,Math.min(.2,Math.hypot(car.vx,car.vy)/9000));
@@ -215,8 +211,8 @@ function solveCouplers(h,dt) {
     a.x+=nx*correction*(aWeight/total);a.y+=ny*correction*(aWeight/total);
     b.x-=nx*correction*(bWeight/total);b.y-=ny*correction*(bWeight/total);
     const impulse=clamp((stretch*48+relative*1.8)*dt,-520,520);
-    if(!a.onRail){a.vx+=nx*impulse;a.vy+=ny*impulse;a.spin=clamp(a.spin+(pa.x-a.x)*ny*impulse*.000035,-MAX_SPIN,MAX_SPIN);}
-    if(!b.onRail){b.vx-=nx*impulse;b.vy-=ny*impulse;b.spin=clamp(b.spin-(pb.x-b.x)*ny*impulse*.000035,-MAX_SPIN,MAX_SPIN);}
+    if(!a.onRail){a.vx+=nx*impulse;a.vy+=ny*impulse;a.spin=clamp(a.spin+(pa.x-a.x)*ny*impulse*.000012,-MAX_SPIN,MAX_SPIN);}
+    if(!b.onRail){b.vx-=nx*impulse;b.vy-=ny*impulse;b.spin=clamp(b.spin-(pb.x-b.x)*ny*impulse*.000012,-MAX_SPIN,MAX_SPIN);}
   }
 }
 
@@ -259,7 +255,7 @@ function updateDerailed(world,h,dt) {
     for(const car of h.carriages)impactTerrain(world,car,step);
     strikeMatter(world,h,step);
   }
-  for(const car of h.carriages)updatePowerPack(world,car,dt);
+  for(const car of h.carriages)updateTornCasing(world,car,dt);
   const count=h.carriages.length;
   h.bodyX=h.carriages.reduce((n,c)=>n+c.x,0)/count;h.bodyY=h.carriages.reduce((n,c)=>n+c.y,0)/count;
   h.vx=h.carriages.reduce((n,c)=>n+c.vx,0)/count;h.vy=h.carriages.reduce((n,c)=>n+c.vy,0)/count;

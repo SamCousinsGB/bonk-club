@@ -47,6 +47,23 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   unchanged. Evidence: `bonk-club-qa/ocean-cabin-*`.
 - Included in the verified v0.54.3 public release above.
 
+## Train crash art revision
+
+- v0.54.4 / protocol 76 replaces repeated electrical auras and automatic carriage
+  blasts with contact-driven glass, rail grinding sparks and dusty equipment tears.
+  Detailed running gear, broken glazing, buckled seams, abrasion and torn side panels
+  follow the compressed carriage bodies. Deterministic damage artwork persists for
+  hot join. Bounded renderer debris fades, cannot replay on stale snapshots, and is
+  disabled for reduced motion. Sparks require surviving terrain contact and speed.
+- Lower angular impulses and inelastic, torque-aware rail contact make carriages
+  settle under their weight. Track and signal preservation remain. Train passing
+  audio stops on derailment; a finite layered metal crash replaces the electrical
+  buzzing and repeated explosions. Nearby fighters no longer take aura damage.
+- Focused collision/art/audio tests, the full regular suite and the Bullet Train
+  stress shard pass. Desktop gameplay was inspected during impact and after settling,
+  in both directions. Release CI/Pages and public verification remain pending.
+  Evidence: `bonk-club-qa/train-art/`. Refresh all player tabs.
+
 ## Train crash update
 
 - v0.54.0 / protocol 75 makes derailments brake sharply, jackknife and pile up.

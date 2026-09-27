@@ -37,10 +37,11 @@ test('one bounded pass voice seeks on hot join, pans in travel direction and can
   f.s.play('hazard',{kind:'train'});assert.equal(f.played.length,2);
 });
 test('mute, destruction, results and departure stop the rushing wind; unmute seeks to the current pass',()=>{
-  for(const end of ['mute','done','result','leave']){
+  for(const end of ['mute','done','derail','result','leave']){
     const f=fixture();f.seek(5.2);
     if(end==='mute')f.s.muted=true;
     if(end==='done')f.state.hazards[0].done=true;
+    if(end==='derail')f.state.hazards[0].derailed=true;
     if(end==='result')f.state.phase='result';
     f.s.update(end==='leave'?null:f.state);
     assert.equal(f.s.train.current,null,end);assert.equal(f.stops.length,1,end);

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.3",
-  "releaseNotes": "Simple background cargo in the Ocean Liner hold",
+  "version": "0.54.4",
+  "releaseNotes": "Grounded train wrecks, torn metal and impact-driven debris",
   "private": true,
   "type": "module",
   "scripts": {

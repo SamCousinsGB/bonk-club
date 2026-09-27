@@ -206,8 +206,8 @@ export class Sound {
       return;
     }
     if(type==='hazard'&&detail.kind==='train')return; // State owns the single pass-by voice.
-    if(type==='hazard'&&detail.kind==='train-derail'){
-      this.sample('heavy-impact',detail,{priority:true});
+    if(type==='hazard'&&['train-derail','train-metal'].includes(detail.kind)){
+      this.sample(detail.kind==='train-derail'?'train-crash':'heavy-impact',detail,{priority:true});
       return;
     }
     if(type==='hazard'&&['airflow','carwash-dryer','carwash-rinse'].includes(detail.kind)){
