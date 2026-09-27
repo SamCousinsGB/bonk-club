@@ -61,7 +61,14 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   buzzing and repeated explosions. Nearby fighters no longer take aura damage.
 - Focused collision/art/audio tests, the full regular suite and the Bullet Train
   stress shard pass. Desktop gameplay was inspected during impact and after settling,
-  in both directions. Release CI/Pages and public verification remain pending.
+  in both directions. Source host/guest and changed-world hot join agree on all
+  carriage and terrain state, with no browser errors. Reduced motion clears debris.
+- Live revision `0cce2e6` passed the full suite, all six stress shards, Windows/Linux
+  packaging, release verification and Pages in
+  [workflow 36327443053](https://github.com/SamCousinsGB/bonk-club/actions/runs/36327443053).
+  All 17 local, CI and public files match byte for byte. Fresh public host/guest
+  controls, Bullet Train selection, third-player hot join and host departure pass
+  through real relay routes with no errors. This is one-machine browser verification.
   Evidence: `bonk-club-qa/train-art/`. Refresh all player tabs.
 
 ## Train crash update
