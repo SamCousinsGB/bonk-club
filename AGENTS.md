@@ -110,8 +110,9 @@ Start new work from current `origin/main` in one clean worktree.
   blast fragments, changed-world joins and reset.
 - **Colossus:** a tiny, square-headed ancient mech stands far beyond the mountain
   valley, with its whole body visible through haze. Keep the distant silhouette,
-  cold delayed gaze and nearly imperceptible motion. Its alternating eyes charge
-  for ten seconds, then sweep a perspective-correct laser for 4.5 seconds in a
+  cold delayed gaze and slow independent head, shoulder and arm motion; feet and
+  valley stay fixed. Both eyes charge together
+  for ten seconds, then sweep two perspective-correct lasers for 4.5 seconds in a
   forty-second cycle. Warning, light, damage and terrain cuts share the actual
   projected beam. The remote controller cannot be destroyed by local weapons.
   Preserve surviving routes, ordinary-control bot escapes, bounded effects,

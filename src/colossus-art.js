@@ -1,4 +1,5 @@
-import { COLOSSUS, COLOSSUS_EYES, colossusPhase, colossusPose, colossusEye, colossusBeam, beamX, beamEdges } from './colossus.js';
+import { COLOSSUS, COLOSSUS_EYES, colossusPhase, colossusPoint, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
+import {drawColossusMotion} from './colossus-motion.js';
 
 const TAU=Math.PI*2;
 let backdrop, mist, energyTexture;
@@ -50,10 +51,10 @@ function beamTexture() {
   return energyTexture;
 }
 function eye(c,h,index,energy,reduced) {
-  const p=colossusEye(h,index),base=COLOSSUS_EYES[index],pose=colossusPose(h.age);
+  const p=colossusEye(h,index),base=COLOSSUS_EYES[index],anchor=colossusPoint(h,base.x,base.y);
   c.save();
   // Restrict the optical mechanism to the aperture in the matte painting.
-  c.beginPath();c.ellipse(base.x+pose.x,base.y+pose.y,1.8,1.6,0,0,TAU);c.clip();
+  c.beginPath();c.ellipse(anchor.x,anchor.y,1.8,1.6,0,0,TAU);c.clip();
   c.translate(p.x,p.y);c.scale(.022,.022*.88);
   const rim=c.createRadialGradient(-12,-15,2,0,0,67);
   rim.addColorStop(0,'#172734');rim.addColorStop(.4,'#0c1823');rim.addColorStop(.85,'#13212c');rim.addColorStop(1,'#293c48');
@@ -91,13 +92,15 @@ function eye(c,h,index,energy,reduced) {
 export function drawColossusSky(c,state,reduced=false) {
   warmColossusArt();
   const h=state.hazards.find(h=>h.type==='colossus');if(!h)return;
-  const p=colossusPose(h.age),phase=colossusPhase(h.age),fighting=state.phase==='fight';
+  const phase=colossusPhase(h.age),fighting=state.phase==='fight';
   c.fillStyle='#1a2734';c.fillRect(0,0,2560,1440);
-  if(backdrop?.complete && backdrop.naturalWidth)c.drawImage(backdrop,-6+p.x,-5+p.y,2572,1450);
+  if(backdrop?.complete && backdrop.naturalWidth){
+    c.drawImage(backdrop,-6,-5,2572,1450);drawColossusMotion(c,backdrop,h);
+  }
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
   // A slow exposure change draws the eye to the awakened machine without strobing.
   c.fillStyle=`rgba(6,17,30,${.09+energy*.17})`;c.fillRect(0,0,2560,1440);
-  eye(c,h,0,h.eye===0?energy:0,reduced);eye(c,h,1,h.eye===1?energy:0,reduced);
+  eye(c,h,0,energy,reduced);eye(c,h,1,energy,reduced);
   const cloud=cloudTexture(),time=reduced?0:h.age;
   c.save();
   for(let n=0;n<4;n++){
@@ -134,7 +137,10 @@ export function colossusShake(state) {
 export function drawColossusBeam(c,state,reduced=false) {
   const h=state.phase==='fight'&&state.hazards.find(h=>h.type==='colossus');if(!h)return;
   const phase=colossusPhase(h.age);if(!phase.firing && phase.charge<=0)return;
-  const beam=colossusBeam(h),a=colossusBeam(h,0),b=colossusBeam(h,1);
+  for(const beam of colossusBeams(h))drawColossusRay(c,state,h,phase,beam,reduced);
+}
+function drawColossusRay(c,state,h,phase,beam,reduced) {
+  const a=colossusBeam(h,0,beam.eye),b=colossusBeam(h,1,beam.eye);
   c.save();
   if(!phase.firing){
     // The faint fan is the exact forthcoming sweep, widening toward the level.
@@ -157,7 +163,7 @@ export function drawColossusBeam(c,state,reduced=false) {
   }
   // Project surviving structures away from the light; shadows change with the
   // live cuts and never leave a phantom slab spanning an erased opening.
-  c.fillStyle=reduced?'#050c1718':'#03091630';
+  c.fillStyle=reduced?'#050c170c':'#03091618';
   for(const p of state.platforms.slice(0,260)){
     const project=x=>({x:beam.x+(x-beam.x)*2.8,y:beam.y+(p.y-beam.y)*2.8});
     const l=project(p.x),r=project(p.x+p.w);
@@ -177,7 +183,7 @@ export function drawColossusBeam(c,state,reduced=false) {
   }
   glow(c,beam.x,beam.y,85,.6,true);
   // Bloom is local; it never whites out the HUD or hides all the escape routes.
-  c.fillStyle=`rgba(165,219,241,${reduced ? .025 : .055})`;c.fillRect(0,0,2560,1440);
+  c.fillStyle=`rgba(165,219,241,${reduced ? .0125 : .0275})`;c.fillRect(0,0,2560,1440);
   for(const p of state.platforms.slice(0,260)){
     const x=beamX(beam,p.y);
     for(const edge of [p.x,p.x+p.w])if(Math.abs(edge-x)<110){

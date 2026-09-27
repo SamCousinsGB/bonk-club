@@ -3,17 +3,21 @@
 The ancient mech is a tiny, almost square silhouette on the far horizon, with
 its head, torso, arms and legs visible through the haze. Low, connected ruins
 leave the horizon clear. Both eyes follow the living fighters through two slow
-tracking filters. Apparent head motion is less than a pixel and takes minutes.
+tracking filters. A small textured mesh animates the original painted head,
+shoulders and hanging arms independently. Motion takes tens of seconds, stays
+within a few screen pixels and leaves the feet and surrounding valley fixed.
 The machine is beyond the playable world; local weapons cannot damage it.
 
 The host runs a forty-second cycle: sixteen seconds of stillness, ten seconds
-of charging, a four-and-a-half-second sweep and a long decay. The eyes alternate.
+of charging, a four-and-a-half-second sweep and a long decay. Both eyes charge
+and fire together; the pair reverses its sweep direction on successive cycles.
 Aim is selected when charging begins and cannot chase players during the
-warning. A steady light fan and illuminated stone edges show the forthcoming
-sweep. Players leave its path using ordinary movement and connected terraces.
+warning. Two steady light fans and illuminated stone edges show the forthcoming
+sweeps. Players leave their paths using ordinary movement and connected terraces.
 
-The beam narrows to the remote eye and widens toward the foreground, reaching a
-sixty-unit radius. Shared projected geometry governs actor contact, physical
+Each beam narrows to its moving eye and widens toward the foreground, reaching a
+sixty-unit radius; their endpoints are 320 units apart. Shared projected geometry
+governs actor contact, physical
 prop damage and terrain cuts. Surviving collision strips also clip the artwork
 and cast shadows. Cuts persist through snapshots and hot joins and reset next
 round. Bots recognise the full forthcoming sweep and seek supported escape
@@ -21,7 +25,7 @@ positions. Guests do not calculate damage or terrain edits.
 
 The charge/discharge uses one cached, seekable sound. It stops on mute, result,
 reset, departure or suspended audio. Reduced motion removes camera shake,
-optical rotation and beam turbulence while retaining the warning and beam.
+optical rotation and beam turbulence while retaining the warnings and beams.
 
 ## Artwork
 
@@ -30,7 +34,9 @@ and revised with the built-in image-generation tool for this arena. Sam's
 latest direction replaces the initial face-dominated composition with a tiny,
 distant full-body silhouette. The selected PNG was encoded as WebP at quality
 93 without changing its composition or colours. Animated eyes, atmosphere,
-stone terraces, shadows and the laser are Canvas art.
+stone terraces, shadows and the lasers are Canvas art. The animation deforms
+only a small local mesh around the mech; it does not regenerate or replace the
+background painting. Both optical apertures and damaging rays use that same pose.
 
 The final two editing prompts are recorded below. Both used the built-in tool;
 the second used the first edit as its reference.

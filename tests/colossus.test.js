@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
-import {COLOSSUS,colossusPhase,colossusEye,colossusBeam,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
+import {COLOSSUS,colossusPhase,colossusPoint,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -73,10 +73,40 @@ test('beam carves only its swept contact, releases removed supports and destroys
 test('the distant beam narrows with perspective and cannot hit outside its visible cone',()=>{
   const w=fixture(),h=w.hazards[0];h.age=26;h.strikeX=1280;
   const beam=colossusBeam(h),nearEye=w.players[0],foreground=w.players[1];
-  Object.assign(nearEye,{x:beamX(beam,800)+50,y:800,spawnShield:0});
+  Object.assign(nearEye,{x:beamX(beam,800)-50,y:800,spawnShield:0});
   Object.assign(foreground,{x:beamX(beam,1300)+20,y:1300,spawnShield:0});
   advance(w,STEP);
   assert.equal(nearEye.hp,100);assert.equal(foreground.alive,false);
+});
+
+test('both moving eyes fire together, damage both paths and leave the space between them intact',()=>{
+  const w=fixture(),h=w.hazards[0];h.age=26;h.strikeX=1280;
+  const beams=colossusBeams(h),xs=beams.map(b=>beamX(b,1300)),middle=(xs[0]+xs[1])/2;
+  assert.equal(beams.length,2);assert.ok(beams[1].x>beams[0].x);
+  beams.forEach((b,i)=>assert.deepEqual({x:b.x,y:b.y},colossusEye(h,i)));
+  for(let i=0;i<2;i++)Object.assign(w.players[i],{x:xs[i],y:1300,spawnShield:0});
+  Object.assign(w.players[2],{x:middle,y:1300,spawnShield:0});
+  w.platforms=[{id:'test-floor',x:200,y:1320,w:2160,h:32,material:'stone'}];
+  advance(w,STEP);
+  assert.ok(w.players.slice(0,2).every(p=>!p.alive));assert.equal(w.players[2].hp,100);
+  const solidAt=x=>w.platforms.some(p=>x>p.x&&x<p.x+p.w&&1324>=p.y&&1324<p.y+p.h);
+  for(const b of colossusBeams(h))assert.equal(solidAt(beamX(b,1324)),false);
+  assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
+});
+
+test('articulated motion is slow, moves the head and hands, and anchors feet and the surrounding valley',()=>{
+  const h=fixture().hazards[0],head=[1278,628],hand=[1248,693];
+  const start=colossusPoint(h,...head);h.age=12;
+  assert.ok(Math.abs(colossusPoint(h,...head).x-start.x)>4);
+  assert.ok(Math.abs(colossusPoint(h,...hand).x-hand[0])>2);
+  for(let age=0;age<180;age+=.1){
+    h.age=age;
+    for(const [x,y] of [[1218,650],[1338,650],[1278,603],[1278,737]])assert.deepEqual(colossusPoint(h,x,y),{x,y});
+    for(const [x,y] of [head,hand]){
+      const p=colossusPoint(h,x,y),q=colossusPoint({...h,age:age+.1},x,y);
+      assert.ok(Math.hypot(p.x-x,p.y-y)<12);assert.ok(Math.hypot(q.x-p.x,q.y-p.y)<.12);
+    }
+  }
 });
 
 test('distant mech cannot be destroyed by local blasts; only host fight state advances it',()=>{
@@ -140,6 +170,10 @@ test('damaged-world hot join carries exact optical pose, charge, beam and collis
   const s=transport(w),q=s.hazards[0];
   assert.ok(q.active&&s.platforms.some(p=>p.sourceId));
   assert.ok(Math.abs(colossusBeam(q).ex-colossusBeam(h).ex)<.02);
+  for(let i=0;i<2;i++){
+    const a=colossusBeams(h)[i],b=colossusBeams(q)[i];
+    assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<.02);assert.ok(Math.abs(a.ex-b.ex)<.02);
+  }
   assert.equal(q.eye,h.eye);assert.ok(s.platforms.length===w.platforms.length);
   for(const patch of [{gazeX:Infinity},{gazeY:-1},{attentionX:3000},{strikeX:0},{eye:2},{eye:1},
     {cycleId:-1},{cycleId:1.5},{warning:11},{duration:9},{done:true},{x:10}]){

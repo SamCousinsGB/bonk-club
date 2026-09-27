@@ -3,7 +3,7 @@ import { beamTouches } from './phaser.js';
 import { bodyBounds, damageProp } from './props.js';
 
 export const COLOSSUS = Object.freeze({
-  cycle: 40, wake: 16, charge: 10, fire: 4.5, radius: 60, sweep: 380,
+  cycle: 40, wake: 16, charge: 10, fire: 4.5, radius: 60, sweep: 380, separation: 320,
 });
 export const COLOSSUS_EYES = Object.freeze([{x:1274.5,y:628}, {x:1280.5,y:628}]);
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -20,20 +20,36 @@ export function initialColossus() {
   return {gazeX:1280, gazeY:1100, attentionX:1280, attentionY:1100,
     strikeX:1280, eye:0, cycleId:0, cutX:null};
 }
-// The common pose anchors both the optical artwork and physical laser. A head
-// traverse takes over two minutes; there is no fast player-following camera.
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+// A slow articulated deformation of the original painted silhouette. Feet and
+// the outside of the small mesh stay fixed; only the machine shifts in the valley.
 export function colossusPose(age) {
-  return {x:Math.sin(age*.043)*.25, y:Math.sin(age*.031)*.15};
+  return {x:Math.sin(age*.055)*3.2, y:(Math.cos(age*.047)-1)*.65,
+    head:Math.sin(age*.081)*4.5, tilt:Math.sin(age*.061)*.035,
+    leftArm:Math.sin(age*.073)*.105, rightArm:Math.sin(age*.067)*-.09};
+}
+export function colossusPoint(h,x,y) {
+  const p=colossusPose(h.age),dx=x-1278;
+  const border=smooth(1234,1244,x)*(1-smooth(1310,1320,x))*
+    smooth(617,622,y)*(1-smooth(707,717,y));
+  const head=(1-smooth(635,650,y))*(1-smooth(7,22,Math.abs(dx)));
+  const torso=smooth(3,25,Math.abs(dx))*smooth(637,661,y)*(1-smooth(699,718,y));
+  const arm=p[dx<0?'leftArm':'rightArm'],length=Math.max(0,y-640);
+  const look=clamp((h.gazeX-1280)/1280,-1,1)*2.5;
+  return {x:x+border*(p.x+(p.head+look-(y-633)*p.tilt)*head+Math.sin(arm)*length*torso),
+    y:y+border*(p.y+dx*p.tilt*head+(1-Math.cos(arm))*length*torso)};
 }
 export function colossusEye(h, eye = h.eye) {
-  const p = colossusPose(h.age), e = COLOSSUS_EYES[eye];
-  return {x:e.x+p.x+(h.gazeX-1280)/1280*.7,
-    y:e.y+p.y+(h.gazeY-1000)/700*.4};
+  const e = COLOSSUS_EYES[eye],p=colossusPoint(h,e.x,e.y);
+  return {x:p.x+(h.gazeX-1280)/1280*.7,y:p.y+(h.gazeY-1000)/700*.4};
 }
-export function colossusBeam(h, progress = colossusPhase(h.age).fire) {
-  const eye = colossusEye(h), dir = h.eye ? -1 : 1;
-  const ex=h.strikeX + dir*(progress-.5)*COLOSSUS.sweep,ey=1510;
-  return {...eye,ex,ey,radius:COLOSSUS.radius,flare:Math.hypot(ex-eye.x,ey-eye.y)};
+export function colossusBeam(h, progress = colossusPhase(h.age).fire, index=h.eye) {
+  const eye = colossusEye(h,index), dir = h.eye ? -1 : 1;
+  const ex=h.strikeX + dir*(progress-.5)*COLOSSUS.sweep+(index-.5)*COLOSSUS.separation,ey=1510;
+  return {...eye,eye:index,ex,ey,radius:COLOSSUS.radius,flare:Math.hypot(ex-eye.x,ey-eye.y)};
+}
+export function colossusBeams(h,progress=colossusPhase(h.age).fire) {
+  return [colossusBeam(h,progress,0),colossusBeam(h,progress,1)];
 }
 export function beamX(beam, y) {
   return beam.x + (beam.ex-beam.x) * (y-beam.y)/(beam.ey-beam.y);
@@ -47,9 +63,9 @@ export function beamEdges(beam,y) {
     Math.max(0,y-beam.y)/(beam.ey+side*ny*beam.radius-beam.y));
 }
 export function colossusZone(h, y) {
-  const a=colossusBeam(h,0), b=colossusBeam(h,1);
-  const top=y == null ? Math.min(a.y,b.y) : y-60, bottom=y == null ? 1510 : y+60;
-  const xs=[...beamEdges(a,top),...beamEdges(a,bottom),...beamEdges(b,top),...beamEdges(b,bottom)];
+  const beams=[...colossusBeams(h,0),...colossusBeams(h,1)];
+  const top=y == null ? Math.min(...beams.map(b=>b.y)) : y-60, bottom=y == null ? 1510 : y+60;
+  const xs=beams.flatMap(b=>[...beamEdges(b,top),...beamEdges(b,bottom)]);
   return {x:Math.min(...xs)-25,y:top,w:Math.max(...xs)-Math.min(...xs)+50,h:bottom-top};
 }
 export function colossusDanger(h,x,y,padding=18) {
@@ -127,24 +143,27 @@ export function updateColossus(world,h,dt) {
   h.warning=now.charge>0 ? COLOSSUS.wake+COLOSSUS.charge-now.phase : 0;
   h.active=now.firing;
   h.duration=now.firing ? COLOSSUS.wake+COLOSSUS.charge+COLOSSUS.fire-now.phase : 0;
-  const beam=colossusBeam(h);
+  const beam=colossusBeam(h),beams=colossusBeams(h);
   h.bodyX=beam.ex;h.bodyY=beam.ey;
   if(!now.firing)return;
   if(!before.firing)world.event('hazard',{x:beam.ex,y:1150,kind:'colossus'});
   const sweepPad=before.firing?Math.abs(beam.ex-oldBeam.ex):0;
   for(const p of world.players){
     if(!p.alive || h.hitIds.includes(p.id))continue;
-    if(!beamTouches(playerBox(p),{...beam,radius:beam.radius+sweepPad}))continue;
+    const hit=beams.find(b=>beamTouches(playerBox(p),{...b,radius:b.radius+sweepPad}));
+    if(!hit)continue;
     h.hitIds.push(p.id);
-    world.hit(p,{x:beam.x,y:beam.y,vx:0,vy:0},1000,1050,Math.sign(p.x-beam.x)||1,.3,
+    world.hit(p,{x:hit.x,y:hit.y,vx:0,vy:0},1000,1050,Math.sign(p.x-hit.x)||1,.3,
       {blast:true,effect:'plasma',cause:'colossus',hitstop:0});
   }
-  for(const p of [...world.cover,...world.chunks])if(p.hp>0&&beamTouches(bodyBounds(p),{...beam,radius:beam.radius+sweepPad}))
+  for(const p of [...world.cover,...world.chunks])if(p.hp>0&&beams.some(b=>beamTouches(bodyBounds(p),{...b,radius:b.radius+sweepPad})))
     damageProp(world,p,1000,(Math.sign(p.x-beam.x)||1)*420,-260);
   // Carve at most once per 14 units of sweep; the preceding beam closes the
   // gap exactly. Bounded chunks/debris use the shared physical-world budgets.
   if(h.cutX===null||Math.abs(beam.ex-h.cutX)>=14||h.duration<=dt*1.1){
-    carveColossusBeam(world,beam,h.cutX===null?beam:{...beam,ex:h.cutX});h.cutX=beam.ex;
+    for(const b of beams)carveColossusBeam(world,b,h.cutX===null?b:
+      {...b,ex:h.cutX+(b.eye-h.eye)*COLOSSUS.separation});
+    h.cutX=beam.ex;
   }
 }
 

@@ -1,5 +1,19 @@
 # Bonk Club — current handoff
 
+## Colossus animation and twin lasers (v0.59.0 / protocol 81)
+
+- Animated the original distant painting with slow independent head, shoulder
+  and arm movement. A bounded local mesh keeps the feet and valley fixed, and
+  both optical apertures and damaging rays share the animated head pose.
+- Both eyes now charge and fire together, cutting distinct paths 320 units apart
+  at the foreground endpoint. Successive attacks reverse the pair's direction.
+  Shared geometry drives both warnings, damage, terrain cuts and bot avoidance.
+  The original landscape, distance, ten-second charge and quiet timing remain.
+- Seventeen focused mechanics/audio tests and desktop visual checks pass,
+  including separate lethal paths, intact space between the beams, slow bounded
+  motion, fixed surrounding art and both eye positions after compact hot join.
+  Full release checks are in progress. Refresh all players for protocol 81.
+
 ## Suspension Bridge rebuild (v0.58.0 / protocol 80)
 
 - Rebuilt the harbour, water, skyline and dock scenery; riveted red tower
