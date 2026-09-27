@@ -70,8 +70,13 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   trip, rendering at 1600x900 and 844x390, and reduced motion. Production browser
   checks cover host/guest movement, real lobby map selection and a third player
   joining the active round, with no browser errors. Evidence:
-  `bonk-club-qa/ocean-readability-*`. Final release CI/Pages and public artifact
-  parity must pass before claiming this revision live.
+  `bonk-club-qa/ocean-readability-*`.
+- Published gameplay revision `3d55d84` passed 1,187 regular tests, all six arena
+  stress shards, Windows/Linux checks and Pages deployment in
+  [release workflow 36322244912](https://github.com/SamCousinsGB/bonk-club/actions/runs/36322244912).
+  All 17 local, CI and public browser files matched byte for byte. Fresh public
+  v0.51.0 host/guest movement, map selection and a third-player hot join passed
+  with no browser errors. Later releases above include this verified update.
 
 ## Included prior fix
 
