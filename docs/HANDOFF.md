@@ -26,9 +26,16 @@
   Road contact powers upright cars; maintenance bays and freefall do not.
 - Random containers use visible service platforms instead of traffic approaches.
   No new snapshot fields or protocol change. Refresh to load the updated artwork.
-- Focused traffic, traversal, destruction, reset and compact snapshot regressions
-  pass. Full suites, desktop visual/online checks and release parity are recorded
-  in `bonk-club-qa/bridge-traffic`; verify completion before describing this live.
+- All 1,222 regular tests, 85 local stress cases and the production build pass.
+  Desktop intact/collapsed visuals, traffic in both directions and exact damaged
+  cable/deck/car state on a guest and late join were verified.
+- Published revision `b25b7df` passed [release workflow 36336839530](https://github.com/SamCousinsGB/bonk-club/actions/runs/36336839530):
+  shared/server validation, all six stress shards, Windows/Linux executable checks,
+  common-revision verification and Pages deployment. All 18 local, CI and public
+  files matched byte for byte. Fresh public desktop host/guest movement, jumping,
+  relay-only late join, resizing/reduced motion and host departure passed without
+  browser errors. Evidence: `bonk-club-qa/bridge-traffic`. This is one-machine relay
+  verification. The task-owned preview is stopped and the worktree is clean.
 
 ## Colossus animation and twin lasers (v0.59.0 / protocol 81)
 
