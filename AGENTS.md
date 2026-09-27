@@ -101,6 +101,13 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
+- **Suspension Bridge:** riveted tower cutaways, an asphalt road and three
+  suspended maintenance bays over a harbour. Starts stay above live traffic.
+  Main cable cuts fold the road spans; bays follow actual surviving hanger
+  attachments and fall when both are lost. Keep foreground art clipped to
+  surviving steel, car facing consistent with collision, and no decorative
+  beams across destroyed tiles or the middle joint. Preserve host-owned motion,
+  blast fragments, changed-world joins and reset.
 - **Colossus:** a tiny, square-headed ancient mech stands far beyond the mountain
   valley, with its whole body visible through haze. Keep the distant silhouette,
   cold delayed gaze and nearly imperceptible motion. Its alternating eyes charge

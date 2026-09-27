@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Suspension Bridge rebuild (v0.58.0 / protocol 80)
+
+- Rebuilt the harbour, water, skyline and dock scenery; riveted red tower
+  cutaways have lit rooms, service equipment and recessed road portals. Road
+  girders and asphalt, rear railings, suspension clamps and gantries replace
+  the generic platform art. Foreground surfaces use the shared destruction clip.
+- Wider tower interiors and upper balconies give four starts above traffic.
+  Three suspended maintenance bays follow the damaged road, retain blast cuts,
+  and fall out of the world when both actual hanger attachments are removed.
+  Removed the unrelated steam traps and added physical maintenance cargo.
+- Cars face their travel direction in both art and collision. Corrected
+  left-bound downhill acceleration. Broken tiles cannot draw connecting beams
+  across the middle expansion joint or between crater fragments.
+- Focused mechanics, route checks, desktop intact/collapsed renders and a
+  changed-world host/guest/late-join comparison passed. Full release verification
+  is in progress. Refresh all players together for protocol 80.
+
 ## Colossus (v0.57.0 / protocol 79)
 
 - A tiny square-headed ancient mech stands on the remote horizon with torso and
