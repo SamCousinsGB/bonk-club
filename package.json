@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.0",
-  "releaseNotes": "Slower train pile-ups, crushed carriages and electrical explosions",
+  "version": "0.54.1",
+  "releaseNotes": "Close the Ocean Liner cabin-to-hull seam",
   "private": true,
   "type": "module",
   "scripts": {

@@ -11,6 +11,15 @@ emulate, test or check phone/mobile/tablet support. This overrides all historica
 mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
 builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
 
+## Ocean Liner cabin seam
+
+- v0.54.1 / protocol 75 extends the cabin background to the shared hull-top
+  coordinate with a one-unit overlap. The central passage meets the same edge,
+  preventing a sky/water strip when the ship lists. Collision and flooding are
+  unchanged. Evidence: `bonk-club-qa/ocean-cabin-*`.
+- Verify the release workflow, public files and desktop gameplay before claiming
+  this patch live.
+
 ## Train crash update
 
 - v0.54.0 / protocol 75 makes derailments brake sharply, jackknife and pile up.

@@ -47,7 +47,9 @@ export function drawShipInterior(c){
   }
   c.restore();
   // Muted superstructure sits behind the bright, physical deck edges.
-  path(c,[[650,659],[650,480],[735,352],[1710,352],[1860,465],[1860,659]]);
+  // Overlap the hull top slightly so the shared edge stays sealed when tilted.
+  const cabinBottom=SHIP.top+1;
+  path(c,[[650,cabinBottom],[650,480],[735,352],[1710,352],[1860,465],[1860,cabinBottom]]);
   c.fillStyle=gradient(c,350,315,[[0,'#91a6a6'],[1,'#506b78']]);c.fill();
   path(c,[[724,354],[1707,354],[1789,412],[690,412]]);c.fillStyle='#b3bfb6';c.fill();
   for(let n=0;n<6;n++) {
@@ -56,7 +58,7 @@ export function drawShipInterior(c){
   }
   for(const x of [760,955,1500,1695])circle(c,x,553,24,'#365360');
   // A plain recessed passage has no decorative stair treads to read as ledges.
-  rect(c,1122,464,304,215,'#203845');
+  rect(c,1122,464,304,cabinBottom-464,'#203845');
   // Funnel, mast, antenna and rigging: strong silhouette against the sky.
   path(c,[[1190,345],[1198,240],[1364,240],[1392,345]]);c.fillStyle=gradient(c,240,105,[[0,'#c75239'],[.7,'#b14334'],[1,'#76352d']]);c.fill();
   path(c,[[1198,240],[1364,240],[1371,267],[1196,267]]);c.fillStyle='#142a35';c.fill();
