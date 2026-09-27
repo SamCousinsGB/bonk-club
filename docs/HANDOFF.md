@@ -11,8 +11,15 @@
   while supported by surviving road, collide with fighters and one another,
   take damage and leave the arena when they fall or drive out.
 - Cable, deck and vehicle state are host owned and validated in snapshots for
-  reset and changed-world joins. Focused bridge, traversal and hazard tests and
-  desktop source-browser visual checks pass. Full release verification follows.
+  reset and changed-world joins. Focused and full regular tests, the bridge
+  stress cases, and desktop visual checks passed. A source browser host, guest
+  and late joiner received matching cut cables, blasted panels and moving cars.
+- Gameplay revision `07e7164` passed [release workflow 36331864179](https://github.com/SamCousinsGB/bonk-club/actions/runs/36331864179):
+  validation, all six stress shards, Windows and Linux desktop builds, release
+  verification and Pages deployment. All 17 local, CI and public browser files
+  matched byte for byte. Fresh public desktop host, guest and late-join controls
+  passed with relay routes and no page errors. These browser checks ran on one
+  machine and do not establish cross-ISP or native Steam performance.
 
 Updated 27 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
