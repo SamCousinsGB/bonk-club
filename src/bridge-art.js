@@ -53,47 +53,38 @@ function railing(c,p){
 function fixture(c,x,y){
   glow(c,x,y+4,48,'#ffd18d20');rect(c,x-19,y-5,38,9,'#172b38');rect(c,x-14,y+4,28,4,'#ffe1a5');
 }
-function room(c,x,y,w,h){
-  const g=c.createLinearGradient(x,y,x+w,y);g.addColorStop(0,'#252d39');g.addColorStop(.5,'#35404a');g.addColorStop(1,'#202e3a');
-  rect(c,x,y,w,h,g);
-  rect(c,x+12,y+8,w-24,h-16,'#151f2a45');
-  line(c,[[x+8,y+h-10],[x+w/2,y+14],[x+w-8,y+h-10]],'#46505a',7);
-  line(c,[[x+8,y+h-10],[x+w/2,y+14],[x+w-8,y+h-10]],'#7b73704a',2);
-  for(let v=y+16;v<y+h-4;v+=41)rect(c,x+4,v,w-8,1,'#a8938120');
-  const ex=x+30,ey=y+h-69;
-  rect(c,ex,ey,44,61,'#192b36');rect(c,ex+3,ey+3,38,53,'#53626b');
-  for(let v=0;v<4;v++)rect(c,ex+9,ey+11+v*5,26,2,'#243842');
-  rect(c,ex+29,ey+37,5,8,'#adb6ac');disc(c,ex+11,ey+42,2,'#d1b17f');
-  line(c,[[x+w-26,y+6],[x+w-26,y+h-26],[x+w-42,y+h-26]],'#1a2b36',8);
-  line(c,[[x+w-26,y+6],[x+w-26,y+h-26],[x+w-42,y+h-26]],'#71808a',3);
-  fixture(c,x+w/2,y+22);
-}
-
 export function drawBridgeStructure(c,state) {
   const live=state.platforms.filter(p=>p.hp!==0),walks=live.filter(p=>p.bridgePart==='walk');
-  // Recessed rear legs frame the road portal. Their muted depth separates
-  // this cutaway wall from the bright playable columns and floor edges.
+  // Continuous rear legs give each open tower one coherent silhouette. These
+  // recessed faces are scenery; front column pieces retain service doorways.
   for(const x of [320,1920])if(live.some(p=>p.bridgePart==='cap'&&p.x<=x+160&&p.x+p.w>=x+160)){
-    for(const u of [x+45,x+254]){
-      rect(c,u,270,22,1170,'#493e43');rect(c,u+3,270,3,1170,'#8a696052');
-      for(let y=293;y<1440;y+=130)rect(c,u-2,y,26,9,'#6e5250');
+    for(const u of [x,x+286]){
+      rect(c,u+3,272,28,1168,'#694c48');rect(c,u+5,272,4,1168,'#a77b6160');
+      rect(c,u+26,272,5,1168,'#322e36');
+      for(let y=300;y<1440;y+=190)rect(c,u+3,y,28,8,'#815b50');
     }
-    polygon(c,[[x+45,674],[x+135,718],[x+188,718],[x+276,674]],'#39404a');
-    line(c,[[x+45,674],[x+135,718],[x+188,718],[x+276,674]],'#80675c',4);
-    fixture(c,x+160,717);
-    rect(c,x+45,919,231,15,'#3b424a');rect(c,x+45,919,231,3,'#846e5c');
-  }
-  // Interior back walls and equipment only remain while their room floor survives.
-  for(const x of [320,1920])for(const [y,h] of [[450,176],[650,174],[1040,116],[1250,184]]){
-    if(walks.some(p=>p.x<=x+160&&p.x+p.w>=x+160&&Math.abs(p.y-y)<2))room(c,x+34,y-h,252,h);
+    for(const [top,bottom] of [[278,440],[475,640],[920,1030],[1065,1240],[1280,1440]]){
+      // Low-contrast rear bracing leaves the harbour visible through the tower.
+      if(bottom<1440&&!walks.some(p=>p.x<=x+160&&p.x+p.w>=x+160&&Math.abs(p.y-bottom-10)<2))continue;
+      line(c,[[x+34,top],[x+286,bottom]],'#54565a',7);
+      line(c,[[x+286,top],[x+34,bottom]],'#54565a',7);
+    }
+    if(walks.some(p=>p.x<=x+160&&p.x+p.w>=x+160&&Math.abs(p.y-650)<2)){
+      line(c,[[x+34,675],[x+286,675]],'#5d4b49',14);
+      fixture(c,x+160,683);
+    }
   }
   for(const p of walks){
     railing(c,p);
-    // Individual diagonal brackets make the side balconies read as cantilevers.
+    // Brackets terminate at the actual tower leg, never in empty space.
     if(p.w>100&&p.bridgeBay===undefined){
-      const side=p.x<1280?1:-1,root=side>0?p.x+p.w-12:p.x+12,tip=root-side*Math.min(110,p.w*.4);
-      line(c,[[tip,p.y+p.h],[root,p.y+p.h+57],[root,p.y+p.h]],'#172d3b',9);
-      line(c,[[tip,p.y+p.h],[root,p.y+p.h+57]],'#74818a',2);
+      const tower=p.x<1280?320:1920;
+      for(const root of [tower+17,tower+303]){
+        const tip=root===tower+17?p.x+8:p.x+p.w-8;
+        if(root<p.x||root>p.x+p.w||Math.abs(tip-root)<25)continue;
+        line(c,[[tip,p.y+p.h],[root,p.y+p.h+65],[root,p.y+p.h]],'#283d48',7);
+        line(c,[[tip,p.y+p.h],[root,p.y+p.h+65]],'#7b8585',1.5);
+      }
     }
   }
   // Each maintenance bay is hung independently; no line bridges a missing road tile.
@@ -146,22 +137,23 @@ export function drawBridgePlatform(c,p){
   const {x,y,w,h}=p;
   c.save();c.beginPath();c.rect(x,y,w,h);c.clip();
   if(p.bridgePart==='road'){
-    rect(c,x,y,w,h,'#233e4b');rect(c,x,y,w,9,'#28323b');rect(c,x,y,w,2,'#d5c9a5');
-    rect(c,x,y+9,w,5,'#a59c84');rect(c,x,y+h-6,w,6,'#869492');
-    for(let u=x+8;u<x+w;u+=45){
-      line(c,[[u,y+18],[u+29,y+h-9],[u+40,y+18]],'#5d7580',5);
-      disc(c,u+1,y+18,2,'#bec2aa');disc(c,u+29,y+h-9,2,'#bec2aa');
+    const ox=x-(p.bridgeOffsetX||0),oy=y-(p.bridgeOffsetY||0);
+    rect(c,x,y,w,h,'#293e48');rect(c,x,oy,w,9,'#30343a');rect(c,x,oy,w,2,'#d5c9a5');
+    rect(c,x,oy+10,w,3,'#89928a');rect(c,x,oy+46,w,6,'#667e83');
+    for(let u=ox;u<x+w;u+=90){
+      line(c,[[u,oy+16],[u+45,oy+45],[u+90,oy+16]],'#536d78',4);
+      disc(c,u+45,oy+44,2,'#99a9a6');
     }
-    for(let u=x+7;u<x+w;u+=90)rect(c,u,y+5,31,2,'#c6ac70');
-    rect(c,x,y,3,h,'#142c38');rect(c,x+w-3,y,3,h,'#142c38');
+    // A thin joint keeps adjacent road tiles readable as one continuous deck.
+    if(p.bridgePanel!==undefined)rect(c,ox,oy+13,1,33,'#20333e');
   }else if(p.bridgePart==='walk'){
     rect(c,x,y,w,h,'#172f3e');rect(c,x,y,w,4,'#dfbd75');rect(c,x,y+h-3,w,3,'#73868a');
     for(let u=x+5;u<x+w;u+=12)rect(c,u,y+6,4,h-9,'#779297');
     for(let u=x+8;u<x+w;u+=72){rect(c,u,y+2,25,2,'#f4dba1');}
   }else{
     const g=c.createLinearGradient(x,y,x+w,y+h*.05);
-    g.addColorStop(0,'#713f3c');g.addColorStop(.16,'#cf8767');g.addColorStop(.32,'#a65f4e');g.addColorStop(.82,'#8b4e44');g.addColorStop(1,'#432f34');
-    rect(c,x,y,w,h,g);rect(c,x+2,y+2,4,h-4,'#e4a57a');rect(c,x+w-7,y,5,h,'#3e3036');
+    g.addColorStop(0,'#694a44');g.addColorStop(.16,'#a9795c');g.addColorStop(.32,'#8b5e4c');g.addColorStop(.82,'#755045');g.addColorStop(1,'#3e3036');
+    rect(c,x,y,w,h,g);rect(c,x+2,y+2,3,h-4,'#ba896260');rect(c,x+w-7,y,5,h,'#3e3036');
     if(p.bridgePart==='cap'){
       rect(c,x,y,w,5,'#edb786');rect(c,x,y+h-8,w,8,'#4e3438');
       for(let u=x+12;u<x+w;u+=45)bolts(c,u,y,25,h);

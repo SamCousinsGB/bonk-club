@@ -1,5 +1,21 @@
 # Bonk Club — current handoff
 
+## Suspension Bridge readability and traffic (v0.59.1 / protocol 81)
+
+- Open steel tower bracing replaces the repeated enclosed rooms. Continuous
+  recessed legs, attached outer service platforms and correctly rooted brackets
+  make the support structure readable; quieter road joints form a continuous deck.
+  Existing service doorways, cable damage, suspended bays and blast cuts remain.
+- Cars start wholly beyond either screen edge on real extended approaches. The
+  single physical lane alternates direction only after the previous car clears;
+  stalled cars hold incoming traffic. Shared rotated-body cleanup handles exits.
+  Road contact powers upright cars; maintenance bays and freefall do not.
+- Random containers use visible service platforms instead of traffic approaches.
+  No new snapshot fields or protocol change. Refresh to load the updated artwork.
+- Focused traffic, traversal, destruction, reset and compact snapshot regressions
+  pass. Full suites, desktop visual/online checks and release parity are recorded
+  in `bonk-club-qa/bridge-traffic`; verify completion before describing this live.
+
 ## Colossus animation and twin lasers (v0.59.0 / protocol 81)
 
 - Animated the original distant painting with slow independent head, shoulder

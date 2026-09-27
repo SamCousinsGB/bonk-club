@@ -7,7 +7,9 @@ import { carveExplosion } from '../src/terrain.js';
 import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
 import { updateBridge } from '../src/bridge.js';
 import { bridgeBayMounts } from '../src/bridge-arena.js';
-import { prepareProp } from '../src/props.js';
+import { prepareProp, bodyBounds, updateProps } from '../src/props.js';
+import { cleanEscapedEntities } from '../src/world-cleanup.js';
+import { W } from '../src/scale.js';
 import { carPoints } from '../src/assembly-geometry.js';
 
 const arena=ARENAS.findIndex(a=>a.bridge);
@@ -117,5 +119,65 @@ test('tower doorways let unarmed bots actually reach the contested road weapons'
     const p=world.players.find(p=>p.id===id);
     assert.ok(p.weapon,`bot ${id} failed to leave its room and collect a weapon`);
     assert.ok(p.y>650,`bot ${id} is still inside the tower`);
+  }
+});
+
+test('traffic enters entirely offscreen, crosses on real road and clears before the direction reverses',()=>{
+  const world=new World({players:[0],fillSolo:false,arena,shuffle:false});world.phase='fight';
+  assert.ok(world.cover.every(b=>b.x>=0&&b.x+b.w<=W),'initial cargo belongs on visible service platforms');
+  const seen=new Map(),crossed=new Set();
+  for(let i=0;i<60/STEP;i++){
+    updateBridge(world,STEP);
+    const cars=world.cover.filter(b=>b.bridgeVehicle);
+    assert.ok(cars.length<=1,'opposing traffic must wait for the single lane to clear');
+    for(const car of cars){
+      const box=bodyBounds(car);
+      if(!seen.has(car.id)){
+        assert.ok(box.x+box.w<0||box.x>W,'a new car must be wholly beyond the camera');
+        seen.set(car.id,car.bridgeDir);
+        assert.ok(validSnapshot(world.snapshot()),'offscreen arrival must be transportable');
+      }
+      if(Math.abs(car.x+car.w/2-W/2)<8)crossed.add(car.bridgeDir);
+      assert.ok(Math.abs(car.y+car.h-850)<2,'intact approaches and deck support the wheels');
+    }
+    updateProps(world,STEP);cleanEscapedEntities(world);
+  }
+  assert.ok(seen.size>=3,'traffic must keep coming after vehicles escape');
+  assert.deepEqual([...crossed].sort(),[-1,1],'both directions must cross the entire intact bridge');
+  const directions=[...seen.values()];
+  directions.slice(1).forEach((d,i)=>assert.equal(d,-directions[i]));
+});
+
+test('a stalled car holds opposing traffic and reset clears the traffic clock',()=>{
+  const world=new World({players:[0],fillSolo:false,arena,shuffle:false});world.phase='fight';
+  world.bridgeTraffic=3.1;updateBridge(world,STEP);
+  const car=world.cover.find(b=>b.bridgeVehicle);car.x=1200;car.vx=0;
+  for(let i=0;i<12/STEP;i++)updateBridge(world,STEP);
+  assert.equal(world.bridgeVehicleSerial,1);
+  assert.equal(world.cover.filter(b=>b.bridgeVehicle).length,1);
+  assert.ok(validSnapshot(world.snapshot()),'a saturated waiting clock stays valid');
+  car.hp=0;updateBridge(world,STEP);
+  const next=world.cover.find(b=>b.bridgeVehicle);
+  assert.equal(next.bridgeDir,-car.bridgeDir);
+  const joined=expandSnapshot(compactSnapshot(structuredClone(world.snapshot())),validSnapshot);
+  assert.deepEqual(joined.cover,world.snapshot().cover);
+  world.startRound();
+  assert.equal(world.bridgeTraffic,0);assert.equal(world.bridgeVehicleSerial,0);
+  assert.ok(!world.cover.some(b=>b.bridgeVehicle));
+});
+
+test('a car on a maintenance bay or in freefall has no road traction',()=>{
+  const world=new World({players:[0],fillSolo:false,arena,shuffle:false});world.phase='fight';
+  const bay=world.platforms.find(p=>p.bridgeBay===0);
+  const car=prepareProp({id:'fallen-car',kind:'car',x:bay.x+30,y:bay.y-105,w:210,h:105,
+    hp:170,maxHp:170,mass:190,carStage:31,bridgeVehicle:true,bridgeDir:1,vx:0});
+  world.cover=[car];updateBridge(world,STEP);assert.equal(car.vx,0);
+  car.y=700;updateBridge(world,STEP);assert.equal(car.vx,0);
+});
+
+test('outer service platforms overlap the tower legs rather than floating beside them',()=>{
+  for(const p of ARENAS[arena].platforms.filter(p=>p.bridgePart==='walk'&&[540,720].includes(p.y))){
+    const leg=p.x<1280?320:2206;
+    assert.ok(p.x<=leg&&p.x+p.w>=leg+34);
   }
 });
