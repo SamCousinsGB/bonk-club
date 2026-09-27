@@ -4,6 +4,7 @@ import { World, ARENAS, STEP } from '../src/engine.js';
 import { cableShotSolids, shootCable } from '../src/heavy-cables.js';
 import { validSnapshot } from '../src/room-session.js';
 import { carveExplosion } from '../src/terrain.js';
+import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
 
 const arena=ARENAS.findIndex(a=>a.bridge);
 const advance=(world,seconds)=>{for(let i=0;i<seconds/STEP;i++)world.step(STEP);};
@@ -26,6 +27,10 @@ test('bridge traffic, cable damage, collapse, snapshot and round reset',()=>{
   assert.ok(far().y>1300,`span stopped at ${far().y}`);
   assert.ok(far().x<900,`span did not fold toward tower: ${far().x}`);
   assert.ok(validSnapshot(world.snapshot()));
+  const joined=expandSnapshot(compactSnapshot(structuredClone(world.snapshot())),validSnapshot);
+  assert.deepEqual(joined.cables,world.snapshot().cables);
+  assert.deepEqual(joined.platforms,world.snapshot().platforms);
+  assert.deepEqual(joined.cover,world.snapshot().cover);
   world.startRound();
   assert.equal(far().y,850);
   assert.ok(world.cables.every(c=>c.links.every(Boolean)));
