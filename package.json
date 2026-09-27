@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.52.0",
-  "releaseNotes": "Scrap Foundry: pouring crucibles, scrap conveyors and lower crossings",
+  "version": "0.53.0",
+  "releaseNotes": "Status icons, effect timers and dripping oil coatings",
   "private": true,
   "type": "module",
   "scripts": {

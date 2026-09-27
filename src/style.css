@@ -513,6 +513,71 @@ h1 > span {
 #hud button {
   pointer-events: auto;
 }
+#fighter-effects {
+  position: absolute;
+  z-index: 4;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
+.fighter-effect {
+  --effect-color: #b5e7ff;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  width: 68px;
+  padding: 7px 2px 5px;
+  border-radius: 12px;
+  background: #0b141de6;
+  color: #f5f7fb;
+  text-shadow: 0 1px 2px #000;
+}
+.effect-circle {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border: 1.5px solid var(--effect-color);
+  border-radius: 50%;
+  color: var(--effect-color);
+  background: #ffffff09;
+}
+.effect-circle svg { width: 29px; height: 29px; overflow: visible; }
+.effect-label { margin-top: 5px; font-size: 11px; font-weight: 700; line-height: 15px; }
+.effect-timer { min-height: 15px; font-size: 11px; line-height: 15px; font-variant-numeric: tabular-nums; color: var(--effect-color); }
+.effect-burning { --effect-color: #ffac73; }
+.effect-glued { --effect-color: #d5e7a1; }
+.effect-flammable, .effect-gold { --effect-color: #f4ca71; }
+.effect-wet, .effect-air { --effect-color: #7dcaff; }
+.effect-bubble, .effect-tangle { --effect-color: #f6b8eb; }
+.effect-jelly { --effect-color: #b7f68c; }
+.status-drip { animation: status-drip 1.2s linear infinite; }
+.reduced-motion .status-drip { animation: none; }
+@keyframes status-drip { from { transform: translateY(-4px); opacity: 1; } to { transform: translateY(5px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .status-drip { animation: none; } }
+@media (max-height: 540px), (max-width: 650px) {
+  #fighter-effects { bottom: max(8px, env(safe-area-inset-bottom)); gap: 4px; }
+  .fighter-effect { width: 57px; padding: 5px 1px 3px; }
+  .effect-circle { width: 30px; height: 30px; }
+  .effect-circle svg { width: 23px; height: 23px; }
+  .effect-label, .effect-timer { font-size: 10px; line-height: 12px; }
+  .effect-timer { min-height: 12px; }
+}
+.touch-playing #fighter-effects { max-width: 48%; }
+@media (orientation: portrait) {
+  .touch-playing #fighter-effects { bottom: calc(var(--touch-dock) + 8px); max-width: calc(100% - 24px); }
+}
 #scoreboard {
   display: flex;
   gap: 14px;

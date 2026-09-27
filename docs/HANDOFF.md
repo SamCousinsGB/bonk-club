@@ -6,6 +6,22 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- v0.53.0 / protocol 74 adds bottom-centred status icons for the local living
+  fighter: Frozen, Chilled, Burning, Glued, Flammable, Wet, Bubbled, Jelly, Gold,
+  Tangled and remaining air/Drowning. Countdown text comes from actor state;
+  glue is untimed and oil/tar or water contact hides continuously refreshed timers.
+  Ordinary hit stun is omitted. Round end, death and leaving play clear the row.
+- Oil/tar adds bounded pose-attached coating and drips. Status icons preserve
+  animation while timers update, respect reduced motion and leave touch controls
+  reachable. No gameplay balance, wire protocol or persistent state changed.
+- Focused effect/reaction tests, full tests and browser build pass. Source-browser
+  checks cover timed expiry, untimed glue, death clearing, desktop/mobile layout,
+  reduced motion and existing snapshot round trips. Evidence: `bonk-club-qa/status-*`.
+  Confirm the release workflow and exact public artifact parity before claiming
+  this revision live; the final verification record is `status-release.json` there.
+
+## Included Scrap Foundry update
+
 - v0.52.0 / protocol 74: Scrap Foundry ladles share the rotated spout position
   between art, molten emission and AI warnings. Opposite tilts pour inward; the
   shared solver preserves finite contents and real travel/contact damage.

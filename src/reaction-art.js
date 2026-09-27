@@ -156,5 +156,21 @@ function drawSpills(c,state,time) {
       circle(c,foot.x,foot.y,3.5,color);
       if(p.ground&&p.glued>0)line(c,[[foot.x-4,foot.y+3],[foot.x,foot.y-5],[foot.x+4,foot.y+3]],color,1.5);
     }
+    if(p.tarred>0||p.oiled>0) {
+      // Fixed, pose-attached marks and three falling drops: no particle allocation.
+      const oil=p.tarred>0?SPILLS.tar.rim:SPILLS.oil.rim;
+      const shoulder=p.rig?.[1]||{x:p.x,y:p.y-15};
+      const hip=p.rig?.[2]||{x:p.x,y:p.y+8};
+      c.save();
+      c.globalAlpha=.8;
+      line(c,[[shoulder.x-3,shoulder.y],[hip.x-3,hip.y]],oil,5);
+      for(let i=0;i<3;i++) {
+        const root=p.rig?.[[4,6,2][i]]||hip;
+        const age=(time*1.7+i*.33+p.id*.17)%1;
+        c.globalAlpha=(1-age)*.85;
+        line(c,[[root.x,root.y+age*22],[root.x,root.y+age*22+3]],oil,2.5);
+      }
+      c.restore();
+    }
   }
 }

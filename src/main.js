@@ -1,4 +1,5 @@
 import { victoryMessage } from "./victory.js";
+import { fighterStatuses, updateStatusHud } from './status-effects.js';
 import { loadPreferences } from "./preferences.js";
 import { ControllerMenu } from "./controller-menu.js";
 import { version, releaseNotes } from "../package.json";
@@ -319,6 +320,7 @@ function setPlaying(value) {
   if (!value) { chatComposer.close(); soloChat.reset(); }
   document.body.classList.toggle("playing", value);
   $("#hud").classList.toggle("hidden", !value);
+  if (!value) updateStatusHud($('#fighter-effects'), []);
   $("#invite").classList.toggle("hidden", !value || !room || room.offline);
   setHtml($("#announcement"), "");
   syncTouchUi();
@@ -859,6 +861,8 @@ function setHtml(element, value) {
   element.innerHTML = value;
 }
 function updateHud(s) {
+  $('#fighter-effects').classList.toggle('reduced-motion', renderer.reduced);
+  updateStatusHud($('#fighter-effects'), playing ? fighterStatuses(s, ownPlayer(s)) : []);
   const high = Math.max(...s.scores);
   const leaders =
     high > 0 ? s.players.filter((p) => s.scores[p.id] === high) : [];
