@@ -7,9 +7,19 @@
 - Broad landscape colours supply the figure's atmospheric lighting, matching
   the warm horizon and cooler valley. Parts remain opaque beneath this grade.
   Rig scale, independent movement, shared eye origins and attack timing remain.
-- Seventeen focused mechanics/audio tests and desktop source visuals pass,
-  including charge, twin discharge, a reversed cycle and reduced motion.
-  Full validation and publishing evidence will be recorded after release.
+- Seventeen focused mechanics/audio tests, the full regular suite and desktop
+  source visuals pass. The production bundle passed host/guest movement,
+  natural twin discharge, relay-only late join and reduced motion without
+  browser errors. Rendered head travel remains 14.15px at a 1600px viewport.
+- Across three changed poses, thousands of upper-body pixels moved while all
+  12,000 sampled mountain pixels below the ridge stayed identical. Rendering
+  measured 0.4ms median / 0.6ms p95 locally.
+- Revision 99db895 passed release workflow 36338848536, including all six
+  arena groups, shared/server validation, Windows/Linux checks and Pages.
+  All 19 local, CI and public files match exactly. Additional public gameplay
+  checks were omitted following Sam's earlier request to publish without
+  further checks. The task-owned preview is stopped. Refresh for v0.60.2;
+  protocol 83 and gameplay state are unchanged.
   Evidence: bonk-club-qa/colossus-ridgeline.
 
 ## Colossus distance and compositing (v0.60.1 / protocol 83)
