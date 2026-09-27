@@ -8,10 +8,13 @@
   Press Floor and Ice Sweep are removed, along with all other earlier arenas.
 - Removed the old arena definitions and their themed scenery from the browser
   source. Existing room clients must refresh because map indexes changed.
-- The regular suite, full arena stress run and production browser build pass
-  locally. A desktop source browser shows all twelve map choices; a Car Wash
-  match renders for the host and a guest joining mid-round. Release CI, Pages
-  and public artifact parity remain pending.
+- The regular suite, full arena stress run and production browser build passed
+  locally. A desktop source browser showed all twelve map choices; a Car Wash
+  match rendered for the host and a guest joining mid-round. Merge commit
+  `7d5ac79` passed release workflow `36353764689`, including six stress shards,
+  desktop checks and Pages deployment. All 19 published files matched the CI
+  browser artifact exactly. The public v0.62.0 browser showed the twelve-map
+  picker and a Car Assembly match for a host and a mid-round guest join.
 
 ## Colossus rise and irregular repeat attacks (v0.61.0 / protocol 84)
 
