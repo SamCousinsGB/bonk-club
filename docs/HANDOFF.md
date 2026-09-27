@@ -27,6 +27,30 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
 - Includes the concurrent desktop-only, Waterworks, Foundry, status and Ocean Liner
   changes below. Does not change their scope or restore phone support.
 
+## Verified Waterworks fix
+
+- v0.53.2 / protocol 74, gameplay revision `ddba2a8`, was deployed and verified
+  publicly on 27 September. Generators alternate in two stable banks six seconds
+  apart, retaining 7 seconds off / 1 amber warning / 4 live. Both start safe;
+  movement, destruction and hot join cannot reorder the banks. Destroyed casing
+  fragments never become timed power sources. Connected water can still carry
+  electricity between banks while a source is live.
+- Falling liquid retains volume, stays broad during lateral outflow and turns
+  downward with gravity. Trace droplets no longer stretch into long needles.
+  Shared fills remove repeated bead outlines and overlapping electrical glow.
+  Electrical contact searches skip distant bodies; falling arc detail is bounded.
+- 84 focused tests, the full regular suite, eight relevant arena stress cases,
+  production build and source host/guest swimming, destruction, hot join and reset
+  passed. A local flooded/breached benchmark reduced median reaction time from
+  2.6 ms to 1.3 ms; this measures simulation work, not internet latency or total FPS.
+- [Release 36322939163](https://github.com/SamCousinsGB/bonk-club/actions/runs/36322939163)
+  passed all six full stress shards, shared/server validation, Windows/Linux builds
+  and smoke checks, release verification and Pages. All 17 public files matched
+  the exact successful CI artifact. Fresh public browsers passed Waterworks lobby,
+  host/guest movement and a third player joining the active match without errors.
+  Evidence: `bonk-club-qa/waterworks-flow-*`, particularly `parity.json`,
+  `performance.json`, `public.json`, `browser.json` and `ci.log` with that prefix.
+
 ## Previous desktop release
 
 - v0.53.1 / protocol 74 removes touch gestures and buttons, phone menus, rotate
