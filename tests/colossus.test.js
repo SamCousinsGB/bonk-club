@@ -177,7 +177,26 @@ test('both moving eyes fire together, damage both paths and leave the space betw
   assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
 });
 
-test('upright emergence keeps legs straight, the neck attached and motion deliberate',()=>{
+test('climb plants each hand while articulated shoulders haul upward, then the head tilts',()=>{
+  const h=fixture().hazards[0],a=colossusRig({...h,age:1.4}),b=colossusRig({...h,age:2.8});
+  const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  assert.ok(a.body.y-b.body.y>60,'the torso pulls past the stationary handholds');
+  for(let i=0;i<2;i++){
+    assert.ok(distance(a.arms[i].hand,b.arms[i].hand)<.01,'planted hands cannot slide up with the torso');
+    assert.ok(distance(a.arms[i].elbow,b.arms[i].elbow)>25,'elbows articulate during the pull');
+  }
+  const leftFirst=colossusRig({...h,age:.9});
+  assert.equal(leftFirst.arms[0].grip,1);assert.ok(leftFirst.arms[1].grip<.3);
+  const standing=colossusRig({...h,age:5.5}),tilted=colossusRig({...h,age:6.7});
+  assert.ok(Math.abs(Math.atan2(standing.head.b,standing.head.a)-Math.atan2(tilted.head.b,tilted.head.a))>.3,
+    'visible head tilt after hauling out, before charging');
+  assert.ok(standing.arms.every(a=>a.grip===0));
+  const restA=colossusRig({...h,age:18}),restB=colossusRig({...h,age:20.5});
+  const relative=r=>({x:r.arms[0].hand.x-r.body.x,y:r.arms[0].hand.y-r.body.y});
+  assert.ok(distance(relative(restA),relative(restB))>8,'arms keep moving relative to the torso between attacks');
+});
+
+test('articulated climb and attack poses keep solid limbs, an attached neck and continuous beam origins',()=>{
   const h=fixture().hazards[0],start=colossusRig(h),later=colossusRig({...h,age:6});
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   assert.ok(rigPoint(start.head,0,-103.6).y>710,"even the crown begins below the foreground ridge");
@@ -192,11 +211,7 @@ test('upright emergence keeps legs straight, the neck attached and motion delibe
       assert.ok(Math.abs(distance(arm.elbow,arm.hand)-COLOSSUS_ARMS.lower*COLOSSUS_SCALE)<1e-8);
     }
     r.legs.forEach((leg,i)=>{
-      const upper={x:leg.knee.x-leg.hip.x,y:leg.knee.y-leg.hip.y};
-      const lower={x:leg.foot.x-leg.knee.x,y:leg.foot.y-leg.knee.y};
-      assert.ok(Math.abs(upper.x*lower.y-upper.y*lower.x)<1e-8,"no sideways knee bend at any point in the rise");
-      assert.ok(Math.abs(leg.foot.x-leg.hip.x)<1,"legs stay beneath the hips, never splayed outward");
-      if(age>=6)assert.ok(distance(leg.foot,later.legs[i].foot)<5,"only small standing posture shifts after emergence");
+      if(age>=6)assert.ok(Math.abs(leg.foot.x-leg.hip.x)<9,'extended legs stay beneath the hips after the climb');
       assert.ok(Math.abs(distance(leg.hip,leg.knee)-COLOSSUS_LEGS.upper*COLOSSUS_SCALE)<1e-8);
       assert.ok(Math.abs(distance(leg.knee,leg.foot)-COLOSSUS_LEGS.lower*COLOSSUS_SCALE)<1e-8);
     });
@@ -206,10 +221,32 @@ test('upright emergence keeps legs straight, the neck attached and motion delibe
       const looking=colossusRig({...h,age,gazeX});
       assert.ok(distance(looking.head,rigPoint(looking.body,COLOSSUS_NECK.x,COLOSSUS_NECK.y))<1e-8);
     }
-    assert.ok(distance(r.head,next.head)<8);
-    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<8));
+    assert.ok(distance(r.head,next.head)<13,`head continuity at ${age}`);
+    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<30,`hand continuity at ${age}`));
     COLOSSUS_EYES.forEach((e,i)=>assert.deepEqual(colossusEye({...h,age},i),rigPoint(r.head,e.x,e.y)));
   }
+  for(const age of [COLOSSUS.wake+COLOSSUS.charge,COLOSSUS.wake+COLOSSUS.charge+COLOSSUS.fire]){
+    const a=colossusRig({...h,age:age-.001}),b=colossusRig({...h,age:age+.001});
+    assert.ok(distance(a.eyes[0],b.eyes[0])<.2,'charge/fire/cooldown cannot snap the beam origin');
+    a.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,b.arms[i].hand)<.2));
+  }
+});
+
+test('joining during the climb, head tilt or attack reconstructs the pose from transported state',()=>{
+  const w=fixture(),h=w.hazards[0],distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  for(const age of [1.6,2.7,5,6.8,9.25,12.2,15.5]){
+    h.age=age;h.active=colossusPhase(age,h.chargeAt).firing;
+    h.gazeX=1876.123;h.gazeY=1017.654;
+    const source=colossusRig(h),joined=colossusRig(transport(w).hazards[0]);
+    assert.ok(distance(source.head,joined.head)<.01);
+    for(let i=0;i<2;i++){
+      assert.ok(distance(source.arms[i].hand,joined.arms[i].hand)<.01);
+      assert.ok(distance(source.legs[i].knee,joined.legs[i].knee)<.01);
+      assert.ok(distance(source.eyes[i],joined.eyes[i])<.01);
+    }
+  }
+  w.startRound();assert.equal(w.hazards[0].age,0);
+  assert.deepEqual(colossusRig(w.hazards[0]),colossusRig(fixture().hazards[0]));
 });
 
 test('distant mech cannot be destroyed by local blasts; only host fight state advances it',()=>{

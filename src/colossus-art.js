@@ -1,5 +1,6 @@
 import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
-import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
+import {drawColossusFigure,drawColossusGrip,warmColossusFigure} from './colossus-figure.js';
+import {drawColossusAura} from './colossus-aura.js';
 import {COLOSSUS_FIGURE} from './colossus-rig.js';
 
 const TAU=Math.PI*2;
@@ -110,8 +111,10 @@ export function drawColossusSky(c,state,reduced=false) {
   if(backdrop?.complete&&backdrop.naturalWidth)c.drawImage(backdrop,0,0,2560,1440);
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
   // A slow exposure change draws the eye to the awakened machine without strobing.
+  drawColossusAura(c,h,energy,reduced);
   drawColossusFigure(c,h,energy,sceneAirlight());
   drawFoothills(c);
+  drawColossusGrip(c,h);
   c.fillStyle=`rgba(6,17,30,${.09+energy*.17})`;c.fillRect(0,0,2560,1440);
   eye(c,h,0,energy);eye(c,h,1,energy);
   const cloud=cloudTexture(),time=reduced?0:h.age;

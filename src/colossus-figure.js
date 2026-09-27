@@ -69,6 +69,20 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     c.drawImage(airlight,x,y,w,height);c.globalAlpha=1;
   }
   c.globalCompositeOperation='source-over';
+  if(energy>0){
+    // Light the real bronze silhouette and its articulated joints as power
+    // travels upward. Keep the light clipped to surviving opaque bronze.
+    c.save();c.globalCompositeOperation='source-atop';
+    c.strokeStyle=`rgba(133,228,249,${energy*.8})`;c.lineWidth=1.1+energy;
+    c.shadowColor='#8febff';c.shadowBlur=6+energy*7;
+    for(const arm of rig.arms){
+      c.beginPath();c.moveTo(arm.hand.x,arm.hand.y);c.lineTo(arm.elbow.x,arm.elbow.y);
+      c.lineTo(arm.shoulder.x,arm.shoulder.y);c.lineTo(rig.head.x,rig.head.y);c.stroke();
+    }
+    transform(c,rig.body);c.beginPath();c.moveTo(-23,24);c.lineTo(-14,-40);c.lineTo(-27,-76);
+    c.lineTo(-6,-106);c.lineTo(3,-155);c.moveTo(22,20);c.lineTo(10,-42);c.lineTo(28,-92);c.lineTo(3,-155);c.stroke();
+    c.restore();
+  }
   c.save();transform(c,rig.head);
   // Slow mechanical shutters reveal cold blue light even between attacks.
   const opening=colossusEyeOpening(h.age),aperture=opening*(3.8+energy*1.6);
@@ -81,4 +95,16 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   c.restore();c.restore();
   target.save();target.filter='blur(0.45px)';
   target.drawImage(figure,x,y,w,height);target.restore();
+}
+
+// Only the gripping knuckles pass in front of the ridge. The body and tucked
+// legs remain occluded by its actual silhouette throughout the climb.
+export function drawColossusGrip(c,h){
+  if(!figure)return;
+  const {x,y,w,h:height}=COLOSSUS_FIGURE;
+  for(const arm of colossusRig(h).arms)if(arm.grip>.8){
+    c.save();c.globalAlpha=(arm.grip-.8)*5;c.beginPath();
+    c.ellipse(arm.hand.x,arm.hand.y,7,10,0,0,Math.PI*2);c.clip();
+    c.drawImage(figure,x,y,w,height);c.restore();
+  }
 }

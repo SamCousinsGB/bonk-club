@@ -1,5 +1,26 @@
 # Bonk Club — current handoff
 
+## Colossus climb and awakening (v0.63.6 / protocol 91)
+
+- Replaces the vertical statue reveal with staggered ridge grips, bent elbows,
+  shoulder pulls and tucked legs that extend as the creature climbs out. Planted
+  hands stay on the painted ridge; only gripping knuckles draw in front of it.
+- After emerging, he cocks his attached head, follows fighters, shifts weight and
+  moves his arms between attacks. Charging spreads the arms and lights the bronze,
+  with a flowing blue aura, hand glows, rising motes and dust from the ridge grips.
+  Discharge adds recoil, then smoothly releases into recovery. Reduced motion
+  keeps steady energy cues without flowing particles or corona animation.
+- Shared age-derived articulation supplies both painted eyes and host-owned beam
+  origins. Existing four-second warnings, targeted twin sweeps, damage, terrain
+  cuts and irregular repeats remain. Refresh all tabs for protocol 91.
+- Focused regressions cover actual stationary grips, joint movement, head tilt,
+  continuous discharge/recovery, late-join pose reconstruction and round reset.
+  All 39 focused checks, the full regular suite, the Colossus stress shard and
+  browser build passed. Desktop pose inspection and the release bundle passed
+  host/guest controls, twin firing, irregular repeat, relay late join, reduced
+  motion and host departure without page errors. CI/Pages and exact public
+  parity are pending; evidence: bonk-club-qa/colossus-climb.
+
 ## Colossus upright emergence and attached neck (v0.63.5 / protocol 90)
 
 - Removed the fixed-foot frontal squat and its outward knee solver. The whole

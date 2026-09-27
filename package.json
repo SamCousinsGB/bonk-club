@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.5",
-  "releaseNotes": "Colossus rises upright with straight legs and an attached neck",
+  "version": "0.63.6",
+  "releaseNotes": "Colossus climbs from the mountain, tilts his head and charges with a visible aura",
   "private": true,
   "type": "module",
   "scripts": {
