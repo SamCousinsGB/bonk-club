@@ -26,7 +26,17 @@
 - Thirty-five focused mechanics, sound and bot tests pass, including varied
   host-chosen intervals and exact late-join schedule transport. Desktop visuals
   cover the rise, eye opening, first discharge and an upright reversed attack.
-  Final validation and publishing evidence will be recorded after release.
+  The full regular suite and the local Colossus stress shard (plus train service
+  coverage) pass. The production bundle passed host/guest movement, natural
+  first and repeat twin discharge, relay-only late join, reduced motion and
+  host departure without browser errors. The observed repeat interval was
+  13.14 seconds.
+- Revision dfb5b88 passed release workflow 36353479238, including all six arena
+  groups, shared/server validation, Windows/Linux checks, release verification
+  and Pages publishing. All 19 local, CI and public files match exactly.
+  Additional public gameplay checks were omitted following Sam's earlier
+  request; final-bundle browser checks and exact public parity passed.
+  The task-owned preview is stopped. Refresh all players for protocol 84.
   Evidence: bonk-club-qa/colossus-standing.
 
 ## Colossus waking eyes and bot firing stalls (v0.60.3 / protocol 83)
