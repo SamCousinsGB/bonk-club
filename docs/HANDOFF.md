@@ -12,7 +12,15 @@
   share the newly anchored facial landmarks. Refresh all tabs for protocol 90.
 - Regression checks cover every rise/standing pose, straight knees, close leg
   alignment, hidden initial crown and an attached neck at both gaze extremes.
-  Release validation is in progress. Evidence: bonk-club-qa/colossus-upright.
+  All 37 focused checks, the regular suite and the Colossus stress shard passed.
+- Desktop rise/standing/eye/fire poses were inspected. The final bundle passed
+  host/guest movement, both eye beams, irregular repeats, relay late join into
+  destroyed terrain, reduced motion and host departure without browser errors.
+- Revision 69e0130 passed workflow 36356990860, including all six stress groups,
+  shared/server tests, Windows/Linux checks, release verification and Pages.
+  All 19 local, CI and public files match exactly. Additional public gameplay
+  was omitted as previously requested. Task preview is stopped.
+  Evidence: bonk-club-qa/colossus-upright.
 
 
 ## Colossus natural proportions (v0.63.4 / protocol 89)
