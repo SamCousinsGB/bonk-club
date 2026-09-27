@@ -39,7 +39,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 77;
+export const PROTOCOL = 78;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -774,6 +774,7 @@ const propSourceArt = b => {
     a[0]+a[2]<=a[4]+.02 && a[1]+a[3]<=a[5]+.02;
 };
 const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integer(c.carPaint,0,3) && finite(c.carCoat) && c.carCoat>=0 && c.carCoat<=1) &&
+  (c.bridgeVehicle === undefined || (c.bridgeVehicle===true && c.kind==='car' && [-1,1].includes(c.bridgeDir))) &&
   (c.strapped === undefined || (typeof c.strapped === "boolean" && ["crate","pallet"].includes(c.kind) && finite(c.strapHp) && c.strapHp >= 0 && c.strapHp <= 40)) &&
   validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
@@ -790,6 +791,8 @@ const validTrainCarriages = h => !h.derailed ? h.carriages === undefined :
   h.carriages.length===8&&new Set(h.carriages.map(c=>c.id)).size===8&&h.carriages.at(-1).coupled===false;
 export function validSnapshot(s) {
   return (
+    (ARENAS[s?.arenaIndex]?.bridge ? Number.isFinite(s.bridgeTraffic)&&s.bridgeTraffic>=0&&s.bridgeTraffic<=3.2&&
+      integer(s.bridgeVehicleSerial,0,1000000) : s?.bridgeTraffic===undefined&&s?.bridgeVehicleSerial===undefined) &&
     (s?.inputAcks === undefined || Array.isArray(s.inputAcks) && s.inputAcks.length === 4 && s.inputAcks.every(validInputSequence)) &&
     !!s &&
     typeof s === "object" &&
@@ -869,6 +872,8 @@ export function validSnapshot(s) {
         (p.wingLoose === undefined || (p.wingLoose === true && !!p.planeWing && finite(p.wingAt) && p.wingAt >= 0 &&
           [p.wingX??0,p.wingY??0].every(finite) && Math.abs(p.wingX??0)<=2000 && (p.wingY??0)>=0 && (p.wingY??0)<=3000)) &&
         (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
+        (p.bridgePanel === undefined || (ARENAS[s.arenaIndex]?.bridge === true && integer(p.bridgePanel,0,15) &&
+          p.material === 'metal' && [p.bridgeVx||0,p.bridgeVy||0,p.bridgeOffsetX||0,p.bridgeOffsetY||0].every(finite))) &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
         (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&

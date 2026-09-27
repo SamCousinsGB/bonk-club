@@ -8,7 +8,7 @@ export function preparePlatforms(arena, arenaIndex) {
   if (arena.waterworks) return arena.platforms.map(p => ({ ...p }));
   if (arena.ship) return arena.platforms.map(p => ({ ...p }));
   if (arena.cargoPlane) return arena.platforms.map(p => ({ ...p }));
-  if (arena.setpiece) return arena.platforms.map(p => ({ ...p }));
+  if (arena.setpiece || arena.bridge) return arena.platforms.map(p => ({ ...p }));
   if (arena.turbine) return arena.platforms.map(p => ({ ...p }));
   if (arena.assembly) return arena.platforms.map(p => ({ ...p }));
   if (arena.furnace) return arena.platforms.map(p => ({ ...p }));

@@ -1,4 +1,5 @@
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
+import { drawBridgeHall, drawBridgeStructure } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
 import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
@@ -941,6 +942,7 @@ export class Renderer {
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
         if (arena.waterworks) drawWaterworksHall(layer.getContext("2d"));
+        if (arena.bridge) drawBridgeHall(layer.getContext("2d"));
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
         if (arena.turbine) drawTurbineHall(layer.getContext("2d"));
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
@@ -977,6 +979,7 @@ export class Renderer {
     c.restore();
     // Tower wires occupy the rear layer, behind platforms and fighters.
     if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
+    if(arena.bridge)drawBridgeStructure(c,state);
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     if(arena.carWash)drawCarWashStructure(c,state);
