@@ -1,7 +1,7 @@
-import { COLOSSUS, COLOSSUS_EYES, colossusPhase, colossusPose, colossusEye, colossusBeam, beamX } from './colossus.js';
+import { COLOSSUS, COLOSSUS_EYES, colossusPhase, colossusPose, colossusEye, colossusBeam, beamX, beamEdges } from './colossus.js';
 
 const TAU=Math.PI*2;
-let backdrop, mist;
+let backdrop, mist, energyTexture;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const line=(c,x,y,ex,ey,color,width)=>{c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
@@ -36,12 +36,25 @@ function glow(c,x,y,r,alpha,hot=false) {
   g.addColorStop(1,'rgba(91,184,224,0)');
   c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
 }
+function beamTexture() {
+  if(energyTexture)return energyTexture;
+  const strip=document.createElement('canvas');strip.width=720;strip.height=1;
+  const s=strip.getContext('2d'),bloom=s.createLinearGradient(0,0,720,0);
+  for(const [at,color] of [[0,'#63bfea00'],[.12,'#63bfea08'],[.28,'#8cdef636'],[.33,'#b9f5ff85'],[.38,'#e5fcffe6'],[.45,'#ffffff'],[.55,'#ffffff'],[.62,'#e5fcffe6'],[.67,'#b9f5ff85'],[.72,'#8cdef636'],[.88,'#63bfea08'],[1,'#63bfea00']])bloom.addColorStop(at,color);
+  s.fillStyle=bloom;s.fillRect(0,0,720,1);
+  energyTexture=document.createElement('canvas');energyTexture.width=720;energyTexture.height=1024;
+  const c=energyTexture.getContext('2d');
+  for(let y=0;y<1024;y++){
+    const width=720*(y+.5)/1024;c.drawImage(strip,(720-width)/2,y,width,1);
+  }
+  return energyTexture;
+}
 function eye(c,h,index,energy,reduced) {
   const p=colossusEye(h,index),base=COLOSSUS_EYES[index],pose=colossusPose(h.age);
   c.save();
   // Restrict the optical mechanism to the aperture in the matte painting.
-  c.beginPath();c.ellipse(base.x+pose.x,base.y+pose.y,81,71,index?-.08:.12,0,TAU);c.clip();
-  c.translate(p.x,p.y);c.scale(1,.88);
+  c.beginPath();c.ellipse(base.x+pose.x,base.y+pose.y,1.8,1.6,0,0,TAU);c.clip();
+  c.translate(p.x,p.y);c.scale(.022,.022*.88);
   const rim=c.createRadialGradient(-12,-15,2,0,0,67);
   rim.addColorStop(0,'#172734');rim.addColorStop(.4,'#0c1823');rim.addColorStop(.85,'#13212c');rim.addColorStop(1,'#293c48');
   circle(c,0,0,64,rim);
@@ -66,13 +79,13 @@ function eye(c,h,index,energy,reduced) {
   circle(c,-2,1,6+energy*17,energy?`rgba(205,248,255,${.1+energy*.9})`:'#60798388');
   if(energy>0){glow(c,0,0,85,energy*.7,true);circle(c,0,0,5+energy*9,`rgba(244,254,255,${energy})`);}
   c.restore();
-  glow(c,p.x,p.y,140+energy*280,energy*.4);
+  glow(c,p.x,p.y,8+energy*65,energy*.35);
   if(energy>.3){
     c.save();c.globalCompositeOperation='screen';
-    const g=c.createLinearGradient(p.x-380,p.y,p.x+380,p.y);
+    const g=c.createLinearGradient(p.x-95,p.y,p.x+95,p.y);
     g.addColorStop(0,'#77e2ff00');g.addColorStop(.48,`rgba(179,235,252,${energy*.28})`);
     g.addColorStop(.5,`rgba(228,251,255,${energy*.6})`);g.addColorStop(.52,`rgba(179,235,252,${energy*.28})`);g.addColorStop(1,'#77e2ff00');
-    c.fillStyle=g;c.fillRect(p.x-380,p.y-1,760,2+energy*2);c.restore();
+    c.fillStyle=g;c.fillRect(p.x-95,p.y-.5,190,1+energy);c.restore();
   }
 }
 export function drawColossusSky(c,state,reduced=false) {
@@ -93,7 +106,7 @@ export function drawColossusSky(c,state,reduced=false) {
     c.drawImage(cloud,x,530+n*117,1480,155+n*25);
   }
   c.restore();
-  // Low foreground haze separates tiny, playable ruins from the distant face.
+  // Low foreground haze separates the playable ruins from the far horizon.
   const veil=c.createLinearGradient(0,750,0,1440);
   veil.addColorStop(0,'#0b162000');veil.addColorStop(.45,'#0b162032');veil.addColorStop(1,'#0b1620bb');
   c.fillStyle=veil;c.fillRect(0,750,2560,690);
@@ -129,12 +142,14 @@ export function drawColossusBeam(c,state,reduced=false) {
     const q=clamp((phase.charge-.18)/.5);
     const left=a.ex<b.ex?a:b,right=a.ex<b.ex?b:a;
     c.fillStyle=`rgba(158,214,231,${q*.055})`;
-    c.beginPath();c.moveTo(left.x-COLOSSUS.radius,left.y);c.lineTo(left.ex-COLOSSUS.radius,left.ey);
-    c.lineTo(right.ex+COLOSSUS.radius,right.ey);c.lineTo(right.x+COLOSSUS.radius,right.y);c.closePath();c.fill();
-    for(const edge of [a,b])line(c,edge.x,edge.y,edge.ex,edge.ey,`rgba(172,232,244,${q*.22})`,2);
+    const lx=Math.min(...beamEdges(left,1510)),rx=Math.max(...beamEdges(right,1510));
+    c.beginPath();c.moveTo(left.x,left.y);c.lineTo(lx,1510);
+    c.lineTo(rx,1510);c.lineTo(right.x,right.y);c.closePath();c.fill();
+    for(const edge of [a,b])line(c,edge.x,edge.y,edge.ex,edge.ey,`rgba(172,232,244,${q*.22})`,1.5);
     // Illumination is clipped to actual surviving stone, including prior cuts.
     for(const p of state.platforms){
-      const lo=Math.min(beamX(a,p.y),beamX(b,p.y))-70,hi=Math.max(beamX(a,p.y),beamX(b,p.y))+70;
+      const edges=[...beamEdges(a,p.y),...beamEdges(b,p.y)];
+      const lo=Math.min(...edges),hi=Math.max(...edges);
       const x=Math.max(p.x,lo),right=Math.min(p.x+p.w,hi);
       if(right>x){c.fillStyle=`rgba(160,222,231,${q*.42})`;c.fillRect(x,p.y,right-x,3);}
     }
@@ -153,14 +168,14 @@ export function drawColossusBeam(c,state,reduced=false) {
   c.globalAlpha=envelope;
   // Soft outer energy, a hard dangerous edge and a white-hot central core.
   c.save();c.translate(beam.x,beam.y);c.rotate(Math.atan2(beam.ey-beam.y,beam.ex-beam.x)-Math.PI/2);
-  const bloom=c.createLinearGradient(-180,0,180,0);
-  for(const [at,color] of [[0,'#63bfea00'],[.12,'#63bfea08'],[.28,'#8cdef636'],[.33,'#b9f5ff85'],[.38,'#e5fcffe6'],[.45,'#ffffff'],[.55,'#ffffff'],[.62,'#e5fcffe6'],[.67,'#b9f5ff85'],[.72,'#8cdef636'],[.88,'#63bfea08'],[1,'#63bfea00']])bloom.addColorStop(at,color);
-  c.fillStyle=bloom;c.fillRect(-180,0,360,Math.hypot(beam.ex-beam.x,beam.ey-beam.y));c.restore();
+  const length=Math.hypot(beam.ex-beam.x,beam.ey-beam.y);
+  c.drawImage(beamTexture(),-180,0,360,length);
+  c.restore();
   if(!reduced)for(let n=0;n<5;n++){
     const offset=Math.sin(h.age*1.2+n*1.7)*38;
-    line(c,beam.x+offset*.15,beam.y,beam.ex+offset,beam.ey,'#eeffff55',2+n%2);
+    line(c,beam.x+offset*.005,beam.y,beam.ex+offset,beam.ey,'#eeffff40',1+n%2);
   }
-  glow(c,beam.x,beam.y,400,.75,true);
+  glow(c,beam.x,beam.y,85,.6,true);
   // Bloom is local; it never whites out the HUD or hides all the escape routes.
   c.fillStyle=`rgba(165,219,241,${reduced ? .025 : .055})`;c.fillRect(0,0,2560,1440);
   for(const p of state.platforms.slice(0,260)){

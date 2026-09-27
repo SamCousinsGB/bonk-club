@@ -12,10 +12,12 @@ export async function gameFingerprint(directory = root) {
     if ((await fs.stat(file)).isDirectory()) {
       for (const name of (await fs.readdir(file)).sort()) await visit(relative + '/' + name);
     } else {
-      // These inputs are text. Git checkouts on Windows and Linux must identify
-      // the same source despite the configured checkout line endings.
+      // Normalize source text across Windows/Linux checkouts, but preserve every
+      // byte of raster artwork and any other binary game assets.
       hash.update(relative + '\0');
-      hash.update((await fs.readFile(file, 'utf8')).replaceAll('\r\n', '\n'));
+      const bytes=await fs.readFile(file);
+      hash.update(/\.(?:js|mjs|json|html|css|svg)$/i.test(relative)
+        ? bytes.toString('utf8').replaceAll('\r\n', '\n') : bytes);
     }
   }
   for (const name of ['src', 'index.html', 'favicon.svg', 'package.json', 'package-lock.json', 'vite.config.js', 'scripts/release-metadata.mjs']) await visit(name);

@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Colossus (v0.57.0 / protocol 79)
+
+- A tiny square-headed ancient mech stands on the remote horizon with torso and
+  limbs visible through layered mountain mist. This follows Sam's latest request
+  for a much more distant, creepier figure. Original generated matte artwork,
+  art direction and generation prompts are recorded in `docs/COLOSSUS.md`.
+- Low connected stone terraces preserve the skyline and offer escape routes.
+  Eyes follow the living fighters with a slow cascaded delay. Every forty seconds
+  an alternating eye charges for ten seconds and sweeps a laser for 4.5 seconds.
+  Perspective tapers the beam from the distant aperture into the foreground.
+- Host-owned damage, warning geometry, live terrain cuts and lighting agree.
+  Cuts persist through validated compact snapshots and hot joins; local weapons
+  cannot remove the remote controller. Bots escape through ordinary movement.
+  Audio seeks correctly when joining or unmuting; effects respect reduced motion.
+- Focused mechanics/audio tests and desktop visual inspection pass. Full release
+  verification is in progress; do not treat this note as public deployment proof.
+
 ## Suspension Bridge (v0.56.0 / protocol 78)
 
 - Added a desktop arena with two suspended road spans, tower interiors and lower

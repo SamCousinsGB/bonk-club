@@ -2,7 +2,7 @@ const terrace = (x, y, w, h = 32) => ({
   x, y, w, h, material: 'stone', colossusStone: true,
 });
 
-// A low, open ruin keeps the skyline clear. Staggered stairs connect both
+// A low, open ruin keeps the distant silhouette clear. Staggered stairs connect both
 // galleries; the lower crossing remains an escape route after an upper cut.
 export const COLOSSUS_ARENA = {
   name: 'COLOSSUS', theme: 'colossus', color: '#1a2734', colossus: true,

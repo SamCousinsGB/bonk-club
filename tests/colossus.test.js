@@ -18,7 +18,7 @@ function fixture(){const w=new World({arena:ARENAS.findIndex(a=>a.colossus),play
 function advance(w,seconds){for(let n=0;n<Math.round(seconds/STEP);n++){w.time+=STEP;updateColossus(w,w.hazards[0],STEP);}}
 function transport(w){return expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);}
 
-test('colossus terraces connect every spawn to contested weapons with the face above play',()=>{
+test('colossus terraces connect every spawn to contested weapons with the distant mech above play',()=>{
   const w=fixture(),solids=w.solids(),graph=navigation(solids,{time:0,spikes:[]});
   assert.ok(w.platforms.every(p=>p.y>=870));
   for(const p of w.players){
@@ -68,6 +68,15 @@ test('beam carves only its swept contact, releases removed supports and destroys
     prepareProp({id:'safe',kind:'crate',x:100,y:1040,w:72,h:64,hp:75,maxHp:75})];
   advance(w,STEP);assert.equal(w.cover[0].hp,0);assert.equal(w.cover[1].hp,75);
   assert.ok(w.chunks.length>0&&w.chunks.length<=96);
+});
+
+test('the distant beam narrows with perspective and cannot hit outside its visible cone',()=>{
+  const w=fixture(),h=w.hazards[0];h.age=26;h.strikeX=1280;
+  const beam=colossusBeam(h),nearEye=w.players[0],foreground=w.players[1];
+  Object.assign(nearEye,{x:beamX(beam,800)+50,y:800,spawnShield:0});
+  Object.assign(foreground,{x:beamX(beam,1300)+20,y:1300,spawnShield:0});
+  advance(w,STEP);
+  assert.equal(nearEye.hp,100);assert.equal(foreground.alive,false);
 });
 
 test('distant mech cannot be destroyed by local blasts; only host fight state advances it',()=>{
