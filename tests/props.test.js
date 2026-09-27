@@ -192,6 +192,7 @@ test("all arenas keep valid, bounded physical rubble after repeated destruction 
 
 test("conveyors carry rubble and saw fixtures break intact objects",()=>{
   const w=lab(),c=w.cover[0],zone={x:400,y:900,w:300,h:100};
+  w.arena={...w.arena,carWash:false};
   hazardProps(w,{type:"conveyor",dir:1,y:1000},zone,STEP);assert.ok(c.vx>0);
   hazardProps(w,{type:"saw",bodyX:550,bodyY:975,dir:1},zone,STEP);assert.equal(c.hp,0);assert.ok(w.chunks.length>0);
 });

@@ -64,10 +64,10 @@ Start new work from current `origin/main` in one clean worktree.
 
 ## World and effects invariants
 
-- Cargo Conveyor, Press Floor and Ice Sweep are deliberate Survival exceptions:
-  broad floors, unarmed starts and sparse contested weapons. Preserve the setting,
-  physical cargo, machinery warnings, ordinary-control AI dodges, destruction and
-  hot join rather than turning them into normal heavily armed tower layouts.
+- The playable arena roster is Transmission Towers, Arc Furnace, Car Assembly,
+  Turbine Hall, Bullet Train, Scrap Foundry, Cargo Plane Hold, Car Wash, Ocean
+  Liner, Waterworks, Suspension Bridge and Colossus. Keep removed arena assets
+  out of the browser build and map pools.
 - Maps must vary in theme and topology. Preserve traversal headroom, clear takeoffs,
   double-jump routes, alternatives and elevators; avoid tower repetition and head traps.
 - Explosions deform every platform type with successive circular cuts. Marked wood/

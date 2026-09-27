@@ -115,26 +115,6 @@ test("bubble pop damage is still applied once when a power fist launches its occ
   advance(w,q,5);assert.equal(q.hp,34);
 });
 
-test("moving traps break on their physical head, without treating a wide travel area as solid",()=>{
-  for(const x of [900,1250]){
-    const w=fixture(),[p,q]=w.players;
-    const h={id:1,type:"saw",x:1280,y:1200,w:1600,h:100,bodyX:x,bodyY:685,
-      age:0,duration:1,warning:0,active:false,done:false,vy:0,dir:1,hitIds:[]};w.hazards=[h];
-    w.platforms=[box("wall",910,500,8,400)];
-    w.attack(p);advance(w,q,25);
-    assert.equal(h.done,x===900);assert.ok(validSnapshot(packed(w)));
-  }
-});
-
-test("the body can hit another fighter once, crediting its puncher",()=>{
-  const w=fixture(),[p,q,r]=w.players;
-  Object.assign(r,{x:1000,y:680,hp:40});r.rig=makeRig(r);
-  let credit;w.onKill=event=>{credit=killCredit(w,event.source);};
-  w.attack(p);advance(w,q,30);
-  assert.equal(r.alive,false);assert.equal(credit.id,p.id);
-  assert.equal(w.ragdolls.length,1);
-});
-
 test("a lethal punch keeps the corpse curled, moving and destructive",()=>{
   const w=fixture(),[p,q]=w.players;q.hp=30;
   w.platforms=[box("wall",900,200,20,1000)];w.attack(p);

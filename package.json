@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.61.0",
-  "releaseNotes": "Colossus rises before faster, irregular laser attacks",
+  "version": "0.62.0",
+  "releaseNotes": "Arena selection reduced to twelve maps",
   "private": true,
   "type": "module",
   "scripts": {

@@ -7,12 +7,7 @@ export const PROP_SIZES = {
 };
 const palettes = {
   furnace:["generator","pallet","barrel"],
-  jungle:["log","planter","crate"],temple:["stone","planter","log"],
-  desert:["stone","barrel","crate"],ruins:["stone","crate","planter"],
-  houses:["sofa","planter","table"],mansion:["cabinet","sofa","planter"],
-  hospital:["bed","trolley","cabinet"],atrium:["trolley","planter","bed"],
-  arctic:["generator","crate","barrel"],volcano:["stone","generator","barrel"],
-  factory:["pallet","generator","barrel"],port:["crate","pallet","barrel"],
+  factory:["pallet","generator","barrel"],
   transmission:["generator","pallet","crate"],
 };
 export const fixtureBounds = t => {

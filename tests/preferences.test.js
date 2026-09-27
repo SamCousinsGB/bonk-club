@@ -18,7 +18,7 @@ test('invalid stored values do not create arbitrary character state', () => {
   assert.equal(p.profile.name, 'test'); assert.equal(p.profile.color, '#55baff');
   assert.equal(p.difficulty, 'easy'); assert.equal(p.arena, 'random'); assert.equal(p.muted, false);
   assert.equal(p.command, undefined);
-  assert.equal(cleanPreferences({arena:'survival'}).arena,'survival');
+  assert.equal(cleanPreferences({arena:'survival'}).arena,'random');
 });
 test('desktop preference writes are ordered and recover after a failed write', async () => {
   const writes = [];

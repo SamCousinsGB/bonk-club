@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { World, STEP, ARENAS, CITY_ARENAS, cleanInput } from "../src/engine.js";
+import { World, STEP, ARENAS, cleanInput } from "../src/engine.js";
 import {
   W,
   H,
@@ -80,11 +80,7 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
   for (let i = 0; i < ARENAS.length; i++) {
     const w = new World({ arena: i, players: [0, 1, 2, 3] });
     assert.ok(Math.max(...w.platforms.map((p) => p.x + p.w)) > (w.arena.ship ? 2350 : 2400));
-    if (w.arena.survival) {
-      assert.equal(w.platforms.length, 1);
-      assert.ok(w.platforms[0].w > 2300);
-      assert.ok(w.players.every(p=>p.y < w.platforms[0].y));
-    } else if(w.arena.colossus) {
+    if(w.arena.colossus) {
       assert.ok(w.platforms.every(p=>p.y>=870),'the distant silhouette stays above the playable ruins');
       assert.ok(w.platforms.length>=11&&w.platforms.some(p=>p.y>=1300));
       assert.ok(Math.abs(w.players[0].x-w.players[1].x)>2000);
@@ -103,53 +99,6 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
   }
 });
 
-// These are real movement/collision checks, using each building's full geometry.
-// A player can ascend either outside route even while the lifts are elsewhere.
-for (const arena of CITY_ARENAS)
-  for (const right of [false, true])
-    test(`outside route climbs all tall storeys in ${ARENAS[arena].name} (${right ? "right" : "left"})`, () => {
-      const w = new World({ arena }),
-        p = w.players[0];
-      const inside = right ? 2410 : 150,
-        outside = right ? 2490 : 70;
-      Object.assign(p, { x: inside, y: 1270, ground: true, vx: 0, vy: 0 });
-      for (let floorY = 1300; floorY > 340; floorY -= 320) {
-        for (const [x, y] of [
-          [outside, floorY - 160],
-          [inside, floorY - 320],
-        ]) {
-          let arrived = false;
-          for (let tick = 0; tick < 240; tick++) {
-            w.time += STEP;
-            w.movePlatforms();
-            w.move(
-              p,
-              cleanInput({
-                left: p.x > x + 4,
-                right: p.x < x - 4,
-                jump: tick === 0 || (tick === 40 && p.y + 30 > y),
-                aim: null,
-              }),
-              STEP,
-            );
-            if (
-              p.ground &&
-              Math.abs(p.y + 30 - y) < 1 &&
-              Math.abs(p.x - x) < 5 &&
-              Math.abs(p.vx) < 30
-            ) {
-              arrived = true;
-              break;
-            }
-          }
-          assert.ok(arrived, `missed landing ${x}, ${y}; at ${p.x}, ${p.y}`);
-          // Let the movement key release before starting the next jump.
-          w.move(p, cleanInput({ aim: null }), STEP);
-        }
-      }
-      assert.equal(p.y + 30, 340);
-    });
-
 test("long-range shots can reach the far side of the enlarged arena", () => {
   for (const type of ["blaster", "railgun", "rocket"]) {
     const w = new World(),
@@ -164,7 +113,7 @@ test("long-range shots can reach the far side of the enlarged arena", () => {
 });
 
 test("players and initial weapon pickups have time for a long pursuit before sudden death", () => {
-  const w = new World({ arena: CITY_ARENAS[0] });
+  const w = new World({ arena: 0 });
   assert.equal(SUDDEN_DEATH, 120);
   assert.ok(w.drops.every((d) => d.life >= SUDDEN_DEATH));
   w.phase = "fight";

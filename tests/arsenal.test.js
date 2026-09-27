@@ -306,7 +306,7 @@ test("rarity is weighted across tiers, including initial map pickups", () => {
     rare: 2000,
     exotic: 800,
   });
-  const w = new World({ arena: 16, random: () => 0.2 });
+  const w = new World({ arena: 7, random: () => 0.2 });
   assert.ok(w.drops.length > 0);
   assert.notEqual(w.drops[0].type, "nuke");
   assert.ok(["rare", "exotic"].includes(WEAPONS[w.drops[0].type].rarity));

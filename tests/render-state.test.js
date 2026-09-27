@@ -15,7 +15,7 @@ test('remote knockdown, freeze and transformation transitions apply without blen
 });
 
 test("render snapshots reduce transmitted bytes without mutating authoritative physics", async () => {
-  const w = new World({players:[0,1,2,3],arena:21,random:()=>.45});
+  const w = new World({players:[0,1,2,3],arena:7,random:()=>.45});
   for (let i=0;i<120;i++) w.step(STEP);
   const state = w.snapshot(), saved = structuredClone(state), encoder = new RenderSnapshots();
   const rendered = encoder.make(state);

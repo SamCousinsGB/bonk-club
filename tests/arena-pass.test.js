@@ -50,29 +50,6 @@ function fixture(type) {
   Object.assign(w.players[1],{x:1500,y:535,ground:true});return {w,h,p:w.players[0]};
 }
 function advance(w,t){for(let n=0;n<t/STEP;n++){w.time+=STEP;updateHazards(w,STEP);}}
-for(const type of ["xray","steam","frost","spores"])test(`${type} warns without damage, then affects only exposed fighters`,()=>{
-  const {w,h,p}=fixture(type);advance(w,.8);assert.equal(p.hp,100);assert.ok(h.warning>0);
-  Object.assign(w.players[1],{x:650,y:350});w.platforms.push({id:"shield",x:560,y:380,w:180,h:24,baseX:560,baseY:380,dx:0,dy:0});
-  advance(w,.3);assert.ok(p.hp<100&&p.alive);assert.equal(w.players[1].hp,100);
-  if(type==="xray")assert.ok(p.xray>0);
-  if(type==="steam"){assert.ok(p.vy<=-720);assert.equal(p.ground,false);}
-  if(type==="frost")assert.ok(p.chill>0);
-  assert.ok(validSnapshot(w.snapshot()));
-  w.startRound();assert.ok(w.players.every(p=>p.hp===100&&p.chill===0&&p.xray===0));
-});
-
-test("magnetic scanner pulls armed fighters and loose metal, with walls shielding the next room",()=>{
-  const {w,h,p}=fixture("magnet");p.weapon="blaster";
-  const metal=prepareProp({id:"metal",kind:"trolley",x:720,y:507,w:82,h:58,hp:75,maxHp:75});
-  const wood=prepareProp({id:"wood",kind:"pallet",x:530,y:531,w:104,h:34,hp:55,maxHp:55});
-  w.cover=[metal,wood];w.drops=[{x:580,y:535,vx:0,vy:0,type:"shotgun",ammo:5,life:60}];
-  Object.assign(w.players[1],{x:610,y:535,vx:0,weapon:null});advance(w,1.2);
-  assert.ok(p.vx<0);assert.equal(p.hp,99);assert.equal(w.players[1].vx,0);
-  assert.ok(w.drops[0].vx>0);assert.ok(metal.vx<0);assert.equal(wood.vx,0);
-  p.vx=0;w.platforms.push({id:"wall",x:665,y:370,w:12,h:195,baseX:665,baseY:370,dx:0,dy:0});advance(w,.1);assert.equal(p.vx,0);
-  assert.ok(validSnapshot(w.snapshot()));
-});
-
 test("mounted fixtures disable when their floor is destroyed and reject malformed wire state",()=>{
   for(const type of HAZARD_TYPES.slice(6).filter(type=>!["furnace","turbine","airflow"].includes(type))){
     const {w,h,p}=fixture(type);h.active=true;
@@ -102,5 +79,5 @@ test("new props retain physical mass, break into material pieces and reset on al
     if(w.chunks.length){updateProps(w,STEP);assert.ok(w.chunks.every(c=>c.material&&c.id));}
     w.startRound();assert.equal(w.chunks.length,0);assert.ok(w.cover.every(p=>p.hp===p.maxHp));
   }
-  assert.equal(seen.size,4);
+  assert.deepEqual([...seen].sort(),["generator","pallet","trolley"]);
 });

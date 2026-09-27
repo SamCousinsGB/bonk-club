@@ -23,15 +23,6 @@ test("two railgun bots on adjoining floor panels do not veto each other's close-
  Object.assign(w.players[1],{x:700,y:535,ground:true});advance(w,2);
  assert.ok(w.players.some(p=>p.hp<100));assert.ok(w.events.some(e=>e.type==="shoot"));
 });
-for(const weapon of ["bat","grenade","nuke","machinegun"])
- test(`Garden Houses: bottom-floor ${weapon} bot climbs toward the upper opponent`,()=>{
-  const w=new World({bots:[1],arena:16,shuffle:false,random:()=>.45});w.phase="fight";w.hazards=[];w.drops=[];w.weaponTimer=999;
-  Object.assign(w.players[0],{x:2020,y:930,ground:true});Object.assign(w.players[1],{x:760,y:1290,ground:true,weapon,ammo:WEAPONS[weapon].ammo});
-  let highest=1290,travel=0,oldX=760;
-  for(let n=0;n<18/STEP&&w.phase==="fight";n++){w.step(STEP);const p=w.players[1];highest=Math.min(highest,p.y);travel+=Math.abs(p.x-oldX);oldX=p.x;}
-  assert.ok(travel>250,`${weapon} never left the bottom position`);
-  assert.ok(highest<1120||w.players[0].hp<100,`${weapon} could not climb: ${highest}`);
- });
 test("all spawn pairs have traversable routes before any floors are destroyed",()=>{
  for(let arena=0;arena<ARENAS.length;arena++){
   const w=new World({players:[0,1,2,3],arena,shuffle:false});

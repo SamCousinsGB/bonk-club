@@ -194,7 +194,7 @@ test("black hole captures grounded fighters through torn cover and compresses th
 test("black hole twists structural platforms and traps into lasting, breakable collision geometry", () => {
   const w = new World({
     players: [0, 1, 2, 3],
-    arena: 18,
+    arena: 7,
     shuffle: false,
     random: () => 0.4,
   });

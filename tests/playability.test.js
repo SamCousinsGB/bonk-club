@@ -45,14 +45,18 @@ test('walking off a platform retains one air jump after coyote time, not two',()
  const vy=p.vy;w.move(p,cleanInput({}),STEP);w.move(p,cleanInput({jump:true}),STEP);
  assert.ok(p.vy>vy);
 });
-test('the eight original maps have distinct main routes and retain large world dimensions',()=>{
- const shapes=ARENAS.slice(0,8).map(a=>JSON.stringify(a.platforms.filter(p=>p.x>600&&p.x<1800).map(p=>[p.x,p.y,p.w])));
- assert.equal(new Set(shapes).size,8);
- for(const a of ARENAS.slice(0,8)){assert.ok(a.theme);assert.ok(a.platforms.some(p=>p.y>=1300));assert.ok(a.platforms.some(p=>p.y<=300));}
+test('only the selected arenas remain available for matches',()=>{
+ assert.deepEqual(ARENAS.map(a=>a.name),[
+  'TRANSMISSION TOWERS','ARC FURNACE','CAR ASSEMBLY','TURBINE HALL',
+  'BULLET TRAIN','SCRAP FOUNDRY','CARGO PLANE HOLD','CAR WASH',
+  'OCEAN LINER','WATERWORKS','SUSPENSION BRIDGE','COLOSSUS',
+ ]);
+ assert.equal(new Set(ARENAS.map(a=>a.name)).size,12);
+ for(const a of ARENAS)assert.ok(a.platforms.length>0&&a.spawns.length===4,a.name);
 });
 test('featured nuclear pickup rotates among contested interior locations',()=>{
  const positions=new Set();
- for(let seed=1;seed<=12;seed++) {let n=seed*914;const random=()=> (n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296;const w=new World({arena:8,random});w.round=3;w.startRound();const d=w.drops.find(d=>d.type==='nuke');assert.ok(d);assert.ok(d.x>=650&&d.x<=1910);assert.ok(w.arena.spawns.every(([x,y])=>Math.hypot(d.x-x,d.y-y)>=300));positions.add(`${d.x},${d.y}`);}
+ for(let seed=1;seed<=12;seed++) {let n=seed*914;const random=()=> (n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296;const w=new World({arena:7,random});w.round=3;w.startRound();const d=w.drops.find(d=>d.type==='nuke');assert.ok(d);assert.ok(d.x>=650&&d.x<=1910);assert.ok(w.arena.spawns.every(([x,y])=>Math.hypot(d.x-x,d.y-y)>=300));positions.add(`${d.x},${d.y}`);}
  assert.ok(positions.size>=2, 'the featured pickup must not remain on one perch');
 });
 test('pickup text avoids fighters and other weapon labels',()=>{
@@ -62,7 +66,7 @@ test('pickup text avoids fighters and other weapon labels',()=>{
  for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++){const a=labels[i],b=labels[j];assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y);}
 });
 test('bot routes build during countdown and no navigation work is scheduled for eliminated bots',()=>{
- const w=new World({players:[0,1],bots:[1],arena:8});
+ const w=new World({players:[0,1],bots:[1],arena:7});
  w.step(STEP);assert.equal(w.ai.graph.size,1);assert.ok(w.ai.pendingNavigation);
  for(let n=0;n<150;n++)w.step(STEP);
  assert.ok(w.ai.graph.size>25);assert.equal(w.phase,'countdown');
