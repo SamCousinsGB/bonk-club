@@ -8,6 +8,13 @@ const gradient=(c,y,h,stops)=>{const g=c.createLinearGradient(0,y,0,y+h);stops.f
 function hullPath(c){path(c,[[230,680],[2350,680],[2120,SHIP.bottom],[440,SHIP.bottom]]);}
 function lamp(c,x,y,color='#ffcf88',r=65){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color+'52');g.addColorStop(1,color+'00');circle(c,x,y,r,g);rect(c,x-15,y-3,30,6,color);}
 function rail(c,x,y,w){line(c,[[x,y],[x+w,y]],'#789393',2);for(let a=x;a<=x+w;a+=100)line(c,[[a,y],[a,y+44]],'#658181',2);}
+function backgroundCrate(c,x,bottom,w,h){
+  const y=bottom-h;
+  rect(c,x,y,w,h,gradient(c,y,h,[[0,'#4c5047'],[1,'#35413f']]));
+  for(let n=1;n<4;n++)line(c,[[x+w*n/4,y+5],[x+w*n/4,bottom-5]],'#34423e',2);
+  line(c,[[x+3,y+3],[x+w-3,y+3],[x+w-3,bottom-3],[x+3,bottom-3],[x+3,y+3]],'#606253',5);
+  line(c,[[x+6,bottom-6],[x+w-6,y+6]],'#686653',5);
+}
 
 export function drawShipSky(c,time,reduced){
   rect(c,0,0,2560,1440,gradient(c,0,1000,[[0,'#091927'],[.48,'#284857'],[.7,'#b18e7e'],[1,'#183645']]));
@@ -45,6 +52,14 @@ export function drawShipInterior(c){
     line(c,[[x+30,748],[x+394,748]],'#38505a',2);
     lamp(c,x+212,710,'#c6c4a3',28);
   }
+  // Sparse, subdued storage painted on the back wall, behind physical cargo,
+  // fighters and floodwater. Keep the open upper hold and exit ledges clear.
+  for(const [x,offset,w,h] of [
+    [555,0,78,72],
+    [1145,0,120,80],[1271,0,100,66],[1185,80,90,62],
+    [1740,0,128,88],[1784,88,76,62],
+    [1975,0,108,90],
+  ])backgroundCrate(c,x,SHIP.bottom-offset,w,h);
   c.restore();
   // Muted superstructure sits behind the bright, physical deck edges.
   // Overlap the hull top slightly so the shared edge stays sealed when tilted.

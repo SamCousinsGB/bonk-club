@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.2",
-  "releaseNotes": "Spaghetti-fied status for black-hole capture",
+  "version": "0.54.3",
+  "releaseNotes": "Simple background cargo in the Ocean Liner hold",
   "private": true,
   "type": "module",
   "scripts": {

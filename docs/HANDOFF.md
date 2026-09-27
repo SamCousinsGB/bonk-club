@@ -11,6 +11,17 @@ emulate, test or check phone/mobile/tablet support. This overrides all historica
 mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
 builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
 
+## Ocean Liner background cargo
+
+- v0.54.3 / protocol 75 adds seven simple wooden crates in four sparse groups
+  along the back of the hold. Muted colours and minimal plank/bracing detail
+  separate the cached background artwork from brighter physical cargo and actors.
+  Hull clipping, ship tilt and foreground floodwater also apply to this artwork.
+- Includes the cabin seam fix below. Desktop renders cover level, both tilt
+  directions and partial flooding; collision and simulation are unchanged.
+  Evidence: `bonk-club-qa/ocean-cabin-*`. Verify CI/Pages, exact public artifact
+  parity and the public desktop game before describing this revision as live.
+
 ## Black-hole status icon
 
 - v0.54.2 adds the requested untimed `Spaghetti-fied` status and a stretched-fighter
