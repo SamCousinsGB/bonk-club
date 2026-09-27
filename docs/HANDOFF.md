@@ -9,8 +9,11 @@ history through v0.40.0 is archived in
 - v0.54.5 replaces the fixed blue chilled rectangle with a light outline that
   follows the fighter's joints. Frozen crystal art remains pose-attached.
 - Focused effect tests, the full regular suite, the browser build and desktop
-  visual comparison of chilled and frozen poses passed locally. Verify CI,
-  Pages and public artifact parity before describing this revision as live.
+  visual comparison of chilled and frozen poses passed locally. Release
+  [workflow 36330072700](https://github.com/SamCousinsGB/bonk-club/actions/runs/36330072700)
+  passed validation, all six arena stress shards, Windows and Linux desktop
+  checks, release verification and Pages deployment. All 17 public files match
+  the CI browser artifact byte for byte; the public menu reports v0.54.5.
 
 ## Desktop-only scope
 
