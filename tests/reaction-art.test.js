@@ -49,7 +49,7 @@ test('trace falling water stays compact and preserves volume instead of making l
 test('hundreds of live airborne parcels have bounded detailed arcs without mutating charge',()=>{
   const s=state(Array.from({length:240},(_,i)=>parcel(i+1,(i%40)*60,100+Math.floor(i/40)*150,{h:1,grounded:false,vy:900})));
   let pulses=0,glows=0;
-  const c=new Proxy({arc(){pulses++;},fillRect(){glows++;}}, {get(o,k){return o[k]??(()=>{});}});
+  const c=new Proxy({arc(){pulses++;},roundRect(){glows++;}}, {get(o,k){return o[k]??(()=>{});}});
   drawElectricity(c,s,1);
   assert.equal(pulses,FALLING_ARC_LIMIT);assert.equal(glows,240-FALLING_ARC_LIMIT);
   assert.ok(s.water.every(q=>q.charge===1));

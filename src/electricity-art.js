@@ -104,7 +104,7 @@ export function drawElectricity(c,state,time) {
     const a=anchor(run[index]),b=anchor(run[Math.min(run.length-1,index+3)]);
     electricArc(c,a,b,time,seedOf(run[0])+177,1.15);
   }
-  let fallingArcs=0;
+  let fallingArcs=0;const fallingGlow=[];
   for(const b of nodes) {
     const seed=seedOf(b);
     if(b.polygon) {
@@ -122,7 +122,7 @@ export function drawElectricity(c,state,time) {
         // Every live parcel stays visibly charged. Reserve branching detail for
         // a bounded subset instead of hundreds of multi-stroke bolts per frame.
         if(!connected.has(b)&&fallingArcs++<FALLING_ARC_LIMIT)electricArc(c,{x:q.x+q.w/2,y:q.y},{x:q.x+q.w/2,y:q.y+q.h},time,seed,.8,false);
-        else {c.fillStyle='#9beaff60';c.fillRect(q.x,q.y,q.w,q.h);}
+        else fallingGlow.push(q);
       }
     }else {
       const poly=conductorPolygon(b),start=time*.7+noise(seed),points=[];
@@ -132,6 +132,12 @@ export function drawElectricity(c,state,time) {
       channel(c,writhing,b.chunk?.6:1);
       electricArc(c,perimeterPoint(poly,start+.65),perimeterPoint(poly,start+.87),time,seed+89,b.chunk?.5:.8,false);
     }
+  }
+  // One translucent fill avoids bright rectangular overlap seams in waterfalls.
+  if(fallingGlow.length){
+    c.beginPath();
+    for(const q of fallingGlow){c.moveTo(q.x+q.w/2,q.y);c.roundRect(q.x,q.y,q.w,q.h,Math.min(q.w,q.h)/2);}
+    c.fillStyle='#9beaff60';c.fill();
   }
   for(const h of state.hazards||[])if(h.type==="tesla"&&h.active&&!h.done) {
     const z=hazardZone(h),near=nodes.filter(b=>{const a=conductorBounds(b);return a.x<z.x+z.w+2&&a.x+a.w>z.x-2&&a.y<z.y+z.h+2&&a.y+a.h>z.y-2;});
