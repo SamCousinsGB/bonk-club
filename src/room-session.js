@@ -1,3 +1,4 @@
+import { TRAIN_Y, TRAIN_SPEED } from "./setpiece-arenas.js";
 import { validFurnace } from './furnace-parts.js';
 import { validVictoryCause } from "./victory.js";
 import { validAssembly } from "./assembly.js";
@@ -38,7 +39,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 76;
+export const PROTOCOL = 77;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -918,8 +919,9 @@ export function validSnapshot(s) {
         (h.planeWing === undefined || (h.type==="turbine" && ARENAS[s.arenaIndex]?.cargoPlane === true && [-1,1].includes(h.planeWing))) &&
         (h.wingLoose === undefined || (h.wingLoose===true && !!h.planeWing && finite(h.wingAt) && h.wingAt>=0)) &&
         (h.type !== "ladle" || (Number.isFinite(h.ladleLeft) && h.ladleLeft>=0 && h.ladleLeft<=3000 && ARENAS[s.arenaIndex]?.theme === "foundry" && h.w === 150 && h.h === 760 && h.y === 1380 && [790,1770].includes(h.x))) &&
-        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === 1060 && h.x === 1280 &&
-          typeof h.derailed === "boolean" && finite(h.angle) && Math.abs(h.angle) <= Math.PI && finite(h.vx) && Math.abs(h.vx) <= 6400 &&
+        (h.type !== "train" || (ARENAS[s.arenaIndex]?.theme === "railway" && h.w === 3200 && h.h === 150 && h.y === TRAIN_Y && h.x === 1280 &&
+          ((h.wreck === undefined && h.id===1) || (h.wreck === true && h.derailed && h.id>1)) &&
+          typeof h.derailed === "boolean" && finite(h.angle) && Math.abs(h.angle) <= Math.PI && finite(h.vx) && Math.abs(h.vx) <= TRAIN_SPEED &&
           finite(h.spin) && Math.abs(h.spin) <= 7 && Math.abs(h.bodyX) <= 8000 && h.bodyY >= -2500 && h.bodyY <= 6000 && validTrainCarriages(h))) &&
         (h.assemblyStation === undefined || (integer(h.assemblyStation, 1, 4) && !!s.assembly &&
           h.type === (h.assemblyStation === 1 ? "crusher" : "tesla") &&

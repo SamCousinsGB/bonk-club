@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.5",
-  "releaseNotes": "Chilled effect follows the fighter instead of drawing a box",
+  "version": "0.55.0",
+  "releaseNotes": "Rebuilt monorail arena, slower trains and continuous alternating arrivals",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,26 +1,33 @@
 const solid = (x,y,w,h=40) => ({x,y,w,h,material:"stone"});
 const grate = (x,y,w) => ({x,y,w,h:12,material:"metal",oneWay:true});
 
-export const TRAIN_Y = 1060;
+export const TRAIN_Y = 1380;
 export const TRAIN_LENGTH = 3200;
 export const TRAIN_HEIGHT = 150;
-export const TRAIN_SPEED = 6400;
+export const TRAIN_SPEED = 5120;
 export const TRAIN_CYCLE = 11;
 export const TRAIN_START = 5;
 export const TRAIN_ARENA = {
   name:"BULLET TRAIN", theme:"railway", color:"#263c50", setpiece:true,
   platforms:[
-    ...Array.from({length:16},(_,i)=>solid(i*160,TRAIN_Y,160,44)),
-    solid(30,1300,610),solid(960,1300,640),solid(1920,1300,610),
-    grate(70,820,270),grate(2220,820,270),
-    grate(460,780,280),grate(900,780,260),grate(1400,780,260),grate(1820,780,280),
-    grate(170,550,260),grate(650,530,280),grate(1110,510,340),grate(1630,530,280),grate(2130,550,260),
-    solid(0,TRAIN_Y,50,90),solid(2510,TRAIN_Y,50,90),
+    // Single segmented guide beam at the bottom; no fighting floor beneath it.
+    ...Array.from({length:16},(_,i)=>solid(i*160,TRAIN_Y,160,60)),
+    // Arrival concourses, a low central service island and exposed stepping decks.
+    solid(0,1120,460,46),solid(2100,1120,460,46),
+    grate(580,1160,230),grate(1750,1160,230),grate(1060,1100,440),
+    grate(280,900,280),grate(2000,900,280),
+    grate(750,930,260),grate(1550,930,260),
+    solid(1110,710,340,36),
+    grate(50,660,240),grate(2270,660,240),
+    grate(490,660,310),grate(1760,660,310),
+    grate(880,470,260),grate(1420,470,260),
+    solid(270,400,300,32),solid(1990,400,300,32),
   ],
-  spawns:[[180,778],[2380,778],[300,508],[2260,508]],
-  weapons:[[1030,750],[1530,750]],starterWeapons:[],spikes:[],
-  cover:[{x:510,y:712,w:65,h:68,kind:"crate",hp:85,maxHp:85},
-    {x:1980,y:712,w:65,h:68,kind:"crate",hp:85,maxHp:85}],
+  spawns:[[160,1090],[2400,1090],[630,630],[1930,630]],
+  weapons:[[870,900],[1690,900]],starterWeapons:[],spikes:[],
+  cover:[{x:300,y:1052,w:65,h:68,kind:"crate",hp:85,maxHp:85},
+    {x:2195,y:1052,w:65,h:68,kind:"crate",hp:85,maxHp:85},
+    {x:1190,y:1032,w:64,h:68,kind:"cabinet",hp:95,maxHp:95}],
   hazards:["train"],traps:[{type:"train",x:1280,y:TRAIN_Y,w:TRAIN_LENGTH,h:TRAIN_HEIGHT,dir:1}],
 };
 

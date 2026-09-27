@@ -22,6 +22,23 @@ emulate, test or check phone/mobile/tablet support. This overrides all historica
 mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
 builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
 
+## Bottom monorail arena
+
+- v0.55.0 / protocol 77 moves the guideway to y=1380, reduces train speed by
+  exactly 20% to 5120, and removes both rectangular motion smears. Elevated
+  concourses, staggered service grates and balconies share the normal navigation,
+  jump-through and destruction rules. All spawns can reach both opening weapons.
+- A persistent service clock continues two-second signals and alternating trains
+  every eleven seconds after approach damage or derailment. Previous articulated
+  wrecks retain distinct IDs and collide with later services; escaped wrecks clear.
+  Up to six archived sets remain articulated; older sets enter the existing bounded
+  physical metal-rubble system. Black holes cannot delete the service controller.
+- Keeps the prior mechanical crash artwork, braking, torn metal, contact sparks
+  and finite dust. Crashes preserve surviving guideway and fixed signals.
+- Focused coverage includes double-jump clearance, rotated collision, repeated
+  service after damage, bounded long rounds and compact hot joins. Desktop visual
+  and release evidence lives in `bonk-club-qa/monorail`. Release verification pending.
+
 ## Ocean Liner background cargo
 
 - v0.54.3 / protocol 75 adds seven simple wooden crates in four sparse groups

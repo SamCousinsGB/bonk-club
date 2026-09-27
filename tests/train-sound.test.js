@@ -4,15 +4,15 @@ import { Sound } from '../src/audio.js';
 import { synthesizeTrain, TRAIN_PASS_SECONDS, TRAIN_SOUND_SECONDS } from '../src/train-sound.js';
 import { trainPose } from '../src/trains.js';
 
-test('express crosses the arena in under a second; rushing wind remains strong across the pass and fades out',()=>{
-  assert.ok(TRAIN_PASS_SECONDS<1);
+test('express runs twenty percent slower; rushing wind remains strong across the pass and fades out',()=>{
+  assert.equal(TRAIN_PASS_SECONDS,1.125);
   const rate=24000,pcm=synthesizeTrain(rate);
   const rms=(a,b)=>Math.sqrt(pcm.slice(a*rate,b*rate).reduce((s,v)=>s+v*v,0)/((b-a)*rate));
   assert.equal(pcm.length,Math.ceil(TRAIN_SOUND_SECONDS*rate));
   assert.ok(pcm.every(v=>Number.isFinite(v)&&Math.abs(v)<=.82));
   assert.equal(Math.abs(pcm[0]),0);assert.equal(Math.abs(pcm.at(-1)),0);
   assert.ok(rms(.2,.4)>.16);assert.ok(rms(.6,.75)>.12);
-  assert.ok(rms(1.02,1.1)<rms(.2,.4)/3);
+  assert.ok(rms(TRAIN_SOUND_SECONDS-.10,TRAIN_SOUND_SECONDS-.03)<rms(.2,.4)/3);
 });
 
 function fixture(){
@@ -32,7 +32,7 @@ test('one bounded pass voice seeks on hot join, pans in travel direction and can
   assert.ok(Math.abs(f.played[0].offset-.35)<1e-6);assert.equal(f.pans.at(-1),.85);
   for(let i=0;i<100;i++)f.s.update(f.state);assert.equal(f.played.length,1);
   f.seek(5.55);assert.equal(f.played.length,1);
-  f.seek(6.15);assert.equal(f.s.train.current,null);assert.equal(f.stops.length,1);
+  f.seek(6.5);assert.equal(f.s.train.current,null);assert.equal(f.stops.length,1);
   f.seek(16.3);assert.equal(f.pans.at(-1),-.85);
   f.s.play('hazard',{kind:'train'});assert.equal(f.played.length,2);
 });

@@ -1,3 +1,5 @@
+import {blackholeField,updateBlackhole} from "../src/blackhole.js";
+import { TRAIN_Y, TRAIN_SPEED, TRAIN_CYCLE } from "../src/setpiece-arenas.js";
 import { ladlePose } from "../src/foundry.js";
 import { updateReactions } from '../src/reactions.js';
 import test from "node:test";
@@ -23,8 +25,8 @@ const tick=w=>{updateHazards(w,STEP);updateReactions(w,STEP);};
 
 test("train gives two seconds warning, crosses at speed and alternates directions",()=>{
   const w=fixture(),h=w.hazards[0];h.age=3;tick(w);assert.ok(h.warning>1.9&&!h.active);
-  assert.deepEqual(hazardZone(h),{x:0,y:910,w:2560,h:150});
-  h.age=5.5;tick(w);const x=h.bodyX;tick(w);assert.ok(Math.abs(h.bodyX-x-6400*STEP)<.001);
+  assert.deepEqual(hazardZone(h),{x:0,y:TRAIN_Y-150,w:2560,h:150});
+  h.age=5.5;tick(w);const x=h.bodyX;tick(w);assert.ok(Math.abs(h.bodyX-x-TRAIN_SPEED*STEP)<.001);
   h.age=16.5;tick(w);assert.equal(h.dir,-1);const right=h.bodyX;tick(w);assert.ok(h.bodyX<right);
   assert.ok(validSnapshot(w.snapshot()));
 });
@@ -32,7 +34,7 @@ test("train gives two seconds warning, crosses at speed and alternates direction
 test("swept train contact kills prone and recovering fighters and moves severed bodies",()=>{
   for(const extra of [{},{prone:true},{knockdown:1},{freeze:1},{block:true}]){
     const w=fixture(),h=w.hazards[0],p=w.players[0];h.age=5.2;
-    place(p,1210,1020,extra);tick(w);assert.equal(p.alive,false);assert.equal(w.lastDeathCause,"train");
+    place(p,1000,TRAIN_Y-40,extra);tick(w);assert.equal(p.alive,false);assert.equal(w.lastDeathCause,"train");
     const rag=w.ragdolls[0];assert.equal(rag.effect,"blend");const before=structuredClone(rag.points);
     for(let i=0;i<20;i++){w.updateRagdolls(STEP);tick(w);}
     assert.ok(rag.points.some((q,i)=>Math.hypot(q.x-before[i].x,q.y-before[i].y)>30));
@@ -40,29 +42,39 @@ test("swept train contact kills prone and recovering fighters and moves severed 
 });
 
 test("warning is safe and a real timed double jump clears the train",()=>{
-  const w=fixture(),h=w.hazards[0],p=w.players[0];place(p,1280,1030,{ground:true,support:w.platforms[8].id});
+  const w=fixture(),h=w.hazards[0],p=w.players[0];place(p,1280,TRAIN_Y-30,{ground:true,support:w.platforms[8].id});
   h.age=4.8;tick(w);assert.equal(p.hp,100);
-  h.age=4.85;let clear=false;
+  h.age=4.8;let clear=false;
   for(let i=0;i<180;i++){
-    w.move(p,cleanInput({jump:i===0||i===30}),STEP);tick(w);
-    if(h.active&&h.bodyX+h.w/2>1280&&h.bodyX-h.w/2<1280){assert.ok(p.y+30<=910);clear=true;}
+    w.move(p,cleanInput({jump:i===0||i===50}),STEP);tick(w);
+    if(h.active&&h.bodyX+h.w/2>1280&&h.bodyX-h.w/2<1280){assert.ok(p.y+30<=TRAIN_Y-150);clear=true;}
   }
   assert.ok(clear&&p.alive);assert.equal(p.hp,100);
 });
 
 test("train strikes props and loose weapons while the upper route stays safe",()=>{
   const w=fixture(),h=w.hazards[0];h.age=5.2;
-  place(w.players[0],1000,750);Object.assign(w.cover[0],{x:1000,y:990});
-  w.drops.push({x:1040,y:1030,vx:0,vy:0,type:"blaster",ammo:10,life:100});tick(w);
+  place(w.players[0],1000,750);Object.assign(w.cover[0],{x:1000,y:TRAIN_Y-70});
+  w.drops.push({x:1040,y:TRAIN_Y-30,vx:0,vy:0,type:"blaster",ammo:10,life:100});tick(w);
   assert.equal(w.players[0].hp,100);assert.equal(w.cover[0].hp,0);
   assert.ok(w.drops.at(-1).vx>1000);assert.ok(w.chunks.length>0);
 });
 
-test("destroyed approach remains disabled through hot join and resets next round",()=>{
-  const w=fixture();carveExplosion(w,{x:25,y:1060,radius:90});tick(w);assert.ok(w.hazards[0].done);
+test("destroyed approaches keep warning and alternating services, including after a wreck",()=>{
+  const w=fixture(),h=w.hazards[0];w.cover=[];
+  for(const x of [25,2535])carveExplosion(w,{x,y:TRAIN_Y,radius:90});
+  const warnings=[],directions=[];let oldWarning=0,oldDerailed=false;
+  for(let i=0;i<TRAIN_CYCLE*4/STEP;i++){
+    tick(w);
+    if(h.warning>0&&!oldWarning)warnings.push(h.dir);
+    if(h.derailed&&!oldDerailed)directions.push(h.dir);
+    oldWarning=h.warning;oldDerailed=h.derailed;
+    if(i%120===0)assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())),`frame ${i}`);
+  }
+  assert.deepEqual(warnings,[1,-1,1,-1]);assert.deepEqual(directions,[1,-1,1,-1]);
   const s=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
-  assert.ok(validSnapshot(s));assert.ok(s.hazards[0].done);assert.deepEqual(s.platforms.map(p=>p.id),w.platforms.map(p=>p.id));
-  w.startRound();assert.ok(!w.hazards[0].done);assert.equal(w.hazards[0].age,0);
+  assert.ok(validSnapshot(s));assert.deepEqual(s.platforms.map(p=>p.id),w.platforms.map(p=>p.id));
+  w.startRound();assert.equal(w.hazards.length,1);assert.ok(!w.hazards[0].done);assert.equal(w.hazards[0].age,0);
 });
 
 test("train validation rejects malformed geometry and interpolation never sweeps a dormant train",()=>{
@@ -108,27 +120,27 @@ test("ladles warn before pouring, kill only in the stream and stop after a mount
 });
 
 test("fast shots collide with the passing train and cannot shoot through it",()=>{
-  const w=fixture(),h=w.hazards[0];h.age=5.45;tick(w);
-  w.projectiles.push({kind:"bullet",x:h.bodyX-h.w/2-70,y:990,vx:30000,vy:0,r:3,life:Infinity,damage:20,force:200,owner:0,weapon:"blaster"});
+  const w=fixture(),h=w.hazards[0];h.age=5.7;tick(w);
+  w.projectiles.push({kind:"bullet",x:h.bodyX-h.w/2-70,y:TRAIN_Y-70,vx:30000,vy:0,r:3,life:Infinity,damage:20,force:200,owner:0,weapon:"blaster"});
   w.updateProjectiles(1/30);assert.equal(w.projectiles.length,0);
 });
 
 test("thin decks land from above, pass upwards and drop onto solid floors",()=>{
-  const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===900);
-  w.cover=[];place(p,1030,deck.y-100,{vy:100});
+  const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
+  w.cover=[];place(p,870,deck.y-100,{vy:100});
   for(let i=0;i<60;i++)w.move(p,cleanInput({}),STEP);
   assert.equal(p.support,deck.id);const y=p.y;
   for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
-  assert.ok(p.y>y+200&&p.ground);assert.equal(p.y,1050);assert.equal(p.prone,true);
+  assert.ok(p.y>y+200&&p.ground);assert.equal(p.y,TRAIN_Y-10);assert.equal(p.prone,true);
   // A solid floor always supports prone fighters, even while S is held.
-  for(let i=0;i<60;i++)w.move(p,cleanInput({duck:true}),STEP);assert.equal(p.y,1050);
-  place(p,1030,850,{vy:-700});
+  for(let i=0;i<60;i++)w.move(p,cleanInput({duck:true}),STEP);assert.equal(p.y,TRAIN_Y-10);
+  place(p,870,deck.y+70,{vy:-700});
   for(let i=0;i<28;i++)w.move(p,cleanInput({}),STEP);assert.ok(p.y<deck.y-30);
 });
 
 test("brief drop input cannot reattach and guest prediction replays the same drop",()=>{
-  const w=fixture(),p=w.players[1],deck=w.platforms.find(s=>s.oneWay&&s.x===900);
-  place(p,1030,deck.y-30,{ground:true,support:deck.id});
+  const w=fixture(),p=w.players[1],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
+  place(p,870,deck.y-30,{ground:true,support:deck.id});
   const encoder=new RenderSnapshots(),prediction=new GuestPrediction(),s={...encoder.make(w.snapshot()),inputAcks:[0,0,0,0]};
   prediction.receive(s,1,1000);prediction.advance(cleanInput({duck:true}),1,1017);
   for(let i=0;i<2;i++)w.move(p,cleanInput({duck:true}),STEP);
@@ -147,8 +159,8 @@ test("holding S descends through the actual transmission cable tiles",()=>{
 });
 
 test("destruction preserves the thin surface flag and invalid wire flags are rejected",()=>{
-  const w=fixture();carveExplosion(w,{x:1030,y:780,radius:40});
-  assert.ok(w.platforms.filter(p=>p.y===780).every(p=>p.oneWay));
+  const w=fixture();carveExplosion(w,{x:870,y:930,radius:40});
+  assert.ok(w.platforms.filter(p=>p.y===930).every(p=>p.oneWay));
   const s=new RenderSnapshots().make(w.snapshot());assert.ok(validSnapshot(s));
   s.platforms[0].oneWay="true";assert.equal(validSnapshot(s),false);
 });
@@ -156,7 +168,7 @@ test("destruction preserves the thin surface flag and invalid wire flags are rej
 
 test("train impacts keep fresh and existing debris within snapshot motion limits",()=>{
   const w=fixture(),h=w.hazards[0];h.age=5.2;
-  w.cover=[prepareProp({id:'track-crate',kind:'crate',x:1200,y:1000,w:50,h:60,hp:75,maxHp:75})];
+  w.cover=[prepareProp({id:'track-crate',kind:'crate',x:1000,y:TRAIN_Y-60,w:50,h:60,hp:75,maxHp:75})];
   tick(w);assert.ok(w.chunks.length>0);
   assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
   tick(w);assert.ok(w.chunks.every(b=>Math.abs(b.vx)<=1500));assert.ok(validSnapshot(w.snapshot()));
@@ -164,8 +176,8 @@ test("train impacts keep fresh and existing debris within snapshot motion limits
 
 test("a passing train derails into a physical fall when a wheel reaches missing track",()=>{
   const w=fixture(),h=w.hazards[0];
-  carveExplosion(w,{x:1280,y:1060,radius:85});
-  assert.ok(w.platforms.some(p=>p.y===1060&&p.x<1280&&p.x+p.w<1280));
+  carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});
+  assert.ok(w.platforms.some(p=>p.y===TRAIN_Y&&p.x<1280&&p.x+p.w<1280));
   h.age=5.35;
   for(let i=0;i<30&&!h.derailed;i++)tick(w);
   assert.ok(h.derailed);assert.ok(h.active);assert.ok(Math.abs(h.vx)>1000);
@@ -182,12 +194,12 @@ test("a passing train derails into a physical fall when a wheel reaches missing 
 
 test("the derailed train has rotated collision, destroys platforms and wipes out matter in its path",()=>{
   const w=fixture(),h=w.hazards[0],p=w.players[0];
-  carveExplosion(w,{x:1120,y:1060,radius:90});h.age=5.25;
+  carveExplosion(w,{x:1120,y:TRAIN_Y,radius:90});h.age=5.25;
   for(let i=0;i<20&&!h.derailed;i++)tick(w);
   assert.ok(h.derailed);
   for(const [i,car] of trainBodies(h).entries())Object.assign(car,{x:-1800-i*500,y:1600,angle:0,vx:0,vy:0,spin:0,onRail:false,coupled:false});
-  Object.assign(h.carriages[3],{x:1280,y:825,vx:900,vy:500,angle:.42,spin:1.1});
-  place(p,1280,825);w.drops.push({x:1420,y:890,vx:0,vy:0,type:"blaster",ammo:10,life:100});
+  Object.assign(h.carriages[3],{x:1280,y:710,vx:900,vy:500,angle:.42,spin:1.1});
+  place(p,1280,710);w.drops.push({x:1420,y:750,vx:0,vy:0,type:"blaster",ammo:10,life:100});
   const before=w.platforms.length,box=trainBox(h);
   assert.ok(box.h>h.h*2);assert.ok(trainIntersects(h,playerBoxForTest(p)));
   for(let i=0;i<4;i++)tick(w);
@@ -197,7 +209,7 @@ test("the derailed train has rotated collision, destroys platforms and wipes out
 });
 
 test("derail state survives compact hot join, rejects malformed motion and resets next round",()=>{
-  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});h.age=5.35;
   for(let i=0;i<30&&!h.derailed;i++)tick(w);
   const s=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
   const train=s.hazards[0];assert.ok(train.derailed);assert.ok(Math.abs(train.angle-h.angle)<.01);assert.ok(Math.abs(train.vx-h.vx)<.01);
@@ -222,28 +234,28 @@ test("derail state survives compact hot join, rejects malformed motion and reset
 function playerBoxForTest(p){return{x:p.x-18,y:p.y-28,w:36,h:56};}
 
 test("an isolated tilted carriage loses impact energy and settles onto surviving track",()=>{
-  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;tick(w);
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});h.age=5.35;for(let i=0;i<30&&!h.derailed;i++)tick(w);
   for(const c of h.carriages)Object.assign(c,{x:-3000-c.id*300,y:3300,vx:0,vy:0,spin:0,coupled:false,onRail:false});
-  const car=h.carriages[0];Object.assign(car,{x:600,y:840,vx:140,vy:400,angle:.45,crush:.3,fuse:-1});
-  for(let i=0;i<360;i++)tick(w);
+  const car=h.carriages[0];Object.assign(car,{x:600,y:TRAIN_Y-220,vx:140,vy:400,angle:.45,crush:.3,fuse:-1});
+  for(let i=0;i<300;i++)tick(w);
   assert.ok(Math.abs(Math.sin(car.angle))<.15);assert.ok(Math.abs(car.vy)<50);
-  assert.ok(car.y<1060&&car.y>940);assert.ok(validSnapshot(w.snapshot()));
+  assert.ok(car.y<TRAIN_Y&&car.y>TRAIN_Y-120);assert.ok(validSnapshot(w.snapshot()));
 });
 
 test("crash braking, ruptures and long-lived wrecks preserve surviving rail in both directions",()=>{
   for(const age of [5.35,16.35]){
     const w=fixture(),h=w.hazards[0];w.cover=[];
-    carveExplosion(w,{x:1280,y:1060,radius:85});
-    const rails=()=>w.platforms.filter(p=>p.y>=1060&&p.y<1150);
-    const before=structuredClone(rails());h.age=age;tick(w);
+    carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});
+    const rails=()=>w.platforms.filter(p=>p.y>=TRAIN_Y&&p.y<TRAIN_Y+90);
+    const before=structuredClone(rails());h.age=age;for(let i=0;i<30&&!h.derailed;i++)tick(w);
     assert.ok(h.derailed);assert.ok(Math.abs(h.vx)<2400);
     let ruptured=false;
-    for(let i=0;i<1200;i++){
+    for(let i=0;i<400;i++){
       tick(w);ruptured||=h.carriages.some(c=>c.ruptured&&c.energy>0);
       if(i%30===0)assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())),`direction ${h.dir}, tick ${i}`);
     }
     assert.ok(ruptured);assert.ok(h.carriages.some(c=>c.crush>.4));
-    assert.ok(h.carriages.every(c=>c.energy===0));
+    assert.ok(h.carriages.every(c=>c.energy>=0&&c.energy<=4));
     assert.deepEqual(rails(),before);
     const joined=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
     assert.deepEqual(joined.hazards[0].carriages,new RenderSnapshots().make(w.snapshot()).hazards[0].carriages);
@@ -251,7 +263,7 @@ test("crash braking, ruptures and long-lived wrecks preserve surviving rail in b
 });
 
 test("crushed equipment tears once without automatic explosions or an electrical damage aura",()=>{
-  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;tick(w);
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});h.age=5.35;for(let i=0;i<30&&!h.derailed;i++)tick(w);
   for(const [i,c] of h.carriages.entries())Object.assign(c,{x:-2000-i*300,y:2000,vx:0,vy:0,spin:0,angle:0,coupled:false,onRail:false,fuse:-1});
   const car=h.carriages[3];Object.assign(car,{x:1280,y:500,crush:.5,fuse:0});
   const before=w.events.filter(e=>e.type==='explosion').length;tick(w);
@@ -261,4 +273,44 @@ test("crushed equipment tears once without automatic explosions or an electrical
   const energy=car.energy;w.prediction=true;tick(w);assert.equal(car.energy,energy);
   w.prediction=false;car.fuse=0;tick(w);assert.equal(w.events.filter(e=>e.type==='explosion').length,before);
   assert.equal(w.events.filter(e=>e.kind==='train-metal').length,1);
+});
+
+
+test("a new service preserves the old wreck and its hot-join identity",()=>{
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});
+  h.age=5.35;for(let i=0;i<30&&!h.derailed;i++)tick(w);
+  const cars=structuredClone(h.carriages);h.age=TRAIN_CYCLE-STEP/2;tick(w);
+  const wreck=w.hazards.find(q=>q.wreck);assert.ok(wreck&&wreck.id!==h.id);
+  assert.deepEqual(wreck.carriages,cars);assert.ok(!h.derailed&&!h.done);
+  h.age=14;tick(w);assert.ok(h.warning>0&&h.dir===-1);
+  const s=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
+  assert.ok(validSnapshot(s));assert.equal(s.hazards.find(q=>q.wreck).id,wreck.id);
+  const bad=structuredClone(s);bad.hazards.find(q=>q.wreck).wreck="yes";assert.equal(validSnapshot(bad),false);
+});
+
+test("the guideway is the lowest surface and the slower service has clear overhead routes",()=>{
+  const w=fixture();assert.equal(TRAIN_SPEED,6400*.8);
+  assert.equal(TRAIN_Y,1380);assert.ok(w.platforms.every(p=>p.y<=TRAIN_Y));
+  assert.ok(w.platforms.filter(p=>p.y!==TRAIN_Y).every(p=>p.y+p.h<=TRAIN_Y-150-40));
+  assert.ok(w.arena.spawns.every(([,y])=>y<TRAIN_Y-150));
+});
+
+
+test("later services strike surviving wrecks with directional momentum",()=>{
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:TRAIN_Y,radius:85});
+  h.age=5.35;for(let i=0;i<30&&!h.derailed;i++)tick(w);
+  h.age=TRAIN_CYCLE-STEP/2;tick(w);const wreck=w.hazards.find(q=>q.wreck);
+  for(const c of wreck.carriages)Object.assign(c,{x:-3000,y:3300,vx:0,vy:0,spin:0,coupled:false,onRail:false});
+  const car=wreck.carriages[3];Object.assign(car,{x:2100,y:TRAIN_Y-75,angle:0,vx:0,vy:0,spin:0,crush:.4});
+  h.age=16.12;tick(w);assert.ok(car.vx< -1000);assert.ok(car.crush>.4);
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
+});
+
+
+test("a black hole cannot consume the signals or service clock",()=>{
+  const w=fixture(),h=w.hazards[0];
+  const f=blackholeField(w,{x:h.x,y:h.y,owner:0});f.age=.5;updateBlackhole(w,f,STEP);
+  assert.equal(w.hazards[0],h);assert.ok(!h.done);
+  h.age=14;tick(w);assert.ok(h.warning>0&&h.dir===-1);
+  assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())));
 });

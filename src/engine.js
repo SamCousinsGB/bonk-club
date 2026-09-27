@@ -7,7 +7,7 @@ import { SHIP_ARENA } from './ship-arena.js';
 import { tumbleTurbineBody } from "./turbines.js";
 import { furnaceHits, damageFurnacePart } from './furnace-parts.js';
 import { trainCollisionBoxes } from "./trains.js";
-import { TRAIN_ARENA, FOUNDRY_ARENA } from "./setpiece-arenas.js";
+import { TRAIN_ARENA, TRAIN_Y, FOUNDRY_ARENA } from "./setpiece-arenas.js";
 import { CARGO_PLANE_ARENA, CAR_WASH_ARENA } from "./compact-setpiece-arenas.js";
 import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
@@ -1336,7 +1336,7 @@ export class World {
         );
     }
     carveExplosion(this, { x: b.x, y: b.y, radius }, b.trainWreck ? {
-      preservePlatform: p => p.y >= 1060 && p.y < 1150 && !p.wreckId,
+      preservePlatform: p => p.y >= TRAIN_Y && p.y < TRAIN_Y+90 && !p.wreckId,
     } : {});
     this.event("explosion", { x: b.x, y: b.y, radius, weapon: b.weapon, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }

@@ -65,8 +65,9 @@ function magneticPull(world,h,zone,dt) {
 }
 export function updateHazards(world,dt) {
   if(world.phase!=="fight")return;
-  for(const h of world.hazards) {
-    if(h.done)continue;
+  world.hazards=world.hazards.filter(h=>!(h.type==="train"&&h.wreck&&h.done));
+  for(const h of [...world.hazards]) {
+    if(h.done&&!(h.type==="train"&&!h.wreck))continue;
     if(h.assemblyStation)continue; // The production clock owns these machines.
     if(h.type==="furnace"||h.type==="slag"){updateFurnace(world,h,dt);continue;}
     if(h.type==="ladle"){updateLadle(world,h,dt);continue;}

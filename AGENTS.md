@@ -142,9 +142,10 @@ Start new work from current `origin/main` in one clean worktree.
   Parts/paint remain independent and partial, later stations never repair earlier
   damage, empty stations park, broken stations fault red, and crushers hurt only
   below a descending lower face.
-- **Bullet Train:** 3,200-unit train at 6,400 units/second after two seconds of signal/
+- **Bullet Train:** 3,200-unit train at 5,120 units/second after two seconds of signal/
   horn warning, alternating direction, with swept contacts, cover, upper bypasses,
-  motion blur and stereo wind. Rail damage derails eight independently weighted
+  a bottom monorail guideway and stereo wind. Signals and alternating arrivals
+  survive destroyed approaches and derailments. Rail damage derails eight independently weighted
   carriage bodies with bogie support, breakable articulated couplers, matching
   collision, arena damage and validated guest/hot-join state; never restore one
   rigid whole-train body.

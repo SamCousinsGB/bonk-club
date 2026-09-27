@@ -1,6 +1,7 @@
+import { TRAIN_Y } from "./setpiece-arenas.js";
 import { drawTrainCarriage } from './train-wreck-art.js';
 import { ladlePose, LADLE_LIP } from "./foundry.js";
-import { trainBodies, carriageShape, TRAIN_CARRIAGE_LENGTH } from "./trains.js";
+import { trainBodies, carriageShape } from "./trains.js";
 
 const line=(c,x,y,xx,yy,color,width=3)=>{c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const dot=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=color;c.fill();};
@@ -13,10 +14,31 @@ export function drawSetpieceHall(c,arena){
     line(c,x,100,x+320,420,"#13212a66",8);
   }
   if(train){
-    // Distant overhead supply and tunnel mouths are scenery, never collision.
-    for(let x=120;x<2560;x+=580){line(c,x,680,x,1050,"#23333f",10);line(c,x,690,x+300,690,"#394b55",8);}
-    line(c,0,707,2560,707,"#6b8792",2);
-    for(const x of [-110,2460]){c.fillStyle="#0b1624";c.fillRect(x,855,210,207);c.strokeStyle="#7d8f92";c.lineWidth=18;c.strokeRect(x,855,210,207);}
+    // Deep station glazing and distant city silhouettes keep the playable decks
+    // distinct from the architecture. No bright rectangle follows the train.
+    const glass=c.createLinearGradient(0,180,0,1200);glass.addColorStop(0,"#102333");glass.addColorStop(1,"#294451");
+    c.fillStyle=glass;c.fillRect(110,160,2340,1070);
+    for(let i=0;i<22;i++){
+      const x=115+i*112,top=710+(i*79)%260;
+      c.fillStyle=i%2?"#142a36":"#1b3340";c.fillRect(x,top,84,1230-top);
+      c.fillStyle="#b9b49828";for(let y=top+22;y<1210;y+=37)for(let k=0;k<3;k++)if((i+k+y)%5<3)c.fillRect(x+12+k*23,y,7,10);
+    }
+    for(let x=110;x<2500;x+=390){line(c,x,160,x,1230,"#0d202b",14);line(c,x+6,160,x+6,1230,"#46606a",2);}
+    for(const y of [160,610,1030])line(c,110,y,2450,y,"#112733",11);
+    for(const x of [0,2410]){
+      c.fillStyle="#1c303b";c.fillRect(x,110,150,1130);
+      for(let y=160;y<1120;y+=160){c.fillStyle="#40535a";c.fillRect(x+35,y,65,85);c.fillStyle="#b5c1b233";c.fillRect(x+42,y+8,51,4);}
+    }
+    // A high steel roof, insulated service conduits and inset station lighting.
+    for(let x=0;x<2560;x+=320){line(c,x,100,x+160,190,"#0e202a",14);line(c,x+160,190,x+320,100,"#0e202a",14);}
+    line(c,0,190,2560,190,"#334b55",16);
+    for(const y of [226,238,250])line(c,0,y,2560,y,"#1c333d",5);
+    for(const x of [380,1010,1550,2180]){
+      line(c,x,190,x,286,"#111f29",3);c.fillStyle="#172a34";c.fillRect(x-83,282,166,16);
+      line(c,x-72,299,x+72,299,"#d5d6b9",5);
+    }
+    // Portal surrounds frame the bottom guideway, with no lower fighting floor.
+    for(const x of [-140,2490]){c.fillStyle="#0a151d";c.fillRect(x,TRAIN_Y-200,210,220);c.strokeStyle="#344c57";c.lineWidth=18;c.strokeRect(x,TRAIN_Y-200,210,220);}
   }else{
     for(const x of [790,1770]){
       line(c,x,80,x,230,"#56646a",18);c.fillStyle="#121c23";c.fillRect(x-130,230,260,140);
@@ -30,29 +52,16 @@ export function drawSetpieceHall(c,arena){
 }
 export function drawTrain(c,h,time,reduced){
   c.save();
-  // Track ties are clipped against the surviving deck by the caller.
-  for(const x of [125,2435]){
+  // One pair of fixed signals belongs to the service, never to archived wrecks.
+  if(!h.wreck)for(const x of [125,2435]){
     line(c,x,h.y-18,x,h.y-310,"#2b343a",10);c.fillStyle="#111a23";c.fillRect(x-21,h.y-322,42,91);
-    const lit=h.derailed||h.active||h.warning>0;
+    const lit=h.active||h.warning>0;
     dot(c,x,h.y-300,12,lit?"#ff5b43":"#513934");
     dot(c,x,h.y-254,12,!lit?"#79cba5":"#294e45");
     if(h.warning>0&&(reduced||Math.sin(time*9)>0))dot(c,x,h.y-278,10,"#ffcc65");
   }
   if(!h.active||h.done){c.restore();return;}
-  const cars=trainBodies(h),l=-h.w/2,r=h.w/2;
-  if(!reduced&&!h.derailed){
-    // Wide, bounded horizontal smears imply shutter exposure without blurring
-    // the whole canvas or adding transparent collision outside the train.
-    const streak=c.createLinearGradient(l-430,0,r,0);
-    streak.addColorStop(0,"#c5e8f000");streak.addColorStop(.2,"#a7d1dd44");streak.addColorStop(1,"#e7f5ef88");
-    c.save();c.translate(h.bodyX,h.bodyY ?? h.y-h.h/2);c.scale(h.dir,1);c.translate(0,h.h/2);
-    c.fillStyle=streak;c.fillRect(l-430,-h.h-8,h.w+430,h.h+14);
-    for(let i=0;i<18;i++){
-      const x=l+((i*277+time*2400)%(h.w+380))-380,y=-h.h-12+(i*31)%(h.h+38);
-      line(c,x,y,x+160+(i%4)*85,y,i%3?"#b6dce94d":"#edf9f591",2+i%3);
-    }
-    c.restore();
-  }
+  const cars=trainBodies(h);
   // Couplers are physical constraints. Drawing the actual links makes their
   // articulation and eventual separation legible during a derail.
   if(h.derailed)for(let i=0;i<cars.length-1;i++)if(cars[i].coupled){
@@ -62,24 +71,33 @@ export function drawTrain(c,h,time,reduced){
     line(c,ax,ay,bx,by,"#303b42",12);line(c,ax,ay,bx,by,"#9eafb2",4);
   }
   for(const car of cars)drawTrainCarriage(c,car,h);
-  if(!reduced&&!h.derailed){
-    c.save();c.translate(h.bodyX,h.bodyY ?? h.y-h.h/2);c.scale(h.dir,1);c.translate(0,h.h/2);
-    for(let y=-h.h+18;y<-15;y+=15){
-      const smear=c.createLinearGradient(l-140,0,r-170,0);
-      smear.addColorStop(0,"#dbefff00");smear.addColorStop(.25,"#dbefff45");smear.addColorStop(1,"#dbefff99");
-      line(c,l-140,y,r-170,y,smear,y%2?3:5);
-    }
-    for(let x=l+60;x<r-260;x+=80)line(c,x-100,-h.h+48,x+50,-h.h+48,"#24485d66",18);
-    for(let i=0;i<7;i++)line(c,l-35-i*28,-25-i*17,l+80-i*15,-25-i*17,"#bbddeb55",3);
-    c.restore();
-  }
   c.restore();
 }
 export function drawTrack(c,state){
-  for(const p of state.platforms)if(p.y===1060&&p.hp!==0){
+  for(const p of state.platforms)if(p.hp!==0){
     c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
-    for(let x=Math.floor(p.x/32)*32;x<p.x+p.w;x+=32){c.fillStyle="#493f3a";c.fillRect(x,p.y+7,17,30);}
-    line(c,p.x,p.y+3,p.x+p.w,p.y+3,"#c2cdd0",5);line(c,p.x,p.y+25,p.x+p.w,p.y+25,"#8c9caa",4);c.restore();
+    if(p.y===TRAIN_Y){
+      const concrete=c.createLinearGradient(0,p.y,0,p.y+p.h);concrete.addColorStop(0,"#a0aaa6");concrete.addColorStop(.18,"#74878b");concrete.addColorStop(1,"#344a56");
+      c.fillStyle=concrete;c.fillRect(p.x,p.y,p.w,p.h);
+      line(c,p.x,p.y+3,p.x+p.w,p.y+3,"#d0d4c6",5);
+      line(c,p.x,p.y+17,p.x+p.w,p.y+17,"#283c46",6);
+      line(c,p.x,p.y+22,p.x+p.w,p.y+22,"#a5afb0",3);
+      for(let x=Math.floor(p.x/160)*160;x<p.x+p.w;x+=160){
+        line(c,x,p.y+26,x,p.y+60,"#263c47",3);
+        line(c,x+12,p.y+33,x+148,p.y+33,"#607680",2);
+        for(const dx of [16,144])dot(c,x+dx,p.y+44,3,"#b0b7ac");
+      }
+    }else{
+      c.fillStyle=p.oneWay?"#55686a":"#53656a";c.fillRect(p.x,p.y,p.w,p.h);
+      line(c,p.x,p.y+2,p.x+p.w,p.y+2,"#b2bba9",3);
+      if(p.oneWay){for(let x=Math.floor(p.x/18)*18;x<p.x+p.w;x+=18)line(c,x,p.y+5,x+7,p.y+12,"#182e3a",3);}
+      else{
+        line(c,p.x,p.y+12,p.x+p.w,p.y+12,"#202f38",6);
+        for(let x=Math.floor(p.x/40)*40;x<p.x+p.w;x+=40){line(c,x,p.y+6,x+18,p.y+6,"#c3aa64",4);}
+        for(let x=Math.floor(p.x/90)*90;x<p.x+p.w;x+=90)line(c,x,p.y+19,x+30,p.y+p.h,"#2a404b",5);
+      }
+    }
+    c.restore();
   }
 }
 export function drawLadle(c,h,time,reduced){

@@ -1,5 +1,6 @@
 import { playerBox } from "./collision.js";
 import { TRAIN_Y, TRAIN_LENGTH, TRAIN_HEIGHT, TRAIN_SPEED, TRAIN_CYCLE, TRAIN_START } from "./setpiece-arenas.js";
+import { fractureProp, prepareProp } from "./props.js";
 import { deathPose } from "./death-effects.js";
 import { carveExplosion } from "./terrain.js";
 
@@ -253,6 +254,7 @@ function updateDerailed(world,h,dt) {
     solveCouplers(h,step);
     solveCarriageContacts(h);
     for(const car of h.carriages)impactTerrain(world,car,step);
+    if(!h.wreck)for(const car of h.carriages)strikeWrecks(world,h,carriageBox(car),car);
     strikeMatter(world,h,step);
   }
   for(const car of h.carriages)updateTornCasing(world,car,dt);
@@ -264,11 +266,52 @@ function updateDerailed(world,h,dt) {
   if(boxes.every((b,i)=>h.carriages[i].y>=3300||b.y>H+1800||b.x>W+4300||b.x+b.w< -4300)){h.done=true;h.active=false;}
 }
 
+// The service clock survives each wreck. Old articulated cars remain physical;
+// only fully escaped sets are removed. The same bounded rubble budget used by
+// other destruction takes over very old wrecks if a round accumulates seven sets.
+function archiveWreck(world,h) {
+  if(!h.done)world.hazards.push({...h,id:2+Math.floor(h.age/TRAIN_CYCLE),wreck:true,
+    carriages:h.carriages.map(c=>({...c}))});
+  const wrecks=world.hazards.filter(q=>q.type==="train"&&q.wreck&&!q.done);
+  if(wrecks.length>6){
+    const oldest=wrecks[0];
+    for(const car of oldest.carriages){
+      const box=carriageBox(car);if(box.x>W||box.x+box.w<0||box.y>H)continue;
+      const shape=carriageShape(car),previousChunks=new Set(world.chunks);
+      fractureProp(world,prepareProp({kind:"cabinet",material:"metal",mass:240,
+        x:car.x-shape.w/2,y:car.y-shape.h/2,...shape,hp:0,maxHp:100,
+        vx:car.vx,vy:car.vy,angle:car.angle,spin:car.spin}));
+      // Bare sheet-metal fragments do not reuse cabinet artwork or its size bounds.
+      for(const chunk of world.chunks)if(!previousChunks.has(chunk))delete chunk.sourceArt;
+    }
+    oldest.done=true;oldest.active=false;
+  }
+  h.derailed=false;h.done=false;delete h.carriages;
+}
+
+function strikeWrecks(world,h,box,sourceCar=null) {
+  for(const wreck of world.hazards)if(wreck!==h&&wreck.type==="train"&&wreck.wreck&&!wreck.done){
+    for(const car of wreck.carriages)if(overlap(carriageBox(car),box)&&bodyIntersects(car,box)&&(!sourceCar||carriageContact(sourceCar,car))){
+      const vx=sourceCar?.vx??h.dir*TRAIN_SPEED,closing=(vx-car.vx)*h.dir;
+      if(closing<120)continue;
+      car.onRail=false;car.coupled=false;car.vx=clamp(car.vx+(vx-car.vx)*.65,-2600,2600);
+      car.vy=clamp(car.vy-Math.min(240,closing*.1),-MAX_FALL,MAX_FALL);
+      car.spin=clamp(car.spin+h.dir*Math.min(.2,closing*.00008),-MAX_SPIN,MAX_SPIN);
+      damageCarriage(car,Math.min(.18,closing/12000));
+      if(sourceCar){sourceCar.vx*=.92;damageCarriage(sourceCar,Math.min(.12,closing/16000));}
+    }
+  }
+}
+
 export function updateTrain(world,h,dt) {
   if(world.prediction)return;
-  if(h.derailed){h.age+=dt;updateDerailed(world,h,dt);return;}
-  const approaches=[25,2535].every(x=>railAt(world,x,h.y));
-  if(!approaches&&!h.active){h.done=true;h.warning=0;return;}
+  if(h.wreck){h.age+=dt;updateDerailed(world,h,dt);return;}
+  const lap=Math.floor(h.age/TRAIN_CYCLE);
+  if(h.derailed){
+    h.age+=dt;
+    if(Math.floor(h.age/TRAIN_CYCLE)===lap){if(!h.done)updateDerailed(world,h,dt);return;}
+    archiveWreck(world,h);h.age-=dt;
+  }
   const old=trainPose(h.age);h.age+=dt;
   const next=trainPose(h.age);Object.assign(h,next,{angle:0,vx:next.dir*TRAIN_SPEED,vy:0,spin:0});
   if(!h.active){h.bodyX=h.dir===1?-h.w:W+h.w;}
@@ -280,6 +323,7 @@ export function updateTrain(world,h,dt) {
   const previous=old.active?old.bodyX:(h.dir===1?-h.w/2:W+h.w/2);
   const current=h.active?h.bodyX:(h.dir===1?W+h.w/2:-h.w/2);
   const sweep={x:Math.min(previous,current)-h.w/2,y:h.y-h.h,w:h.w+Math.abs(current-previous),h:h.h};
+  strikeWrecks(world,h,sweep);
   for(const p of world.players)if(p.alive&&overlap(playerBox(p),sweep)){p.vx=h.dir*2100;p.vy=-380;world.kill(p,{effect:"blend",cause:"train",angle:h.dir});}
   for(const rag of world.ragdolls){
     if(rag.effect==="singularity"||!rag.points.some(p=>overlap({x:p.x-4,y:p.y-4,w:8,h:8},sweep)))continue;
