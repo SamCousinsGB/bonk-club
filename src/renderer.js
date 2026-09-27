@@ -66,9 +66,9 @@ export class Renderer {
       "(prefers-reduced-motion: reduce)",
     ).matches;
   }
-  resize(width, height, follow = false) {
+  resize(width, height) {
     this.menuSize = { width: Math.max(1, width), height: Math.max(1, height) };
-    const fit = follow ? Math.max(width / W, height / H) : Math.min(width / W, height / H);
+    const fit = Math.min(width / W, height / H);
     const pixels = Math.round(Math.max(960, Math.min(W, W * fit * Math.min(1.5, devicePixelRatio || 1))));
     if (this.canvas.width === pixels) return;
     this.canvas.width = pixels;
@@ -948,7 +948,7 @@ export class Renderer {
         if (arena.assembly) drawAssemblyHall(layer.getContext("2d"));
         if (arena.setpiece) drawSetpieceHall(layer.getContext("2d"),arena);
         if (arena.compactSetpiece) drawCompactSetpieceHall(layer.getContext("2d"), arena);
-        // Keep only a few backdrops in memory on phones.
+        // Bound the backdrop cache across arena changes.
         if (this.scenery.size >= 3)
           this.scenery.delete(this.scenery.keys().next().value);
         this.scenery.set(state.arenaIndex, layer);

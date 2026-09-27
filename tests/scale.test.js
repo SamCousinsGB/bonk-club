@@ -172,14 +172,15 @@ test("players and initial weapon pickups have time for a long pursuit before sud
   assert.ok(w.players.every((p) => p.hp < 100));
 });
 
-test("desktop and phone frame twice as much world without changing aim coordinates", () => {
-  const desktop = gameViewport(1280, 720);
-  assert.equal(desktop.scale, 0.5);
-  assert.equal(desktop.width, 2560);
-  const phone = gameViewport(390, 608, 2200, true);
-  assert.ok(phone.width > 900);
-  assert.equal(phone.height, 1440);
-  const point = screenToWorld(195, 304, { left: 0, top: 0 }, phone);
-  assert.ok(Math.abs(point.x - (phone.left + phone.width / 2)) < 0.001);
-  assert.equal(point.y, H / 2);
-});
+for (const [width, height] of [[1280, 720], [1920, 1200], [2560, 1080]]) {
+  test(`desktop window ${width}x${height} fits the whole arena and preserves mouse aim`, () => {
+    const view = gameViewport(width, height);
+    assert.equal(view.width, W);
+    assert.equal(view.height, H);
+    const rect = { left: 30, top: 20 };
+    const centre = screenToWorld(rect.left + width / 2, rect.top + height / 2, rect, view);
+    assert.deepEqual(centre, { x: W / 2, y: H / 2 });
+    const corner = screenToWorld(rect.left + view.offsetX, rect.top + view.offsetY, rect, view);
+    assert.deepEqual(corner, { x: 0, y: 0 });
+  });
+}

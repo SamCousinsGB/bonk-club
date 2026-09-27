@@ -96,21 +96,16 @@ export class MenuFight {
 }
 
 export function menuFightCamera(width, height) {
-  const portrait = width < 650 && height > width;
-  const compact = height <= 600 && width > height;
   return {
-    x: width * (portrait ? 0.51 : compact ? 0.76 : 0.7),
-    y: height * (portrait ? 0.22 : 0.51),
-    scale: portrait ? Math.min(width / 780, height * 0.31 / 480)
-      : Math.min(width * (compact ? 0.48 : 0.6) / 760, height * 0.8 / 530, 1.65),
+    x: width * 0.7,
+    y: height * 0.51,
+    scale: Math.min(width * 0.6 / 760, height * 0.8 / 530, 1.65),
   };
 }
 
 export function menuFightVeil(ctx, width, height) {
-  const portrait = width < 650 && height > width;
-  const g = portrait ? ctx.createLinearGradient(0, height * 0.27, 0, height * 0.4)
-    : ctx.createLinearGradient(0, 0, width * 0.53, 0);
-  g.addColorStop(0, portrait ? "#15242100" : "#152421");
-  g.addColorStop(1, portrait ? "#152421" : "#15242100");
+  const g = ctx.createLinearGradient(0, 0, width * 0.53, 0);
+  g.addColorStop(0, "#152421");
+  g.addColorStop(1, "#15242100");
   ctx.fillStyle = g; ctx.fillRect(0, 0, width, height);
 }

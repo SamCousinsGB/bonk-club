@@ -4,7 +4,27 @@ Updated 27 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
+## Desktop-only scope
+
+Sam's direction on 27 September 2026: PC/Desktop only. Do not design, build,
+emulate, test or check phone/mobile/tablet support. This overrides all historical
+mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
+builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
+
 ## Current release
+
+- v0.53.1 / protocol 74 removes touch gestures and buttons, phone menus, rotate
+  prompts, orientation locking, automatic fullscreen on joining/starting, portrait
+  camera tracking, the phone overview and phone-specific CSS. Fullscreen is explicit.
+- Removed mobile test suites and phone-size checks from the browser multiplayer
+  harness. Desktop aiming tests cover 16:9, 16:10 and ultrawide letterboxing.
+- Local shared tests, desktop unit tests, Windows executable smoke and desktop
+  browser host/guest/hot-join checks passed before integration. The desktop menu
+  and actual gameplay were visually inspected. No mobile checks were performed.
+- Final integrated CI, Windows/Linux packaging, Pages and public parity must
+  finish before this revision is described as live.
+
+## Previous gameplay update
 
 - v0.53.0 / protocol 74 adds bottom-centred status icons for the local living
   fighter: Frozen, Chilled, Burning, Glued, Flammable, Wet, Bubbled, Jelly, Gold,
@@ -12,8 +32,7 @@ history through v0.40.0 is archived in
   glue is untimed and oil/tar or water contact hides continuously refreshed timers.
   Ordinary hit stun is omitted. Round end, death and leaving play clear the row.
 - Oil/tar adds bounded pose-attached coating and drips. Status icons preserve
-  animation while timers update, respect reduced motion and leave touch controls
-  reachable. No gameplay balance, wire protocol or persistent state changed.
+  animation while timers update and respect reduced motion. No gameplay balance, wire protocol or persistent state changed.
 - Focused effect/reaction tests, full tests and browser build pass. Source-browser
   checks cover timed expiry, untimed glue, death clearing, desktop/mobile layout,
   reduced motion and existing snapshot round trips. Evidence: `bonk-club-qa/status-*`.
@@ -112,7 +131,7 @@ history through v0.40.0 is archived in
   simulations; CI splits them across six shards. `npm run test:release` runs both.
 - Start from current `origin/main`, use focused tests during development, and run
   relevant full checks before integration. Preserve unrelated local work.
-- Gameplay/art changes require source browser interaction and visual QA.
+- Gameplay/art changes require desktop source browser interaction and visual QA.
   Networking and persistent world changes require host/guest/hot-join checks.
 - Keep GitHub `main`, public Pages assets and this short handoff consistent.
   Exact CI artifacts are the release parity source; do not claim pending work live.

@@ -1,20 +1,15 @@
 import { W, H } from "./engine.js";
-const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-
-export function gameViewport(width, height, focusX = W / 2, follow = false) {
+// Desktop windows always contain the entire arena, with centred letterboxing.
+export function gameViewport(width, height) {
   width = Math.max(1, width);
   height = Math.max(1, height);
-  const scale = (follow ? Math.max : Math.min)(width / W, height / H);
-  const visibleW = Math.min(W, width / scale),
-    visibleH = Math.min(H, height / scale);
-  const left = clamp(focusX - visibleW / 2, 0, W - visibleW);
+  const scale = Math.min(width / W, height / H);
   return {
-    left,
-    top: (H - visibleH) / 2,
-    width: visibleW,
-    height: visibleH,
+    left: 0,
+    top: 0,
+    width: W,
+    height: H,
     scale,
-    position: W > visibleW ? (left / (W - visibleW)) * 100 : 50,
     offsetX: Math.max(0, (width - W * scale) / 2),
     offsetY: Math.max(0, (height - H * scale) / 2),
   };

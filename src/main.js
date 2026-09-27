@@ -24,8 +24,6 @@ import {
 import { FINISHES, CAPES, TRAILS, AURAS, FINISH_SWATCHES } from "./cosmetics.js";
 import { drawTrail, materialPaint } from "./cosmetic-art.js";
 import { previewFighter } from "./cosmetic-preview.js";
-import { secondaryAction } from "./arsenal.js";
-import { pickupObjectCandidate } from "./object-carry.js";
 import "./style.css";
 import "@fontsource/barlow-condensed/latin-900.css";
 import "@fontsource/barlow-condensed/latin-700.css";
@@ -50,8 +48,6 @@ import { RoomPresence } from "./room-presence.js";
 import { createRoom, validCode, network } from "#bonk-platform";
 import { FighterChat, ChatComposer } from "./chat.js";
 import { BotChat } from "./bot-chat.js";
-import { TouchControls, bindTouchZone, bindTouchButtons } from "./touch.js";
-import { MobileScreen } from "./mobile-screen.js";
 import { bindMouseControls } from "./mouse.js";
 import { planeLocalPoint, planePose } from "./plane.js";
 import { shipLocalPoint } from './ship.js';
@@ -80,43 +76,24 @@ $("#release-version").textContent = `v${version}`;
 $("#release-summary").textContent = `— ${releaseNotes}`;
 const renderer = new Renderer($("#game")),
   sound = new Sound(),
-  keys = new Set(),
-  touchControls = new TouchControls();
+  keys = new Set();
 sound.muted = preferences.value.muted;
 if (typeof preferences.value.reducedMotion === 'boolean') renderer.reduced = preferences.value.reducedMotion;
-let touchInput = emptyInput();
-let touchDevice = matchMedia("(pointer: coarse)").matches;
-const mobileScreen = new MobileScreen();
-const portraitScreen = matchMedia("(orientation: portrait)");
-function enterGameScreen() {
-  if (desktop) return;
-  void mobileScreen.enter({ landscape: touchDevice });
-}
-async function requestGameFullscreen() {
-  if (desktop) { await desktop.fullscreen(true); await syncFullscreenUi(); return; }
-  await mobileScreen.enter({ landscape: touchDevice });
-  if (!mobileScreen.fullscreen)
-    toast("Fullscreen is unavailable in this browser. The game will use the available screen.");
-}
 async function toggleFullscreen() {
   try {
     if (desktop) { await desktop.fullscreen(!(await desktop.fullscreen())); await syncFullscreenUi(); return; }
-    if (mobileScreen.fullscreen) await mobileScreen.exit();
-    else await requestGameFullscreen();
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
   } catch {
     toast("Fullscreen is unavailable in this browser.");
   }
 }
 async function syncFullscreenUi(value) {
-  const active = typeof value === 'boolean' ? value : desktop ? await desktop.fullscreen() : mobileScreen.fullscreen;
+  const active = typeof value === 'boolean' ? value : desktop ? await desktop.fullscreen() : !!document.fullscreenElement;
   $("#fullscreen").setAttribute("aria-label", active ? "Exit fullscreen" : "Enter fullscreen");
   $("#fullscreen").setAttribute("aria-pressed", String(active));
   if ($("#game-fullscreen")) $("#game-fullscreen").textContent = active ? "EXIT FULLSCREEN" : "FULLSCREEN";
 }
-function needsRotation() {
-  return playing && touchDevice && portraitScreen.matches;
-}
-document.body.classList.toggle("touch-device", touchDevice);
 let world = null,
   room = null,
   remote = null,
@@ -168,8 +145,7 @@ const usedKeys = new Set([
 const gamepads = () =>
   Array.from(navigator.getGamepads?.() || []).filter(Boolean);
 function readInput(device) {
-  if (view || chatComposer.isOpen || needsRotation() || document.hidden || !document.hasFocus()) return emptyInput();
-  if (device === "touch") return { ...touchInput };
+  if (view || chatComposer.isOpen || document.hidden || !document.hasFocus()) return emptyInput();
   const i = emptyInput();
   if (device.startsWith("gamepad")) {
     if (controllerMenu.suppressGameplay) return i;
@@ -212,12 +188,11 @@ function ownInput() {
   if (chatComposer.isOpen) return emptyInput();
   const i = readInput("keyboard1"),
     pad = gamepads()[0] ? readInput("gamepad0") : emptyInput();
-  for (const k in i) if (k !== "aim") i[k] ||= pad[k] || touchInput[k];
+  for (const k in i) if (k !== "aim") i[k] ||= pad[k];
   if (pad.aim !== null) i.aim = pad.aim;
-  if (touchInput.aim !== null) i.aim = touchInput.aim;
-  if (renderer.planeFrame && (pad.aim !== null || touchInput.aim !== null))
+  if (renderer.planeFrame && pad.aim !== null)
     i.aim -= planePose(renderer.planeFrame.age,renderer.reduced,renderer.planeFrame).angle;
-  if(renderer.shipFrame && (pad.aim !== null || touchInput.aim !== null)) {
+  if(renderer.shipFrame && pad.aim !== null) {
     const local=i.aim-renderer.shipFrame.angle;
     i.aim=Math.atan2(Math.sin(local),Math.cos(local));
   }
@@ -226,8 +201,6 @@ function ownInput() {
 function clearInput() {
   keys.clear();
   mouseControls.reset();
-  touchControls.reset();
-  touchInput = emptyInput();
   if (room && !room.host) room.sendInput(emptyInput());
 }
 const chatComposer = new ChatComposer($("#chat-form"), {
@@ -298,7 +271,6 @@ function showPanel(name, html) {
     .querySelector("button,input,select")
     ?.focus({ preventScroll: true });
   clearInput();
-  syncTouchUi();
 }
 function hidePanel() {
   controllerMenu.closeKeyboard();
@@ -310,7 +282,6 @@ function hidePanel() {
   $("#panel").removeAttribute("role");
   $("#panel").removeAttribute("aria-modal");
   returnFocus?.focus?.({ preventScroll: true });
-  syncTouchUi();
 }
 const heading = (title) =>
   `<div class="dialog-head"><div><h2 id="panel-title">${title}</h2></div><button id="back" class="icon-button" aria-label="Back">×</button></div>`;
@@ -323,12 +294,10 @@ function setPlaying(value) {
   if (!value) updateStatusHud($('#fighter-effects'), []);
   $("#invite").classList.toggle("hidden", !value || !room || room.offline);
   setHtml($("#announcement"), "");
-  syncTouchUi();
 }
 function home() {
   sound.stopAlarm();
   clearRoomNotices();
-  mobileScreen.release();
   searchId++;
   room?.close();
   room = null;
@@ -372,7 +341,6 @@ function offlineLobby(reason = network.reason) {
   lobby();
 }
 function startWorld(ids) {
-  enterGameScreen();
   const options = room?.options || defaultMatchOptions(difficulty), pool = options.maps;
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
@@ -559,7 +527,7 @@ function lobby() {
   $('#room-code').onclick=e=>e.target.select();
   $('#copy-code').onclick=async()=>{try{await navigator.clipboard.writeText(room.code);toast('Invite code copied.');}catch{$('#room-code').select();toast('Select and copy the invite code.');}};
   $('#copy-link').onclick=copyInvite;
-  if($('#start-match')) $('#start-match').onclick=()=>{enterGameScreen();room.start();};
+  if($('#start-match')) $('#start-match').onclick=()=>{room.start();};
   updateLobby();
 }
 function onlineMenu(message = "") {
@@ -628,7 +596,6 @@ async function quickMatch() {
   if (!network.available) return onlineMenu();
   unlock();
   clearRoomNotices();
-  enterGameScreen();
   solo = false;
   room?.close();
   room = null;
@@ -761,7 +728,6 @@ async function connectRoom(code) {
     return toast("Enter the six-character code from your friend.");
   unlock();
   clearRoomNotices();
-  enterGameScreen();
   room?.close();
   const next = createRoom(roomCallbacks(), roomOptions());
   room = next;
@@ -828,10 +794,9 @@ function gameMenu(forceOpen = false) {
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {
-    if (touchDevice) enterGameScreen();
     hidePanel();
   };
-  if (desktop || mobileScreen.supported) {
+  if (desktop || document.fullscreenEnabled) {
     $("#resume").insertAdjacentHTML("afterend", '<button id="game-fullscreen" class="button secondary">FULLSCREEN</button>');
     $("#game-fullscreen").onclick = toggleFullscreen;
   }
@@ -859,6 +824,9 @@ function setHtml(element, value) {
   if (element._lastHtml === value) return;
   element._lastHtml = value;
   element.innerHTML = value;
+}
+function ownPlayer(state = world || remote) {
+  return state?.players.find((p) => p.id === (room ? room.id : 0));
 }
 function updateHud(s) {
   $('#fighter-effects').classList.toggle('reduced-motion', renderer.reduced);
@@ -895,12 +863,6 @@ function updateHud(s) {
     setHtml(a, `<span class="victory-title" style="--victory-title-size:${Math.min(7, 110 / [...message.title].length)}vw">${esc(message.title)}</span>${message.detail ? `<span class="victory-detail">${esc(message.detail)}</span>` : ""}<small>Next arena in ${Math.max(1, Math.ceil(s.phaseTime))}</small>`);
   } else setHtml(a, "");
 }
-function objectAction(state = world || remote) {
-  const player = ownPlayer(state);
-  if (player?.carryId) return { label: "DROP", description: "Drop the carried object. Aim and fire, or use throw, to throw it" };
-  if (state && pickupObjectCandidate(state, player)) return { label: "PICK UP", description: "Pick up the physical object in front of you" };
-  return secondaryAction(player);
-}
 function equipmentInfo(p) {
   if (!p.alive) return '<small>ELIMINATED</small>';
   if(p.swimming) return `<small title="Hold primary action and aim to swim. Surface to refill oxygen."><span class="held-weapon">SWIM · AIM + FIRE</span><span class="weapon-state">${Math.ceil(p.hp)} HP</span></small>`;
@@ -919,10 +881,6 @@ let simulationLast = performance.now();
 function simulate(now) {
   const dt = Math.max(0, Math.min((now - simulationLast) / 1000, STEP * 8));
   simulationLast = now;
-  touchInput =
-    canUseTouch() && !view && !chatComposer.isOpen && !needsRotation() && !document.hidden
-      ? touchControls.read(now)
-      : emptyInput();
   netClock += dt;
   if (world) {
     accumulator += dt;
@@ -984,7 +942,6 @@ function frame(now) {
     }
   }
   renderer.draw(state, dt, renderer.reduced ? 0 : now / 1000);
-  updateTouchView(state, dt);
   drawPreview(now);
   requestAnimationFrame(frame);
 }
@@ -1066,7 +1023,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => room?.close());
 const canvas = $("#game");
 const mouseControls = bindMouseControls(canvas, mouse, {
-  enabled: () => playing && !view && !chatComposer.isOpen && !needsRotation() && !document.hidden,
+  enabled: () => playing && !view && !chatComposer.isOpen && !document.hidden,
   wake: unlock,
   aim: (e) => {
     const rect = canvas.getBoundingClientRect();
@@ -1079,167 +1036,16 @@ const mouseControls = bindMouseControls(canvas, mouse, {
 canvas.addEventListener("contextmenu", (e) => {
   if (playing) e.preventDefault();
 });
-let currentViewport = gameViewport(W, H),
-  cameraX = W / 2,
-  cameraRound = null;
-let gameRect = canvas.getBoundingClientRect();
-function canUseTouch() {
-  return playing && touchDevice;
-}
-function ownPlayer(state = world || remote) {
-  return state?.players.find((p) => p.id === (room ? room.id : 0));
-}
-let touchSecondaryKey = "";
-function syncTouchUi() {
-  const active = canUseTouch();
-  document.body.classList.toggle("touch-playing", active);
-  $("#touch-controls").classList.toggle("hidden", !active || !!view || needsRotation());
-  $("#rotate-screen").classList.toggle("hidden", !needsRotation() || !!view);
-  $("#rotate-fullscreen").classList.toggle("hidden", !mobileScreen.supported || mobileScreen.fullscreen);
-  $("#overview").classList.toggle("hidden", !active || !!view);
-}
+let currentViewport = gameViewport(W, H);
 function measureGame() {
   clearInput();
-  gameRect = canvas.getBoundingClientRect();
-  const follow = canUseTouch() && matchMedia("(orientation: portrait)").matches;
-  renderer.resize(gameRect.width, gameRect.height, follow);
-  currentViewport = gameViewport(
-    gameRect.width,
-    gameRect.height,
-    cameraX,
-    follow,
-  );
+  const rect = canvas.getBoundingClientRect();
+  renderer.resize(rect.width, rect.height);
+  currentViewport = gameViewport(rect.width, rect.height);
 }
-bindTouchButtons(document);
 const resizeGame = new ResizeObserver(measureGame);
 resizeGame.observe(canvas);
-window.addEventListener("orientationchange", clearInput);
-portraitScreen.addEventListener("change", () => { clearInput(); syncTouchUi(); });
-document.addEventListener("fullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
-document.addEventListener("webkitfullscreenchange", () => { clearInput(); syncTouchUi(); syncFullscreenUi(); });
-$("#rotate-fullscreen").onclick = () => { void requestGameFullscreen(); };
-$("#rotate-menu").onclick = gameMenu;
-window.addEventListener(
-  "pointerdown",
-  (e) => {
-    if (e.pointerType === "touch" && !touchDevice) {
-      touchDevice = true;
-      document.body.classList.add("touch-device");
-      syncTouchUi();
-    }
-  },
-  { capture: true },
-);
-for (const [id, zone] of [
-  ["move-zone", "move"],
-  ["aim-zone", "aim"],
-  ["touch-block", "block"],
-  ["touch-jump", "jump"],
-]) {
-  bindTouchZone($("#" + id), zone, touchControls, {
-    enabled: () =>
-      canUseTouch() &&
-      !view &&
-      !needsRotation() &&
-      (zone !== "block" || !!objectAction()),
-    wake: unlock,
-  });
-}
-function updateTouchView(state, dt) {
-  const active = canUseTouch(),
-    follow = active && matchMedia("(orientation: portrait)").matches;
-  $("#touch-controls").classList.toggle("hidden", !active || !!view || needsRotation());
-  if (!active) {
-    currentViewport = gameViewport(gameRect.width, gameRect.height);
-    canvas.style.objectPosition = "50% 50%";
-    return;
-  }
-  const controlledId = room ? room.id : 0;
-  const player =
-    state?.players.find((p) => p.id === controlledId && p.alive) ||
-    state?.players.find((p) => p.alive);
-  if (player) {
-    if (cameraRound !== state.round) {
-      cameraX = player.x;
-      cameraRound = state.round;
-    }
-    cameraX += (player.x - cameraX) * Math.min(1, dt * 12);
-  }
-  renderer.resize(gameRect.width, gameRect.height, follow);
-  currentViewport = gameViewport(
-    gameRect.width,
-    gameRect.height,
-    cameraX,
-    follow,
-  );
-  canvas.style.objectPosition = `${currentViewport.position}% 50%`;
-  for (const zone of ["move", "aim"]) {
-    $("#" + zone + "-stick").classList.toggle("active", !!touchControls[zone]);
-  }
-  const action = objectAction(state);
-  $("#touch-jump").classList.toggle("pressed", !!touchInput.jump);
-  const actionKey =
-    (ownPlayer(state)?.weapon || "fists") + ":" + (action?.label || "");
-  if (actionKey !== touchSecondaryKey) {
-    touchControls.blocks.clear();
-    touchSecondaryKey = actionKey;
-  }
-  const actionButton = $("#touch-block");
-  actionButton.classList.toggle("hidden", !action);
-  actionButton.disabled = !action;
-  const parryWait = action?.label === "PARRY" ? ownPlayer(state)?.parryCooldown || 0 : 0;
-  const actionLabel = parryWait > 0 ? `PARRY ${parryWait.toFixed(1)}` : action?.label || "";
-  if (actionButton.textContent !== actionLabel) actionButton.textContent = actionLabel;
-  actionButton.classList.toggle("recharging", parryWait > 0);
-  actionButton.setAttribute(
-    "aria-label",
-    action?.description || "No secondary action",
-  );
-  actionButton.classList.toggle("pressed", !!action && touchInput.block);
-  if (!state || !follow) return;
-  const c = $("#overview").getContext("2d"),
-    scale = 240 / W;
-  c.clearRect(0, 0, 240, 135);
-  c.fillStyle = "#0b1724dd";
-  c.fillRect(0, 0, 240, 135);
-  c.fillStyle = "#9eafb0";
-  for (const p of state.platforms.filter((p) => p.hp !== 0))
-    c.fillRect(p.x * scale, p.y * scale, p.w * scale, 2);
-  for (const h of (state.hazards || []).filter(h=>!h.done&&(h.active||h.warning>0))) {
-    c.fillStyle = h.warning > 0 ? "#ffd078bb" : "#ff836bbb";
-    c.fillRect(
-      (h.x - h.w / 2) * scale,
-      (h.y - h.h) * scale,
-      Math.max(2, h.w * scale),
-      Math.max(2, h.h * scale),
-    );
-  }
-  c.strokeStyle = "#ffffff77";
-  c.lineWidth = 1;
-  c.strokeRect(
-    currentViewport.left * scale,
-    1,
-    currentViewport.width * scale,
-    133,
-  );
-  for (const p of state.players)
-    if (p.alive) {
-      c.beginPath();
-      c.arc(
-        p.x * scale,
-        p.y * scale,
-        p.id === controlledId ? 4 : 3,
-        0,
-        Math.PI * 2,
-      );
-      c.fillStyle = p.color || COLORS[p.id];
-      c.fill();
-      if (p.id === controlledId) {
-        c.strokeStyle = "#fff";
-        c.stroke();
-      }
-    }
-}
+document.addEventListener("fullscreenchange", () => { clearInput(); syncFullscreenUi(); });
 setInterval(() => {
   if (room && !room.host) room.ping();
 }, 2000);
@@ -1253,7 +1059,6 @@ if (preferences.warning) toast(preferences.warning);
 requestAnimationFrame(frame);
 const inviteCode = new URLSearchParams(location.search).get("room")?.toUpperCase();
 if (validCode(inviteCode)) {
-  // The click supplies fullscreen activation before asynchronous room discovery.
   showPanel("invite", heading("Join room") + `<p>Room <b>${esc(inviteCode)}</b></p><button id="join-invite" class="button primary">JOIN ROOM</button>`);
   $("#join-invite").onclick = () => { unlock(); connectRoom(inviteCode); };
   $("#back").onclick = home;

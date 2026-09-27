@@ -106,15 +106,12 @@ test("disabled controls ignore menu clicks and cannot resume a cancelled hold", 
   controls.reset();
 });
 
-test("touch and unrelated pen pointers cannot alter the held mouse buttons", () => {
+test("unrelated pen pointers cannot alter the held mouse buttons", () => {
   const { event, held } = setup();
   event("pointerdown", 1);
-  event("pointerup", 0, { pointerType: "touch" });
-  event("pointercancel", 0, { pointerType: "touch" });
   event("pointermove", 0, { pointerType: "pen", pointerId: 7 });
   held(true, false);
   event("pointerup", 0);
-  event("pointerdown", 1, { pointerType: "touch" });
   held(false, false);
 });
 

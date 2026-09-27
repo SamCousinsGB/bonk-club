@@ -1,5 +1,7 @@
 # Bonk Club
 
+PC/Desktop only: desktop browsers and Windows/Linux desktop builds, with keyboard/mouse or a controller. Phone/tablet UI, touch controls, mobile builds and mobile testing are out of scope.
+
 Development rules: [project constitution](AGENTS.md). Current work and next-chat
 context: [handoff](docs/HANDOFF.md).
 
@@ -15,7 +17,7 @@ A browser physics brawler for 1–4 people. Original stick-figure artwork and ar
 
 ## Play
 
-Choose **Single player** to start immediately against three AI opponents. **Online multiplayer** creates a pregame lobby and immediately displays a six-character invite code, with copy-code and copy-link buttons. Friends join the lobby; the host presses **Start match** once, without ready checks. Friends can also join available player slots during play. Each device controls one player with keyboard, controller or touch. Solo has four fighters. In the online lobby, click a non-host slot to choose **AI/Player** (AI until someone joins), **AI only**, **Player only** (empty until someone joins), or **Closed**. Closing an occupied slot or making it AI only removes its guest. Slot choices lock when the match starts; hot joins still work in available AI/Player and Player only slots. At least two fighters are required to start. Departing players reset that slot's score; a Player only slot stays empty, while AI/Player returns to AI. Use **Settings** on the main menu or the host lobby settings to choose the map rotation and **Easy**, **Normal** or **Hard** AI. Easy is the default and the choice is saved on the host's device. Set your name, one of eight colours and one of six hairstyles in the lobby or **Character** menu. Choices are saved on your device, shown to other players, and carried across rounds. Human players reserve distinct colours; AI use the remaining colours. Changing appearance does not reset scores or combat state.
+Choose **Single player** to start immediately against three AI opponents. **Online multiplayer** creates a pregame lobby and immediately displays a six-character invite code, with copy-code and copy-link buttons. Friends join the lobby; the host presses **Start match** once, without ready checks. Friends can also join available player slots during play. Each device controls one player with keyboard/mouse or controller. Solo has four fighters. In the online lobby, click a non-host slot to choose **AI/Player** (AI until someone joins), **AI only**, **Player only** (empty until someone joins), or **Closed**. Closing an occupied slot or making it AI only removes its guest. Slot choices lock when the match starts; hot joins still work in available AI/Player and Player only slots. At least two fighters are required to start. Departing players reset that slot's score; a Player only slot stays empty, while AI/Player returns to AI. Use **Settings** on the main menu or the host lobby settings to choose the map rotation and **Easy**, **Normal** or **Hard** AI. Easy is the default and the choice is saved on the host's device. Set your name, one of eight colours and one of six hairstyles in the lobby or **Character** menu. Choices are saved on your device, shown to other players, and carried across rounds. Human players reserve distinct colours; AI use the remaining colours. Changing appearance does not reset scores or combat state.
 
 | Action                            | Keyboard / mouse | Standard controller |
 | --------------------------------- | ---------------- | ------------------- |
@@ -32,34 +34,18 @@ Weapons are picked up automatically when an unarmed player walks close enough. T
 On **Ocean Liner**, underwater hull breaches flood five separate compartments.
 Intact bulkheads contain water until broken or overtopped; flood weight makes
 the ship list and sink. While immersed, hold **left click** and aim with the
-mouse to swim; controller and touch use the same aim/primary action. The oxygen
+mouse to swim; controllers use the same aim/primary action. The oxygen
 bar above a submerged fighter drains over twelve seconds and refills in air.
 An empty bar causes drowning damage. Water also moves cargo and loose bodies.
-
-On phones, use **Online multiplayer** with one player per device. Single player supports the same touch controls against three AI opponents.
-
-| Touch area    | Gesture                                                                                        |
-| ------------- | ---------------------------------------------------------------------------------------------- |
-| Left          | Drag left/right to move; release to stop                                                       |
-| Left          | Swipe up to jump, then swipe up again for the second jump                                      |
-| Left          | Drag down and hold to lie down                                                                 |
-| Right         | Drag to aim and fire, or hold to fire in the current direction                                 |
-| Right         | Double-tap to throw the held weapon without firing first                                       |
-| Jump button   | Tap to jump; tap again for the second jump                                                     |
-| Action button | Tap to parry with fists, double shot with shotgun, charged shot with plasma; hidden for other weapons |
-
-Play in landscape to see the full arena. Light joystick guides hide, including their labels, while held and return on release. The invisible touch areas remain large; only compact Jump and contextual Parry/Alt fire buttons stay visible at the bottom edges. Throw and lie down use the gestures above. Portrait shows a rotate-phone prompt with access to the game menu. Gestures reset on opening a menu, focus loss, cancellation and viewport changes. Touch menus respect phone cutouts and keep form controls large enough to use without zooming.
-
-Escape opens or closes the game menu. The simulation continues while menus are open, while another tab is visible, and after focus loss. A dedicated worker clock drives simulation and network sends independently of rendering. Closing the browser or the operating system suspending/discarding the tab still stops its execution.
 
 ## Combat
 
 - Active ragdolls with 11 independently simulated particles, 10 bone constraints, pose springs, inertia and platform contacts. Knockouts preserve the current body pose and velocity.
-- Impulse combat, landing compression, flailing limbs, recoil and double jumps. With empty hands, press parry for a 160 ms window that stops one melee hit or reflects one bullet, then closes. The cooldown is 850 ms from activation, with a recovery bar under the fighter and a touch-button countdown. Release before pressing again: holding never repeats or guards. Holding any weapon, including a bat or sword, prevents parrying. Explosions cannot be parried.
+- Impulse combat, landing compression, flailing limbs, recoil and double jumps. With empty hands, press parry for a 160 ms window that stops one melee hit or reflects one bullet, then closes. The cooldown is 850 ms from activation, with a recovery bar under the fighter. Release before pressing again: holding never repeats or guards. Holding any weapon, including a bat or sword, prevents parrying. Explosions cannot be parried.
 - Jump input is buffered for 120 ms, including presses just before landing. Walking off a ledge allows a 90 ms ground-jump grace period, then leaves one air jump. Holding jump does not repeat it. Small head catches at a platform edge are corrected only if the adjacent space is clear. The second jump now has a 680-unit impulse; route landings generally span 180-240 units vertically, with ledges moved clear of overhangs. Outside city stairs have one intermediate landing between each 320-unit storey.
 - Holding down makes a fighter lie flat and lowers their collision shape. Release to stand when there is headroom.
 - Twenty-four arenas. The original eight now have distinct routes and themed scenery, including open courtyards, staggered terraces, side routes and moving-platform shafts. Interior stairs are staggered so each landing has a clear approach. The default rotation cycles through all maps before repeating. Choose skyscrapers only or a fixed map through Arenas on the main menu. Twelve new maps cover jungle canopies and temples, desert canyons and ruins, garden houses and a mansion, hospital wards and an atrium, an arctic station, a volcanic quarry, a cargo port and an abandoned factory. Each has a distinct layout, scenery, terrain materials and cover.
-- Arenas span 2560 × 1440 world units, with the full arena visible in landscape. Fighters keep their physical size, so they appear half as tall at the same display size. Running is limited to 240 units/second; hit and recoil impulses can still exceed that speed.
+- Arenas span 2560 × 1440 world units, with the full arena fitted to the desktop window. Fighters keep their physical size, so they appear half as tall at the same display size. Running is limited to 240 units/second; hit and recoil impulses can still exceed that speed.
 - Tall skyscraper rooms with 320 units between main floors (previously 180), separate elevator shafts, outside climbing routes, bridges and longer sightlines. Elevators carry standing or prone players and loose weapons in both directions.
 - Tables, crates, logs, rocks, sofas, hospital beds, cabinets and barrels block movement, melee and projectiles. Damage cracks cover, then breaks it into simulated fragments. Concrete floors stop shots and explosions between storeys.
 - Weapon damage and knockback have been retuned: bats hit for 55, swords 42, pistols 24, rockets 100 and grenades 95 before distance/cover effects. Bullets, fire and ice gain up to 30% damage at close range; shotgun pellets gain up to 45%. Bonuses decrease with travelled distance, including bounces, and never reduce base long-range damage. Larger ordinary explosion rings show their blast reach; firing sounds and hit flashes are stronger.
@@ -136,7 +122,7 @@ npm run build
 test:release` adds the exhaustive every-arena simulations. CI keeps those
 simulations mandatory while dividing the arenas across six parallel workers.
 
-Tests cover movement speed limits, preserved knockback, arena crossing time, climbing both outside routes through the taller rooms, long-range shots, extended round timing, all arena spawns, full elevator return trips with standing/prone passengers and loose weapons, automatic pickup, thrown-weapon damage and ammo retention, cover destruction, projectile occlusion and penetration, plasma bounces, blast shielding, input/state validation, combat, parries, round transitions, active-ragdoll constraints, prone collision, mouse aiming, four-peer room lifecycle, and disconnect handling. Touch tests cover simultaneous pointers, swipes, double-tap disambiguation, button activation, cancellation, physics integration, and portrait/landscape coordinate mapping. Transport tests with fake peers do not establish cross-network WebRTC reliability.
+Tests cover movement speed limits, preserved knockback, arena crossing time, climbing both outside routes through the taller rooms, long-range shots, extended round timing, all arena spawns, full elevator return trips with standing/prone passengers and loose weapons, automatic pickup, thrown-weapon damage and ammo retention, cover destruction, projectile occlusion and penetration, plasma bounces, blast shielding, input/state validation, combat, parries, round transitions, active-ragdoll constraints, prone collision, mouse aiming, four-peer room lifecycle, and disconnect handling. Transport tests with fake peers do not establish cross-network WebRTC reliability.
 
 Trap tests cover persistent placement, warnings, lethal geysers, floor shielding, conveyor launches in both stances, moving collision bodies, crushers, destroyed mounts, phase changes and validated guest snapshots. Traversal regressions cover all spawn-to-spawn routes, Garden Houses bottom-floor fighters with four weapon types, melee pursuit and pistol upgrades, and the railgun stalemate on adjacent floor panels.
 

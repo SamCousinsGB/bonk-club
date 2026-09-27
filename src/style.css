@@ -6,16 +6,15 @@
   --lime: #d5fa43;
   --muted: #99a29b;
   --line: #ffffff1b;
-  --ui-top: max(12px, env(safe-area-inset-top));
-  --ui-right: max(16px, env(safe-area-inset-right));
-  --ui-bottom: max(12px, env(safe-area-inset-bottom));
-  --ui-left: max(16px, env(safe-area-inset-left));
+  --ui-top: 12px;
+  --ui-right: 16px;
+  --ui-bottom: 12px;
+  --ui-left: 16px;
 }
 * {
   box-sizing: border-box;
   -webkit-user-select: none;
   user-select: none;
-  -webkit-touch-callout: none;
   -webkit-user-drag: none;
 }
 input:not([readonly]),
@@ -35,12 +34,6 @@ button,
 input,
 select {
   font: inherit;
-}
-button,
-a,
-input,
-select {
-  -webkit-tap-highlight-color: transparent;
 }
 button {
   cursor: pointer;
@@ -82,7 +75,7 @@ button:hover {
 #chat-input { display: block; width: 100%; margin: 7px 0; padding: 9px 12px; border: 1px solid #ffffff44; border-radius: 5px; background: #09121d; color: #fff; font-size: 16px; }
 #chat-help { font-size: 12px; color: #bcc6cc; }
 #chat-hint { display: none; position: absolute; z-index: 5; bottom: var(--ui-bottom); left: var(--ui-left); padding: 5px 9px; border-radius: 5px; color: #d7dfdf; background: #14212ebb; font-size: 12px; pointer-events: none; }
-body.playing:not(.touch-device) #stage:not(:has(.dialog:not(.hidden))):not(:has(#chat-form:not(.hidden))) #chat-hint { display: block; }
+body.playing #stage:not(:has(.dialog:not(.hidden))):not(:has(#chat-form:not(.hidden))) #chat-hint { display: block; }
 button:focus, input:focus, select:focus, summary:focus {
   outline: 3px solid var(--lime);
   outline-offset: 3px;
@@ -109,7 +102,7 @@ button:focus, input:focus, select:focus, summary:focus {
 .controller-keys button { min-height: 40px; border: 1px solid #ffffff55; border-radius: 5px; background: #293338; font-size: 16px; }
 .desktop-app #menu { scrollbar-width: thin; scrollbar-color: #778c8066 transparent; }
 @media (min-height: 601px) {
-  .desktop-app #menu h1 { font-size: clamp(64px, min(8vw, 13dvh), 140px); margin: 18px 0 22px; }
+  .desktop-app #menu h1 { font-size: clamp(64px, min(8vw, 13vh), 140px); margin: 18px 0 22px; }
   .desktop-app #menu .button { padding-top: 14px; padding-bottom: 14px; }
 }
 #stage:has(.dialog:not(.hidden)) #menu,
@@ -124,7 +117,7 @@ body.playing canvas {
   position: fixed;
   inset: 0;
   width: 100%;
-  height: 100dvh;
+  height: 100vh;
 }
 header {
   position: absolute;
@@ -253,7 +246,7 @@ body:not(.playing) #game {
 }
 h1 {
   font-family: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
-  font-size: clamp(64px, min(9.6vw, 16dvh), 150px);
+  font-size: clamp(64px, min(9.6vw, 16vh), 150px);
   line-height: 0.79;
   margin: 30px 0 24px;
   letter-spacing: -2px;
@@ -496,8 +489,8 @@ h1 > span {
   text-transform: uppercase;
 }
 #hud {
-  --arena-side: max(0px, calc((100vw - 100dvh * 16 / 9) / 2));
-  --arena-top: max(0px, calc((100dvh - 100vw * 9 / 16) / 2));
+  --arena-side: max(0px, calc((100vw - 100vh * 16 / 9) / 2));
+  --arena-top: max(0px, calc((100vh - 100vw * 9 / 16) / 2));
   position: absolute;
   inset: calc(var(--arena-top) + var(--ui-top))
     calc(var(--arena-side) + var(--ui-right)) auto
@@ -516,7 +509,7 @@ h1 > span {
 #fighter-effects {
   position: absolute;
   z-index: 4;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -566,18 +559,6 @@ body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
 .reduced-motion .status-drip { animation: none; }
 @keyframes status-drip { from { transform: translateY(-4px); opacity: 1; } to { transform: translateY(5px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .status-drip { animation: none; } }
-@media (max-height: 540px), (max-width: 650px) {
-  #fighter-effects { bottom: max(8px, env(safe-area-inset-bottom)); gap: 4px; }
-  .fighter-effect { width: 57px; padding: 5px 1px 3px; }
-  .effect-circle { width: 30px; height: 30px; }
-  .effect-circle svg { width: 23px; height: 23px; }
-  .effect-label, .effect-timer { font-size: 10px; line-height: 12px; }
-  .effect-timer { min-height: 12px; }
-}
-.touch-playing #fighter-effects { max-width: 48%; }
-@media (orientation: portrait) {
-  .touch-playing #fighter-effects { bottom: calc(var(--touch-dock) + 8px); max-width: calc(100% - 24px); }
-}
 #scoreboard {
   display: flex;
   gap: 14px;
@@ -693,7 +674,7 @@ body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
 }
 #round-status {
   position: absolute;
-  top: max(76px, calc(env(safe-area-inset-top) + 70px));
+  top: 76px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
@@ -717,7 +698,7 @@ body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
   font-family: "Barlow Condensed", Impact, sans-serif;
   font-weight: 900;
   font-size: clamp(32px, 6vw, 80px);
-  padding: 0 max(20px, env(safe-area-inset-left)) 0 max(20px, env(safe-area-inset-right));
+  padding: 0 20px 0 20px;
   overflow-wrap: anywhere;
   line-height: 1;
   color: var(--lime);
@@ -767,7 +748,7 @@ body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
 }
 #room-notifications {
   position: fixed;
-  top: calc(env(safe-area-inset-top) + 76px);
+  top: 76px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 21;
@@ -814,117 +795,6 @@ body:not(.playing) #fighter-effects, #fighter-effects:empty { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .room-notice { animation: none; }
-}
-#touch-controls {
-  position: absolute;
-  z-index: 2;
-  inset: auto 0 0;
-  height: min(58%, 224px);
-  min-height: 176px;
-  display: flex;
-  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.touch-zone {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  pointer-events: auto;
-  touch-action: none;
-  -webkit-touch-callout: none;
-}
-#move-zone { margin-right: 16%; }
-#aim-zone { margin-left: 16%; }
-.touch-stick {
-  position: absolute;
-  bottom: 24px;
-  width: 76px;
-  height: 76px;
-  border: 1px solid #e7f4e560;
-  border-radius: 50%;
-  background: transparent;
-  pointer-events: none;
-  transition: opacity 120ms ease-out;
-}
-#move-stick { left: clamp(18px, 5vw, 48px); }
-#aim-stick { right: clamp(18px, 5vw, 48px); }
-.touch-stick i {
-  position: absolute;
-  inset: 28px;
-  border-radius: 50%;
-  border: 1px solid #e4edd957;
-}
-/* Hide only the guide: the generous touch zone and captured pointer stay active. */
-.touch-stick.active {
-  opacity: 0;
-  transition-duration: 60ms;
-}
-.touch-stick b {
-  position: absolute;
-  bottom: -16px;
-  width: 100%;
-  font-size: 9px;
-  color: #f1f5dfa0;
-  text-shadow: 0 1px 3px #000;
-  text-align: center;
-}
-.touch-action {
-  position: absolute;
-  bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px));
-  width: 64px;
-  height: 48px;
-  border: 1px solid #e4f2d760;
-  border-radius: 24px;
-  background: #17253050;
-  font-size: 10px;
-  font-weight: 700;
-  pointer-events: auto;
-  touch-action: none;
-  -webkit-touch-callout: none;
-}
-#touch-jump {
-  right: calc(env(safe-area-inset-right) + clamp(18px, 5vw, 48px) + 88px);
-}
-#touch-block {
-  left: calc(env(safe-area-inset-left) + clamp(18px, 5vw, 48px) + 88px);
-}
-.touch-action.pressed {
-  color: #1b261a;
-  background: var(--lime);
-}
-#rotate-screen {
-  position: absolute;
-  z-index: 5;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  background: #10191ff5;
-  text-align: center;
-  touch-action: manipulation;
-}
-#rotate-screen svg { color: var(--lime); margin-bottom: 14px; }
-#rotate-screen h2 { margin: 0; font-size: 30px; }
-#rotate-screen p { color: #c2ccc6; margin: 12px 0 24px; }
-#rotate-screen .button { width: min(100%, 280px); margin: 6px 0; }
-#overview {
-  display: none;
-  pointer-events: none;
-}
-.touch-help {
-  display: none;
-}
-.touch-device .touch-help {
-  display: block;
-}
-.touch-help h3 {
-  color: var(--lime);
-  font-size: 14px;
 }
 .error {
   color: #ff9b96 !important;
@@ -989,126 +859,7 @@ body.playing #scene-label {
   #leader-label { font-size: 9px; }
   #round-status { top: 132px; }
 }
-@media (max-width: 600px) {
-  .brand {
-    font-size: 15px;
-    gap: 8px;
-  }
-  .brand-mark {
-    width: 30px;
-    height: 30px;
-    font-size: 26px;
-  }
-  .header-actions {
-    gap: 6px;
-  }
-  #menu {
-    left: var(--ui-left);
-  }
-  .eyebrow {
-    font-size: 10px;
-  }
-  .menu-copy {
-    font-size: 14px;
-  }
-  .dialog {
-    padding: 21px;
-  }
-  .dialog-head {
-    top: -21px;
-  }
-  .dialog h2 {
-    font-size: 34px;
-  }
-  .settings {
-    gap: 9px;
-  }
-  .controls-grid {
-    gap: 12px;
-  }
-  .controls-grid p {
-    font-size: 12px;
-  }
-  .score {
-    width: 58px;
-  }
-  .score-top {
-    font-size: 10px;
-  }
-  .score-top b {
-    font-size: 19px;
-  }
-  .score small {
-    font-size: 8px;
-  }
-}
-@media (max-height: 650px) and (orientation: portrait) {
-  .menu-panel h1 { margin: 12px 0 18px; }
-  .latest-update { margin-top: 12px; }
-}
-@media (max-width: 649px) and (orientation: portrait) {
-  #menu {
-    top: clamp(130px, 32dvh, 300px);
-    width: calc(100% - var(--ui-left) - var(--ui-right));
-    align-content: safe center;
-  }
-  .menu-panel h1 {
-    font-size: clamp(48px, 8dvh, 72px);
-    margin: 8px 0 22px;
-    line-height: 0.95;
-    white-space: nowrap;
-  }
-  .menu-panel h1 br { display: none; }
-  .menu-panel h1 span { margin-left: 0.12em; }
-  .menu-buttons { gap: 8px; }
-  #menu .button { min-height: 44px; padding: 13px 16px; }
-  .latest-update { margin-top: 12px; }
-}
-@media (max-height: 600px) and (orientation: landscape) {
-  header {
-    right: auto;
-  }
-  header .brand { display: none; }
-  #menu {
-    top: var(--ui-top);
-    left: var(--ui-left);
-    width: min(820px, calc(100% - var(--ui-left) - var(--ui-right)));
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
-    align-items: center;
-    gap: clamp(20px, 5vw, 64px);
-    row-gap: 8px;
-    padding: 4px 8px;
-  }
-  .menu-panel h1 {
-    font-size: clamp(60px, 19dvh, 110px);
-    margin: 32px 0 12px;
-  }
-  .menu-copy {
-    font-size: 13px;
-    margin-bottom: 14px;
-  }
-  .menu-buttons {
-    gap: 6px;
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-  .latest-update {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: start;
-    margin: 0;
-  }
-  .button {
-    min-height: 44px;
-    padding: 10px 16px;
-  }
-  .menu-foot {
-    margin-top: 10px;
-  }
-  .dialog h2 {
-    font-size: 32px;
-  }
-}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
@@ -1116,145 +867,11 @@ body.playing #scene-label {
   }
 }
 
-/* Mobile menus use the visible viewport, including browser chrome and cutouts. */
-.touch-device .dialog {
-  padding: 18px;
-  touch-action: pan-y;
-  overscroll-behavior: contain;
-}
-.touch-device .dialog-head {
-  gap: 12px;
-  top: -18px;
-}
-.touch-device .dialog-head h2 {
-  font-size: clamp(26px, 6vw, 36px);
-}
-.touch-device .button {
-  min-height: 48px;
-}
-.touch-device .settings select {
-  font-size: 16px;
-  min-height: 44px;
-}
-.touch-device .settings label {
-  min-width: 0;
-}
-.touch-device .menu-buttons #online {
-  order: -1;
-  background: var(--lime);
-  color: #1a211b;
-  border-color: transparent;
-}
-.touch-device .menu-buttons #solo {
-  background: #ffffff0c;
-  color: #f2f3e9;
-  border: 1px solid #ffffff35;
-}
-.touch-device #menu-controls {
-  background: transparent;
-  border-color: transparent;
-  justify-content: center;
-}
-.touch-playing {
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-.touch-playing #game {
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.touch-playing #hud {
-  z-index: 4;
-  --ui-top: max(8px, env(safe-area-inset-top));
-  --ui-right: max(10px, env(safe-area-inset-right));
-  --ui-left: max(10px, env(safe-area-inset-left));
-  gap: 8px;
-}
-.touch-playing #scoreboard {
-  flex: 1;
-  gap: 8px;
-}
-.touch-playing .score {
-  flex: 1;
-  min-width: 0;
-  width: auto;
-  max-width: 100px;
-}
-.touch-playing .score small {
-  display: block;
-  font-size: 8px;
-  line-height: 1.3;
-}
-.touch-playing .dialog {
-  z-index: 6;
-  max-height: calc(
-    100% - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px
-  );
-}
-.touch-playing #announcement {
-  font-size: clamp(32px, 7vw, 60px);
-  padding: 0 10px;
-}
-.touch-playing #announcement small {
-  font-size: 12px;
-}
-@media (orientation: portrait) {
-  .touch-playing {
-    --touch-dock: max(210px, 28dvh);
-  }
-  .touch-playing #game {
-    height: calc(100% - var(--touch-dock));
-    object-fit: cover;
-  }
-  .touch-playing #touch-controls {
-    height: var(--touch-dock);
-    max-height: none;
-    min-height: 0;
-    background: #101a24;
-    border-top: 1px solid #ffffff20;
-  }
-  .touch-playing #overview {
-    display: block;
-    z-index: 1;
-    top: max(132px, calc(env(safe-area-inset-top) + 124px));
-    right: max(10px, env(safe-area-inset-right));
-    width: 112px;
-    height: 63px;
-    border: 1px solid #b8ced947;
-    border-radius: 4px;
-  }
-  .touch-playing #announcement {
-    top: 24%;
-  }
-  .touch-device .controls-grid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 360px) {
-  .touch-device .brand-mark {
-    display: none;
-  }
-  .touch-device .settings {
-    flex-direction: column;
-  }
-}
-
-.touch-device button,
-.touch-device a,
-.touch-device select {
-  touch-action: manipulation;
-}
-.touch-device .touch-action {
-  touch-action: none;
-}
-
 .keyboard-help summary {
   padding: 12px 0;
   cursor: pointer;
   font-size: 14px;
   color: #c6d6c4;
-  touch-action: manipulation;
 }
 .dialog:has(.character-editor) { width: min(920px, 96%); }
 .character-editor {
@@ -1475,52 +1092,8 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   flex: none;
   margin-left: 6px;
 }
-@media (max-width: 560px) {
-  .character-editor {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding: 10px;
-  }
-  #character-preview {
-    width: 150px;
-    height: auto;
-    grid-row: 1 / 3;
-  }
-  .character-portrait { display: grid; grid-template-columns: 150px minmax(0,1fr); align-items: center; gap: 4px; }
-  .character-portrait .button { width: auto; margin: 0 8px 10px 0; }
-  .preview-controls { flex-direction: column; gap: 0; margin: 8px 8px 0 0; }
-  .preview-controls button { min-height: 30px; }
-  .character-section { min-height: 0; }
-  .cosmetic-options { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .colour-option {
-    height: 32px;
-  }
-  .colour-options {
-    gap: 8px;
-  }
-  .slot-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lobby-players {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .lobby-invite {
-    gap: 10px;
-  }
-  #room-code {
-    letter-spacing: 3px;
-    font-size: 24px;
-  }
-}
+
 .player-portrait { position: static; inset: auto; transform: none; pointer-events: none; width: 32px; height: 40px; flex: none; }
-@media (pointer: coarse) {
-  .character-fields .colour-option { min-height: 44px; border-radius: 8px; }
-}
-@media (max-width: 360px) {
-  #room-code {
-    font-size: 20px;
-    letter-spacing: 2px;
-    padding: 10px 8px;
-  }
-}
 
 .connection-report {
   width: 100%;
@@ -1536,46 +1109,6 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   margin-bottom: 14px;
 }
 
-#touch-block.recharging { opacity: 0.6; }
-
-@media (max-height: 600px) and (orientation: landscape) {
-  #menu {
-    top: 64px;
-    width: min(420px, 48%);
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-  }
-  .menu-panel h1 {
-    font-size: clamp(36px, 7vw, 68px);
-    line-height: 0.95;
-    white-space: nowrap;
-    margin: 2px 0 8px;
-  }
-  .menu-panel h1 br { display: none; }
-  .menu-panel h1 span { margin-left: 0.12em; }
-  #menu .menu-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-column: auto;
-    grid-row: auto;
-    gap: 6px;
-  }
-  #menu #play { grid-column: 1 / -1; }
-  #menu .button {
-    min-height: 44px;
-    padding: 10px 8px;
-    gap: 4px;
-    font-size: 10px;
-    justify-content: center;
-  }
-  #menu #play { justify-content: space-between; }
-  #menu .latest-update { grid-column: auto; grid-row: auto; font-size: 10px; }
-}
-@media (max-width: 649px) and (max-height: 650px) and (orientation: portrait) {
-  #menu { top: clamp(120px, 28dvh, 170px); }
-  .menu-panel h1 { margin: 6px 0 14px; }
-  #menu .button { padding: 10px 12px; }
-}
 :root .arena-instruction { font-size: clamp(12px, 1.3vw, 20px); letter-spacing: .01em; line-height: 1.5; margin-top: .6em; }
 .dialog[data-view="lobby"], .dialog[data-view="selection"] {
   width: min(1100px, calc(100% - var(--ui-left) - var(--ui-right)));
@@ -1658,40 +1191,4 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   .fighter-card canvas, .empty-portrait { height: 95px; }
   .fighter-card h4 { margin-bottom: 6px; }
   .selection-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
-}
-@media (max-width: 620px) {
-  .dialog[data-view="lobby"], .dialog[data-view="selection"] { padding: 18px; border-radius: 12px; }
-  .dialog[data-view="lobby"] .lobby-invite { padding: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-  .invite-code-block { gap: 6px 14px; }
-  .lobby-invite .invite-actions { margin-left: auto; }
-  .lobby-layout { grid-template-columns: minmax(0,1fr); }
-  .fighter-card canvas, .empty-portrait { height: 110px; }
-  .lobby-footer { gap: 12px; flex-wrap: wrap; }
-  .dialog .lobby-footer .button { width: 100%; }
-  .selection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .selection-footer { bottom: -18px; gap: 10px; padding-top: 8px; }
-  .dialog .selection-footer .button { width: 120px; }
-}
-@media (min-width: 520px) and (max-height: 500px) {
-  .dialog[data-view="lobby"], .dialog[data-view="selection"] { padding: 14px 18px; }
-  .dialog[data-view="lobby"] h2, .dialog[data-view="selection"] h2 { font-size: 32px; }
-  .dialog[data-view="lobby"] .dialog-head, .dialog[data-view="selection"] .dialog-head { margin-bottom: 10px; }
-  .dialog[data-view="lobby"] .lobby-invite { padding: 10px; flex-wrap: nowrap; gap: 8px; margin-bottom: 14px; }
-  .invite-code-block { gap: 4px 8px; }
-  .lobby-invite #room-code { width: 138px; font-size: 22px; letter-spacing: 3px; }
-  .lobby-invite .invite-code-block label, .lobby-invite #lobby-count { font-size: 10px; }
-  .invite-actions .text-button { font-size: 10px; padding: 8px; }
-  .dialog[data-view="lobby"] .lobby-players { grid-template-columns: repeat(4,minmax(0,1fr)); }
-  .fighter-card { padding: 9px 6px; }
-  .fighter-card canvas, .empty-portrait { height: 75px; }
-  .fighter-card h4 { font-size: 12px; }
-  .fighter-card select { font-size: 10px; padding: 7px 3px; }
-  .fighter-card-top { font-size: 9px; }
-  .lobby-layout { grid-template-columns: minmax(0,1fr); }
-  .match-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 20px; }
-  .match-options h3 { grid-column: 1 / -1; }
-  .match-options .option-row { border: 0; }
-  .difficulty-row { margin: 0; font-size: 12px; }
-  .lobby-footer { flex-wrap: nowrap; }
-  .dialog .lobby-footer .button { width: 200px; }
 }

@@ -4,12 +4,12 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      content="width=device-width, initial-scale=1"
     />
     <meta name="theme-color" content="#15191b" />
     <meta
       name="description"
-      content="Bonk Club: a browser physics fighting game with AI opponents and online rooms."
+      content="Bonk Club: a desktop browser physics fighting game with AI opponents and online rooms."
     />
     <title>Bonk Club</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -57,7 +57,7 @@
         <ul id="fighter-effects" aria-label="Your active effects"></ul>
         <form id="chat-form" class="hidden" autocomplete="off">
           <label for="chat-input">Chat</label>
-          <input id="chat-input" type="text" maxlength="120" placeholder="Type a message" aria-describedby="chat-help" enterkeyhint="send" />
+          <input id="chat-input" type="text" maxlength="120" placeholder="Type a message" aria-describedby="chat-help" />
           <span id="chat-help">Enter to send · Esc to cancel</span>
         </form>
         <span id="chat-hint">Enter to chat</span>
@@ -74,42 +74,6 @@
           class="dialog hidden"
           aria-labelledby="panel-title"
         ></section>
-        <canvas
-          id="overview"
-          class="hidden"
-          width="240"
-          height="135"
-          aria-label="Arena overview"
-        ></canvas>
-        <div id="touch-controls" class="hidden" aria-label="Touch controls">
-          <div
-            id="move-zone"
-            class="touch-zone"
-            aria-label="Drag to move; swipe up to jump; drag down to lie down or drop through thin platforms"
-          >
-            <span id="move-stick" class="touch-stick" aria-hidden="true">
-              <i></i><b>MOVE</b>
-            </span>
-          </div>
-          <div
-            id="aim-zone"
-            class="touch-zone"
-            aria-label="Drag to aim and fire; hold to fire; double-tap to throw"
-          >
-            <span id="aim-stick" class="touch-stick" aria-hidden="true">
-              <i></i><b>AIM / FIRE</b>
-            </span>
-          </div>
-          <button id="touch-jump" class="touch-action" aria-label="Jump; tap again to double jump">JUMP</button>
-          <button id="touch-block" class="touch-action" aria-label="Tap to parry one hit">PARRY</button>
-        </div>
-        <div id="rotate-screen" class="hidden" role="region" aria-labelledby="rotate-title">
-          <svg viewBox="0 0 80 64" width="80" height="64" aria-hidden="true"><rect x="10" y="14" width="60" height="36" rx="6" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 29v7m46-7v7M31 5h18m-5-4 5 4-5 4M49 59H31m5-4-5 4 5 4" fill="none" stroke="currentColor" stroke-width="3"/></svg>
-          <h2 id="rotate-title">Rotate your phone</h2>
-          <p>Turn your phone sideways to play.</p>
-          <button id="rotate-fullscreen" class="button primary">FULLSCREEN</button>
-          <button id="rotate-menu" class="button secondary">GAME MENU</button>
-        </div>
       </main>
       <div id="toast" class="hidden" role="status"></div>
       <div id="room-notifications" role="log" aria-label="Room activity" aria-live="polite" aria-relevant="additions"></div>

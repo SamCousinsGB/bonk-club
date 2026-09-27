@@ -89,16 +89,6 @@ try {
   await guest.waitForFunction(()=>document.querySelector('#difficulty').value==='normal' && document.querySelector('#map-count').textContent==='2 selected' && document.querySelector('#weapon-count').textContent==='1 selected');
   await host.screenshot({path:path.join(results,'play-host-lobby.png')});
   await guest.screenshot({path:path.join(results,'play-guest-lobby.png')});
-  for(const [width,height] of [[390,844],[568,320]]) {
-    await host.setViewportSize({width,height});
-    assert.equal(await host.evaluate(()=>document.querySelector('#panel').scrollWidth<=document.querySelector('#panel').clientWidth+1),true,'lobby has no horizontal overflow');
-    await host.screenshot({path:path.join(results,`play-lobby-${width}.png`)});
-    await host.locator('#choose-maps').click();
-    assert.equal(await host.evaluate(()=>document.querySelector('#panel').scrollWidth<=document.querySelector('#panel').clientWidth+1),true,'map selection has no horizontal overflow');
-    await host.screenshot({path:path.join(results,`play-maps-${width}.png`)});
-    await host.locator('#selection-done').click();
-  }
-  await host.setViewportSize({width:1280,height:800});
   await guest.locator('#ready-up').click();
   await host.locator('#start-match').click();
   await guest.locator('body.playing').waitFor({ timeout: 30000 });

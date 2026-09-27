@@ -5,8 +5,12 @@ Start new work from current `origin/main` in one clean worktree.
 
 ## Product and interface
 
-- Bonk Club is an original 2D physics brawler for browsers and eventual Windows /
+- Bonk Club is an original 2D physics brawler for desktop browsers and eventual Windows /
   Linux Steam releases. Keep the shared Vite/Canvas game and original artwork.
+- PC/Desktop only. Do not build, design, test, emulate or check phone/mobile/tablet
+  UX, layouts or controls. Keyboard/mouse and desktop controllers are the supported
+  inputs. Keep desktop window resizing and fullscreen; do not restore touch controls,
+  mobile layouts, orientation locks or rotate prompts. This supersedes older notes.
 - Prioritise responsive combat, physical consequences, readable action, varied maps
   and reliable online play. Do not build a marketing page around the game.
 - No unsolicited slogans, jokes, decorative copy, badges or invented claims. Use
@@ -39,19 +43,13 @@ Start new work from current `origin/main` in one clean worktree.
 
 - Baseline world: 2560 x 1440; run speed: 240 units/second. Impulses may exceed run
   speed. Do not clamp away recoil, blasts or death momentum.
-- Keep procedural physical fighters and usable keyboard/mouse, controller and touch
+- Keep procedural physical fighters and usable keyboard/mouse and controller
   controls. Left click attacks or throws a carried object, S lies down, F throws,
   and weapon pickups are automatic. Right-click/G or the secondary action picks up,
   drops or throws a reachable prop/fragment; with none available it parries or uses
   alternate fire. Carried bodies keep their weight, collision, damage and reactions;
   heavy objects slow movement and throw less far. Knockdown, death, destruction,
-  replacement and reset release the grip. Touch uses the same contextual action.
-- Touch uses movement drags, jump swipes, aim/fire, double-tap throw, drag-down prone,
-  and only compact Jump plus contextual Parry/Alt fire buttons. Guides and labels
-  hide while held. Preserve simultaneous movement/fire and generous touch regions.
-- Mobile gameplay is landscape. Join/Start requests fullscreen and orientation lock;
-  refusal never blocks joining or pauses simulation. Keep the menu reachable in
-  portrait and prevent page drag.
+  replacement and reset release the grip.
 - Empty hands alone can parry once during a short window, then cool down. Holding
   does not repeat. Weapons cannot block unless they explicitly provide alternate fire.
 - Melee needs directional lunges, forceful contact, feedback and bounded air use.
@@ -199,8 +197,9 @@ Start new work from current `origin/main` in one clean worktree.
   `npm run test:stress` when simulation coverage is relevant and `npm run build` for
   browser releases. Server changes require server install/tests. Desktop changes
   require unit and executable smoke tests on each target OS.
-- Visually inspect actual gameplay for art/animation changes. Test real touch events
-  for touch changes and changed-world hot joins for persistent world state.
+- Visually inspect actual desktop gameplay for art/animation changes. Test
+  changed-world hot joins for persistent world state. All browser and executable
+  verification uses desktop environments only; no mobile QA or builds.
 - Established gameplay delivery includes commit, push, successful CI/Pages, exact
   artifact parity and public browser verification unless Sam requests local-only work.
   Never claim unshipped work is live.

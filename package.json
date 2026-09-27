@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.53.0",
-  "releaseNotes": "Status icons, effect timers and dripping oil coatings",
+  "version": "0.53.1",
+  "releaseNotes": "Desktop-only controls and interface",
   "private": true,
   "type": "module",
   "scripts": {

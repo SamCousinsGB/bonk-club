@@ -5,6 +5,13 @@ networking for desktop, WebRTC for browsers, and a managed progression backend
 later. The eventual commercial product is the Steam desktop game; browser
 retirement is a future release decision, not part of this change.
 
+## Supported devices
+
+PC/Desktop only (27 September 2026). Browser means a desktop browser. Supported
+inputs are keyboard/mouse and controllers. Phone/tablet layouts, touch controls,
+orientation handling, mobile builds and mobile QA are removed from scope. Future
+agent work must use desktop environments for design, building and verification.
+
 ## Shared development and release
 
 Gameplay, physics, AI, art, controls and balance live in `src/`. There is no
