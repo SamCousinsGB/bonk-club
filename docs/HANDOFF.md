@@ -12,7 +12,18 @@
 - Seventeen focused mechanics/audio tests and desktop visual checks pass,
   including separate lethal paths, intact space between the beams, slow bounded
   motion, fixed surrounding art and both eye positions after compact hot join.
-  Full release checks are in progress. Refresh all players for protocol 81.
+- Full regular tests, all six local stress shards and the browser build pass.
+  [Release workflow 36334861057](https://github.com/SamCousinsGB/bonk-club/actions/runs/36334861057)
+  passed shared/server validation, six stress shards, Windows/Linux executable
+  checks, revision verification and Pages deployment for `f87014c`.
+- All 18 local, CI and public files match byte for byte. Public desktop gameplay
+  measured 4.32 pixels of painted head travel over the opening sixteen seconds
+  and both distinct laser origins in the same frame. Host/guest controls,
+  relay-only late join after cuts, resizing/reduced motion and host departure
+  passed without browser errors. Source checks also compared exact damaged
+  terrain/eye state, reversed firing, mute/seek and reset. Evidence is in
+  `bonk-club-qa/colossus-motion`; this is one-machine TURN verification.
+  The task-owned development server was stopped. Refresh for protocol 81.
 
 ## Suspension Bridge rebuild (v0.58.0 / protocol 80)
 
