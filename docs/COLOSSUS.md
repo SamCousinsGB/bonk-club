@@ -5,10 +5,12 @@ weathered silhouette follows the original painting. Mountains hide the legs
 and lower body. The landscape contains no painted mech: the head, torso and
 four arm segments are separate transparent parts attached to a shared rigid
 skeleton. The rig is 17% smaller than v0.60.0, with the same position behind the
-ridge. A cached low-contrast blue-grey texture grade matches the far mountains.
+ridge. A cached low-contrast stone-metal grade receives broad lighting colours
+sampled from the surrounding landscape, including the warm horizon haze.
 Opaque articulated parts assemble into one bounded layer before receiving
-consistent depth haze and 0.65px edge softness; overlapping joints do not double
-their opacity. The foreground mountain layer hides the lower body. Do not
+that airlight and 0.45px edge softness; overlapping joints do not double their
+opacity. An opaque foreground layer follows the actual painted mountain edge,
+hiding the lower body behind its peaks rather than using a horizontal fade. Do not
 replace this with a large, sharp, clean geometric or toy-like robot.
 
 The head, shoulders and elbows move independently. At a 1600px desktop camera,

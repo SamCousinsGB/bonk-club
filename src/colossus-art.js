@@ -2,7 +2,7 @@ import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beam
 import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
 
 const TAU=Math.PI*2;
-let backdrop, foothills, mist, energyTexture;
+let backdrop, foothills, airlight, mist, energyTexture;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const line=(c,x,y,ex,ey,color,width)=>{c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
@@ -16,17 +16,39 @@ export function warmColossusArt() {
 function drawFoothills(c){
   if(!backdrop?.naturalWidth)return;
   if(!foothills){
-    // The valley crosses in front of the hidden lower body. Only scenery is in
-    // this texture; the head, body and limbs are always independent geometry.
-    foothills=document.createElement('canvas');foothills.width=400;foothills.height=70;
+    // Trace the actual painted ridge in the 1672x941 source plate. Replaying
+    // these opaque mountain pixels places the machine behind real terrain;
+    // a horizontal alpha fade lets it show through peaks and look pasted on.
+    const ridge=[[700,481],[735,469],[748,464],[759,460],[766,461],
+      [773,456],[780,454],[784,455],[788,452],[791,454],[797,455],
+      [803,459],[811,461],[819,462],[825,461],[833,463],[841,463],
+      [849,466],[857,468],[865,470],[873,470],[880,471],[889,470],
+      [898,472],[906,472],[914,470],[922,474],[933,473],[944,466],
+      [953,470],[966,471]];
+    foothills=document.createElement('canvas');foothills.width=400;foothills.height=190;
     const p=foothills.getContext('2d'),sx=backdrop.naturalWidth/2560,sy=backdrop.naturalHeight/1440;
-    p.drawImage(backdrop,1080*sx,708*sy,400*sx,70*sy,0,0,400,70);
-    p.globalCompositeOperation='destination-in';
-    const fade=p.createLinearGradient(0,0,0,30);
-    fade.addColorStop(0,'#0000');fade.addColorStop(.4,'#0002');fade.addColorStop(1,'#000');
-    p.fillStyle=fade;p.fillRect(0,0,400,70);
+    p.beginPath();ridge.forEach(([x,y],i)=>{
+      const px=x/1672*2560-1080,py=y/941*1440-650;
+      if(i)p.lineTo(px,py);else p.moveTo(px,py);
+    });
+    p.lineTo(400,190);p.lineTo(0,190);p.closePath();
+    p.filter='blur(0.55px)';p.fill();p.filter='none';
+    p.globalCompositeOperation='source-in';
+    p.drawImage(backdrop,1080*sx,650*sy,400*sx,190*sy,0,0,400,190);
   }
-  c.drawImage(foothills,1080,708);
+  c.drawImage(foothills,1080,650);
+}
+function sceneAirlight(){
+  if(!backdrop?.naturalWidth)return null;
+  if(!airlight){
+    // Only broad lighting colours survive this reduction: no scenery details
+    // can appear inside the machine. The warm horizon and cool lower valley
+    // now colour its haze in the same places as the surrounding landscape.
+    airlight=document.createElement('canvas');airlight.width=12;airlight.height=8;
+    const p=airlight.getContext('2d'),sx=backdrop.naturalWidth/2560,sy=backdrop.naturalHeight/1440;
+    p.drawImage(backdrop,1100*sx,570*sy,360*sx,240*sy,0,0,12,8);
+  }
+  return airlight;
 }
 function cloudTexture() {
   if(mist)return mist;
@@ -86,7 +108,7 @@ export function drawColossusSky(c,state,reduced=false) {
   if(backdrop?.complete&&backdrop.naturalWidth)c.drawImage(backdrop,0,0,2560,1440);
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
   // A slow exposure change draws the eye to the awakened machine without strobing.
-  drawColossusFigure(c,h,energy);
+  drawColossusFigure(c,h,energy,sceneAirlight());
   drawFoothills(c);
   c.fillStyle=`rgba(6,17,30,${.09+energy*.17})`;c.fillRect(0,0,2560,1440);
   eye(c,h,0,energy);eye(c,h,1,energy);

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.60.1",
-  "releaseNotes": "Smaller Colossus with distant haze and mountain cover",
+  "version": "0.60.2",
+  "releaseNotes": "Colossus lighting and mountain overlap refined",
   "private": true,
   "type": "module",
   "scripts": {

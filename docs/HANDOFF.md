@@ -1,5 +1,17 @@
 # Bonk Club — current handoff
 
+## Colossus mountain overlap and lighting (v0.60.2 / protocol 83)
+
+- Replaced the horizontal foreground fade with an opaque layer traced along
+  the painted mountain ridge. The lower body now disappears behind terrain.
+- Broad landscape colours supply the figure's atmospheric lighting, matching
+  the warm horizon and cooler valley. Parts remain opaque beneath this grade.
+  Rig scale, independent movement, shared eye origins and attack timing remain.
+- Seventeen focused mechanics/audio tests and desktop source visuals pass,
+  including charge, twin discharge, a reversed cycle and reduced motion.
+  Full validation and publishing evidence will be recorded after release.
+  Evidence: bonk-club-qa/colossus-ridgeline.
+
 ## Colossus distance and compositing (v0.60.1 / protocol 83)
 
 - Reduced the rig by 17%, preserving its position behind the distant ridge.
