@@ -1,4 +1,4 @@
-import { World, STEP, WEAPONS } from "./engine.js";
+import { World, STEP, WEAPONS, ARENAS } from "./engine.js";
 import { makeRig } from "./puppet.js";
 import { prepareProp } from "./props.js";
 
@@ -75,7 +75,7 @@ class MenuWorld extends World {
 
 export class MenuFight {
   constructor(random = Math.random) {
-    this.world = new MenuWorld({ players: [0, 1, 2], bots: [0, 1, 2], random, shuffle: false });
+    this.world = new MenuWorld({ players: [0, 1, 2], bots: [0, 1, 2], arena: ARENAS.findIndex(arena => arena.turbine), random, shuffle: false });
     this.accumulator = 0;
   }
   advance(dt, reduced = false) {

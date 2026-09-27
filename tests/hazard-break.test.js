@@ -50,32 +50,6 @@ test("departed train leaves its signals visible and never breaks them into shard
   assert.equal(calls.filter(([key])=>key==="arc").length,4);
 });
 
-test("a direct blast breaks the moving mechanism with its floor intact and cannot trigger it twice", () => {
-  const {w, h} = lab("pendulum"), tracker = new HazardBreaks(); h.bodyY = 400; h.active = true;
-  tracker.update(w.snapshot());
-  carveExplosion(w, {x: h.bodyX, y: h.bodyY, radius: 45});
-  assert.equal(h.done, true); assert.equal(dangerous(h), false);
-  assert.ok(w.platforms.some(p => p.hp !== 0 && p.x <= h.x && p.x+p.w >= h.x && p.y === h.y));
-  assert.equal(tick(w, tracker).length, 1); assert.equal(validSnapshot(w.snapshot()), true);
-  const version = w.terrainVersion;
-  carveExplosion(w, {x: h.bodyX, y: h.bodyY, radius: 45});
-  assert.equal(w.terrainVersion, version); assert.equal(tick(w, tracker).length, 1);
-});
-
-test("host and interpolated guest observe a single break at the moving head; hot join shows empty space", () => {
-  const {w, h} = lab("pendulum"), snapshots = new RenderSnapshots(); h.bodyX = 810; h.bodyY = 450;
-  const host = new HazardBreaks(), guest = new HazardBreaks();
-  const before = snapshots.make(w.snapshot()); host.update(before); guest.update(before);
-  w.platforms[0].hp = 0; tick(w, host);
-  const after = snapshots.make(w.snapshot()), rendered = interpolateStates(before, after, .5);
-  assert.equal(validSnapshot(after), true);
-  assert.equal(guest.update(rendered).length, 1);
-  assert.deepEqual(hazardShardMesh(guest.bursts[0].h), hazardShardMesh(host.bursts[0].h));
-  assert.equal(guest.bursts[0].h.bodyX, 810); assert.equal(guest.bursts[0].h.bodyY, 450);
-  assert.equal(guest.update(rendered).length, 1);
-  assert.equal(new HazardBreaks().update(after).length, 0);
-});
-
 test("burst state clears on round/arena/menu changes, rewinds and background gaps", () => {
   for (const change of [s => ({...s, round: s.round+1}), s => ({...s, arenaIndex: s.arenaIndex+1}),
     s => ({...s, time: s.time-1}), s => ({...s, time: s.time+2}), () => null]) {

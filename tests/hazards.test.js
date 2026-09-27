@@ -21,7 +21,7 @@ function lab(type="geyser") {
 const advance=(w,t)=>{for(let n=0;n<t/STEP;n++)updateHazards(w,STEP);};
 for(const type of HAZARD_TYPES)test(`${type} is a persistent map fixture with a valid live snapshot`,()=>{
  const {w,h}=lab(type);w.players.forEach(p=>p.x=1500);
- advance(w,3);assert.equal(h.active,["slag","turbine"].includes(type));
+ advance(w,3);assert.equal(h.active,["slag","turbine","conveyor"].includes(type));
  advance(w,4);assert.ok(validSnapshot(w.snapshot()),type);
  advance(w,30);assert.equal(w.hazards.length,1);assert.equal(w.hazards[0],h);
  assert.ok(validSnapshot(JSON.parse(JSON.stringify(w.snapshot()))));

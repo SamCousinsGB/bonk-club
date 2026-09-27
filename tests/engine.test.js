@@ -225,7 +225,7 @@ test("slot replacement resets only its score, keeps a live body and persists int
 });
 
 test("joining an eliminated bot spawns a living player without restarting the round", () => {
-  const w = new World({ players: [0], arena: 18 });
+  const w = new World({ players: [0], arena: 7 });
   w.phase = "fight";
   w.round = 8;
   w.kill(w.players[2]);
@@ -254,8 +254,9 @@ test("an all-dead round resolves even while a delayed blast is active", () => {
   assert.equal(w.winner, null);
 });
 test("spikes eliminate on contact", () => {
-  const w = new World({ arena: 2 });
+  const w = new World({ arena: 7 });
   w.phase = "fight";
+  w.arena = {...w.arena, spikes: [{x:600,y:565,w:140}]};
   const spike = w.arena.spikes[0];
   Object.assign(w.players[0], { x: spike.x + 30, y: spike.y - 40 });
   w.step(STEP);

@@ -9,7 +9,7 @@ import { blackholeField } from "../src/blackhole.js";
 const json = value => JSON.parse(JSON.stringify(value));
 
 test("acknowledged delta snapshots exactly preserve changing physics through loss, reordering and resets", async () => {
-  const w = new World({ players: [0, 1, 2, 3], bots: [2, 3], arena: 18, random: () => .45 });
+  const w = new World({ players: [0, 1, 2, 3], bots: [2, 3], arena: 7, random: () => .45 });
   const host = new SnapshotHistory(), guest = new SnapshotHistory(), renderer = new RenderSnapshots();
   let ack = 0, last = 0; const delivered = [];
   for (let seq = 1; seq <= 110; seq++) {
@@ -32,7 +32,7 @@ test("acknowledged delta snapshots exactly preserve changing physics through los
 });
 
 test("static destroyed terrain does not consume every movement update's bandwidth", async () => {
-  const w = new World({ arena: 18, players: [0, 1, 2, 3], random: () => .45 });
+  const w = new World({ arena: 7, players: [0, 1, 2, 3], random: () => .45 });
   w.fields = [blackholeField(w, { x: 1150, y: 800, owner: 0 })];
   for (let n = 0; n < 140; n++) w.step(STEP);
   const renderer = new RenderSnapshots(), history = new SnapshotHistory();

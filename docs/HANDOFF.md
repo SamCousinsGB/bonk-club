@@ -1,5 +1,18 @@
 # Bonk Club — current handoff
 
+## Arena roster (v0.62.0 / protocol 85)
+
+- Match selection and rotation contain only Transmission Towers, Arc Furnace,
+  Car Assembly, Turbine Hall, Bullet Train, Scrap Foundry, Cargo Plane Hold,
+  Car Wash, Ocean Liner, Waterworks, Suspension Bridge and Colossus.
+  Press Floor and Ice Sweep are removed, along with all other earlier arenas.
+- Removed the old arena definitions and their themed scenery from the browser
+  source. Existing room clients must refresh because map indexes changed.
+- The regular suite, full arena stress run and production browser build pass
+  locally. A desktop source browser shows all twelve map choices; a Car Wash
+  match renders for the host and a guest joining mid-round. Release CI, Pages
+  and public artifact parity remain pending.
+
 ## Colossus rise and irregular repeat attacks (v0.61.0 / protocol 84)
 
 - The opening sequence is 5.5 seconds rising from behind the ridge, 2.5 seconds

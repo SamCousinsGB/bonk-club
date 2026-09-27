@@ -36,7 +36,6 @@ import {
   H,
   STEP,
   ARENAS,
-  CITY_ARENAS,
   COLORS,
   NAMES,
   WEAPONS,

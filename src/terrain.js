@@ -4,57 +4,8 @@ import { blastCables, releaseCableMounts } from "./heavy-cables.js";
 
 // Marked wood and glass panels can be shot out. Every surface also supports
 // circular explosion cuts, including structural supports and lifts.
-export function preparePlatforms(arena, arenaIndex) {
-  if (arena.waterworks) return arena.platforms.map(p => ({ ...p }));
-  if (arena.ship) return arena.platforms.map(p => ({ ...p }));
-  if (arena.cargoPlane) return arena.platforms.map(p => ({ ...p }));
-  if (arena.setpiece || arena.bridge) return arena.platforms.map(p => ({ ...p }));
-  if (arena.turbine) return arena.platforms.map(p => ({ ...p }));
-  if (arena.assembly) return arena.platforms.map(p => ({ ...p }));
-  if (arena.furnace) return arena.platforms.map(p => ({ ...p }));
-  // Machinery floors resist bullets but still use the same circular blast cuts.
-  if (arena.survival || arena.transmission || arena.carWash) return arena.platforms.map(p => ({ ...p }));
-  const candidates = arena.platforms
-    .map((p, i) => ({ p, i }))
-    .filter(
-      ({ p }) =>
-        p.w >= 280 &&
-        p.y >= 280 &&
-        p.y <= 1250 &&
-        !p.travel &&
-        !p.move &&
-        !p.elevator,
-    );
-  const selected = new Set(
-    candidates
-      .sort(
-        (a, b) =>
-          ((a.i * 17 + arenaIndex * 13) % 41) -
-          ((b.i * 17 + arenaIndex * 13) % 41),
-      )
-      .slice(0, 6)
-      .map(({ i }) => i),
-  );
-  const glass =
-    ["hospital", "arctic"].includes(arena.theme) ||
-    (arenaIndex >= 8 && arenaIndex <= 11);
-  const panel = (p) => ({
-    ...p,
-    destructible: true,
-    panel: glass ? "glass" : "wood",
-    hp: glass ? 65 : 100,
-    maxHp: glass ? 65 : 100,
-  });
-  return arena.platforms.flatMap((p, i) => {
-    if (!selected.has(i)) return [{ ...p }];
-    const width = Math.min(190, p.w * 0.42),
-      side = (p.w - width) / 2;
-    return [
-      { ...p, w: side },
-      panel({ ...p, x: p.x + side, w: width }),
-      { ...p, x: p.x + side + width, w: side },
-    ];
-  });
+export function preparePlatforms(arena) {
+  return arena.platforms.map(p => ({ ...p }));
 }
 
 export function carveExplosion(world, blast, { fixtures = true, preservePlatform = () => false } = {}) {

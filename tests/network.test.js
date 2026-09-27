@@ -635,7 +635,7 @@ test("pregame lobby shares profiles, reserves colours and starts all guests afte
 });
 
 test("compressed combat frames survive the real binary wire format and are much smaller", async () => {
-  const w = new World({ players: [0], arena: 21 });
+  const w = new World({ players: [0], arena: 7 });
   for (let n = 0; n < 60; n++) w.step(STEP);
   const state = w.snapshot(),
     bytes = await encodeState(state),

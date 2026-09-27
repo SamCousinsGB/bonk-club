@@ -63,7 +63,7 @@ test("blasts cut lifts, break nearby trap bodies, remove spikes and release supp
 });
 
 test("exploded warped wreckage never rebuilds its collision on the next tick",()=>{
-  const w=new World({arena:18,players:[0,1],random:()=>.4});w.phase="fight";
+  const w=new World({arena:7,players:[0,1],random:()=>.4});w.phase="fight";
   w.fields=[blackholeField(w,{x:1250,y:750,owner:0})];
   for(let n=0;n<75;n++){w.time+=STEP;updateFields(w,STEP);}
   const tile=w.platforms.find(p=>p.wreckId);assert.ok(tile);
