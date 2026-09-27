@@ -12,6 +12,7 @@ const simulationOnly = new Set([
   "dropThrough", "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
   "crashCooldown",
   "jetTick",
+  "cutX",
 ]);
 const movingLists = ["projectiles", "drops", "debris", "ragdolls", "fields", "wreckage", "blood", "cover", "chunks", "water", "gas", "spills"];
 const quantize = (n) => Number.isInteger(n) ? n : Math.round(n * 100) / 100;
@@ -57,7 +58,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 export function blend(a, b, t) {
   if (!a || a === b || t === 1) return b;
   const out = { ...b };
-  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing", "carCoat"])
+  for (const key of ["x", "y", "walk", "bodyX", "bodyY", "age", "ashAge", "deathAge", "radius", "packing", "carCoat", "gazeX", "gazeY"])
     if (Number.isFinite(a[key]) && Number.isFinite(b[key])) out[key] = lerp(a[key], b[key], t);
   // Assembly adds height upwards from the wheels. Interpolating the old top
   // with the new height briefly draws the completed shell through the belt.
@@ -129,6 +130,8 @@ export function interpolateStates(a, b, t, mode = "all") {
     });
     out.hazards = b.hazards.map(h => {
       const old = a.hazards.find(q => q.id === h.id);
+      if(h.type==='colossus')return old&&old.cycleId===h.cycleId&&old.active===h.active&&
+        (old.warning>0)===(h.warning>0)?blend(old,h,t):h;
       if (h.type === "train" && (old?.active !== h.active || old?.dir !== h.dir || old?.derailed !== h.derailed)) return h;
       return h.type === "furnace" ? h : old && old.warning === 0 && h.warning === 0 ? blend(old, h, t) : h;
     });

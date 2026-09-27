@@ -113,7 +113,7 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim, force
       if (world.spikes().some(t => x > t.x - 22 && x < t.x + t.w + 22 && Math.abs(s.y - t.y) < 45) ||
           reactionDanger(world,x,y) || world.hazards.some(h => {
             if (!dangerous(h)) return false;
-            const z = hazardZone(h);
+            const z = hazardZone(h,y);
             return x > z.x - 30 && x < z.x + z.w + 30 && y + 30 > z.y && y - 28 < z.y + z.h;
           })) continue;
       const separation = nearest(point);
@@ -353,7 +353,7 @@ export class BotController {
       const projected = clamp(p.x + p.vx * .24 + dir * 48, left, right);
       if (unsafePoint(world,p.x,p.y) || unsafePoint(world,projected,p.y)) {
         const candidates = [p.x, projected - 90, projected + 90, left + 8, right - 8,
-          ...world.hazards.flatMap(h => {const z=hazardZone(h);return [z.x-42,z.x+z.w+42];})]
+          ...world.hazards.flatMap(h => {const z=hazardZone(h,p.y);return [z.x-42,z.x+z.w+42];})]
           .filter(x => x >= left && x <= right && !unsafePoint(world,x,p.y) &&
             !firstObstacle(solids,p,{x,y:p.y-10}))
           .sort((a,c) => Math.abs(a-p.x)-Math.abs(c-p.x));
@@ -954,7 +954,7 @@ export class BotController {
     const hazard = world.hazards.find(h=>{
       if(world.arena.survival || h.type === "loader")return false;
       if(!dangerous(h))return false;
-      const z=hazardZone(h);
+      const z=hazardZone(h,p.y);
       return p.x>z.x-45&&p.x<z.x+z.w+45&&p.y+30>z.y-20&&p.y-28<z.y+z.h;
     });
     if (reactionDanger(world,p.x,p.y) && !b.flight && here) {
@@ -965,7 +965,14 @@ export class BotController {
       if(!roof)i.jump=p.ground;
     }
     if (hazard && !b.flight) {
-      const z=hazardZone(hazard);
+      const z=hazardZone(hazard,p.y);
+      if(hazard.type==='colossus'){
+        // The long warning permits walking to surviving support. Never turn a
+        // laser dodge into an unchecked jump into the hole it just carved.
+        const candidates=here?[z.x-48,z.x+z.w+48].filter(x=>x>here.x+24&&x<here.x+here.w-24&&
+          !unsafePoint(world,x,p.y)&&!firstObstacle(solids,p,{x,y:p.y-10})).sort((a,c)=>Math.abs(a-p.x)-Math.abs(c-p.x)):[];
+        if(candidates.length){Object.assign(i,steer(p,candidates[0]));i.jump=false;i.attack=false;i.duck=false;i.block=false;}
+      }else{
       let away=p.x<z.x+z.w/2?-1:1;
       if(hazard.type==="conveyor")away=-hazard.dir;
       if(here&&p.x+away*80<here.x+15)away=1;
@@ -973,6 +980,7 @@ export class BotController {
       i.left=away<0;i.right=away>0;i.block=false;i.duck=false;
       const roof=solids.some(s=>s.y+s.h<p.y-25&&s.y+s.h>p.y-165&&p.x+20>s.x&&p.x-20<s.x+s.w);
       i.jump=p.ground&&!roof;
+      }
     }
     // A physical prop can push a bot off its takeoff before a planned flight
     // begins. Spend its ordinary air jump while a nearby ledge is still in reach.

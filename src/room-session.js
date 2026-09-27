@@ -1,4 +1,5 @@
 import { TRAIN_Y, TRAIN_SPEED } from "./setpiece-arenas.js";
+import { validColossus } from './colossus.js';
 import { validFurnace } from './furnace-parts.js';
 import { validVictoryCause } from "./victory.js";
 import { validAssembly } from "./assembly.js";
@@ -39,7 +40,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 78;
+export const PROTOCOL = 79;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -391,7 +392,7 @@ export class RoomSession {
       const t = this.later(() => {
         fail(Object.assign(new Error(this.connectionTimeout(c)), { type: "connection-timeout" }));
       }, 25000);
-      c.on("open", () => this.emit("onStatus", "Joining roomâ€¦"));
+      c.on("open", () => this.emit("onStatus", "Joining roomÃ¢â‚¬Â¦"));
       c.on("data", (m) => {
         if (this.connection !== c || this.closed || !m || typeof m !== "object")
           return;
@@ -874,6 +875,7 @@ export function validSnapshot(s) {
         (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
         (p.bridgePanel === undefined || (ARENAS[s.arenaIndex]?.bridge === true && integer(p.bridgePanel,0,15) &&
           p.material === 'metal' && [p.bridgeVx||0,p.bridgeVy||0,p.bridgeOffsetX||0,p.bridgeOffsetY||0].every(finite))) &&
+        (p.colossusStone === undefined || (p.colossusStone === true && ARENAS[s.arenaIndex]?.colossus === true && p.material === 'stone')) &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
         (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&
@@ -916,6 +918,7 @@ export function validSnapshot(s) {
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&
+        validColossus(h,ARENAS[s.arenaIndex]) &&
         (h.failedAt === undefined || (h.type === "airflow" && ARENAS[s.arenaIndex]?.cargoPlane === true &&
           [h.failedAt,h.leftWingAt,h.rightWingAt].every(v=>finite(v)&&(v===-1||v>=0)&&v<=h.age+.02) &&
           [-1,1].includes(h.rollDir) && (h.failedAt<0 ? h.leftWingAt===-1&&h.rightWingAt===-1 :
@@ -950,7 +953,7 @@ export function validSnapshot(s) {
         h.h > 0 &&
         h.h <= (h.type === "furnace" ? 1300 : h.type === "ladle" ? 760 : 300) &&
         h.warning >= 0 &&
-        h.warning <= 2 &&
+        h.warning <= (h.type === 'colossus' ? 10 : 2) &&
         h.age >= 0 &&
         h.duration >= -0.02 &&
         h.duration <= (h.type === "powerline" ? 7 : 6) &&

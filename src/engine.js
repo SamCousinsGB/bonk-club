@@ -1,3 +1,4 @@
+import { COLOSSUS_ARENA } from './colossus-arena.js';
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { BRIDGE_ARENA } from "./bridge-arena.js";
 import { updateBridge } from "./bridge.js";
@@ -89,7 +90,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA, COLOSSUS_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -128,7 +129,7 @@ export class World {
       new Set(players).size !== players.length ||
       players.some((i) => !Number.isInteger(i) || i < 0 || i > 3)
     )
-      throw new Error("Choose 1–4 distinct player slots.");
+      throw new Error("Choose 1â€“4 distinct player slots.");
     this.ids = players.length === 1 && fillSolo ? [0, 1, 2, 3] : [...players];
     this.botIds = new Set(
       players.length === 1 && fillSolo

@@ -1,3 +1,4 @@
+import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, colossusShake } from './colossus-art.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawBridgeHall, drawBridgeStructure } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
@@ -47,6 +48,7 @@ import { W, H, ARENAS, COLORS, NAMES, WEAPONS } from "./engine.js";
 const TAU = Math.PI * 2;
 export class Renderer {
   constructor(canvas) {
+    warmColossusArt();
     warmNuclearArt();
     warmBlackholeLens(this);
     warmSpacetimeWarp(this);
@@ -421,6 +423,7 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    if(p.colossusStone){drawColossusStone(this.ctx,p);return;}
     if(p.shipHull || p.shipDeck || p.shipBulkhead){drawShipPlatform(this.ctx,p);return;}
     if (p.planeHull) return;
     if (this.planeFrame && !p.wreckId && !p.waterId) { drawPlanePlatform(this.ctx,p); return; }
@@ -906,7 +909,7 @@ export class Renderer {
       this.city(arena, state.platforms);
     }
     const pressure = Math.max(0, ...state.fields.filter(f => f.kind === "shockwave").map(f => 21 * Math.max(0, 1 - f.age / 3.2)));
-    this.shake = Math.max(this.shake, pressure);
+    this.shake = Math.max(this.shake, pressure, colossusShake(state));
     if (!menuArena && !this.reduced && this.shake > 0)
       c.translate(
         (Math.random() - 0.5) * this.shake,
@@ -916,6 +919,8 @@ export class Renderer {
 
     if (menuArena) {
       // The continuous menu arena has its own background and camera above.
+    } else if(arena.colossus) {
+      drawColossusSky(c,state,this.reduced);
     } else if(arena.ship) {
       drawShipSky(c,time,this.reduced);transformShip(c,state.ship);
       drawShipWater(c,state,time,this.reduced);
@@ -965,7 +970,7 @@ export class Renderer {
       }
       c.drawImage(this.scenery.get(state.arenaIndex),0,0);
     }
-    if (!menuArena && !arena.cargoPlane && !arena.ship) ambientDetail(this, arena, time);
+    if (!menuArena && !arena.cargoPlane && !arena.ship && !arena.colossus) ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
@@ -1181,6 +1186,7 @@ export class Renderer {
     // bullets and particles instead of letting them draw over the black core.
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
+    if(arena.colossus)drawColossusBeam(c,state,this.reduced);
     drawSpacetimeWarp(this, state.fields);
     if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     if (!menuArena) drawChat(c, state, this.chatMessages || []);

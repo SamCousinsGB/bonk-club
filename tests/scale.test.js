@@ -84,6 +84,10 @@ test("all arenas occupy the enlarged world and support expanded online snapshots
       assert.equal(w.platforms.length, 1);
       assert.ok(w.platforms[0].w > 2300);
       assert.ok(w.players.every(p=>p.y < w.platforms[0].y));
+    } else if(w.arena.colossus) {
+      assert.ok(w.platforms.every(p=>p.y>=870),'the face owns the skyline');
+      assert.ok(w.platforms.length>=11&&w.platforms.some(p=>p.y>=1300));
+      assert.ok(Math.abs(w.players[0].x-w.players[1].x)>2000);
     } else {
       assert.ok(Math.min(...w.platforms.map((p) => p.y)) <= 580);
       if(w.arena.turbine)assert.ok(Math.max(...w.platforms.map((p) => p.y + p.h)) < 1200);

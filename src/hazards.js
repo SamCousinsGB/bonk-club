@@ -1,3 +1,4 @@
+import { initialColossus, updateColossus, colossusZone } from './colossus.js';
 import { crusherContact, crusherSweep } from "./crusher-contact.js";
 import { FURNACE_PARTS, initialFurnacePieces } from './furnace-parts.js';
 import { updateLadle, ladleZone } from "./foundry.js";
@@ -12,14 +13,15 @@ import { releaseCargo } from "./cargo.js";
 import { updatePowerline } from "./powerlines.js";
 import { updateFurnace } from "./furnace.js";
 import { compactHazardZone, updateAirflow, updateCarWash } from "./compact-setpieces.js";
-export const HAZARD_TYPES=["ladle","train","geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine","airflow","carwash"];
-export const HAZARD_LABELS={ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",airflow:"Hull decompression",carwash:"Car wash machinery",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
+export const HAZARD_TYPES=["colossus","ladle","train","geyser","conveyor","pendulum","crusher","tesla","saw","xray","magnet","steam","frost","spores","furnace","slag","loader","powerline","turbine","airflow","carwash"];
+export const HAZARD_LABELS={colossus:"Colossus laser",ladle:"Pouring ladle",train:"Bullet train",turbine:"Turbine",furnace:"Arc furnace",slag:"Molten metal",powerline:"Power lines",airflow:"Hull decompression",carwash:"Car wash machinery",geyser:"Flame vent",conveyor:"Conveyor",pendulum:"Spike ball",crusher:"Crusher",tesla:"Electrical trap",saw:"Saw rail",xray:"X-ray scanner",magnet:"Magnetic scanner",steam:"Hot geyser",frost:"Coolant vent",spores:"Spore plant",loader:"Cargo outlet"};
 const overlap=(a,b)=>a.x+a.w>b.x&&a.x<b.x+b.w&&a.y+a.h>b.y&&a.y<b.y+b.h;
 
 export function createHazards(world) {
   return (world.arena.traps||[]).map((h,i)=>({
     ...h,id:i+1,bodyX:h.type==="saw"?h.x+Math.sin(h.motionPhase||0)*(h.w/2-28):h.x,bodyY:h.type==="ladle"?660:h.type==="train"?h.y-h.h/2:h.type==="turbine"?h.y-30:h.type==="saw"?h.y-28:h.type==="pendulum"?h.y-35:h.type==="furnace"?h.y+140:h.y-h.h+24,vy:0,age:0,
     warning:0,duration:1.25,cooldown:3.5+i*.75,active:false,
+    ...(h.type==='colossus'?initialColossus():{}),
     ...(h.type==='ladle'?{ladleLeft:3000}:{}),
     ...(h.type==='furnace'?{furnacePieces:initialFurnacePieces(),furnaceLeaks:[],furnaceMelt:1,furnaceParts:FURNACE_PARTS.map(()=>100),furnaceFault:0,furnaceStage:0,furnaceLeft:9,furnaceSpan:9,furnaceCycle:0,furnaceCooling:0,furnaceLanes:[true,true,true]}:{}),
     done:false,hitIds:[],hitTimer:0,...(h.type==="powerline"?{circuit:h.circuit??0}:{}),
@@ -29,7 +31,8 @@ export function createHazards(world) {
     ...((world.arena.survival || world.arena.carWash || world.arena.theme==='foundry') && h.type === "conveyor" ? {cooldown: 0} : {}),
   }));
 }
-export function hazardZone(h) {
+export function hazardZone(h, y) {
+  if(h.type==='colossus')return colossusZone(h,y);
   const compact = compactHazardZone(h);
   if (compact) return compact;
   if(h.type==="ladle")return ladleZone(h);
@@ -69,6 +72,7 @@ export function updateHazards(world,dt) {
   for(const h of [...world.hazards]) {
     if(h.done&&!(h.type==="train"&&!h.wreck))continue;
     if(h.assemblyStation)continue; // The production clock owns these machines.
+    if(h.type==='colossus'){updateColossus(world,h,dt);continue;}
     if(h.type==="furnace"||h.type==="slag"){updateFurnace(world,h,dt);continue;}
     if(h.type==="ladle"){updateLadle(world,h,dt);continue;}
     if(h.type==="train"){updateTrain(world,h,dt);continue;}

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.56.0",
-  "releaseNotes": "Suspension bridge, collapsing deck and live traffic",
+  "version": "0.57.0",
+  "releaseNotes": "Colossus arena: an ancient mech watches and carves the ruins with its laser",
   "private": true,
   "type": "module",
   "scripts": {
