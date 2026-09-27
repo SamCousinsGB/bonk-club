@@ -12,7 +12,14 @@
   Requiring both to fire was invalid once the new beam angle left different
   routes: the first shooter could pursue and punch its opponent before another
   safe explosive shot. The original idle-pair regression is still covered.
-- Desktop pose inspection and focused checks precede release validation.
+- All 37 focused checks, the full regular suite and the Colossus stress shard
+  passed. Desktop gameplay and every rise/eye/fire pose were inspected. The
+  final bundle passed host/guest controls, both eye beams, an irregular repeat,
+  relay late join, reduced motion and host departure without browser errors.
+- Revision 59ca064 passed workflow 36356314415, including all six arena stress
+  groups, shared/server tests, Windows/Linux checks, release verification and
+  Pages. All 19 local, CI and public files match exactly. Additional public
+  gameplay was omitted as previously requested. Task preview is stopped.
   Evidence: bonk-club-qa/colossus-proportions.
 
 
