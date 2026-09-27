@@ -3,11 +3,11 @@
 import {colossusStand} from './colossus-timing.js';
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const COLOSSUS_EYES=Object.freeze([{x:-12,y:3.3},{x:12,y:3.3}]);
+export const COLOSSUS_EYES=Object.freeze([{x:-13.3,y:-10.6},{x:12.4,y:-10.6}]);
 export const COLOSSUS_SCALE=.58;
 export const COLOSSUS_LEGS=Object.freeze({upper:96,lower:102});
 export const COLOSSUS_ARMS=Object.freeze({upper:92,lower:100});
-export const COLOSSUS_FIGURE=Object.freeze({x:1060,y:440,w:440,h:380});
+export const COLOSSUS_FIGURE=Object.freeze({x:1060,y:410,w:440,h:410});
 export function rigPoint(frame,x,y){
   return {x:frame.x+frame.a*x+frame.c*y,y:frame.y+frame.b*x+frame.d*y};
 }
@@ -26,10 +26,10 @@ export function colossusRig(h){
   const lean=-crouch*.16+Math.sin(t*.21)*.015;
   const body=frame(1280+Math.sin(t*.19)*6,585+crouch*135+Math.sin(t*.17)*.5,lean);
   const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-178+crouch*25);
-  const head=frame(neck.x,neck.y-9,lean+Math.sin(t*.29-.4)*.13,
+  const head=frame(neck.x,neck.y-42,lean+Math.sin(t*.29-.4)*.13,
     .93-Math.sin(t*.23+look*.5)**2*.15);
   const arms=[-1,1].map(side=>{
-    const shoulder=rigPoint(body,side*116,-143);
+    const shoulder=rigPoint(body,side*105,-143);
     // Keep daylight beneath both shoulders throughout the slow articulation.
     const a=side*(.37+Math.sin(t*.23+side*.5)*.12)+lean;
     const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper);

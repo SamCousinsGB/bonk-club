@@ -108,9 +108,9 @@ Start new work from current `origin/main` in one clean worktree.
   surviving steel, car facing consistent with collision, and no decorative
   beams across destroyed tiles or the middle joint. Preserve host-owned motion,
   blast fragments, changed-world joins and reset.
-- **Colossus:** an ancient square-headed mech rises fully upright beyond the
+- **Colossus:** an ancient bronze automaton inspired by the Colossus of Rhodes rises beyond the
   valley, with articulated legs above the ridge and feet grounded behind it.
-  Preserve the original weathered silhouette, scene-matched haze and separate
+  Preserve the stern classical face, solar diadem, patinated bronze, scene-matched haze and separate
   moving head, torso and limbs. No round chest reactor or black dot eyes.
   Rise for 5.5 seconds, open faint blue eyes for 2.5, then charge both eyes for
   four seconds and sweep for three. Remain standing with open eyes, resting

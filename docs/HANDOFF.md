@@ -1,5 +1,20 @@
 # Bonk Club — current handoff
 
+## Colossus bronze automaton (v0.63.3 / protocol 88)
+
+- Sam requested a creepy Colossus of Rhodes: a stern Greek statue face, solar
+  diadem, broad cast-bronze torso, verdigris, cracks and exposed ancient gears.
+  A transparent six-part atlas supplies dedicated head, torso, arms and legs.
+  Joint landmarks preserve articulation; source colours retain bronze/patina
+  under the same valley airlight and opaque foreground ridge.
+- Keeps the heavier proportions, full rise, blue eye opening and individually
+  targeted irregular twin attacks. Eye light and physical beams share the new
+  sculpted eye landmarks. Refresh all clients for protocol 88.
+- Built-in image generation prompt and asset provenance are saved in
+  docs/art/colossus-bronze.md. Focused tests and desktop pose checks pass;
+  release-bundle, CI and public verification are pending.
+  Evidence: bonk-club-qa/colossus-bronze.
+
 ## Colossus full standing pose and individual targets (v0.63.2 / protocol 87)
 
 - The mech rises through its hips and articulated armoured legs, standing fully
@@ -14,7 +29,12 @@
 - Focused targeting checks cover upper and outer ledges, repeat selection,
   warning locks and compact hot joins. The bot combat regression isolates one
   actual destructive sweep so a repeat attack cannot kill the pair before
-  measuring their firing decisions. Final release validation is in progress.
+  measuring their firing decisions. All 37 focused tests, the full regular
+  suite and the Colossus stress shard passed. Final-bundle host/guest movement,
+  first and repeat twin fire, relay late join and reduced motion passed without
+  browser errors. Release c35cbc7 passed workflow 36355120792, including six
+  stress groups, Windows/Linux validation and Pages. All 19 local, CI and public
+  files match exactly. Additional public gameplay was omitted as requested.
   Evidence: bonk-club-qa/colossus-full-height.
 
 
