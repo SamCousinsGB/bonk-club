@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.57.0",
-  "releaseNotes": "Colossus arena: an ancient mech watches and carves the ruins with its laser",
+  "version": "0.58.0",
+  "releaseNotes": "Rebuilt bridge towers, harbour artwork and suspended maintenance routes",
   "private": true,
   "type": "module",
   "scripts": {

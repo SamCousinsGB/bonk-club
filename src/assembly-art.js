@@ -61,10 +61,10 @@ function shell(c, x, dy, painted, color) {
   }
   c.restore();
 }
-function wheel(c, x, y) {
+function wheel(c, x, y, phase=0) {
   disc(c, x, y, 23, "#0a131b"); disc(c, x, y, 19, "#202e38");
   disc(c, x, y, 14, "#b6c1c3"); disc(c, x, y, 10, "#455b68");
-  for (let i=0;i<5;i++) { const a=i*Math.PI*2/5;
+  for (let i=0;i<5;i++) { const a=i*Math.PI*2/5+phase;
     path(c,[{x:x+Math.cos(a)*4,y:y+Math.sin(a)*4},{x:x+Math.cos(a)*12,y:y+Math.sin(a)*12}],"#dde2dc",3);
   }
   disc(c,x,y,4,"#869b9f");
@@ -90,13 +90,19 @@ function carArt(c, car, painted = false) {
   if(car.stage&PART.CABIN && !(car.stage&PART.BODY)){
     path(c,[{x:x-76,y:1120},{x:x-76,y:1158},{x:x+86,y:1158},{x:x+86,y:1120}],painted?color:'#859da6',7);
   }
-  for(const [offset,part] of [[-81,PART.REAR],[81,PART.FRONT]])if(car.stage&part)wheel(c,x+offset,1167);
+  for(const [offset,part] of [[-81,PART.REAR],[81,PART.FRONT]])if(car.stage&part)wheel(c,x+offset,1167,car.wheelPhase||0);
 }
 export function drawCarProp(c,b){
   if(b.hp<=0)return;
   const stage=b.carStage??0,height=carHeight(stage);
-  c.save();c.translate(b.x,b.y);c.scale(b.w/250,b.h/height);c.translate(125,height-1190);
-  const car={x:0,id:b.carPaint??0,stage};
+  c.save();c.translate(b.x,b.y);
+  if(b.bridgeVehicle&&b.bridgeDir<0){c.translate(b.w,0);c.scale(-1,1);}
+  c.scale(b.w/250,b.h/height);c.translate(125,height-1190);
+  const car={x:0,id:b.carPaint??0,stage,wheelPhase:b.bridgeVehicle?b.x/19:0};
+  if(b.bridgeVehicle&&(stage&PART.BODY)){
+    polygon(c,[[120,1139],[265,1125],[265,1173],[120,1152]],'#ffe3a90b');
+    rect(c,117,1141,6,8,'#ffe4ae');
+  }
   carArt(c,car);
   const coat=b.carCoat??(stage&PART.PAINT?1:0);
   if(coat>0){

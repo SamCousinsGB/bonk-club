@@ -40,7 +40,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 79;
+export const PROTOCOL = 80;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -873,8 +873,12 @@ export function validSnapshot(s) {
         (p.wingLoose === undefined || (p.wingLoose === true && !!p.planeWing && finite(p.wingAt) && p.wingAt >= 0 &&
           [p.wingX??0,p.wingY??0].every(finite) && Math.abs(p.wingX??0)<=2000 && (p.wingY??0)>=0 && (p.wingY??0)<=3000)) &&
         (p.oneWay === undefined || typeof p.oneWay === "boolean") &&
+        (p.bridgePart === undefined || (ARENAS[s.arenaIndex]?.bridge === true &&
+          ['road','pier','cap','walk'].includes(p.bridgePart) && p.material === 'metal')) &&
+        (p.bridgeBay === undefined || (ARENAS[s.arenaIndex]?.bridge === true && integer(p.bridgeBay,0,2) &&
+          p.bridgePart === 'walk' && [p.bridgeVx??0,p.bridgeVy??0,p.bridgeOffsetX??0,p.bridgeOffsetY??0].every(finite))) &&
         (p.bridgePanel === undefined || (ARENAS[s.arenaIndex]?.bridge === true && integer(p.bridgePanel,0,15) &&
-          p.material === 'metal' && [p.bridgeVx||0,p.bridgeVy||0,p.bridgeOffsetX||0,p.bridgeOffsetY||0].every(finite))) &&
+          p.material === 'metal' && [p.bridgeVx??0,p.bridgeVy??0,p.bridgeOffsetX??0,p.bridgeOffsetY??0].every(finite))) &&
         (p.colossusStone === undefined || (p.colossusStone === true && ARENAS[s.arenaIndex]?.colossus === true && p.material === 'stone')) &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&

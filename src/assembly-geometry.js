@@ -35,7 +35,7 @@ export function carShape(stage) {
 export function carPoints(b) {
   const c=Math.cos(b.angle||0),s=Math.sin(b.angle||0),h=carHeight(b.carStage??0);
   return carProfile(b.carStage??0).map(([x,y])=>{
-    const rx=x*b.w/250,ry=(y-1190+h/2)*b.h/h;
+    const rx=x*b.w/250*(b.bridgeVehicle&&b.bridgeDir<0?-1:1),ry=(y-1190+h/2)*b.h/h;
     return {x:b.x+b.w/2+rx*c-ry*s,y:b.y+b.h/2+rx*s+ry*c};
   });
 }

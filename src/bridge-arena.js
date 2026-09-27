@@ -1,28 +1,46 @@
-const steel = (x,y,w,h=36) => ({x,y,w,h,material:"metal"});
-const walk = (x,y,w) => ({x,y,w,h:16,material:"metal",oneWay:true});
+const steel = (x,y,w,h=36,bridgePart="pier") => ({x,y,w,h,material:"metal",bridgePart});
+const walk = (x,y,w) => ({...steel(x,y,w,18,"walk"),oneWay:true});
 export const BRIDGE_DECK_Y = 850;
 export const BRIDGE_PANELS = 16;
+export const BRIDGE_BAYS = [
+  {x:720,y:1110,w:380,mounts:[1,5]},
+  {x:1460,y:1110,w:380,mounts:[10,14]},
+  {x:1150,y:1220,w:260,mounts:[6,9]},
+];
+// The visual suspension rods and the motion solver use the same surviving
+// attachment points. Cutting the steel at a hanger removes that attachment.
+export function bridgeBayMounts(platforms,bay){
+  const spec=BRIDGE_BAYS[bay];
+  return spec.mounts.map((id,i)=>{
+    const offset=spec.x+(i?spec.w-16:16)-(560+id*90);
+    const p=platforms.find(q=>q.bridgePanel===id&&q.hp!==0&&
+      offset>=(q.bridgeOffsetX||0)&&offset<=(q.bridgeOffsetX||0)+q.w);
+    return p?{panel:p,x:p.x-(p.bridgeOffsetX||0)+offset,y:p.y+p.h}:null;
+  });
+}
 export const BRIDGE_ARENA = {
   name:"SUSPENSION BRIDGE",theme:"suspension-bridge",color:"#263d4c",bridge:true,
   platforms:[
-    {...steel(0,BRIDGE_DECK_Y,560),oneWay:true},{...steel(2000,BRIDGE_DECK_Y,560),oneWay:true},
+    {...steel(0,BRIDGE_DECK_Y,560,52,"road"),oneWay:true},{...steel(2000,BRIDGE_DECK_Y,560,52,"road"),oneWay:true},
     ...Array.from({length:BRIDGE_PANELS},(_,i)=>({
-      ...steel(560+i*90,BRIDGE_DECK_Y,90,30),bridgePanel:i,oneWay:true,
+      ...steel(560+i*90,BRIDGE_DECK_Y,90,52,"road"),bridgePanel:i,oneWay:true,
     })),
-    ...[405,2015].flatMap(x=>[
-      steel(x,240,24,460),steel(x+116,240,24,460),
-      steel(x,950,24,450),steel(x+116,950,24,450),
-      walk(x-95,510,330),walk(x-60,1110,260),
+    ...[320,1920].flatMap(x=>[
+      steel(x,240,34,430),steel(x+286,240,34,430),
+      steel(x-16,240,352,32,"cap"),
+      steel(x,960,34,480),steel(x+286,960,34,480),
+      walk(x-45,450,410),walk(x-55,650,430),
+      walk(x-40,1040,400),walk(x-40,1250,400),
     ]),
-    walk(75,590,280),walk(2205,590,280),
-    walk(120,710,230),walk(2210,710,230),
-    walk(650,1140,370),walk(1540,1140,370),
-    walk(1050,1270,460),
+    walk(55,540,225),walk(2280,540,225),
+    walk(60,720,220),walk(2280,720,220),
+    ...BRIDGE_BAYS.map((b,bridgeBay)=>({...walk(b.x,b.y,b.w),bridgeBay})),
   ],
-  spawns:[[190,808],[2370,808],[270,548],[2290,548]],
+  spawns:[[160,678],[2400,678],[450,608],[2110,608]],
   weapons:[[850,818],[1710,818],[1250,818]],starterWeapons:[],spikes:[],
-  cover:[],hazards:["steam"],traps:[
-    {type:"steam",x:800,y:1140,w:160,h:180,dir:1},
-    {type:"steam",x:1760,y:1140,w:160,h:180,dir:-1},
-  ],
+  cover:[
+    {kind:'crate',x:536,y:386,w:56,h:64,hp:65,maxHp:65},
+    {kind:'crate',x:1968,y:386,w:56,h:64,hp:65,maxHp:65},
+    {kind:'generator',x:892,y:1044,w:88,h:66,hp:85,maxHp:85},
+  ],hazards:[],traps:[],
 };

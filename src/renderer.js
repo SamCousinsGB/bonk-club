@@ -1,6 +1,6 @@
 import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, colossusShake } from './colossus-art.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
-import { drawBridgeHall, drawBridgeStructure } from './bridge-art.js';
+import { drawBridgeHall, drawBridgeStructure, drawBridgePlatform, drawBridgeAtmosphere } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
 import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
@@ -424,6 +424,7 @@ export class Renderer {
   platform(p, time) {
     if (p.hp === 0) return;
     if(p.colossusStone){drawColossusStone(this.ctx,p);return;}
+    if(p.bridgePart){drawBridgePlatform(this.ctx,p);return;}
     if(p.shipHull || p.shipDeck || p.shipBulkhead){drawShipPlatform(this.ctx,p);return;}
     if (p.planeHull) return;
     if (this.planeFrame && !p.wreckId && !p.waterId) { drawPlanePlatform(this.ctx,p); return; }
@@ -984,7 +985,10 @@ export class Renderer {
     c.restore();
     // Tower wires occupy the rear layer, behind platforms and fighters.
     if(arena.transmission)drawPowerlines(c,state,this.reduced ? 0 : time);
-    if(arena.bridge)drawBridgeStructure(c,state);
+    if(arena.bridge){
+      drawBridgeAtmosphere(c,time,this.reduced);
+      c.save();clipCraters(c,state);drawBridgeStructure(c,state);c.restore();
+    }
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
     if(arena.carWash)drawCarWashStructure(c,state);
