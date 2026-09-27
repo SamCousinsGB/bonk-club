@@ -22,8 +22,14 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
 - Focused crash/fixture tests, full regular suite and both Bullet Train stress cases
   pass on the integrated source. Desktop browser host/guest movement, an actual
   crash and changed-world hot join show identical carriage and terrain state.
-  Evidence: `bonk-club-qa/train-crash/`. Full release CI/Pages and public parity
-  must pass before this update is described as live. Refresh all player tabs.
+  Evidence: `bonk-club-qa/train-crash/`. Refresh all player tabs.
+- Live gameplay revision `b9790f5` passed the full regular suite, all six arena
+  stress shards, Windows/Linux packaging, release verification and Pages in
+  [release workflow 36322978777](https://github.com/SamCousinsGB/bonk-club/actions/runs/36322978777).
+  All 17 local, CI and public browser files match byte for byte. Fresh public
+  v0.54.0 host/guest controls, Bullet Train selection, third-player hot join and
+  host departure passed with selected real relay routes and no browser errors.
+  These browser checks use one machine, not separate ISPs or native Steam.
 - Includes the concurrent desktop-only, Waterworks, Foundry, status and Ocean Liner
   changes below. Does not change their scope or restore phone support.
 
