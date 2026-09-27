@@ -1,5 +1,5 @@
 import { prepareProp, impulseProp } from './props.js';
-import { BRIDGE_DECK_Y, BRIDGE_PANELS } from './bridge-arena.js';
+import { BRIDGE_DECK_Y, BRIDGE_PANELS, BRIDGE_BAYS, bridgeBayMounts } from './bridge-arena.js';
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const PANEL_W=90;
@@ -16,12 +16,14 @@ export function bridgeSupport(world, half) {
   },0)/cables.length;
 }
 
-// Each deck tile is a sprung, massive link. The hanger load and neighbouring
-// tiles limit its motion; a fully severed half folds toward its tower.
+// Damped deck motion follows the surviving suspension runs. A fully severed
+// half folds toward its tower; fragment offsets preserve every blast cut.
 export function updateBridge(world,dt) {
   if (!world.arena.bridge || world.prediction || dt<=0) return;
   const panels=world.platforms.filter(p=>Number.isInteger(p.bridgePanel)).sort((a,b)=>a.bridgePanel-b.bridgePanel);
-  world.bridgeNavY??=Object.fromEntries(panels.map(p=>[p.bridgePanel,p.y]));
+  const bays=world.platforms.filter(p=>Number.isInteger(p.bridgeBay));
+  const navKey=p=>p.bridgeBay===undefined?p.bridgePanel:`bay${p.bridgeBay}`;
+  world.bridgeNavY??=Object.fromEntries([...panels,...bays].map(p=>[navKey(p),p.y]));
   const support=[bridgeSupport(world,0),bridgeSupport(world,1)];
   for (const p of panels) {
     const half=p.bridgePanel<BRIDGE_PANELS/2?0:1;
@@ -45,8 +47,22 @@ export function updateBridge(world,dt) {
     p.x+=p.bridgeVx*dt;p.y+=p.bridgeVy*dt;
     p.dx=p.x-oldX;p.dy=p.y-oldY;
   }
-  if(panels.some(p=>Math.abs(p.y-(world.bridgeNavY?.[p.bridgePanel]??p.y))>35)){
-    world.bridgeNavY=Object.fromEntries(panels.map(p=>[p.bridgePanel,p.y]));
+  for(const p of bays){
+    const spec=BRIDGE_BAYS[p.bridgeBay];
+    const held=bridgeBayMounts(panels,p.bridgeBay).filter(Boolean).map(m=>m.panel),oldX=p.x,oldY=p.y;
+    if(held.length){
+      const dx=held.reduce((sum,q)=>sum+q.x-(560+q.bridgePanel*PANEL_W)-(q.bridgeOffsetX||0),0)/held.length;
+      const dy=held.reduce((sum,q)=>sum+q.y-BRIDGE_DECK_Y-(q.bridgeOffsetY||0),0)/held.length;
+      p.bridgeVx=((p.bridgeVx||0)+(spec.x+dx+(p.bridgeOffsetX||0)-p.x)*10*dt)*Math.exp(-5*dt);
+      p.bridgeVy=((p.bridgeVy||0)+(spec.y+dy+(p.bridgeOffsetY||0)-p.y)*10*dt)*Math.exp(-5*dt);
+    }else p.bridgeVy=Math.min(900,(p.bridgeVy||0)+1400*dt);
+    p.x+=(p.bridgeVx||0)*dt;p.y+=(p.bridgeVy||0)*dt;p.dx=p.x-oldX;p.dy=p.y-oldY;
+  }
+  if(bays.some(p=>p.y>1800)){
+    world.platforms=world.platforms.filter(p=>p.bridgeBay===undefined||p.y<=1800);world.terrainVersion++;
+  }
+  if([...panels,...bays].some(p=>Math.abs(p.y-(world.bridgeNavY?.[navKey(p)]??p.y))>35)){
+    world.bridgeNavY=Object.fromEntries([...panels,...bays].map(p=>[navKey(p),p.y]));
     world.terrainVersion++;
   }
   // Traffic uses ordinary physical car bodies. Drive exists only under
@@ -70,7 +86,7 @@ export function updateBridge(world,dt) {
     if(floor) {
       const next=panels.find(p=>p.bridgePanel===floor.bridgePanel+(b.bridgeDir||1));
       const slope=next?(next.y-floor.y)/PANEL_W:0;
-      impulseProp(b,clamp((b.bridgeDir*450+slope*820-b.vx)*b.mass*dt*2,-b.mass*32,b.mass*32),0);
+      impulseProp(b,clamp((b.bridgeDir*(450+slope*820)-b.vx)*b.mass*dt*2,-b.mass*32,b.mass*32),0);
     }
   }
   world.cover=world.cover.filter(b=>!b.bridgeVehicle||b.hp>0&&b.x>-400&&b.x<2750&&b.y<1800);

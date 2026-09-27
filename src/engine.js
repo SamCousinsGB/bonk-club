@@ -162,7 +162,7 @@ export class World {
     this.terrainSerial = 0;
     this.cables = createCables(this.arena);
     this.cableAccumulator = 0;
-    this.bridgeTraffic=0;this.bridgeVehicleSerial=0;
+    this.bridgeTraffic=0;this.bridgeVehicleSerial=0;this.bridgeNavY=null;
     this.spikeTerrain = null;
     this.craters = [];
     this.craterSerial = 0;

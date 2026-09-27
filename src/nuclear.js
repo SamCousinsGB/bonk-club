@@ -39,7 +39,7 @@ export function carveRectangle(s, f, nextId) {
       h,
       baseX: x,
       baseY: y,
-      ...(s.bridgePanel === undefined ? {} : {
+      ...(s.bridgePanel === undefined && s.bridgeBay === undefined ? {} : {
         bridgeOffsetX:(s.bridgeOffsetX||0)+x-s.x,
         bridgeOffsetY:(s.bridgeOffsetY||0)+y-s.y,
       }),
