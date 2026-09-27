@@ -13,12 +13,15 @@ opacity. An opaque foreground layer follows the actual painted mountain edge,
 hiding the lower body behind its peaks rather than using a horizontal fade. Do not
 replace this with a large, sharp, clean geometric or toy-like robot.
 
-The head, shoulders and elbows move independently. At a 1600px desktop camera,
+The arms sit clear of both sides of the torso so both armpit openings remain
+visible above the ridge. The head, shoulders and elbows move independently. At a 1600px desktop camera,
 head and hand travel each exceed ten pixels within six seconds. This preserves
 readable slow movement even at the final small scale. Pose comes from validated
 hazard age and gaze, never a separate client animation clock. Foot anchors
-remain fixed below the obscuring ridge. Narrow metallic eye shutters replace
-black dot eyes. Both light apertures and damaging rays use the same head frame.
+remain fixed below the obscuring ridge. Narrow metallic eye shutters slowly
+open from age one to ten seconds, revealing faint cold-blue light that remains
+between attacks. Round reset closes them. Both light apertures and damaging
+rays use the same head frame.
 
 Living fighters attract the gaze through two slow tracking filters. The host
 runs a forty-second cycle: sixteen quiet seconds, ten seconds of charging,

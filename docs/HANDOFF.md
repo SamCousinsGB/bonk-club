@@ -1,5 +1,20 @@
 # Bonk Club — current handoff
 
+## Colossus waking eyes and bot firing stalls (v0.60.3 / protocol 83)
+
+- The eye shutters gradually open during the first ten seconds, revealing faint
+  blue light between attacks. The shoulder spacing and arm poses expose both
+  armpits while retaining the distant scale, ridge cover and independent motion.
+  Both charging apertures and beams keep their existing shared head landmarks.
+- Fixed two reproduced AI stalls: a recoil guard repeatedly cancelled an
+  already-selected route, and spacing preferred cheap unusable positions over
+  reachable positions with safe firing clearance. Unsafe shots still stop;
+  checked traversal and viable firing positions now take priority.
+- Regression scenarios cover crowded rocket carriers and black-hole carriers
+  after a Colossus sweep changes the terrain. Eye opening, reset and existing
+  rig/beam tests pass. Final release evidence will be recorded after validation.
+  Evidence: bonk-club-qa/colossus-awake. No snapshot or protocol change.
+
 ## Colossus mountain overlap and lighting (v0.60.2 / protocol 83)
 
 - Replaced the horizontal foreground fade with an opaque layer traced along

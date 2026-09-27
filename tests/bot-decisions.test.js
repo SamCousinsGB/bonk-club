@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {World, STEP, WEAPONS} from "../src/engine.js";
+import {World, ARENAS, STEP, WEAPONS} from "../src/engine.js";
 import {combatFloor} from "./helpers.js";
 import {steer, traceFlight, routesFrom} from "../src/navigation.js";
 import {botDanger} from "../src/bot-danger.js";
@@ -145,4 +145,35 @@ test("an explosive carrier retreats on its own side of a close blocking opponent
   const w=fixture("plasma");w.platforms=[{id:"floor0",x:620,y:600,w:444,h:25}];
   Object.assign(w.players[0],{x:879,y:570});Object.assign(w.players[1],{x:849,y:570});
   advance(w,.5);assert.ok(w.players[1].x<810,"back away instead of pushing through the opponent");
+});
+
+test("crowded Colossus gunners take their escape route instead of recoil checks cancelling the approach",()=>{
+  const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1],bots:[0,1],shuffle:false,random:()=>.45});
+  w.phase="fight";w.cover=[];w.drops=[];w.hazards=[];w.weaponTimer=w.grenadeTimer=999;
+  w.players.forEach((p,n)=>Object.assign(p,{x:750+n*165,y:1140,vx:0,vy:0,
+    ground:true,support:"floor4",weapon:"rocket",ammo:3}));
+  let escapeStarted=false,fired=false;
+  for(let n=0;n<8/STEP&&w.phase==="fight"&&!fired;n++){
+    w.step(STEP);
+    escapeStarted ||= [...w.ai.bots.values()].some(b=>b.flight&&b.flight.to!=="floor4");
+    fired ||= w.players.some(p=>p.ammo<3);
+    assert.ok(w.players.every(p=>p.alive),"reposition without falling off the arena");
+  }
+  assert.ok(escapeStarted,"take a checked escape route");
+  assert.ok(fired,"the previous loop held both guns unfired for over thirty seconds");
+});
+
+test("black-hole carriers seek usable firing ground after the Colossus cuts their routes",()=>{
+  const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1],bots:[0,1],shuffle:false,random:()=>.45});
+  w.phase="fight";w.cover=[];w.drops=[];w.weaponTimer=w.grenadeTimer=999;
+  w.hazards[0].age=12;
+  w.players.forEach((p,n)=>Object.assign(p,{x:750+n*165,y:1140,vx:0,vy:0,
+    ground:true,support:"floor4",weapon:"blackhole",ammo:1}));
+  const shooters=new Set();
+  for(let n=0;n<30/STEP&&w.phase==="fight"&&shooters.size<2;n++){
+    w.step(STEP);
+    for(const shot of w.projectiles)if(shot.weapon==="blackhole")shooters.add(shot.owner);
+  }
+  assert.ok(w.terrainVersion>0,"exercise the actual changed terrain");
+  assert.equal(shooters.size,2,"both previously stood behind ledges without firing for seventy seconds");
 });

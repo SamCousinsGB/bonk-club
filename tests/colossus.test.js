@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
 import {COLOSSUS,colossusPhase,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
-import {colossusRig,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE} from '../src/colossus-rig.js';
+import {colossusRig,colossusEyeOpening,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE} from '../src/colossus-rig.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -18,6 +18,14 @@ import {makeRig} from '../src/puppet.js';
 function fixture(){const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1,2,3],shuffle:false,random:()=>.42});w.phase='fight';return w;}
 function advance(w,seconds){for(let n=0;n<Math.round(seconds/STEP);n++){w.time+=STEP;updateColossus(w,w.hazards[0],STEP);}}
 function transport(w){return expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);}
+
+test('eyes open gradually before the first charge and remain faintly awake between attacks',()=>{
+  assert.equal(colossusEyeOpening(0),0);
+  assert.ok(colossusEyeOpening(3)>0&&colossusEyeOpening(3)<colossusEyeOpening(7));
+  assert.equal(colossusEyeOpening(10),1);
+  for(const age of [16,26,32,40,60])assert.equal(colossusEyeOpening(age),1);
+  assert.equal(colossusEyeOpening(0),0,"round reset closes the shutters");
+});
 
 test('colossus terraces connect every spawn to contested weapons with the distant mech above play',()=>{
   const w=fixture(),solids=w.solids(),graph=navigation(solids,{time:0,spikes:[]});

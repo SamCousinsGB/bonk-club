@@ -1,4 +1,4 @@
-import {colossusRig,COLOSSUS_EYES,COLOSSUS_SCALE} from './colossus-rig.js';
+import {colossusRig,colossusEyeOpening,COLOSSUS_EYES,COLOSSUS_SCALE} from './colossus-rig.js';
 
 let parts,weathered,figure;
 export function warmColossusFigure(){
@@ -57,10 +57,13 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   }
   c.globalCompositeOperation='source-over';
   c.save();transform(c,rig.head);
-  // No black pupils. Narrow metallic shutters light up during the charge.
-  if(energy>0)for(const e of COLOSSUS_EYES){
-    c.fillStyle=`rgba(213,251,255,${Math.min(1,energy*1.7)})`;
-    c.fillRect(e.x-3.4,e.y-.5-energy,6.8,1+energy*2);
+  // Slow mechanical shutters reveal cold blue light even between attacks.
+  const opening=colossusEyeOpening(h.age),height=opening*(3.8+energy*1.6);
+  if(opening>0)for(const e of COLOSSUS_EYES){
+    c.shadowColor=`rgba(137,205,239,${opening*(.3+energy*.4)})`;
+    c.shadowBlur=3+energy*3;
+    c.fillStyle=`rgba(${energy>.3?'213,251,255':'147,209,239'},${opening*(.65+energy*.35)})`;
+    c.fillRect(e.x-4.5,e.y-height/2,9,height);
   }
   c.restore();c.restore();
   target.save();target.filter='blur(0.45px)';

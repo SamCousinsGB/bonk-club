@@ -120,6 +120,10 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim, force
       const wall = firstObstacle(solids, point, {x:enemy.x,y:enemy.y - 10});
       const hit = wall && segmentBox(x,y - 10,enemy.x,enemy.y - 10,wall);
       const clearance = distance(point,enemy) * (hit?.t ?? 1);
+      const usable = separation > weapon.clearance + 12 &&
+        (!impactShot || clearance > weapon.clearance + 12) &&
+        (!weapon.singularity || distance(point,enemy)-clearance < WEAPONS[p.weapon].radius*.75) &&
+        (!force || !wall || breakable(wall));
       const cost = Math.max(0,desired - separation) * 6 +
         (force && wall && !breakable(wall) ? 1500 : 0) +
         (!impactShot && wall ? weapon.clearance * 3 : 0) +
@@ -127,10 +131,14 @@ function firingPosition(world, p, enemy, weapon, paths, solids, here, aim, force
           ? Math.max(0,weapon.clearance - clearance) * 4 : 0) +
         path.cost * 60 + Math.abs(path.x - x) * .25 +
         Math.max(0,distance(point,enemy) - weapon.range * .85) * 2;
-      options.push({point,s,path,cost});
+      options.push({point,s,path,cost,usable});
     }
   }
-  options.sort((a,b) => a.cost - b.cost || (p.id % 2 ? a.point.x - b.point.x : b.point.x - a.point.x));
+  // A cheap almost-safe stance can never produce a shot. Prefer any reachable
+  // usable position before comparing travel costs; otherwise two carriers can
+  // settle forever just inside their clearance limits behind different ledges.
+  options.sort((a,b) => Number(b.usable)-Number(a.usable) || a.cost - b.cost ||
+    (p.id % 2 ? a.point.x - b.point.x : b.point.x - a.point.x));
   // A stranded bot still keeps the greatest available clearance on its ledge.
   return options[0] || (!force && here && {point:{x:p.x,y:p.y},s:here,path:paths.get(here.id)});
 }
@@ -338,13 +346,18 @@ export class BotController {
       const end = recoilEnd(p, i.aim ?? 0);
       if (recoil && (end < left || end > right)) {
         i.attack = false;
-        const offset = recoilEnd({...p,x:0,vx:0}, i.aim ?? 0);
-        const min = left + Math.max(0,-offset) + 8;
-        const max = right - Math.max(0,offset) - 8;
-        const x = min <= max ? clamp(p.x,min,max) : (left+right)/2;
-        b.recoilPosition = {x, support:here.id, weapon:p.weapon, direction:Math.sign(kick), blocked:min>max};
-        b.moveTo = x;
-        Object.assign(i, steer(p,x));
+        // A selected route/pickup already solves the bad firing position.
+        // Keep walking to its checked takeoff instead of reversing toward a
+        // recoil stance on this crowded ledge on every physics tick.
+        if (!b.edge && !b.pickup) {
+          const offset = recoilEnd({...p,x:0,vx:0}, i.aim ?? 0);
+          const min = left + Math.max(0,-offset) + 8;
+          const max = right - Math.max(0,offset) - 8;
+          const x = min <= max ? clamp(p.x,min,max) : (left+right)/2;
+          b.recoilPosition = {x, support:here.id, weapon:p.weapon, direction:Math.sign(kick), blocked:min>max};
+          b.moveTo = x;
+          Object.assign(i, steer(p,x));
+        }
       }
     }
     // Inspect the stopping path before entering danger, not just the bot's
