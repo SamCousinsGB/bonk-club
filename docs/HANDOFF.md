@@ -22,8 +22,8 @@
 
 - For human fighters on thin platforms and intact transmission wires, a fresh
   S/down press moves them to a hand grip below the actual support. Releasing and
-  pressing S/down again drops; W/jump climbs back when there is headroom. A/D
-  shimmies along the support. Solid floors keep their usual lie-down control.
+  pressing S/down again drops; W/jump climbs back when there is headroom.
+  A/D shimmies along a deck. Solid floors keep their usual lie-down control.
 - Hanging uses the real support ID and follows its movement. Breakage, hits,
   knockdown and death release the grip. Attacks, throws and prop grabs are
   disabled while both hands hold on; an equipped weapon draws at the belt.
@@ -32,7 +32,15 @@
 - New hang state and the S press latch are transported for host authority,
   guest prediction and hot joins. All clients must refresh for protocol 86.
 - Focused hanging, cable, climb, headroom, support loss, prediction and
-  hot-join tests pass. Full release checks and public deployment remain pending.
+  hot-join tests and the full regular suite pass. Full local arena stress
+  passed before the Tesla fix; the final release ran all six CI stress shards.
+  [Release workflow 36354777278](https://github.com/SamCousinsGB/bonk-club/actions/runs/36354777278)
+  passed all six stress shards, shared/server validation, Windows/Linux
+  executable smoke, release verification and Pages on its second attempt.
+  Linux controller-menu smoke missed a checkbox toggle once; the rerun passed
+  without a source change. All 19 local, CI and public browser files match
+  byte for byte. A fresh public v0.63.1 host and late-joining guest rendered
+  an Ocean Liner match with no page errors. Gameplay revision: `15562f0`.
 
 ## Arena roster (v0.62.0 / protocol 85)
 
