@@ -18,8 +18,15 @@
   All 39 focused checks, the full regular suite, the Colossus stress shard and
   browser build passed. Desktop pose inspection and the release bundle passed
   host/guest controls, twin firing, irregular repeat, relay late join, reduced
-  motion and host departure without page errors. CI/Pages and exact public
-  parity are pending; evidence: bonk-club-qa/colossus-climb.
+  motion and host departure without page errors.
+- Revision 8ede2cf passed [release workflow 36357973586](https://github.com/SamCousinsGB/bonk-club/actions/runs/36357973586),
+  including all six stress groups, shared/server tests, Windows/Linux checks,
+  release verification and Pages. All 19 local, CI and public files match exactly.
+  Public host/guest movement, first and repeat twin attacks, a relay late join,
+  reduced motion and host departure passed without page errors. The first public
+  route-statistics probe returned no active pair; a complete retry passed without
+  source changes. Evidence and the 17-second motion clip: bonk-club-qa/colossus-climb.
+  The task-owned preview is stopped.
 
 ## Colossus upright emergence and attached neck (v0.63.5 / protocol 90)
 
