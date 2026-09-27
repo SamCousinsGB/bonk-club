@@ -8,6 +8,7 @@
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vite build --base=./",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "check:fast": "node --test --test-reporter=dot tests/playability.test.js tests/preferences.test.js tests/render-state.test.js tests/snapshot-delta.test.js tests/network.test.js tests/platform-build.test.js tests/release-metadata.test.js && npm run build",
     "test": "node --test --test-reporter=dot tests/*.test.js",
     "test:stress": "node --test --test-reporter=dot tests/*.stress.js",
     "test:release": "npm test && npm run test:stress",
