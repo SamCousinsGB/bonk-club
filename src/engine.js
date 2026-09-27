@@ -545,7 +545,8 @@ export class World {
       }
       const alive = this.players.filter((p) => p.alive);
       const pendingBlast = alive.some(p=>p.bubble>0) ||
-        this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent) || this.gas.some(g=>g.lit>0) ||
+        // Water and ice suspend container fuses; these cannot hold a result open.
+        this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent&&!(b.cold>0)) || this.gas.some(g=>g.lit>0) ||
         this.projectiles.some(b => (b.nuclear || b.kind === "singularity") && b.life > 0 && projectileInArena(b)) ||
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       // A delayed blast can still turn one survivor into a draw, but once

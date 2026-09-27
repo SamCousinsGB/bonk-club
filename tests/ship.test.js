@@ -7,7 +7,7 @@ import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
 import {GuestPrediction} from '../src/guest-prediction.js';
 import {prepareProp} from '../src/props.js';
-const fixture=()=>{const w=new World({arena:ARENAS.findIndex(a=>a.ship),players:[0,1],shuffle:false,random:()=>.4});w.phase='fight';w.weaponTimer=w.grenadeTimer=999;return w;};
+const fixture=(players=[0,1])=>{const w=new World({arena:ARENAS.findIndex(a=>a.ship),players,shuffle:false,random:()=>.4});w.phase='fight';w.weaponTimer=w.grenadeTimer=999;return w;};
 const advance=(w,t)=>{for(let n=0;n<Math.round(t/STEP);n++)updateShip(w,STEP);};
 const breach=(w,x=850)=>carveExplosion(w,{x,y:1140,radius:95});
 const total=w=>w.ship.volumes.reduce((a,b)=>a+b,0);
@@ -68,6 +68,43 @@ test('head immersion drains oxygen, dry air restores it, and drowning has a trut
   assert.ok(Math.abs(p.oxygen-7)<.01);assert.equal(p.submerged,true);assert.equal(p.hp,100);
   p.y=680;swimPlayer(w,p,cleanInput({}),1);assert.ok(p.oxygen>9.9);
   p.y=1050;p.oxygen=0;p.hp=.01;swimPlayer(w,p,cleanInput({}),STEP);assert.equal(p.alive,false);assert.equal(w.lastDeathCause,'drowning');
+});
+
+for (const kind of ['barrel','canister']) test(`drowning awards the survivor despite a submerged leaking ${kind}`,()=>{
+  const w=fixture([0,1,2,3]);w.ship.volumes[2]=160000;
+  w.cover=[prepareProp({id:'submerged',kind,x:1200,y:1060,w:50,h:60,hp:100,maxHp:100,
+    leak:1,fuse:3,gasFuel:3.6,gasAt:0})];
+  for(const p of w.players)Object.assign(p,{x:1200+p.id*40,y:1050,rig:null,oxygen:0,hp:.01});
+  const survivor=w.players[1];Object.assign(survivor,{x:850,y:680,hp:100,oxygen:12});
+  w.step(STEP);
+  assert.ok(w.cover[0].cold>0);assert.equal(w.cover[0].fuse,3);
+  assert.deepEqual(w.players.filter(p=>p.alive).map(p=>p.id),[survivor.id]);
+  assert.equal(w.phase,'result');assert.equal(w.winner,survivor.id);
+  assert.equal(w.victoryCause,'drowning');assert.equal(w.scores[survivor.id],1);
+  assert.ok(validSnapshot(w.snapshot()));
+  for(let n=0;n<350;n++)w.step(STEP);
+  assert.equal(w.round,2);assert.equal(w.phase,'countdown');
+  assert.equal(w.scores[survivor.id],1);
+});
+
+test('simultaneous drowning resolves a draw despite a submerged leaking barrel',()=>{
+  const w=fixture();w.botIds.clear();w.ship.volumes[2]=160000;
+  w.cover=[prepareProp({id:'submerged',kind:'barrel',x:1200,y:1060,w:50,h:60,hp:100,maxHp:100,leak:1,fuse:3})];
+  for(const p of w.players)Object.assign(p,{x:1200+p.id*40,y:1050,rig:null,oxygen:0,hp:.01});
+  w.step(STEP);
+  assert.equal(w.phase,'result');assert.equal(w.winner,null);
+  assert.deepEqual(w.scores,[0,0,0,0]);
+});
+
+test('an active dry barrel fuse still delays a drowning survivor result until it explodes',()=>{
+  const w=fixture();w.botIds.clear();w.ship.volumes[2]=160000;
+  w.cover=[prepareProp({id:'active',kind:'barrel',x:850,y:600,w:50,h:60,hp:100,maxHp:100,leak:1,fuse:.05})];
+  for(const p of w.players)Object.assign(p,{x:1200+p.id*40,y:1050,rig:null,oxygen:0,hp:.01});
+  const survivor=w.players[1];Object.assign(survivor,{x:850,y:580,hp:1,oxygen:12,inv:0});
+  w.step(STEP);assert.equal(w.phase,'fight');assert.equal(survivor.alive,true);
+  for(let n=0;n<30&&w.phase==='fight';n++)w.step(STEP);
+  assert.equal(w.phase,'result');assert.equal(w.winner,null);
+  assert.deepEqual(w.scores,[0,0,0,0]);
 });
 test('swimming follows aim and permits primary fire',()=>{
   for(const aim of [-Math.PI/2,0,Math.PI]) {

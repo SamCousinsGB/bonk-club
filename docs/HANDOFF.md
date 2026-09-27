@@ -1,12 +1,26 @@
 # Bonk Club — current handoff
 
-Updated 21 September 2026. Read the root `AGENTS.md` first. Completed release
+Updated 27 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
 ## Current release
 
-- Live: v0.49.1 / protocol 72, gameplay revision `310cad6`. Refresh all player tabs
+- v0.50.3 / protocol 72 fixes a round-end deadlock: submerged/frozen leaking
+  explosive containers have suspended fuses and no longer prevent a survivor win.
+  Active fuses still delay scoring and can turn that survivor into a draw.
+- Regression coverage includes four-player drowning with both explosive container
+  types, exactly one awarded point, the next round, valid result snapshots,
+  simultaneous drowning and a final active barrel explosion. Source-browser QA
+  confirms drowning result and next-round progression with no browser errors.
+  Evidence: `bonk-club-qa/drowning-round-*`. Verify this revision's release workflow
+  and public artifact parity before claiming it live.
+- Earlier v0.50.x updates preserve fixed-height exterior seawater, sinking escape
+  checks, all-dead draws and the Arc Furnace molten breach correction.
+
+## Previous full release verification
+
+- v0.49.1 / protocol 72, gameplay revision `310cad6`. Refresh all player tabs
   before joining.
 - Six breakable mains feed a 1,216-unit central basin with shared finite-volume
   water, overflow and drainage through actual blast cuts. Eight movable generators

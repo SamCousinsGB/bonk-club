@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.50.2",
-  "releaseNotes": "Fix Arc Furnace molten breach flow",
+  "version": "0.50.3",
+  "releaseNotes": "Fix rounds hanging after drowning",
   "private": true,
   "type": "module",
   "scripts": {
