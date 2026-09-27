@@ -12,6 +12,8 @@ export function fighterStatuses(state, player) {
   const result = [], box = playerBox(player);
   const spills = (state.spills || []).filter(q => q.life > 0 && q.h > 0 && overlap(box, liquidBounds(q), 2));
   const add = (id, label, seconds = null) => result.push({ id, label, seconds });
+  if (player.capturedBy && state.fields?.some(f => f.kind === 'blackhole' && f.riftId === player.capturedBy && f.life > 0))
+    add('spaghetti', 'Spaghetti-fied');
   if (player.freeze > 0) add('frozen', 'Frozen', player.freeze);
   else if (player.chill > 0) add('chilled', 'Chilled', player.chill);
   if (player.burn > 0) add('burning', 'Burning', spills.some(q => q.fire > 0) ? null : player.burn);
@@ -32,6 +34,7 @@ export function fighterStatuses(state, player) {
 }
 
 const icons = {
+  spaghetti: '<circle cx="7" cy="7" r="3"/><path d="M9 10c6 3 0 8 7 10s4 4 10 7M11 13c5-3 7 1 12-2M11 14c-5 3-5 7-8 9M17 21c-5 1-2 6-6 8"/><ellipse cx="26" cy="26" rx="4" ry="2.5" transform="rotate(-35 26 26)" fill="currentColor" fill-opacity=".4"/>',
   frozen: '<path d="m16 4 10 6v12l-10 6-10-6V10Z" fill="#7dcde866"/><path d="m6 10 10 6 10-6M16 16v12M10 9l6-3 5 3M9 14v5"/>',
   chilled: '<path d="M16 4v24M6 10l20 12M6 22 26 10M12 6l4 4 4-4M12 26l4-4 4 4M6 14l6-1-1-6M21 25l-1-6 6-1M6 18l6 1-1 6M21 7l-1 6 6 1"/>',
   burning: '<path d="M18 3c2 8-6 9-3 15 3-1 5-4 5-7 8 7 8 18-4 18S2 17 10 10c-1 6 2 7 2 7S11 8 18 3Z" fill="currentColor" stroke="none"/>',

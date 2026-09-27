@@ -3,10 +3,39 @@ import assert from 'node:assert/strict';
 import { fighterStatuses, statusMarkup } from '../src/status-effects.js';
 import { World, STEP } from '../src/engine.js';
 import { encodeState, decodeState, validSnapshot } from '../src/network.js';
+import { blackholeField } from '../src/blackhole.js';
+import { captureFighter, moveCaptured } from '../src/singularity-body.js';
 
 const player = extra => ({ id: 0, alive: true, x: 100, y: 100, ...extra });
 const state = extra => ({ phase: 'fight', spills: [], water: [], ...extra });
 const spill = kind => ({ kind, x: 80, y: 120, w: 40, h: 8, life: 5, grounded: true });
+
+test('Spaghetti-fied is untimed and requires capture by the active black hole', () => {
+  const hole = { kind: 'blackhole', riftId: 1, life: 5, x: 100, y: 100 };
+  const s = state({ fields: [hole] }), p = player({ capturedBy: 1 });
+  assert.deepEqual(fighterStatuses(s, p), [{ id: 'spaghetti', label: 'Spaghetti-fied', seconds: null }]);
+  for (const other of [player(), player({ capturedBy: 2 }), player({ capturedBy: 1, alive: false })])
+    assert.deepEqual(fighterStatuses(s, other), []);
+  hole.life = 0;
+  assert.deepEqual(fighterStatuses(s, p), []);
+  hole.life = 5; hole.kind = 'shockwave';
+  assert.deepEqual(fighterStatuses(s, p), []);
+});
+
+test('real captured fighters retain the indicator over transport and clear it on release/reset', async () => {
+  const w = new World({ players: [0, 1], shuffle: false });
+  w.phase = 'fight';
+  const p = w.players[0], f = blackholeField(w, { x: p.x + 100, y: p.y, owner: 1 });
+  w.fields.push(f); captureFighter(p, f);
+  const s = w.snapshot(), remote = await decodeState(await encodeState(s));
+  assert.ok(validSnapshot(remote));
+  assert.equal(fighterStatuses(remote, remote.players[0])[0].label, 'Spaghetti-fied');
+  assert.deepEqual(fighterStatuses(remote, remote.players[0]), fighterStatuses(s, s.players[0]));
+  w.fields = []; moveCaptured(p, w, [], STEP);
+  assert.deepEqual(fighterStatuses(w.snapshot(), p), []);
+  w.fields.push(f); captureFighter(p, f); w.startRound();
+  assert.deepEqual(fighterStatuses(w.snapshot(), w.players[0]), []);
+});
 
 test('frozen takes precedence over chilled; timers preserve fractional remaining time', () => {
   const p = player({ freeze: .62, chill: 2 });

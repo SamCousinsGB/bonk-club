@@ -11,6 +11,16 @@ emulate, test or check phone/mobile/tablet support. This overrides all historica
 mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
 builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
 
+## Black-hole status icon
+
+- v0.54.2 adds the requested untimed `Spaghetti-fied` status and a stretched-fighter
+  icon while the local living fighter is captured by an active black hole.
+  Uses the existing capture ID and field state, including guests. It clears on
+  release, hole closure, death or round reset; proximity alone never triggers it.
+- Regression coverage checks real capture, snapshot transport, release and reset.
+  Desktop visual evidence and final release verification: `bonk-club-qa/spaghetti-*`.
+  Verify CI/Pages and public artifact parity before describing this revision as live.
+
 ## Ocean Liner cabin seam
 
 - v0.54.1 / protocol 75 extends the cabin background to the shared hull-top

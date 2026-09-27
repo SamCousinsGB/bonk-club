@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.1",
-  "releaseNotes": "Close the Ocean Liner cabin-to-hull seam",
+  "version": "0.54.2",
+  "releaseNotes": "Spaghetti-fied status for black-hole capture",
   "private": true,
   "type": "module",
   "scripts": {
