@@ -2,7 +2,7 @@
 // parts, never sampled from a background image. Beam origins use this same rig.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const COLOSSUS_EYES=Object.freeze([{x:-12,y:3.3},{x:12,y:3.3}]);
-export const COLOSSUS_SCALE=.58;
+export const COLOSSUS_SCALE=.48;
 export function rigPoint(frame,x,y){
   return {x:frame.x+frame.a*x+frame.c*y,y:frame.y+frame.b*x+frame.d*y};
 }
@@ -33,7 +33,7 @@ export function colossusRig(h){
     const hip=rigPoint(body,side*27,0),foot={x:1280+side*49,y:780};
     return {side,hip,knee:knee(hip,foot,side),foot};
   });
-  const distant=p=>({x:1280+(p.x-1280)*COLOSSUS_SCALE,y:637+(p.y-500)*COLOSSUS_SCALE});
+  const distant=p=>({x:1280+(p.x-1280)*COLOSSUS_SCALE,y:653+(p.y-500)*COLOSSUS_SCALE});
   const scaled=f=>({...distant(f),a:f.a*COLOSSUS_SCALE,b:f.b*COLOSSUS_SCALE,c:f.c*COLOSSUS_SCALE,d:f.d*COLOSSUS_SCALE});
   const distantHead=scaled(head);
   return {body:scaled(body),head:distantHead,

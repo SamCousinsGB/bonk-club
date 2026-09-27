@@ -4,8 +4,12 @@ A small ancient mech stands beyond the mountain valley. Its dark, blocky,
 weathered silhouette follows the original painting. Mountains hide the legs
 and lower body. The landscape contains no painted mech: the head, torso and
 four arm segments are separate transparent parts attached to a shared rigid
-skeleton. A cached atmospheric tint and foreground mountain layer establish
-distance. Do not replace this with a large, clean geometric or toy-like robot.
+skeleton. The rig is 17% smaller than v0.60.0, with the same position behind the
+ridge. A cached low-contrast blue-grey texture grade matches the far mountains.
+Opaque articulated parts assemble into one bounded layer before receiving
+consistent depth haze and 0.65px edge softness; overlapping joints do not double
+their opacity. The foreground mountain layer hides the lower body. Do not
+replace this with a large, sharp, clean geometric or toy-like robot.
 
 The head, shoulders and elbows move independently. At a 1600px desktop camera,
 head and hand travel each exceed ten pixels within six seconds. This preserves

@@ -1,5 +1,16 @@
 # Bonk Club — current handoff
 
+## Colossus distance and compositing (v0.60.1 / protocol 83)
+
+- Reduced the rig by 17%, preserving its position behind the distant ridge.
+  Texture contrast now matches the far mountains. Parts assemble opaquely into
+  one bounded layer before receiving consistent haze and slight edge softness,
+  eliminating doubled seams and the sharp pasted-on appearance.
+- Independent motion, metallic eye slits and both shared laser origins remain.
+  Seventeen focused mechanics/audio tests and desktop gameplay visuals pass.
+  Evidence: `bonk-club-qa/colossus-depth`. Release status must be checked before
+  calling the update live. Refresh all player tabs for protocol 83.
+
 ## Articulated distant Colossus (v0.60.0 / protocol 82)
 
 - Replaced the painted mesh with separate weathered metal parts on a shared
@@ -10,9 +21,11 @@
   mountains. Do not restore the clean toy-like body or exposed legs.
 - The landscape now contains no painted mech. Its empty plate, transparent
   parts atlas and built-in image tool prompts are recorded in COLOSSUS.md.
-- Seventeen focused mechanics/audio tests and desktop visual checks pass.
-  Full release and public verification must finish before calling it live.
-  Evidence: `bonk-club-qa/colossus-rig`. Refresh all tabs for protocol 82.
+- Revision `9ad75f4` passed release workflow 36337094988 and was confirmed on
+  the public metadata as v0.60.0. All 19 local/CI files matched. Source and
+  production-bundle multiplayer, natural twin discharge and animation passed;
+  Sam asked to skip additional public checks and publish immediately.
+  Evidence: `bonk-club-qa/colossus-rig`.
 
 ## Suspension Bridge readability and traffic (v0.59.1 / protocol 81)
 

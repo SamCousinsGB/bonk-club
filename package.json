@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.60.0",
-  "releaseNotes": "Colossus rebuilt with articulated limbs and visible mechanical movement",
+  "version": "0.60.1",
+  "releaseNotes": "Smaller Colossus with distant haze and mountain cover",
   "private": true,
   "type": "module",
   "scripts": {
