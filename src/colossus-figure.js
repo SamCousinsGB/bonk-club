@@ -46,22 +46,22 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   for(const leg of rig.legs){
     const left=leg.side<0;
     limb(c,leg.hip,leg.knee,left?[184,955,164,244]:[674,955,164,244],
-      left?[276,978]:[746,978],left?[253,1161]:[770,1161]);
+      left?[276,978]:[746,978],left?[253,1161]:[770,1161],.62);
     limb(c,leg.knee,leg.foot,left?[144,1132,160,380]:[719,1132,164,380],
-      left?[253,1161]:[770,1161],left?[212,1480]:[814,1480],1.45);
+      left?[253,1161]:[770,1161],left?[212,1480]:[814,1480],.9);
   }
   for(const arm of rig.arms){
     const left=arm.side<0;
     limb(c,arm.shoulder,arm.elbow,left?[176,471,146,254]:[702,471,146,254],
-      left?[248,508]:[776,508],left?[218,692]:[806,692],.9);
+      left?[248,508]:[776,508],left?[218,692]:[806,692],.62);
     limb(c,arm.elbow,arm.hand,left?[176,663,149,289]:[700,663,149,289],
-      left?[218,692]:[806,692],left?[261,918]:[763,918]);
+      left?[218,692]:[806,692],left?[261,918]:[763,918],.68);
   }
   c.save();transform(c,rig.body);
-  c.drawImage(weathered,546,4,364,470,-101,-180,202,224);
+  c.drawImage(weathered,546,4,364,470,-78,-158,156,202);
   c.restore();
   c.save();transform(c,rig.head);
-  c.drawImage(weathered,108,8,327,448,-50,-75,100,130);
+  c.drawImage(weathered,108,8,327,448,-42,-63,84,110);
   c.restore();
   c.globalCompositeOperation='source-atop';
   if(airlight){
@@ -76,7 +76,7 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     c.shadowColor=`rgba(137,205,239,${opening*(.3+energy*.4)})`;
     c.shadowBlur=3+energy*3;
     c.fillStyle=`rgba(${energy>.3?'213,251,255':'147,209,239'},${opening*(.65+energy*.35)})`;
-    c.fillRect(e.x-4.5,e.y-aperture/2,9,aperture);
+    c.fillRect(e.x-3.8,e.y-aperture/2,7.6,aperture);
   }
   c.restore();c.restore();
   target.save();target.filter='blur(0.45px)';

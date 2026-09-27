@@ -3,10 +3,10 @@
 import {colossusStand} from './colossus-timing.js';
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const COLOSSUS_EYES=Object.freeze([{x:-13.3,y:-10.6},{x:12.4,y:-10.6}]);
+export const COLOSSUS_EYES=Object.freeze([{x:-11.2,y:-8.5},{x:10.4,y:-8.5}]);
 export const COLOSSUS_SCALE=.58;
-export const COLOSSUS_LEGS=Object.freeze({upper:96,lower:102});
-export const COLOSSUS_ARMS=Object.freeze({upper:92,lower:100});
+export const COLOSSUS_LEGS=Object.freeze({upper:110,lower:122});
+export const COLOSSUS_ARMS=Object.freeze({upper:90,lower:96});
 export const COLOSSUS_FIGURE=Object.freeze({x:1060,y:410,w:440,h:410});
 export function rigPoint(frame,x,y){
   return {x:frame.x+frame.a*x+frame.c*y,y:frame.y+frame.b*x+frame.d*y};
@@ -24,20 +24,20 @@ export function colossusRig(h){
   const t=h.age,look=clamp(((h.gazeX??1280)-1280)/1280,-1,1);
   const standing=colossusStand(t),crouch=1-standing;
   const lean=-crouch*.16+Math.sin(t*.21)*.015;
-  const body=frame(1280+Math.sin(t*.19)*6,585+crouch*135+Math.sin(t*.17)*.5,lean);
-  const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-178+crouch*25);
-  const head=frame(neck.x,neck.y-42,lean+Math.sin(t*.29-.4)*.13,
+  const body=frame(1280+Math.sin(t*.19)*6,552+crouch*168+Math.sin(t*.17)*.5,lean);
+  const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-158+crouch*25);
+  const head=frame(neck.x,neck.y-38,lean+Math.sin(t*.29-.4)*.13,
     .93-Math.sin(t*.23+look*.5)**2*.15);
   const arms=[-1,1].map(side=>{
-    const shoulder=rigPoint(body,side*105,-143);
+    const shoulder=rigPoint(body,side*76,-121);
     // Keep daylight beneath both shoulders throughout the slow articulation.
-    const a=side*(.37+Math.sin(t*.23+side*.5)*.12)+lean;
+    const a=side*(.22+Math.sin(t*.23+side*.5)*.08)+lean;
     const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper);
     const b=a-side*(.08+(.5+.5*Math.sin(t*.19+side))*.26);
     return {side,shoulder,elbow,hand:endpoint(elbow,b,COLOSSUS_ARMS.lower)};
   });
   const legs=[-1,1].map(side=>{
-    const hip=rigPoint(body,side*50,0),foot={x:1280+side*62,y:780};
+    const hip=rigPoint(body,side*32,0),foot={x:1280+side*43,y:780};
     return {side,hip,knee:knee(hip,foot,side),foot};
   });
   const distant=p=>({x:1280+(p.x-1280)*COLOSSUS_SCALE,y:565+(p.y-500)*COLOSSUS_SCALE});

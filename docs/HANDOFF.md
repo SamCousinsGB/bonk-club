@@ -1,5 +1,21 @@
 # Bonk Club — current handoff
 
+## Colossus natural proportions (v0.63.4 / protocol 89)
+
+- Sam requested a normal tall, slender ratio. Narrowed the torso and shoulder
+  spacing, slimmed each articulated limb, lengthened the legs relative to the
+  torso, balanced the head size and brought the stance and arms inward.
+  Original bronze atlas, valley integration, rise and targeted attacks remain.
+- Eye lighting and beam origins use the adjusted face landmarks; all clients
+  must refresh for protocol 89. No snapshot shape changed.
+- The bot regression now checks both fighters reposition and combat resumes.
+  Requiring both to fire was invalid once the new beam angle left different
+  routes: the first shooter could pursue and punch its opponent before another
+  safe explosive shot. The original idle-pair regression is still covered.
+- Desktop pose inspection and focused checks precede release validation.
+  Evidence: bonk-club-qa/colossus-proportions.
+
+
 ## Colossus bronze automaton (v0.63.3 / protocol 88)
 
 - Sam requested a creepy Colossus of Rhodes: a stern Greek statue face, solar

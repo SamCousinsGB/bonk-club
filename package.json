@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.3",
-  "releaseNotes": "Colossus redesigned as an ancient bronze automaton",
+  "version": "0.63.4",
+  "releaseNotes": "Colossus proportions adjusted to a tall, slender statue",
   "private": true,
   "type": "module",
   "scripts": {

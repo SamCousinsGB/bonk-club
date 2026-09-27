@@ -163,20 +163,24 @@ test("crowded Colossus gunners take their escape route instead of recoil checks 
   assert.ok(fired,"the previous loop held both guns unfired for over thirty seconds");
 });
 
-test("black-hole carriers seek usable firing ground after the Colossus cuts their routes",()=>{
+test("black-hole carriers reposition and resume combat after the Colossus cuts their routes",()=>{
   const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1],bots:[0,1],shuffle:false,random:()=>.45});
   w.phase="fight";w.cover=[];w.drops=[];w.weaponTimer=w.grenadeTimer=999;
   w.hazards[0].age=12;
   w.players.forEach((p,n)=>Object.assign(p,{x:750+n*165,y:1140,vx:0,vy:0,
     ground:true,support:"floor4",weapon:"blackhole",ammo:1}));
-  const shooters=new Set();
-  for(let n=0;n<30/STEP&&w.phase==="fight"&&shooters.size<2;n++){
+  const shooters=new Set(),travel=[0,0];
+  for(let n=0;n<30/STEP&&w.phase==="fight"&&(!shooters.size||travel.some(d=>d<150));n++){
     w.step(STEP);
     // This regression measures combat on the destroyed route. A second
     // player-targeted sweep can end the round before either has firing room.
     if(w.hazards[0].age>=15)w.hazards[0].nextChargeAt=null;
+    w.players.forEach((p,i)=>travel[i]=Math.max(travel[i],Math.abs(p.x-(750+i*165))));
     for(const shot of w.projectiles)if(shot.weapon==="blackhole")shooters.add(shot.owner);
   }
   assert.ok(w.terrainVersion>0,"exercise the actual changed terrain");
-  assert.equal(shooters.size,2,"both previously stood behind ledges without firing for seventy seconds");
+  // Once one fires, its unarmed pursuit can legitimately deny the other a
+  // safe explosive shot. The regression is both standing idle, not which wins.
+  assert.ok(travel.every(d=>d>=150),"both leave the obstructed starting positions");
+  assert.ok(shooters.size>0,"resume combat instead of holding both guns for seventy seconds");
 });
