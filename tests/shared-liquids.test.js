@@ -25,13 +25,14 @@ function lab() {
 }
 
 test('thin falling water closes a live wire / stream / metal circuit and a real air gap opens it',()=>{
-  const w=lab();w.platforms=[solid('receiver',812,575,8,40,'metal')];
+  const w=lab();w.platforms=[solid('receiver',817,560,8,40,'metal')];
   w.hazards=[{type:'powerline',circuit:0,age:8,active:true}];
   w.cables=[{id:'tower0',attached:[true,true],links:[true],points:[{x:700,y:500},{x:1100,y:500}]}];
-  w.water=[parcel(1,510),parcel(2,560)];
+  // Compact trace droplets must actually overlap to make a continuous stream.
+  w.water=Array.from({length:8},(_,i)=>parcel(i+1,455+i*10));
   updateReactions(w,.05);
   assert.ok(w.water.every(q=>q.charge===1));assert.equal(w.platforms[0].charge,1);
-  // Both parcels are much thinner than the old half-unit conduction cutoff.
+  // Each parcel is much thinner than the old half-unit conduction cutoff.
   assert.ok(w.water.every(q=>q.h<.5));
   w.water[0].x=1400;w.cables[0].attached=[false,false];updateReactions(w,.05);
   assert.equal(w.platforms[0].charge,0);assert.ok(w.water.every(q=>!q.charge));

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.53.1",
-  "releaseNotes": "Desktop-only controls and interface",
+  "version": "0.53.2",
+  "releaseNotes": "Alternating Waterworks generators and smoother water flow",
   "private": true,
   "type": "module",
   "scripts": {

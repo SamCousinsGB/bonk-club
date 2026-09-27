@@ -9,8 +9,13 @@ export function waterworksOutlet(platforms,index) {
   return platforms.some(p=>p.waterworksPipe===index && p.hp!==0 && p.x<=pipe.x-8 && p.x+p.w>=pipe.x+8 &&
     p.y<=pipe.y-12 && p.y+p.h>=pipe.y-2);
 }
-export const generatorPhase = elapsed => {
-  const phase=Math.max(0,elapsed)%12;
+export const generatorPhase = (elapsed,id='cover0') => {
+  // Stable cover IDs keep the two banks alternating after movement/destruction
+  // and on guests. Both banks start safe; each retains its 7/1/4 second cycle.
+  const match=/^cover(\d+)$/.exec(id);
+  if(!match)return 'off';
+  const delay=(Number(match[1])%2)*6;
+  const phase=Math.max(0,elapsed-delay)%12;
   return phase<7?'off':phase<8?'warning':'live';
 };
 export function resetWaterworks(world) {
@@ -23,6 +28,4 @@ export function updateWaterworks(world,dt) {
   if(!world.arena.waterworks || world.prediction || world.phase!=='fight')return;
   for(const [i,p] of WATERWORKS_PIPES.entries())if(waterworksOutlet(world.platforms,i))
     emitWater(world,p.x,p.y+16,p.rate*dt,{vy:420,depth:24});
-  if(generatorPhase(world.elapsed)==='live')
-    for(const b of world.cover)if(b.kind==='generator' && b.hp>0)b.spark=Math.max(b.spark||0,.1);
 }

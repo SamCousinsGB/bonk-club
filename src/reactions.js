@@ -1,4 +1,4 @@
-import { updateWaterworks } from "./waterworks.js";
+import { updateWaterworks, generatorPhase } from "./waterworks.js";
 import { absorbShipWater, shipWaterAt, shipWaterRegions } from './ship.js';
 import { randomizeLiquidContainers } from './liquid-containers.js';
 import { liquidBounds, isLiquid, liquidPolygonHit } from './liquid-geometry.js';
@@ -294,16 +294,26 @@ function conduction(world, dt, wires) {
   const boxes=nodes.map(conductorBounds), live=new Set(), queue=[];
   for(let i=0;i<nodes.length;i++) {
     const b=nodes[i]; b.spark=Math.max(0,(b.spark||0)-dt);b.charge=0;
-    const powered=b.spark>0||waterWireContact(b)||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
+    const powered=b.spark>0||(world.arena.waterworks && b.kind==='generator' && !b.chunk && world.phase==='fight' && generatorPhase(world.elapsed,b.id)==='live')||waterWireContact(b)||world.hazards.some(h=>h.type==="tesla"&&!h.assemblyStation&&h.active&&!h.done&&overlap(boxes[i],hazardZone(h),2))||
       wires.some(s=>b.polygon?liquidPolygonHit(b.polygon,s.a.x,s.a.y,s.b.x,s.b.y,5):segmentBox(s.a.x,s.a.y,s.b.x,s.b.y,boxes[i],5));
     if(powered){live.add(i);queue.push(i);}
   }
   // No propagated stored charge: breaking a metal contact or draining a gap
   // removes the circuit immediately, even if the source is still powered.
+  // Search only horizontally overlapping candidates. A flooded, damaged hall
+  // otherwise scans every water/metal pair each time a generator switches on.
+  const order=queue.length?nodes.map((_,i)=>i).sort((a,b)=>boxes[a].x-boxes[b].x):[];
+  const ends=[];
+  for(const i of order)ends.push(Math.max(ends.at(-1)??-Infinity,boxes[i].x+boxes[i].w));
   for(let n=0;n<queue.length;n++) {
     const i=queue[n];nodes[i].charge=1;
-    for(let j=0;j<nodes.length;j++)if(!live.has(j)&&conductorsTouch(nodes[i],nodes[j],world.platforms,boxes[i],boxes[j])){
-      live.add(j);queue.push(j);
+    let lo=0,hi=order.length;
+    while(lo<hi){const m=(lo+hi)>>1;if(ends[m]<=boxes[i].x-1.2)lo=m+1;else hi=m;}
+    for(let k=lo;k<order.length;k++) {
+      const j=order[k];if(boxes[j].x>=boxes[i].x+boxes[i].w+1.2)break;
+      if(!live.has(j)&&conductorsTouch(nodes[i],nodes[j],world.platforms,boxes[i],boxes[j])){
+        live.add(j);queue.push(j);
+      }
     }
   }
   for(const g of world.gas)if(!g.lit&&queue.some(i=>near(nodes[i],g.x,g.y,g.r*.65)&&clear(world,g,centre(nodes[i]))))g.lit=.22;

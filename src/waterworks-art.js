@@ -73,8 +73,9 @@ export function drawWaterworksPipes(c,state) {
   }
 }
 export function drawWaterworksGenerators(c,state,reduced) {
-  const phase=generatorPhase(state.elapsed),pulse=reduced?1:.65+Math.sin(state.time*14)*.35;
+  const pulse=reduced?1:.65+Math.sin(state.time*14)*.35;
   for(const b of state.cover.filter(b=>b.kind==='generator'&&b.hp>0)) {
+    const phase=state.phase==='fight'?generatorPhase(state.elapsed,b.id):'off';
     c.save();c.translate(b.x+b.w/2,b.y+b.h/2);c.rotate(b.angle||0);
     // Existing prop artwork supplies the physical engine casing and handle.
     const color=phase==='live'?'#99ffff':phase==='warning'?'#ffd76b':'#395b5a';

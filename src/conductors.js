@@ -24,12 +24,17 @@ export function conductorNodes(state) {
 export function conductorsTouch(a, b, platforms, aa = conductorBounds(a), bb = conductorBounds(b)) {
   if (aa.x >= bb.x + bb.w + 1.2 || aa.x + aa.w <= bb.x - 1.2 ||
       aa.y >= bb.y + bb.h + 1.2 || aa.y + aa.h <= bb.y - 1.2) return false;
-  const ap = conductorPolygon(a), bp = conductorPolygon(b);
-  for (const ps of [ap, bp]) for (let i = 0; i < ps.length; i++) {
+  // Water columns and static platforms are already axis-aligned rectangles.
+  // Their broad-phase overlap is the exact shape test; don't allocate/project
+  // eight polygon vertices for every touching pair in a flooded circuit.
+  if(a.mass || b.mass || a.polygon || b.polygon) {
+   const ap = conductorPolygon(a), bp = conductorPolygon(b);
+   for (const ps of [ap, bp]) for (let i = 0; i < ps.length; i++) {
     const p = ps[i], q = ps[(i + 1) % ps.length], len = Math.hypot(q.x-p.x,q.y-p.y) || 1;
     const nx = -(q.y-p.y)/len, ny = (q.x-p.x)/len;
     const av = ap.map(p => p.x*nx+p.y*ny), bv = bp.map(p => p.x*nx+p.y*ny);
     if (Math.max(...av) < Math.min(...bv)-1.2 || Math.max(...bv) < Math.min(...av)-1.2) return false;
+   }
   }
   if (a.grounded !== undefined && b.grounded !== undefined && platforms.some(p =>
     p.hp !== 0 && !p.waterId && segmentBox(aa.x+aa.w/2,aa.y+aa.h/2,bb.x+bb.w/2,bb.y+bb.h/2,p))) return false;

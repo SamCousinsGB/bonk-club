@@ -55,6 +55,31 @@ test('generator warning is safe; live generators energise connected pool water a
   w.cover=w.cover.filter(b=>b.kind!=='generator');
   updateReactions(w,.05);updateReactions(w,.05);assert.ok(w.water.every(q=>!q.charge));
 });
+test('generator banks alternate predictably without overlapping, changing with cover order or retaining timer power',()=>{
+  const w=world(),generators=w.cover.filter(b=>b.kind==='generator');
+  for(let t=0;t<72;t+=.125) {
+    const live=generators.filter(b=>generatorPhase(t,b.id)==='live');
+    assert.ok(live.length===0||live.length===4);
+    if(live.length)assert.ok(live.every(b=>Number(b.id.slice(5))%2===Number(live[0].id.slice(5))%2));
+  }
+  assert.ok(generators.every(b=>generatorPhase(0,b.id)==='off'));
+  assert.equal(generatorPhase(13.5,'cover1'),'warning');
+  assert.equal(generatorPhase(14.5,'cover1'),'live');
+  assert.equal(generatorPhase(14.5,'cover0'),'off');
+  assert.equal(generatorPhase(8.5,'chunk1'),'off');
+  const phases=generators.map(b=>[b.id,generatorPhase(8.5,b.id)]);
+  w.cover.reverse();w.cover=w.cover.filter(b=>b.id!=='cover2');
+  for(const b of w.cover.filter(b=>b.kind==='generator'))assert.equal(generatorPhase(8.5,b.id),phases.find(([id])=>id===b.id)[1]);
+  w.elapsed=11.99;updateReactions(w,.05);assert.ok(w.water.some(q=>q.charge));
+  assert.ok(w.cover.every(b=>!b.spark),'cycle power is not stored as damage sparks');
+  w.elapsed=12;updateReactions(w,.05);assert.ok(w.water.every(q=>!q.charge));
+});
+test('destroyed generator casing fragments never become timed electrical sources',()=>{
+  const w=world(),g=w.cover.find(b=>b.id==='cover6');w.cover=[g];w.elapsed=8.5;
+  w.damageCover(g,1000);assert.ok(w.chunks.some(b=>b.kind==='generator'));
+  updateReactions(w,.05);
+  assert.ok([...w.water,...w.chunks].every(b=>!b.charge));
+});
 test('pool swimming, oxygen and escape controls use real water and never let prediction damage a fighter',()=>{
   const w=world(),p=w.players[0];Object.assign(p,{x:1280,y:1240,rig:undefined,vx:0,vy:0,oxygen:12});
   assert.ok(swimmingWaterAt(w,p.x,p.y));

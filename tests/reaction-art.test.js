@@ -2,7 +2,7 @@ import { liquidBounds } from '../src/liquid-geometry.js';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fallingWaterStrands, WaterImpacts } from "../src/water-art.js";
-import { visibleCircuit, arcPoints, CIRCUIT_NODE_LIMIT, CIRCUIT_LINK_LIMIT } from "../src/electricity-art.js";
+import { visibleCircuit, arcPoints, drawElectricity, FALLING_ARC_LIMIT, CIRCUIT_NODE_LIMIT, CIRCUIT_LINK_LIMIT } from "../src/electricity-art.js";
 import { World } from "../src/engine.js";
 import { addWater, updateReactions } from "../src/reactions.js";
 import { prepareProp } from "../src/props.js";
@@ -35,6 +35,24 @@ test("impact splashes only follow observed landings and reset on hot join, stall
   s.time+=.05;s.round++;assert.equal(tracker.update(s).length,0);
   assert.equal(new WaterImpacts().update(s).length,0);
   s.time+=1;assert.equal(tracker.update(s).length,0);
+});
+test('trace falling water stays compact and preserves volume instead of making long needles',()=>{
+  for(const h of [.0001,.01,.2,2,24,200]) {
+    const q=parcel(1,800,500,{h,grounded:false,vy:1000}),b=liquidBounds(q);
+    assert.ok(Math.abs(b.w*b.h-q.w*q.h)<1e-8);
+    if(h<1)assert.ok(b.h<13 && b.h/b.w<=25.00001);
+  }
+  const q=parcel(2,800,500,{h:4,grounded:false,vy:200});
+  const falling=liquidBounds(q),flowing=liquidBounds({...q,vx:800});
+  assert.ok(flowing.w>falling.w && flowing.h<falling.h,'lateral outflow remains broad until gravity turns it downward');
+});
+test('hundreds of live airborne parcels have bounded detailed arcs without mutating charge',()=>{
+  const s=state(Array.from({length:240},(_,i)=>parcel(i+1,(i%40)*60,100+Math.floor(i/40)*150,{h:1,grounded:false,vy:900})));
+  let pulses=0,glows=0;
+  const c=new Proxy({arc(){pulses++;},fillRect(){glows++;}}, {get(o,k){return o[k]??(()=>{});}});
+  drawElectricity(c,s,1);
+  assert.equal(pulses,FALLING_ARC_LIMIT);assert.equal(glows,240-FALLING_ARC_LIMIT);
+  assert.ok(s.water.every(q=>q.charge===1));
 });
 
 test("electrical artwork follows a connected water-metal chain and removes disconnected or frozen matter",()=>{

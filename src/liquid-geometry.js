@@ -2,7 +2,12 @@
 // the same factor: rendering, electricity and body contact use this one shape.
 export function liquidBounds(q) {
   if(q.grounded || q.frozen || (q.vy||0)<=0 || !(q.h>0))return q;
-  const h=Math.max(q.h,Math.min(72,(q.fallDistance??72)+q.h,Math.abs(q.vy||0)*.065+Math.sqrt(q.w*q.h)*.5));
+  // Trace amounts break into compact drops, not long hair-thin needles.
+  // A fast lateral outflow stays broad at the lip, then narrows as gravity
+  // turns it downward. Vertical-only stretching made it look like a comb.
+  const vertical=q.vy/Math.hypot(q.vx||0,q.vy);
+  const h=Math.max(q.h,Math.min(72,Math.sqrt(q.w*q.h)*5,(q.fallDistance??72)+q.h,
+    (q.vy*.065+Math.sqrt(q.w*q.h)*.5)*vertical*vertical));
   const w=q.w*q.h/h;
   return {x:q.x+(q.w-w)/2,y:q.y+q.h-h,w,h};
 }

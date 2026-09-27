@@ -8,6 +8,7 @@ const seedOf=b=>String(b.id).split("").reduce((n,c)=>(n*31+c.charCodeAt(0))%6552
 const water=b=>b.grounded!==undefined;
 const anchor=b=>{if(b.polygon)return {x:b.polygon.reduce((n,p)=>n+p.x,0)/b.polygon.length,y:b.polygon.reduce((n,p)=>n+p.y,0)/b.polygon.length};const box=conductorBounds(b);return {x:box.x+box.w/2,y:water(b)&&b.grounded?box.y:box.y+box.h*.65};};
 export const CIRCUIT_NODE_LIMIT=320, CIRCUIT_LINK_LIMIT=256;
+export const FALLING_ARC_LIMIT=24;
 
 // A bounded spanning forest shows continuous chains, without drawing every
 // possible connection in a pile of metal. Charge still comes only from the host.
@@ -90,7 +91,9 @@ export function drawElectricity(c,state,time) {
   const {runs,joined}=poolRuns(nodes,links),connected=new Set(links.flat());
   c.save();c.lineCap="round";c.lineJoin="round";
   for(const link of links)if(!joined.has(link)) {
-    const [a,b]=link;electricArc(c,anchor(a),anchor(b),time,seedOf(a)+seedOf(b),1,true);
+    const [a,b]=link;
+    if((water(a)&&!a.grounded)||(water(b)&&!b.grounded))stroke(c,[anchor(a),anchor(b)],'#b4f4ff80',1.2);
+    else electricArc(c,anchor(a),anchor(b),time,seedOf(a)+seedOf(b),1,true);
   }
   for(const run of runs) {
     const points=run.flatMap((b,i)=>i?arcPoints(anchor(run[i-1]),anchor(b),time,seedOf(run[0])+i,11).slice(1):[anchor(b)]);
@@ -101,6 +104,7 @@ export function drawElectricity(c,state,time) {
     const a=anchor(run[index]),b=anchor(run[Math.min(run.length-1,index+3)]);
     electricArc(c,a,b,time,seedOf(run[0])+177,1.15);
   }
+  let fallingArcs=0;
   for(const b of nodes) {
     const seed=seedOf(b);
     if(b.polygon) {
@@ -113,7 +117,13 @@ export function drawElectricity(c,state,time) {
       if(b.grounded){
         c.fillStyle="#9beaff28";c.fillRect(b.x,b.y,b.w,Math.min(b.h,12));
         if(!connected.has(b))electricArc(c,{x:b.x+2,y:b.y},{x:b.x+b.w-2,y:b.y},time,seed,.9);
-      }else {const q=conductorBounds(b);electricArc(c,{x:q.x+q.w/2,y:q.y},{x:q.x+q.w/2,y:q.y+q.h},time,seed,.8);}
+      }else {
+        const q=conductorBounds(b);
+        // Every live parcel stays visibly charged. Reserve branching detail for
+        // a bounded subset instead of hundreds of multi-stroke bolts per frame.
+        if(!connected.has(b)&&fallingArcs++<FALLING_ARC_LIMIT)electricArc(c,{x:q.x+q.w/2,y:q.y},{x:q.x+q.w/2,y:q.y+q.h},time,seed,.8,false);
+        else {c.fillStyle='#9beaff60';c.fillRect(q.x,q.y,q.w,q.h);}
+      }
     }else {
       const poly=conductorPolygon(b),start=time*.7+noise(seed),points=[];
       // Multiple corner-following segments crawl around the rotating silhouette.

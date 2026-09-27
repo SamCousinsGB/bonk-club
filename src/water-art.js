@@ -108,20 +108,25 @@ export function drawWater(c,state,time) {
       last.charge=Math.max(last.charge||0,q.charge||0);
     } else falling.push({...q,box});
   }
-  for(const q of falling) {
-    const box=q.box,colors=palette(q),x=box.x,y=box.y,w=box.w,h=box.h;
-    // A rounded continuous ribbon, bounded by the exact collision silhouette.
-    // Internal highlights move; no decorative droplets imply a false circuit.
-    c.beginPath();c.moveTo(x+w*.5,y);
-    c.bezierCurveTo(x+w*.08,y,x,y+h*.4,x,y+h*.78);
-    c.bezierCurveTo(x,y+h,x+w,y+h,x+w,y+h*.78);
-    c.bezierCurveTo(x+w,y+h*.4,x+w*.92,y,x+w*.5,y);
-    const sheen=c.createLinearGradient(x,0,x+Math.max(.01,w),0);
-    sheen.addColorStop(0,colors.top);sheen.addColorStop(.3,colors.mid);sheen.addColorStop(1,colors.bottom);
-    c.fillStyle=sheen;c.fill();
-    c.save();c.clip();c.beginPath();
-    c.moveTo(x+w*.3,y+h*.18);c.quadraticCurveTo(x+w*(.15+.06*Math.sin(time*4+q.id)),y+h*.55,x+w*.3,y+h*.9);
-    c.strokeStyle=colors.rim;c.lineWidth=Math.min(1.3,w*.2);c.stroke();c.restore();
+  // Fill each liquid's overlapping parcels in one pass. Per-parcel gradients
+  // and bright outlines made a draining basin look like a chain of glass beads.
+  // Keep separate subpaths: dry gaps never become visible water or conductors.
+  const sheets=new Map();
+  for(const q of falling){const key=q.kind||'water';if(!sheets.has(key))sheets.set(key,[]);sheets.get(key).push(q);}
+  for(const sheet of sheets.values()) {
+    const colors=palette(sheet[0]);
+    c.beginPath();
+    for(const {box:{x,y,w,h}} of sheet) {
+      const r=Math.min(w*.5,h*.5);
+      c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
+      c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+      c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
+      c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+    }
+    const top=Math.min(...sheet.map(q=>q.box.y)),bottom=Math.max(...sheet.map(q=>q.box.y+q.box.h));
+    const fill=c.createLinearGradient(0,top,0,Math.max(top+1,bottom));
+    fill.addColorStop(0,colors.top);fill.addColorStop(.5,colors.mid);fill.addColorStop(1,colors.bottom);
+    c.fillStyle=fill;c.fill();
   }
   let tracker=impacts.get(c);if(!tracker){tracker=new WaterImpacts();impacts.set(c,tracker);}
   for(const b of tracker.update(state)) {

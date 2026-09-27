@@ -102,8 +102,9 @@ Start new work from current `origin/main` in one clean worktree.
 ### Arena-specific rules
 
 - **Waterworks:** six breakable mains flood a large central basin through shared
-  water physics. Eight movable generators cycle 7 seconds off, 1 amber warning,
-  4 live, powering only actual connected water/metal. Upper catwalks and pool exits
+  water physics. Eight movable generators alternate in two stable banks six seconds
+  apart, each with 7 seconds off, 1 amber warning, 4 live, powering only actual
+  connected water/metal. Broken casing pieces never become sources. Upper catwalks and pool exits
   stay traversable; use shared swimming/oxygen and guest prediction. Cut throats
   stop feeding; breached walls/floors drain real water. Preserve reset/hot join.
 
