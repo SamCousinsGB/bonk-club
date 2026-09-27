@@ -4,6 +4,14 @@ Updated 27 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).
 
+## Chilled visual fix
+
+- v0.54.5 replaces the fixed blue chilled rectangle with a light outline that
+  follows the fighter's joints. Frozen crystal art remains pose-attached.
+- Focused effect tests, the full regular suite, the browser build and desktop
+  visual comparison of chilled and frozen poses passed locally. Verify CI,
+  Pages and public artifact parity before describing this revision as live.
+
 ## Desktop-only scope
 
 Sam's direction on 27 September 2026: PC/Desktop only. Do not design, build,

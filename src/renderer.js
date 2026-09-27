@@ -841,11 +841,6 @@ export class Renderer {
     }
     if (p.burn > 0) drawBurning(this, p, time);
     if (p.bubble > 0) drawBubble(this, 0, -8, 47 + Math.sin(time * 5) * 2, p.bubble / 2.4);
-    if (p.chill > 0) {
-      c.strokeStyle = "#b7f4ff";
-      c.lineWidth = 2;
-      c.strokeRect(-21, -34, 42, 59);
-    }
     if (p.block) {
       c.strokeStyle = "#eaffbd";
       c.lineWidth = 5;

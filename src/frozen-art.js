@@ -10,6 +10,18 @@ function polygon(c, points, fill, stroke = null, width = 1) {
   if (stroke) { c.strokeStyle = stroke; c.lineWidth = width; c.stroke(); }
 }
 
+export function drawChilledBody(r, points, alpha = 1) {
+  const c = r.ctx;
+  c.save();
+  c.globalAlpha *= alpha * .65;
+  c.lineCap = "round";
+  for (const [a, b] of JOINTS) {
+    const start = points[a], end = points[b];
+    r.line([[start.x, start.y], [end.x, end.y]], "#a9eaff", 2.5);
+  }
+  c.restore();
+}
+
 // Each crystal follows a bone, so bent arms, spread legs and prone bodies keep
 // their silhouette. Facets enclose the actual pose rather than its bounding box.
 export function drawFrozenBody(r, points, alpha = 1) {

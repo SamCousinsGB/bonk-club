@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.54.4",
-  "releaseNotes": "Grounded train wrecks, torn metal and impact-driven debris",
+  "version": "0.54.5",
+  "releaseNotes": "Chilled effect follows the fighter instead of drawing a box",
   "private": true,
   "type": "module",
   "scripts": {

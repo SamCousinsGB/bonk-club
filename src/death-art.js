@@ -1,4 +1,4 @@
-import { drawFrozenBody } from "./frozen-art.js";
+import { drawChilledBody, drawFrozenBody } from "./frozen-art.js";
 import { JOINTS } from "./puppet.js";
 import { TRANSMUTATIONS } from "./transmutation.js";
 import { drawTransformedBody } from "./transmutation-art.js";
@@ -50,6 +50,7 @@ export function drawStatus(r, p, time) {
     drawAshSkeleton(r, { points: p.rig, life: 1, ashAge: 0 });
   }
   if (p.freeze > 0) drawFrozenBody(r, p.rig, Math.min(1, p.freeze * 4));
+  else if (p.chill > 0) drawChilledBody(r, p.rig, Math.min(1, p.chill * 2));
 }
 export function drawDeath(r, rag, time) {
   if (!rag.effect) return false;
