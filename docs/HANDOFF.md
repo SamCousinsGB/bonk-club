@@ -1,5 +1,19 @@
 # Bonk Club — current handoff
 
+## Suspension Bridge (v0.56.0 / protocol 78)
+
+- Added a desktop arena with two suspended road spans, tower interiors and lower
+  maintenance gantries. Both main cables are physical segmented strands. Gunfire,
+  beams and blasts sever links; surviving hanger runs determine deck support.
+- Each deck panel follows a damped articulated collapse toward its tower. A
+  severed half folds toward vertical, carries fighters while moving, and drops
+  physical traffic when support is lost. Cars enter alternately, drive only
+  while supported by surviving road, collide with fighters and one another,
+  take damage and leave the arena when they fall or drive out.
+- Cable, deck and vehicle state are host owned and validated in snapshots for
+  reset and changed-world joins. Focused bridge, traversal and hazard tests and
+  desktop source-browser visual checks pass. Full release verification follows.
+
 Updated 27 September 2026. Read the root `AGENTS.md` first. Completed release
 history through v0.40.0 is archived in
 [`archive/release-history-through-v0.40.0.md`](archive/release-history-through-v0.40.0.md).

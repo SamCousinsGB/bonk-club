@@ -1,4 +1,6 @@
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
+import { BRIDGE_ARENA } from "./bridge-arena.js";
+import { updateBridge } from "./bridge.js";
 import { resetWaterworks } from "./waterworks.js";
 import { cleanEscapedEntities, escapedPoints } from "./world-cleanup.js";
 import { updatePlane, movePlaneWings } from "./plane.js";
@@ -13,7 +15,7 @@ import { TURBINE_ARENA, TURBINE_BOUNDS } from "./turbine-arena.js";
 import { FURNACE_ARENA } from "./furnace-arena.js";
 import { ASSEMBLY_ARENA } from "./assembly-arena.js";
 import { createAssembly, updateAssembly, assemblySnapshot } from "./assembly.js";
-import { createCables, updateCables, cableSnapshot, cableSolids } from "./heavy-cables.js";
+import { createCables, updateCables, cableSnapshot, cableSolids, cableShotSolids, shootCable } from "./heavy-cables.js";
 import { hitCause } from "./victory.js";
 import { objectInput, releaseObject, cleanCarriedObjects, carrySpeed } from "./object-carry.js";
 import { trackKillSource } from "./kill-credit.js";
@@ -87,7 +89,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA];
+export const ARENAS = [...[...CLASSIC_ARENAS, ...SKYSCRAPERS, ...THEMED_ARENAS, ...NEW_ARENAS].map(equipArena), ...SURVIVAL_ARENAS, TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA];
 export const CITY_ARENAS = ARENAS.flatMap((a, i) => (a.city ? [i] : []));
 export const emptyInput = () => ({
   left: false,
@@ -159,6 +161,7 @@ export class World {
     this.terrainSerial = 0;
     this.cables = createCables(this.arena);
     this.cableAccumulator = 0;
+    this.bridgeTraffic=0;this.bridgeVehicleSerial=0;
     this.spikeTerrain = null;
     this.craters = [];
     this.craterSerial = 0;
@@ -423,6 +426,7 @@ export class World {
     }
     cleanEscapedEntities(this);
     this.movePlatforms();
+    updateBridge(this,dt);
     updateShip(this, dt);
     updateAssembly(this, dt);
     cleanCarriedObjects(this);
@@ -1360,7 +1364,7 @@ export class World {
       if (b.kind === "duck") b.vy += 380 * dt;
       const endX = x + b.vx * dt,
         endY = y + b.vy * dt;
-      const shotSolids = [...this.solids(), ...furnaceHits(this)];
+      const shotSolids = [...this.solids(), ...furnaceHits(this), ...cableShotSolids(this)];
       for (const h of this.hazards) if (h.type === "train" && h.active && !h.done)
         trainCollisionBoxes(h).forEach((box,i)=>shotSolids.push({ ...box, id: `train${h.id}:${i}`, material: "metal" }));
       const collisions = shotSolids.map((s) => ({
@@ -1393,6 +1397,7 @@ export class World {
           continue;
         }
         if (s) {
+          if(s.cableId && b.kind!=="grenade")shootCable(this,s.cableId,s.cableLink);
           if(s.furnaceHazard && b.kind !== 'grenade' && b.kind !== 'rocket')damageFurnacePart(this,s.furnaceHazard,s.furnaceIndex,b.kind==='rail'?100:b.damage,{x:b.x,y:b.y});
           surfaceReaction(this, b, s);
           if (breakable(s) && !b.nuclear && b.kind !== "rocket") {
@@ -1536,6 +1541,7 @@ export class World {
       platforms: this.platforms,
       assembly: assemblySnapshot(this.assembly, this.cover),
       cables: cableSnapshot(this.cables),
+      ...(this.arena.bridge?{bridgeTraffic:this.bridgeTraffic,bridgeVehicleSerial:this.bridgeVehicleSerial}:{}),
       spikes: this.spikes(),
       cover: this.cover,
       debris: this.debris,

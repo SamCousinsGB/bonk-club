@@ -20,7 +20,7 @@ function makeCable(layout) {
 }
 
 export function createCables(arena) {
-  const kind = arena.furnace ? "furnace" : arena.transmission ? "tower" : null;
+  const kind = arena.furnace ? "furnace" : arena.transmission ? "tower" : arena.bridge ? "bridge" : null;
   const cables = CABLE_LAYOUTS.filter(c => c.kind === kind).map(makeCable);
   // Settle once on round creation. Guests receive these points from the host;
   // joining a damaged arena never recreates a pristine span or replays history.
@@ -34,7 +34,7 @@ export function releaseCableMounts(world) {
   for (const c of world.cables || []) {
     const wasIntact = cableIntact(c);
     const spec = cableLayout(c.id);
-    if (spec.kind === "tower") {
+    if (spec.kind === "tower" || spec.kind === "bridge") {
       for (const [i, end] of [spec.a, spec.b].entries())
         if (!survives(world, end.x, end.supportY)) c.attached[i] = false;
     } else {
@@ -152,8 +152,26 @@ export function cutCables(world, touches) {
   }
 }
 
+export function cableShotSolids(world) {
+  if (!world.arena?.bridge) return [];
+  return (world.cables||[]).flatMap(c=>c.links.flatMap((live,i)=>{
+    if(!live)return [];
+    const a=c.points[i],b=c.points[i+1];
+    return [{id:`${c.id}:shot${i}`,x:Math.min(a.x,b.x)-5,y:Math.min(a.y,b.y)-5,
+      w:Math.abs(a.x-b.x)+10,h:Math.abs(a.y-b.y)+10,material:"metal",cableId:c.id,cableLink:i}];
+  }));
+}
+
+export function shootCable(world,id,link) {
+  if(world.prediction)return;
+  const c=world.cables.find(c=>c.id===id);
+  if(!c?.links[link])return;
+  c.links[link]=false;
+  world.terrainVersion++;
+}
+
 function releaseCableSupport(world, c) {
-  if (cableLayout(c.id).kind !== "tower") return;
+  if (!["tower","bridge"].includes(cableLayout(c.id).kind)) return;
   world.terrainVersion++;
   for (const p of world.players || []) if (p.support?.startsWith(`${c.id}:wire`)) {
     p.support = null; p.ground = false; p.coyote = 0;
@@ -194,7 +212,7 @@ export function cableSnapshot(cables = []) {
     points: c.points.map(p => ({ x: p.x, y: p.y })) }));
 }
 export function validCables(cables, arena) {
-  const specs = CABLE_LAYOUTS.filter(c => arena?.furnace ? c.kind === "furnace" : arena?.transmission ? c.kind === "tower" : false);
+  const specs = CABLE_LAYOUTS.filter(c => arena?.furnace ? c.kind === "furnace" : arena?.transmission ? c.kind === "tower" : arena?.bridge ? c.kind === "bridge" : false);
   return Array.isArray(cables) && cables.length === specs.length &&
     new Set(cables.map(c => c?.id)).size === cables.length && cables.every(c => {
       const spec = specs.find(s => s.id === c?.id);

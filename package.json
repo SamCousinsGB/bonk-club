@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.55.0",
-  "releaseNotes": "Rebuilt monorail arena, slower trains and continuous alternating arrivals",
+  "version": "0.56.0",
+  "releaseNotes": "Suspension bridge, collapsing deck and live traffic",
   "private": true,
   "type": "module",
   "scripts": {

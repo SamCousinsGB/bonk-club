@@ -10,6 +10,9 @@ export const TOWER_MOUNTS = TOWER_LEVELS.map(y => [
 ]);
 export const CABLE_LAYOUTS = [
   ...TOWER_MOUNTS.map(([a, b], index) => ({ id: `tower${index}`, kind: "tower", index, a, b, sag: 50 })),
+  ...[0,1].map(index=>({id:`bridge${index}`,kind:"bridge",index,
+    a:{x:413+index*9,y:245+index*12,supportY:240},
+    b:{x:2138+index*9,y:245+index*12,supportY:240},sag:405})),
   ...[-1, 1].flatMap((side, n) => [0, 1, 2].map(index => ({
     id: `furnace${n * 3 + index}`, kind: "furnace", side, index,
     a: { x: side < 0 ? 70 : 2490, y: 210 + index * 72 },
