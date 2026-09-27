@@ -107,3 +107,15 @@ test('bridge snapshots reject malformed bay metadata and non-finite motion',()=>
     assert.equal(validSnapshot(s),false,key);
   }
 });
+
+test('tower doorways let unarmed bots actually reach the contested road weapons',()=>{
+  let seed=4821;
+  const random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+  const world=new World({players:[0,1,2,3],bots:[0,1,2,3],arena,shuffle:false,random});
+  advance(world,5);
+  for(const id of [2,3]){
+    const p=world.players.find(p=>p.id===id);
+    assert.ok(p.weapon,`bot ${id} failed to leave its room and collect a weapon`);
+    assert.ok(p.y>650,`bot ${id} is still inside the tower`);
+  }
+});

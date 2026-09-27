@@ -26,9 +26,13 @@ export const BRIDGE_ARENA = {
       ...steel(560+i*90,BRIDGE_DECK_Y,90,52,"road"),bridgePanel:i,oneWay:true,
     })),
     ...[320,1920].flatMap(x=>[
-      steel(x,240,34,430),steel(x+286,240,34,430),
+      // The front cutaway leaves full-height doorways at each service floor.
+      // Continuous rear tower legs are scenery; these surviving faces collide.
+      ...[x,x+286].flatMap(u=>[
+        steel(u,240,34,100),steel(u,470,34,70),
+        steel(u,1080,34,60),steel(u,1290,34,150),
+      ]),
       steel(x-16,240,352,32,"cap"),
-      steel(x,960,34,480),steel(x+286,960,34,480),
       walk(x-45,450,410),walk(x-55,650,430),
       walk(x-40,1040,400),walk(x-40,1250,400),
     ]),
