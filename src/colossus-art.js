@@ -1,16 +1,32 @@
-import { COLOSSUS, COLOSSUS_EYES, colossusPhase, colossusPoint, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
-import {drawColossusMotion} from './colossus-motion.js';
+import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
+import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
 
 const TAU=Math.PI*2;
-let backdrop, mist, energyTexture;
+let backdrop, foothills, mist, energyTexture;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const line=(c,x,y,ex,ey,color,width)=>{c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
 export function warmColossusArt() {
+  warmColossusFigure();
   if(!backdrop && typeof Image!=='undefined'){
-    backdrop=new Image();backdrop.src=new URL('./assets/colossus.webp',import.meta.url).href;
+    backdrop=new Image();backdrop.src=new URL('./assets/colossus-landscape.webp',import.meta.url).href;
     backdrop.decoding='async';
   }
+}
+function drawFoothills(c){
+  if(!backdrop?.naturalWidth)return;
+  if(!foothills){
+    // The valley crosses in front of the hidden lower body. Only scenery is in
+    // this texture; the head, body and limbs are always independent geometry.
+    foothills=document.createElement('canvas');foothills.width=400;foothills.height=70;
+    const p=foothills.getContext('2d'),sx=backdrop.naturalWidth/2560,sy=backdrop.naturalHeight/1440;
+    p.drawImage(backdrop,1080*sx,708*sy,400*sx,70*sy,0,0,400,70);
+    p.globalCompositeOperation='destination-in';
+    const fade=p.createLinearGradient(0,0,0,30);
+    fade.addColorStop(0,'#0000');fade.addColorStop(.4,'#0002');fade.addColorStop(1,'#000');
+    p.fillStyle=fade;p.fillRect(0,0,400,70);
+  }
+  c.drawImage(foothills,1080,708);
 }
 function cloudTexture() {
   if(mist)return mist;
@@ -50,36 +66,9 @@ function beamTexture() {
   }
   return energyTexture;
 }
-function eye(c,h,index,energy,reduced) {
-  const p=colossusEye(h,index),base=COLOSSUS_EYES[index],anchor=colossusPoint(h,base.x,base.y);
-  c.save();
-  // Restrict the optical mechanism to the aperture in the matte painting.
-  c.beginPath();c.ellipse(anchor.x,anchor.y,1.8,1.6,0,0,TAU);c.clip();
-  c.translate(p.x,p.y);c.scale(.022,.022*.88);
-  const rim=c.createRadialGradient(-12,-15,2,0,0,67);
-  rim.addColorStop(0,'#172734');rim.addColorStop(.4,'#0c1823');rim.addColorStop(.85,'#13212c');rim.addColorStop(1,'#293c48');
-  circle(c,0,0,64,rim);
-  const rotation=(reduced?0:h.age*.016)+energy*.72;
-  for(let ring=0;ring<3;ring++){
-    const r=56-ring*12;c.strokeStyle=energy>0?`rgba(161,221,232,${.08+energy*.58})`:'#72879324';c.lineWidth=ring?1:2;
-    c.beginPath();c.arc(0,0,r,0,TAU);c.stroke();
-    for(let n=0;n<12;n++){
-      const a=n*TAU/12+rotation*(ring%2?-1:1);
-      line(c,Math.cos(a)*(r-4),Math.sin(a)*(r-4),Math.cos(a)*(r+1),Math.sin(a)*(r+1),energy?'#85999b65':'#85999b20',1.5);
-    }
-  }
-  // Slow iris blades open mechanically; the idle optic is cold and nearly dead.
-  for(let n=0;n<8;n++){
-    c.save();c.rotate(n*TAU/8+rotation);
-    c.beginPath();c.moveTo(18+energy*10,-7);c.lineTo(42,-21);c.lineTo(52,4);c.lineTo(27,10);c.closePath();
-    const blade=c.createLinearGradient(18,-7,52,4);
-    blade.addColorStop(0,energy?`rgba(114,162,178,${.09+energy*.32})`:'#23354180');
-    blade.addColorStop(1,'#09152170');c.fillStyle=blade;c.fill();c.restore();
-  }
-  circle(c,0,0,18+energy*11,'#07121b');
-  circle(c,-2,1,6+energy*17,energy?`rgba(205,248,255,${.1+energy*.9})`:'#60798388');
-  if(energy>0){glow(c,0,0,85,energy*.7,true);circle(c,0,0,5+energy*9,`rgba(244,254,255,${energy})`);}
-  c.restore();
+function eye(c,h,index,energy) {
+  if(energy<=0)return;
+  const p=colossusEye(h,index);
   glow(c,p.x,p.y,8+energy*65,energy*.35);
   if(energy>.3){
     c.save();c.globalCompositeOperation='screen';
@@ -93,20 +82,20 @@ export function drawColossusSky(c,state,reduced=false) {
   warmColossusArt();
   const h=state.hazards.find(h=>h.type==='colossus');if(!h)return;
   const phase=colossusPhase(h.age),fighting=state.phase==='fight';
-  c.fillStyle='#1a2734';c.fillRect(0,0,2560,1440);
-  if(backdrop?.complete && backdrop.naturalWidth){
-    c.drawImage(backdrop,-6,-5,2572,1450);drawColossusMotion(c,backdrop,h);
-  }
+  c.fillStyle='#273b4b';c.fillRect(0,0,2560,1440);
+  if(backdrop?.complete&&backdrop.naturalWidth)c.drawImage(backdrop,0,0,2560,1440);
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
   // A slow exposure change draws the eye to the awakened machine without strobing.
+  drawColossusFigure(c,h,energy);
+  drawFoothills(c);
   c.fillStyle=`rgba(6,17,30,${.09+energy*.17})`;c.fillRect(0,0,2560,1440);
-  eye(c,h,0,energy,reduced);eye(c,h,1,energy,reduced);
+  eye(c,h,0,energy);eye(c,h,1,energy);
   const cloud=cloudTexture(),time=reduced?0:h.age;
   c.save();
   for(let n=0;n<4;n++){
-    c.globalAlpha=[.12,.15,.19,.12][n];
+    c.globalAlpha=[.13,.17,.2,.14][n];
     const x=-520+n*660+Math.sin(time*.011+n)*110;
-    c.drawImage(cloud,x,530+n*117,1480,155+n*25);
+    c.drawImage(cloud,x,720+n*96,1480,155+n*25);
   }
   c.restore();
   // Low foreground haze separates the playable ruins from the far horizon.

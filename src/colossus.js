@@ -1,11 +1,11 @@
 import { playerBox } from './collision.js';
 import { beamTouches } from './phaser.js';
 import { bodyBounds, damageProp } from './props.js';
+import { colossusRig } from './colossus-rig.js';
 
 export const COLOSSUS = Object.freeze({
   cycle: 40, wake: 16, charge: 10, fire: 4.5, radius: 60, sweep: 380, separation: 320,
 });
-export const COLOSSUS_EYES = Object.freeze([{x:1274.5,y:628}, {x:1280.5,y:628}]);
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export function colossusPhase(age) {
   const phase = (age + 1e-9) % COLOSSUS.cycle;
@@ -20,28 +20,8 @@ export function initialColossus() {
   return {gazeX:1280, gazeY:1100, attentionX:1280, attentionY:1100,
     strikeX:1280, eye:0, cycleId:0, cutX:null};
 }
-const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
-// A slow articulated deformation of the original painted silhouette. Feet and
-// the outside of the small mesh stay fixed; only the machine shifts in the valley.
-export function colossusPose(age) {
-  return {x:Math.sin(age*.055)*3.2, y:(Math.cos(age*.047)-1)*.65,
-    head:Math.sin(age*.081)*4.5, tilt:Math.sin(age*.061)*.035,
-    leftArm:Math.sin(age*.073)*.105, rightArm:Math.sin(age*.067)*-.09};
-}
-export function colossusPoint(h,x,y) {
-  const p=colossusPose(h.age),dx=x-1278;
-  const border=smooth(1234,1244,x)*(1-smooth(1310,1320,x))*
-    smooth(617,622,y)*(1-smooth(707,717,y));
-  const head=(1-smooth(635,650,y))*(1-smooth(7,22,Math.abs(dx)));
-  const torso=smooth(3,25,Math.abs(dx))*smooth(637,661,y)*(1-smooth(699,718,y));
-  const arm=p[dx<0?'leftArm':'rightArm'],length=Math.max(0,y-640);
-  const look=clamp((h.gazeX-1280)/1280,-1,1)*2.5;
-  return {x:x+border*(p.x+(p.head+look-(y-633)*p.tilt)*head+Math.sin(arm)*length*torso),
-    y:y+border*(p.y+dx*p.tilt*head+(1-Math.cos(arm))*length*torso)};
-}
 export function colossusEye(h, eye = h.eye) {
-  const e = COLOSSUS_EYES[eye],p=colossusPoint(h,e.x,e.y);
-  return {x:p.x+(h.gazeX-1280)/1280*.7,y:p.y+(h.gazeY-1000)/700*.4};
+  return colossusRig(h).eyes[eye];
 }
 export function colossusBeam(h, progress = colossusPhase(h.age).fire, index=h.eye) {
   const eye = colossusEye(h,index), dir = h.eye ? -1 : 1;

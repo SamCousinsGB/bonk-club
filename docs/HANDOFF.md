@@ -1,5 +1,19 @@
 # Bonk Club — current handoff
 
+## Articulated distant Colossus (v0.60.0 / protocol 82)
+
+- Replaced the painted mesh with separate weathered metal parts on a shared
+  skeleton. The head, torso, shoulders and elbows visibly move. Both beams use
+  the actual moving head landmarks. Black dot eyes are removed.
+- Sam rejected the larger geometric figure: keep the final small, heavy,
+  textured silhouette, original cinematic landscape and legs hidden behind
+  mountains. Do not restore the clean toy-like body or exposed legs.
+- The landscape now contains no painted mech. Its empty plate, transparent
+  parts atlas and built-in image tool prompts are recorded in COLOSSUS.md.
+- Seventeen focused mechanics/audio tests and desktop visual checks pass.
+  Full release and public verification must finish before calling it live.
+  Evidence: `bonk-club-qa/colossus-rig`. Refresh all tabs for protocol 82.
+
 ## Suspension Bridge readability and traffic (v0.59.1 / protocol 81)
 
 - Open steel tower bracing replaces the repeated enclosed rooms. Continuous

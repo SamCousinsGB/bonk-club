@@ -1,4 +1,4 @@
-import { COLOSSUS, COLOSSUS_EYES } from './colossus.js';
+import { COLOSSUS, colossusEye } from './colossus.js';
 export const COLOSSUS_SOUND_SECONDS=COLOSSUS.charge+COLOSSUS.fire+3;
 
 // One cached, seekable voice: distant gearing, a slowly rising pressure tone,
@@ -47,7 +47,7 @@ export class ColossusSound {
       if(Math.abs(this.current.voice.end-sound.context.currentTime-(COLOSSUS_SOUND_SECONDS-offset))<.18)return;
     }
     this.stop(sound);
-    const voice=sound.sample('colossus',{x:(COLOSSUS_EYES[0].x+COLOSSUS_EYES[1].x)/2},{priority:true,fixed:true,offset,duration:COLOSSUS_SOUND_SECONDS-offset});
+    const voice=sound.sample('colossus',{x:(colossusEye(h,0).x+colossusEye(h,1).x)/2},{priority:true,fixed:true,offset,duration:COLOSSUS_SOUND_SECONDS-offset});
     if(voice)this.current={key,age:h.age,voice};
   }
 }

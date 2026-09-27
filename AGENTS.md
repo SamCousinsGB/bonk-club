@@ -108,10 +108,11 @@ Start new work from current `origin/main` in one clean worktree.
   surviving steel, car facing consistent with collision, and no decorative
   beams across destroyed tiles or the middle joint. Preserve host-owned motion,
   blast fragments, changed-world joins and reset.
-- **Colossus:** a tiny, square-headed ancient mech stands far beyond the mountain
-  valley, with its whole body visible through haze. Keep the distant silhouette,
-  cold delayed gaze and slow independent head, shoulder and arm motion; feet and
-  valley stay fixed. Both eyes charge together
+- **Colossus:** a small, dark, square-headed ancient mech stands far beyond the
+  valley, with its legs hidden behind the mountains. Preserve the original
+  weathered, heavy silhouette; no toy-like body, round chest reactor or black
+  dot eyes. Head, torso and arms are separate articulated parts and must visibly
+  move within seconds, independently of the scenery. Both eyes charge together
   for ten seconds, then sweep two perspective-correct lasers for 4.5 seconds in a
   forty-second cycle. Warning, light, damage and terrain cuts share the actual
   projected beam. The remote controller cannot be destroyed by local weapons.

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
-import {COLOSSUS,colossusPhase,colossusPoint,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
+import {COLOSSUS,colossusPhase,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
+import {colossusRig,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE} from '../src/colossus-rig.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -30,10 +31,11 @@ test('colossus terraces connect every spawn to contested weapons with the distan
 });
 
 test('gaze has mechanical lag, stays bounded, and follows players without moving the locked attack',()=>{
-  const w=fixture(),h=w.hazards[0],start=colossusEye(h);
+  const w=fixture(),h=w.hazards[0];
   w.players.forEach(p=>{p.x=2300;p.y=1000;});advance(w,.1);
   assert.ok(h.gazeX>1280&&h.gazeX<1282);
-  assert.ok(colossusEye(h).x-start.x<.1);
+  const untracked=colossusEye({...h,gazeX:1280});
+  assert.ok(Math.abs(colossusEye(h).x-untracked.x)<.02);
   advance(w,12);assert.ok(h.gazeX>2050&&h.gazeX<2300);
   h.age=COLOSSUS.wake-STEP;advance(w,STEP);const target=h.strikeX;
   w.players.forEach(p=>p.x=200);advance(w,9);
@@ -48,7 +50,7 @@ test('ten second charge does no damage or terrain edits, then lethal contact res
   assert.ok(w.players.every(p=>p.hp===100));
   const beam=colossusBeam(h,0),p=w.players[0],safe=w.players[1];
   Object.assign(p,{x:beamX(beam,1010),y:1010,spawnShield:0});
-  Object.assign(safe,{x:p.x+220,y:p.y,spawnShield:0});
+  Object.assign(safe,{x:p.x-220,y:p.y,spawnShield:0});
   advance(w,STEP*2);
   assert.ok(h.active);assert.equal(p.alive,false);assert.equal(safe.hp,100);
   assert.equal(w.lastDeathCause,'colossus');assert.ok(w.terrainVersion>0);
@@ -94,18 +96,27 @@ test('both moving eyes fire together, damage both paths and leave the space betw
   assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
 });
 
-test('articulated motion is slow, moves the head and hands, and anchors feet and the surrounding valley',()=>{
-  const h=fixture().hazards[0],head=[1278,628],hand=[1248,693];
-  const start=colossusPoint(h,...head);h.age=12;
-  assert.ok(Math.abs(colossusPoint(h,...head).x-start.x)>4);
-  assert.ok(Math.abs(colossusPoint(h,...hand).x-hand[0])>2);
+test('rig moves visibly within six seconds, keeps rigid limb lengths and planted feet',()=>{
+  const h=fixture().hazards[0],start=colossusRig(h),later=colossusRig({...h,age:6});
+  const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  // At the ordinary 1600px desktop camera, head travel exceeds 10px and a
+  // hand travels over 10px. This is intentionally visible in normal gameplay.
+  assert.ok(distance(start.head,later.head)*1600/2560>10);
+  assert.ok(Math.max(...start.arms.map((a,i)=>distance(a.hand,later.arms[i].hand)))*1600/2560>10);
   for(let age=0;age<180;age+=.1){
-    h.age=age;
-    for(const [x,y] of [[1218,650],[1338,650],[1278,603],[1278,737]])assert.deepEqual(colossusPoint(h,x,y),{x,y});
-    for(const [x,y] of [head,hand]){
-      const p=colossusPoint(h,x,y),q=colossusPoint({...h,age:age+.1},x,y);
-      assert.ok(Math.hypot(p.x-x,p.y-y)<12);assert.ok(Math.hypot(q.x-p.x,q.y-p.y)<.12);
+    const r=colossusRig({...h,age}),next=colossusRig({...h,age:age+.1});
+    for(const arm of r.arms){
+      assert.ok(Math.abs(distance(arm.shoulder,arm.elbow)-67*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(arm.elbow,arm.hand)-77*COLOSSUS_SCALE)<1e-8);
     }
+    r.legs.forEach((leg,i)=>{
+      assert.deepEqual(leg.foot,start.legs[i].foot);
+      assert.ok(Math.abs(distance(leg.hip,leg.knee)-72*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(leg.knee,leg.foot)-78*COLOSSUS_SCALE)<1e-8);
+    });
+    assert.ok(distance(r.head,next.head)<1.1);
+    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<2));
+    COLOSSUS_EYES.forEach((e,i)=>assert.deepEqual(colossusEye({...h,age},i),rigPoint(r.head,e.x,e.y)));
   }
 });
 

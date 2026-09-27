@@ -1,0 +1,44 @@
+import {colossusRig,COLOSSUS_EYES,COLOSSUS_SCALE} from './colossus-rig.js';
+
+let parts,weathered;
+export function warmColossusFigure(){
+  if(!parts&&typeof Image!=='undefined'){
+    parts=new Image();parts.src=new URL('./assets/colossus-parts.webp',import.meta.url).href;
+    parts.decoding='async';
+  }
+}
+const transform=(c,f)=>c.transform(f.a,f.b,f.c,f.d,f.x,f.y);
+function limb(c,a,b,source,width,overlap){
+  c.save();c.translate(a.x,a.y);c.rotate(-Math.atan2(b.x-a.x,b.y-a.y));
+  c.drawImage(weathered,...source,-width*COLOSSUS_SCALE/2,-overlap*COLOSSUS_SCALE,
+    width*COLOSSUS_SCALE,Math.hypot(b.x-a.x,b.y-a.y)+overlap*COLOSSUS_SCALE*2);
+  c.restore();
+}
+export function drawColossusFigure(c,h,energy=0){
+  warmColossusFigure();if(!parts?.complete||!parts.naturalWidth)return;
+  if(!weathered){
+    weathered=document.createElement('canvas');weathered.width=parts.naturalWidth;weathered.height=parts.naturalHeight;
+    const p=weathered.getContext('2d');p.drawImage(parts,0,0);
+    p.globalCompositeOperation='source-atop';p.fillStyle='#68778b88';p.fillRect(0,0,weathered.width,weathered.height);
+  }
+  const rig=colossusRig(h);
+  c.save();c.globalAlpha*=.85;
+  // Original metal parts on a transparent atlas. Each rigid transform uses
+  // the same skeleton as the head and both laser origins.
+  for(const arm of rig.arms){
+    const left=arm.side<0;
+    limb(c,arm.shoulder,arm.elbow,left?[190,595,270,275]:[795,595,280,275],46,9);
+    limb(c,arm.elbow,arm.hand,left?[190,837,255,389]:[815,837,270,389],43,8);
+  }
+  c.save();transform(c,rig.body);
+  c.drawImage(weathered,588,51,654,515,-91,-130,182,143);
+  c.restore();
+  c.save();transform(c,rig.head);
+  c.drawImage(weathered,132,69,369,414,-26.6,-29.1,53.3,60.6);
+  // No black pupils. Narrow metallic shutters light up during the charge.
+  if(energy>0)for(const e of COLOSSUS_EYES){
+    c.fillStyle=`rgba(213,251,255,${Math.min(1,energy*1.7)})`;
+    c.fillRect(e.x-3.4,e.y-.5-energy,6.8,1+energy*2);
+  }
+  c.restore();c.restore();
+}
