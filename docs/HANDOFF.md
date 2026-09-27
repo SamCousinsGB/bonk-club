@@ -14,8 +14,19 @@
   Cuts persist through validated compact snapshots and hot joins; local weapons
   cannot remove the remote controller. Bots escape through ordinary movement.
   Audio seeks correctly when joining or unmuting; effects respect reduced motion.
-- Focused mechanics/audio tests and desktop visual inspection pass. Full release
-  verification is in progress; do not treat this note as public deployment proof.
+- Fifteen focused mechanics/audio tests, the full regular suite, all six local
+  stress shards, the browser build and desktop visual inspection pass. Release
+  [workflow 36333073131](https://github.com/SamCousinsGB/bonk-club/actions/runs/36333073131)
+  passed validation, all six CI stress shards, Windows/Linux executable checks,
+  common-revision verification and Pages deployment for `05e2865`.
+- All 18 local, CI and public browser files match byte for byte. Public v0.57.0
+  desktop play passes measured host/guest movement, natural charge/discharge,
+  relay-only late join after laser cuts, resizing/reduced motion and host
+  departure with no browser errors. Source testing additionally compared exact
+  damaged terrain/eye state, second-eye firing, mute/seek and round reset.
+  Evidence is in `bonk-club-qa/colossus`; this is one-machine TURN verification,
+  not cross-ISP latency or Steam connectivity proof. Players must refresh for
+  protocol 79. Both task-owned development servers were stopped.
 
 ## Suspension Bridge (v0.56.0 / protocol 78)
 
