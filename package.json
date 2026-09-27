@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.0",
-  "releaseNotes": "Hang beneath thin platforms and wires before dropping",
+  "version": "0.63.1",
+  "releaseNotes": "Hang beneath thin platforms; held Tesla arcs stop on grip",
   "private": true,
   "type": "module",
   "scripts": {

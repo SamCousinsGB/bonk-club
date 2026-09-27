@@ -84,7 +84,7 @@ test("cast starts at the physical muzzle and tracks reversed, vertical and prone
 });
 
 test("release, throws, death, incapacity, ammo exhaustion and round reset end the cast",()=>{
-  for(const mutation of [p=>p.alive=false,p=>p.freeze=1,p=>p.knockdown=1,p=>p.stun=.1,p=>p.carryId="crate",p=>p.weapon=null]){
+  for(const mutation of [p=>p.alive=false,p=>p.freeze=1,p=>p.knockdown=1,p=>p.stun=.1,p=>p.carryId="crate",p=>p.hangSupport="floor0",p=>p.weapon=null]){
     const w=fixture(),p=w.players[0];w.attack(p);mutation(p);updateTesla(w,{0:{attack:true}});assert.equal(w.fields.length,0);
   }
   const w=fixture(),p=w.players[0];p.ammo=1;
