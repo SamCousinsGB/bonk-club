@@ -7,9 +7,16 @@
   one bounded layer before receiving consistent haze and slight edge softness,
   eliminating doubled seams and the sharp pasted-on appearance.
 - Independent motion, metallic eye slits and both shared laser origins remain.
-  Seventeen focused mechanics/audio tests and desktop gameplay visuals pass.
-  Evidence: `bonk-club-qa/colossus-depth`. Release status must be checked before
-  calling the update live. Refresh all player tabs for protocol 83.
+  Seventeen focused mechanics/audio tests, the full regular suite, both local
+  Colossus stress cases and desktop gameplay visuals pass. The production bundle
+  passed host/guest controls, natural twin discharge, late join and reduced motion.
+- Revision 9d466ce passed release workflow 36337861244, including all six arena
+  groups, shared/server validation, Windows/Linux checks and Pages publishing.
+  All 19 local, CI and public files match exactly. Rendered head travel remains
+  14.18px over the opening sixteen seconds at a 1600px desktop viewport.
+  Additional public gameplay checks were omitted following Sam's request to
+  publish without further checks. The task-owned preview server is stopped.
+  Evidence: bonk-club-qa/colossus-depth. Refresh all tabs for protocol 83.
 
 ## Articulated distant Colossus (v0.60.0 / protocol 82)
 
