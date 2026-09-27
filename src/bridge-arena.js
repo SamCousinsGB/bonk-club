@@ -2,6 +2,7 @@ const steel = (x,y,w,h=36,bridgePart="pier") => ({x,y,w,h,material:"metal",bridg
 const walk = (x,y,w) => ({...steel(x,y,w,18,"walk"),oneWay:true});
 export const BRIDGE_DECK_Y = 850;
 export const BRIDGE_PANELS = 16;
+export const BRIDGE_APPROACH = 480;
 export const BRIDGE_BAYS = [
   {x:720,y:1110,w:380,mounts:[1,5]},
   {x:1460,y:1110,w:380,mounts:[10,14]},
@@ -21,7 +22,9 @@ export function bridgeBayMounts(platforms,bay){
 export const BRIDGE_ARENA = {
   name:"SUSPENSION BRIDGE",theme:"suspension-bridge",color:"#263d4c",bridge:true,
   platforms:[
-    {...steel(0,BRIDGE_DECK_Y,560,52,"road"),oneWay:true},{...steel(2000,BRIDGE_DECK_Y,560,52,"road"),oneWay:true},
+    // Real road continues beyond the camera, supporting arriving/leaving cars.
+    {...steel(-BRIDGE_APPROACH,BRIDGE_DECK_Y,560+BRIDGE_APPROACH,52,"road"),oneWay:true},
+    {...steel(2000,BRIDGE_DECK_Y,560+BRIDGE_APPROACH,52,"road"),oneWay:true},
     ...Array.from({length:BRIDGE_PANELS},(_,i)=>({
       ...steel(560+i*90,BRIDGE_DECK_Y,90,52,"road"),bridgePanel:i,oneWay:true,
     })),
@@ -36,8 +39,9 @@ export const BRIDGE_ARENA = {
       walk(x-45,450,410),walk(x-55,650,430),
       walk(x-40,1040,400),walk(x-40,1250,400),
     ]),
-    walk(55,540,225),walk(2280,540,225),
-    walk(60,720,220),walk(2280,720,220),
+    // Outer stairs meet the tower legs instead of floating beside them.
+    walk(55,540,299),walk(2206,540,299),
+    walk(60,720,294),walk(2206,720,294),
     ...BRIDGE_BAYS.map((b,bridgeBay)=>({...walk(b.x,b.y,b.w),bridgeBay})),
   ],
   spawns:[[160,678],[2400,678],[450,608],[2110,608]],

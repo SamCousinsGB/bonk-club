@@ -58,7 +58,8 @@ export function resetReactions(world) {
   // Place a few readable opportunities on existing landings, outside spawns and
   // trap machinery. Layouts, routes and the opening weapon rotation stay intact.
   const floors = world.platforms.filter(p => p.w >= 290 && p.h <= 65 && p.y > 320 &&
-    !p.move && !p.travel && !p.waterId && !p.destructible);
+    !p.move && !p.travel && !p.waterId && !p.destructible &&
+    !(world.arena.bridge && p.bridgePart === 'road'));
   const used = new Set();
   const kinds = ["canister", ...(world.arena.transmission?[]:["waterTank"]), "canister",
     variants[world.arenaIndex % 4], variants[(world.arenaIndex + 1) % 4]];

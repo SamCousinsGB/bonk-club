@@ -1,5 +1,6 @@
-import { prepareProp, impulseProp } from './props.js';
+import { prepareProp, impulseProp, bodyBounds } from './props.js';
 import { BRIDGE_DECK_Y, BRIDGE_PANELS, BRIDGE_BAYS, bridgeBayMounts } from './bridge-arena.js';
+import { W } from './scale.js';
 
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const PANEL_W=90;
@@ -68,26 +69,29 @@ export function updateBridge(world,dt) {
   // Traffic uses ordinary physical car bodies. Drive exists only under
   // surviving deck contact; slope adds gravity, severed spans shed cars.
   if (world.phase!=="fight") return;
-  world.bridgeTraffic=(world.bridgeTraffic||0)+dt;
-  if(world.bridgeTraffic>3.1) {
-    world.bridgeTraffic=0;
+  world.bridgeTraffic=Math.min(3.1,(world.bridgeTraffic||0)+dt);
+  if(world.bridgeTraffic>=3.1) {
     const cars=world.cover.filter(b=>b.bridgeVehicle&&b.hp>0);
-    if(cars.length<5) {
+    // This side-on road is one physical lane. Give each direction a clear
+    // crossing; a stalled or wrecked car holds incoming traffic offscreen.
+    if(!cars.length) {
+      world.bridgeTraffic=0;
       const dir=world.bridgeVehicleSerial%2?1:-1;
-      const x=dir>0?35:2305;
-      world.cover.push(prepareProp({id:`bridge-car-${++world.bridgeVehicleSerial}`,kind:"car",x,y:BRIDGE_DECK_Y-112,
+      const x=dir>0?-210-160:W+160;
+      world.cover.push(prepareProp({id:`bridge-car-${++world.bridgeVehicleSerial}`,kind:"car",x,y:BRIDGE_DECK_Y-105,
         w:210,h:105,hp:170,maxHp:170,mass:190,carStage:31,carPaint:world.bridgeVehicleSerial%3+1,
         carCoat:1,bridgeVehicle:true,bridgeDir:dir,vx:dir*260}));
     }
   }
   for(const b of world.cover.filter(b=>b.bridgeVehicle&&b.hp>0)) {
-    const cx=b.x+b.w/2,feet=b.y+b.h;
-    const floor=world.platforms.find(p=>p.hp!==0&&cx>=p.x&&cx<=p.x+p.w&&Math.abs(feet-p.y)<27);
+    const box=bodyBounds(b),cx=b.x+b.w/2,feet=box.y+box.h;
+    const floor=Math.abs(b.angle||0)<.5&&world.platforms.find(p=>p.bridgePart==='road'&&p.hp!==0&&cx>=p.x&&cx<=p.x+p.w&&Math.abs(feet-p.y)<27);
     if(floor) {
       const next=panels.find(p=>p.bridgePanel===floor.bridgePanel+(b.bridgeDir||1));
       const slope=next?(next.y-floor.y)/PANEL_W:0;
       impulseProp(b,clamp((b.bridgeDir*(450+slope*820)-b.vx)*b.mass*dt*2,-b.mass*32,b.mass*32),0);
     }
   }
-  world.cover=world.cover.filter(b=>!b.bridgeVehicle||b.hp>0&&b.x>-400&&b.x<2750&&b.y<1800);
+  // Shared rotated-body cleanup removes traffic only after it wholly escapes.
+  world.cover=world.cover.filter(b=>!b.bridgeVehicle||b.hp>0);
 }

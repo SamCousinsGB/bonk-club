@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.59.0",
-  "releaseNotes": "Colossus moves in the distance and fires both eye lasers together",
+  "version": "0.59.1",
+  "releaseNotes": "Clearer bridge platforms and traffic entering from offscreen",
   "private": true,
   "type": "module",
   "scripts": {
