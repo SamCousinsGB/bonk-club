@@ -57,7 +57,7 @@ export function preparePlatforms(arena, arenaIndex) {
   });
 }
 
-export function carveExplosion(world, blast, { fixtures = true } = {}) {
+export function carveExplosion(world, blast, { fixtures = true, preservePlatform = () => false } = {}) {
   blastCables(world, blast);
   if(fixtures)blastFurnace(world,blast);
   const cut = { ...blast, id: `blast${++world.terrainSerial}` };
@@ -66,6 +66,7 @@ export function carveExplosion(world, blast, { fixtures = true } = {}) {
   const pieces = [];
   for (const p of world.platforms) {
     if (p.hp === 0) continue;
+    if (preservePlatform(p)) { pieces.push(p); continue; }
     const remains = carveRectangle(p, cut, () => `cut${++world.terrainSerial}`);
     if (remains[0] === p) { pieces.push(p); continue; }
     changed = true;

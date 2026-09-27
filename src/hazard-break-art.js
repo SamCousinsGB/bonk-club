@@ -16,7 +16,7 @@ export class HazardBreaks {
     this.bursts = this.bursts.filter(b => state.time - b.at < HAZARD_BREAK_LIFE);
     for (const h of state.hazards || []) {
       const old = this.previous.get(h.id);
-      if (h.done && old && !old.done && this.bursts.length < LIMIT)
+      if (h.type !== "train" && h.done && old && !old.done && this.bursts.length < LIMIT)
         this.bursts.push({ h: {...h}, at: state.time });
     }
     // Copy: local simulation mutates the same hazard objects between frames.

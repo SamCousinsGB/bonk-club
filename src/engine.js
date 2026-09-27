@@ -1316,7 +1316,7 @@ export class World {
         Math.sign(p.x - b.x) || 1,
         -0.7,
         { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon, source: b,
-          cause: ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
+          cause: b.trainWreck ? "train" : ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
       );
     }
     for (const c of cover) {
@@ -1335,7 +1335,9 @@ export class World {
           {x,y},
         );
     }
-    carveExplosion(this, { x: b.x, y: b.y, radius });
+    carveExplosion(this, { x: b.x, y: b.y, radius }, b.trainWreck ? {
+      preservePlatform: p => p.y >= 1060 && p.y < 1150 && !p.wreckId,
+    } : {});
     this.event("explosion", { x: b.x, y: b.y, radius, weapon: b.weapon, nuclear: !!b.nuclear, aftershock: !!b.aftershock });
   }
   updateProjectiles(dt) {

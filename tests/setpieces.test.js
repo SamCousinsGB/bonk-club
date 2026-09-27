@@ -173,7 +173,7 @@ test("a passing train derails into a physical fall when a wheel reaches missing 
   const start={y:h.bodyY,angles:h.carriages.map(c=>c.angle)};
   for(let i=0;i<30;i++)tick(w);
   const angles=h.carriages.map(c=>c.angle),ys=h.carriages.map(c=>c.y);
-  assert.ok(h.bodyY>start.y);assert.ok(angles.some((angle,i)=>Math.abs(angle-start.angles[i])>.08));
+  assert.ok(Math.abs(h.vx)<1800);assert.ok(angles.some((angle,i)=>Math.abs(angle-start.angles[i])>.08));
   assert.ok(Math.max(...angles)-Math.min(...angles)>.25);assert.ok(Math.max(...ys)-Math.min(...ys)>25);
   assert.ok(validSnapshot(w.snapshot()));
   for(let i=0;i<110;i++)tick(w);
@@ -206,6 +206,10 @@ test("derail state survives compact hot join, rejects malformed motion and reset
     const bad=structuredClone(s);bad.hazards[0][key]=value;assert.equal(validSnapshot(bad),false,key);
   }
   for(const mutate of [
+    train=>{train.carriages[0].crush=1.1;},
+    train=>{train.carriages[0].energy=Infinity;},
+    train=>{train.carriages[0].ruptured="yes";},
+    train=>{train.carriages[0].fuse=-2;},
     train=>{train.carriages[0].x=9000;},
     train=>{train.carriages[0].coupled="yes";},
     train=>{train.carriages.pop();},
@@ -216,3 +220,35 @@ test("derail state survives compact hot join, rejects malformed motion and reset
 });
 
 function playerBoxForTest(p){return{x:p.x-18,y:p.y-28,w:36,h:56};}
+
+test("crash braking, ruptures and long-lived wrecks preserve surviving rail in both directions",()=>{
+  for(const age of [5.35,16.35]){
+    const w=fixture(),h=w.hazards[0];w.cover=[];
+    carveExplosion(w,{x:1280,y:1060,radius:85});
+    const rails=()=>w.platforms.filter(p=>p.y>=1060&&p.y<1150);
+    const before=structuredClone(rails());h.age=age;tick(w);
+    assert.ok(h.derailed);assert.ok(Math.abs(h.vx)<2400);
+    let ruptured=false;
+    for(let i=0;i<1200;i++){
+      tick(w);ruptured||=h.carriages.some(c=>c.ruptured&&c.energy>0);
+      if(i%30===0)assert.ok(validSnapshot(new RenderSnapshots().make(w.snapshot())),`direction ${h.dir}, tick ${i}`);
+    }
+    assert.ok(ruptured);assert.ok(h.carriages.some(c=>c.crush>.4));
+    assert.ok(h.carriages.every(c=>c.energy===0));
+    assert.deepEqual(rails(),before);
+    const joined=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
+    assert.deepEqual(joined.hazards[0].carriages,new RenderSnapshots().make(w.snapshot()).hazards[0].carriages);
+  }
+});
+
+test("wreck power packs explode once and their finite charge damages nearby fighters only on the host",()=>{
+  const w=fixture(),h=w.hazards[0];carveExplosion(w,{x:1280,y:1060,radius:85});h.age=5.35;tick(w);
+  for(const [i,c] of h.carriages.entries())Object.assign(c,{x:-2000-i*300,y:2000,vx:0,vy:0,spin:0,angle:0,coupled:false,onRail:false,fuse:-1});
+  const car=h.carriages[3];Object.assign(car,{x:1280,y:500,crush:.5,fuse:0});
+  const before=w.events.filter(e=>e.type==='explosion').length;tick(w);
+  assert.equal(w.events.filter(e=>e.type==='explosion').length,before+1);assert.ok(car.ruptured&&car.energy>3.9);
+  const p=w.players[0];place(p,car.x,car.y-150);const hp=p.hp;car.shockWait=0;tick(w);
+  assert.ok(p.hp<hp);assert.ok(p.xray>0);
+  const energy=car.energy;w.prediction=true;tick(w);assert.equal(car.energy,energy);
+  w.prediction=false;car.fuse=0;tick(w);assert.equal(w.events.filter(e=>e.type==='explosion').length,before+1);
+});

@@ -1,5 +1,5 @@
 import { ladlePose, LADLE_LIP } from "./foundry.js";
-import { trainBodies, TRAIN_CARRIAGE_LENGTH } from "./trains.js";
+import { trainBodies, carriageShape, TRAIN_CARRIAGE_LENGTH } from "./trains.js";
 
 const line=(c,x,y,xx,yy,color,width=3)=>{c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
 const dot=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fillStyle=color;c.fill();};
@@ -28,17 +28,16 @@ export function drawSetpieceHall(c,arena){
   }
 }
 export function drawTrain(c,h,time,reduced){
-  if(h.done)return;
   c.save();
   // Track ties are clipped against the surviving deck by the caller.
   for(const x of [125,2435]){
     line(c,x,h.y-18,x,h.y-310,"#2b343a",10);c.fillStyle="#111a23";c.fillRect(x-21,h.y-322,42,91);
-    const lit=h.active||h.warning>0;
+    const lit=h.derailed||h.active||h.warning>0;
     dot(c,x,h.y-300,12,lit?"#ff5b43":"#513934");
     dot(c,x,h.y-254,12,!lit?"#79cba5":"#294e45");
     if(h.warning>0&&(reduced||Math.sin(time*9)>0))dot(c,x,h.y-278,10,"#ffcc65");
   }
-  if(!h.active){c.restore();return;}
+  if(!h.active||h.done){c.restore();return;}
   const cars=trainBodies(h),l=-h.w/2,r=h.w/2;
   if(!reduced&&!h.derailed){
     // Wide, bounded horizontal smears imply shutter exposure without blurring
@@ -56,14 +55,16 @@ export function drawTrain(c,h,time,reduced){
   // Couplers are physical constraints. Drawing the actual links makes their
   // articulation and eventual separation legible during a derail.
   if(h.derailed)for(let i=0;i<cars.length-1;i++)if(cars[i].coupled){
-    const a=cars[i],b=cars[i+1],side=h.dir,reach=TRAIN_CARRIAGE_LENGTH/2;
-    const ax=a.x+Math.cos(a.angle)*reach*side,ay=a.y+Math.sin(a.angle)*reach*side;
-    const bx=b.x-Math.cos(b.angle)*reach*side,by=b.y-Math.sin(b.angle)*reach*side;
+    const a=cars[i],b=cars[i+1],side=h.dir;
+    const ax=a.x+Math.cos(a.angle)*carriageShape(a).w/2*side,ay=a.y+Math.sin(a.angle)*carriageShape(a).w/2*side;
+    const bx=b.x-Math.cos(b.angle)*carriageShape(b).w/2*side,by=b.y-Math.sin(b.angle)*carriageShape(b).w/2*side;
     line(c,ax,ay,bx,by,"#303b42",12);line(c,ax,ay,bx,by,"#9eafb2",4);
   }
   for(let i=0;i<cars.length;i++){
     const car=cars[i],front=i===cars.length-1,tail=i===0,w=TRAIN_CARRIAGE_LENGTH,cl=-w/2,cr=w/2,top=-h.h/2,bottom=h.h/2;
     c.save();c.translate(car.x,car.y);c.rotate(car.angle||0);c.scale(h.dir,1);
+    const crush=car.crush||0;
+    c.scale(1-.3*crush,1+.16*crush);
     const body=c.createLinearGradient(0,top,0,bottom);body.addColorStop(0,"#f3f6ea");body.addColorStop(.5,"#b5d4d6");body.addColorStop(1,"#536e80");
     c.beginPath();
     if(tail){c.moveTo(cl,bottom-22);c.quadraticCurveTo(cl+18,top+8,cl+96,top);}
@@ -79,6 +80,35 @@ export function drawTrain(c,h,time,reduced){
     if(tail){c.beginPath();c.moveTo(cl+105,top+17);c.lineTo(cl+55,top+28);c.lineTo(cl+14,bottom-38);c.lineTo(cl+93,bottom-50);c.closePath();c.fillStyle="#16364d";c.fill();dot(c,cl+22,bottom-28,8,"#ffcfb0");}
     line(c,cl+4,top+7,cl+4,bottom-13,"#435967",4);line(c,cr-4,top+7,cr-4,bottom-13,"#435967",4);
     dot(c,cl+w*.28,bottom-9,17,"#182c3a");dot(c,cr-w*.28,bottom-9,17,"#182c3a");
+    if(crush>.12){
+      // Folded side panels and broken glazing follow the compressed collision body.
+      for(let n=0;n<4;n++){
+        const x=cl+48+n*83;
+        c.beginPath();c.moveTo(x,top+10);c.lineTo(x-24*crush,top+57);c.lineTo(x+30*crush,bottom-24);c.lineTo(x-9,bottom-12);
+        c.strokeStyle="#253441";c.lineWidth=3+crush*5;c.stroke();
+        line(c,x,top+34,x+34,top+66,"#b8dce0",2);
+      }
+    }
+    if(car.ruptured){
+      c.fillStyle="#202a30";c.beginPath();c.moveTo(-44,top+12);c.lineTo(-21,top-21);c.lineTo(0,top+6);c.lineTo(30,top-14);c.lineTo(57,top+25);c.closePath();c.fill();
+    }
+    if(car.energy>0){
+      const phase=reduced?0:time*14+car.id,fade=Math.min(1,car.energy);
+      c.globalAlpha=fade;
+      for(let n=0;n<3;n++){
+        const sx=-25+n*25,ex=sx+Math.sin(phase+n*2)*68,ey=top-35-Math.abs(Math.cos(phase+n))*50;
+        c.beginPath();c.moveTo(sx,top);c.lineTo((sx+ex)/2+12,top-23);c.lineTo((sx+ex)/2-9,ey+13);c.lineTo(ex,ey);
+        c.strokeStyle="#75cfff";c.lineWidth=5;c.stroke();c.strokeStyle="#e2faff";c.lineWidth=2;c.stroke();
+      }
+      for(let n=0;n<5;n++){
+        const rise=reduced?n*13:((time*65+n*19)%80);
+        dot(c,-25+n*14+Math.sin(n+time)*9,top-rise,10+rise*.18,"#59616a88");
+      }
+      dot(c,0,top+6,16,"#ff9144");dot(c,0,top,8,"#ffe19c");c.globalAlpha=1;
+    }
+    if(h.derailed&&!reduced&&Math.abs(car.vx)>120){
+      for(let n=0;n<5;n++){const x=cl+((n*71+time*430)%w);line(c,x,bottom,x-h.dir*(16+n*7),bottom+8+n*5,"#ffd98a",2);}
+    }
     c.restore();
   }
   if(!reduced&&!h.derailed){

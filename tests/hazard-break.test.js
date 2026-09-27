@@ -38,7 +38,16 @@ test("every fixture breaks once after losing its mounting, stops harming players
 
 test("destroyed fixture casing issues no drawing commands, even with stale active/warning flags", () => {
   const c = new Proxy({}, {get: (_, key) => () => assert.fail(`destroyed casing called ${String(key)}`)});
-  for (const type of HAZARD_TYPES) drawHazards(c, [{...lab(type).h, done: true, active: true, warning: 1}], 4, "factory");
+  for (const type of HAZARD_TYPES.filter(t=>t!=="train")) drawHazards(c, [{...lab(type).h, done: true, active: true, warning: 1}], 4, "factory");
+});
+
+test("departed train leaves its signals visible and never breaks them into shards",()=>{
+  const {w,h}=lab("train"),tracker=new HazardBreaks();tracker.update(w.snapshot());
+  h.done=true;h.active=false;w.time+=STEP;assert.equal(tracker.update(w.snapshot()).length,0);
+  const calls=[];const c=new Proxy({}, {get:(_,key)=>(...args)=>calls.push([key,...args])});
+  drawHazards(c,[h],4,"railway");
+  assert.equal(calls.filter(([key])=>key==="fillRect").length,2);
+  assert.equal(calls.filter(([key])=>key==="arc").length,4);
 });
 
 test("a direct blast breaks the moving mechanism with its floor intact and cannot trigger it twice", () => {

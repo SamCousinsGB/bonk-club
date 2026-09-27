@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.53.2",
-  "releaseNotes": "Alternating Waterworks generators and smoother water flow",
+  "version": "0.54.0",
+  "releaseNotes": "Slower train pile-ups, crushed carriages and electrical explosions",
   "private": true,
   "type": "module",
   "scripts": {

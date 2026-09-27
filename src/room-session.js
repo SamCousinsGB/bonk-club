@@ -38,7 +38,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 74;
+export const PROTOCOL = 75;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -783,7 +783,9 @@ const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integ
 const validTrainCarriages = h => !h.derailed ? h.carriages === undefined :
   list(h.carriages,8,c=>integer(c.id,0,7)&&xy(c)&&[c.vx,c.vy,c.angle,c.spin].every(finite)&&
     Math.abs(c.x)<=8000&&c.y>=-2500&&c.y<=6000&&Math.abs(c.vx)<=7000&&Math.abs(c.vy)<=3000&&
-    Math.abs(c.angle)<=Math.PI+.01&&Math.abs(c.spin)<=7.01&&typeof c.onRail==="boolean"&&typeof c.coupled==="boolean") &&
+    Math.abs(c.angle)<=Math.PI+.01&&Math.abs(c.spin)<=7.01&&typeof c.onRail==="boolean"&&typeof c.coupled==="boolean"&&
+    finite(c.crush)&&c.crush>=0&&c.crush<=1&&typeof c.ruptured==="boolean"&&finite(c.energy)&&c.energy>=0&&c.energy<=4&&
+    finite(c.fuse)&&c.fuse>=-1&&c.fuse<=1.1) &&
   h.carriages.length===8&&new Set(h.carriages.map(c=>c.id)).size===8&&h.carriages.at(-1).coupled===false;
 export function validSnapshot(s) {
   return (
