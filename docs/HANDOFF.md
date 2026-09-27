@@ -11,7 +11,23 @@ emulate, test or check phone/mobile/tablet support. This overrides all historica
 mobile notes, including archived release evidence. Desktop browsers, Windows/Linux
 builds, keyboard/mouse, controllers, window resizing and fullscreen remain in scope.
 
-## Current release
+## Train crash update
+
+- v0.54.0 / protocol 75 makes derailments brake sharply, jackknife and pile up.
+  Carriages compress their physical and drawn bodies, rupture once on sufficient
+  damage, and discharge finite four-second electrical arcs. Crashes still strike
+  fighters, props, weapons, debris and other terrain; surviving track is exempt
+  from carriage impact cuts and train power-pack explosions. Signals remain visible
+  after a wreck leaves the arena, without a false fixture-shattering effect.
+- Focused crash/fixture tests, full regular suite and both Bullet Train stress cases
+  pass on the integrated source. Desktop browser host/guest movement, an actual
+  crash and changed-world hot join show identical carriage and terrain state.
+  Evidence: `bonk-club-qa/train-crash/`. Full release CI/Pages and public parity
+  must pass before this update is described as live. Refresh all player tabs.
+- Includes the concurrent desktop-only, Waterworks, Foundry, status and Ocean Liner
+  changes below. Does not change their scope or restore phone support.
+
+## Previous desktop release
 
 - v0.53.1 / protocol 74 removes touch gestures and buttons, phone menus, rotate
   prompts, orientation locking, automatic fullscreen on joining/starting, portrait
