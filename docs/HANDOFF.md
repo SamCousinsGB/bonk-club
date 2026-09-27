@@ -19,8 +19,15 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   Hull clipping, ship tilt and foreground floodwater also apply to this artwork.
 - Includes the cabin seam fix below. Desktop renders cover level, both tilt
   directions and partial flooding; collision and simulation are unchanged.
-  Evidence: `bonk-club-qa/ocean-cabin-*`. Verify CI/Pages, exact public artifact
-  parity and the public desktop game before describing this revision as live.
+  Evidence: `bonk-club-qa/ocean-cabin-*`.
+- Live revision `f768961` passed 1,181 regular tests, all six stress shards,
+  Windows/Linux checks and Pages deployment in
+  [release workflow 36324389457](https://github.com/SamCousinsGB/bonk-club/actions/runs/36324389457).
+  All 17 local, CI and public browser files match byte for byte. Fresh public
+  v0.54.3 desktop host/guest movement, Ocean Liner selection and third-player
+  hot join passed with no browser errors. The cabin seam remains closed in
+  level, opposite tilted and flooded source renders; actors remain readable
+  directly in front of the background crates.
 
 ## Black-hole status icon
 
@@ -38,8 +45,7 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   coordinate with a one-unit overlap. The central passage meets the same edge,
   preventing a sky/water strip when the ship lists. Collision and flooding are
   unchanged. Evidence: `bonk-club-qa/ocean-cabin-*`.
-- Verify the release workflow, public files and desktop gameplay before claiming
-  this patch live.
+- Included in the verified v0.54.3 public release above.
 
 ## Train crash update
 
