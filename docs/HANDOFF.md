@@ -11,8 +11,22 @@
   reachable positions with safe firing clearance. Unsafe shots still stop;
   checked traversal and viable firing positions now take priority.
 - Regression scenarios cover crowded rocket carriers and black-hole carriers
-  after a Colossus sweep changes the terrain. Eye opening, reset and existing
-  rig/beam tests pass. Final release evidence will be recorded after validation.
+  after a Colossus sweep changes the terrain. The rocket pair previously failed
+  to fire for thirty seconds; it now fires within four seconds. The black-hole
+  pair previously held fire for seventy seconds; both now fire within thirty.
+- Focused bot/Colossus tests, the full regular suite and desktop artwork checks
+  pass. The production bundle passed host/guest movement, natural twin firing,
+  relay-only late join and reduced motion without browser errors. Actual desktop
+  simulation also showed the stalled bot pair separating and engaging. Rendered
+  head travel remains 14.11px at a 1600px viewport.
+- Revision d12320d passed release workflow 36340593364: all six arena stress
+  groups, shared/server validation, Windows/Linux checks, release verification
+  and Pages publishing. All 19 local, CI and public files match exactly.
+  The redundant local serial stress run was stopped after all six release
+  shards passed the same source. No local full-stress success is claimed.
+  Additional public gameplay checks were omitted following Sam's earlier
+  request; final-bundle browser checks and exact public parity passed.
+  The task-owned preview server is stopped. Refresh for v0.60.3.
   Evidence: bonk-club-qa/colossus-awake. No snapshot or protocol change.
 
 ## Colossus mountain overlap and lighting (v0.60.2 / protocol 83)
