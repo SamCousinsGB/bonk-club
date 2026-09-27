@@ -11,8 +11,16 @@
   targeted irregular twin attacks. Eye light and physical beams share the new
   sculpted eye landmarks. Refresh all clients for protocol 88.
 - Built-in image generation prompt and asset provenance are saved in
-  docs/art/colossus-bronze.md. Focused tests and desktop pose checks pass;
-  release-bundle, CI and public verification are pending.
+  docs/art/colossus-bronze.md. All 37 focused tests, the full regular suite and
+  the Colossus stress shard pass. Desktop poses and the final release bundle
+  were visually inspected. Host/guest controls, first and repeat twin firing,
+  relay-only late join, reduced motion and host departure pass without browser
+  errors. The observed repeat interval was 15.01 seconds.
+- Revision 6c7e2be passed workflow 36355693945: all six stress groups,
+  shared/server tests, Windows/Linux checks, release verification and Pages.
+  All 19 local, CI and public files match exactly. Additional public gameplay
+  checks were omitted following Sam's earlier request; the final bundle was
+  tested before publishing. The task-owned preview is stopped.
   Evidence: bonk-club-qa/colossus-bronze.
 
 ## Colossus full standing pose and individual targets (v0.63.2 / protocol 87)
