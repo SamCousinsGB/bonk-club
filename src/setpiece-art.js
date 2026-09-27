@@ -1,3 +1,4 @@
+import { ladlePose, LADLE_LIP } from "./foundry.js";
 import { trainBodies, TRAIN_CARRIAGE_LENGTH } from "./trains.js";
 
 const line=(c,x,y,xx,yy,color,width=3)=>{c.beginPath();c.moveTo(x,y);c.lineTo(xx,yy);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
@@ -106,13 +107,26 @@ export function drawLadle(c,h,time,reduced){
   line(c,h.x-70,575,h.x-70,678,"#6d7c80",12);
   line(c,h.x+70,575,h.x+70,678,"#6d7c80",12);
   dot(c,h.x-70,660,14,"#adb6ab");dot(c,h.x+70,660,14,"#adb6ab");
-  const phase=(h.age+(h.dir<0?5:0))%12;
-  const tilt=h.active?.65:h.warning>0?.65*(1-h.warning/2):phase>=9?.65*Math.max(0,10-phase):0;
-  c.save();c.translate(h.x,660);c.rotate(tilt);
-  c.beginPath();c.moveTo(-66,-46);c.lineTo(66,-46);c.lineTo(52,49);c.quadraticCurveTo(0,68,-52,49);c.closePath();c.fillStyle="#716459";c.fill();c.strokeStyle="#adb3a3";c.lineWidth=7;c.stroke();
-  if(h.ladleLeft>0){c.fillStyle="#ffbd61";c.fillRect(-53,-42,106,15*Math.min(1,h.ladleLeft/3000));}
-  for(let y=-10;y<40;y+=20)line(c,-51,y,51,y,"#343b40",7);
+  const pose=ladlePose(h);
+  // Trunnion gearing and piston follow the same rotation as the vessel.
+  line(c,h.x-70*h.dir,590,h.x-55*h.dir,652,"#293a42",15);
+  line(c,h.x-70*h.dir,590,h.x-55*h.dir,652,"#b5b7a4",5);
+  c.save();c.translate(h.x,660);c.rotate(pose.angle);c.scale(h.dir,1);
+  const shell=()=>{c.beginPath();c.moveTo(-66,-46);c.lineTo(58,-46);c.lineTo(LADLE_LIP.x,LADLE_LIP.y);c.lineTo(62,-18);c.lineTo(52,49);c.quadraticCurveTo(0,68,-52,49);c.closePath();};
+  const metal=c.createLinearGradient(-66,0,66,0);metal.addColorStop(0,"#3b464a");metal.addColorStop(.45,"#8c7963");metal.addColorStop(1,"#41494b");
+  shell();c.fillStyle=metal;c.fill();c.strokeStyle="#b1b5a3";c.lineWidth=7;c.stroke();
+  // Molten contents keep a world-horizontal surface inside the rotating bowl.
+  if(h.ladleLeft>0){
+    c.save();shell();c.clip();c.scale(h.dir,1);c.rotate(-pose.angle);
+    const surface=h.active?pose.y-660:Math.max(-32,44-76*h.ladleLeft/3000);
+    const heat=c.createLinearGradient(0,surface,0,surface+95);heat.addColorStop(0,"#fff1b0");heat.addColorStop(.18,"#ffb34d");heat.addColorStop(1,"#ba482b");
+    c.fillStyle=heat;c.fillRect(-140,surface,280,170);line(c,-140,surface,140,surface,"#fff6c9",3);c.restore();
+  }
+  for(let y=10;y<50;y+=25)line(c,-49,y,49,y,"#303c41",8);
+  for(const x of [-46,46])for(const y of [12,37])dot(c,x,y,3,"#c1bca5");
+  line(c,58,-46,LADLE_LIP.x,LADLE_LIP.y,"#eee0b4",5);
   c.restore();
+  dot(c,h.x,660,16,"#263b42");dot(c,h.x,660,9,"#b4bba7");
   dot(c,h.x+95,602,10,h.active?"#ff7850":h.warning>0&&(reduced||Math.sin(time*9)>0)?"#ffe197":"#415055");
   c.restore();
 }

@@ -26,7 +26,7 @@ export function createHazards(world) {
     ...(h.type === "loader" ? {cooldown: 3.5} : {}),
     ...(h.type === "train" ? {derailed:false,angle:0,vx:0,spin:0} : {}),
     ...(world.arena.cargoPlane && h.type === "airflow" ? {failedAt:-1,rollDir:1,leftWingAt:-1,rightWingAt:-1} : {}),
-    ...((world.arena.survival || world.arena.carWash) && h.type === "conveyor" ? {cooldown: 0} : {}),
+    ...((world.arena.survival || world.arena.carWash || world.arena.theme==='foundry') && h.type === "conveyor" ? {cooldown: 0} : {}),
   }));
 }
 export function hazardZone(h) {

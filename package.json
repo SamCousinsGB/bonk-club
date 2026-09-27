@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.51.0",
-  "releaseNotes": "Larger Ocean Liner with clearer decks and quieter scenery",
+  "version": "0.52.0",
+  "releaseNotes": "Scrap Foundry: pouring crucibles, scrap conveyors and lower crossings",
   "private": true,
   "type": "module",
   "scripts": {

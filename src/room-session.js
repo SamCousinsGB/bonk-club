@@ -38,7 +38,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 73;
+export const PROTOCOL = 74;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -904,7 +904,7 @@ export function validSnapshot(s) {
     new Set(s.players.filter(p => p.carryId).map(p => p.carryId)).size === s.players.filter(p => p.carryId).length &&
     list(
       s.hazards,
-      8,
+      ARENAS[s.arenaIndex]?.theme === "foundry" ? 9 : 8,
       (h) =>
         integer(h.id, 1, 1000000) &&
         HAZARD_TYPES.includes(h.type) &&

@@ -32,8 +32,10 @@ export const FOUNDRY_ARENA = {
     solid(0,1140,600),solid(980,1140,600),solid(1960,1140,600),
     solid(600,1380,380),solid(1580,1380,380),
     grate(50,900,250),grate(2260,900,250),
+    // Fast lower crossings pass directly through the alternating pours.
+    grate(560,1010,460),grate(1540,1010,460),
     grate(450,860,260),grate(880,830,240),grate(1440,830,240),grate(1850,860,260),
-    grate(100,610,260),grate(530,570,280),grate(970,550,260),grate(1330,550,260),grate(1750,570,280),grate(2200,610,260),
+    grate(100,610,260),grate(530,570,380),grate(970,550,260),grate(1330,550,260),grate(1650,570,380),grate(2200,610,260),
     solid(1120,800,320,44),
     // Crucible walls share destruction and collision with the rest of the arena.
     solid(592,1220,16,160),solid(960,1220,16,160),
@@ -44,7 +46,7 @@ export const FOUNDRY_ARENA = {
   cover:[{x:400,y:1072,w:64,h:68,kind:"crate",hp:80,maxHp:80},
     {x:2070,y:1072,w:64,h:68,kind:"barrel",hp:75,maxHp:75},
     {x:1160,y:1072,w:64,h:68,kind:"crate",hp:80,maxHp:80}],
-  hazards:["conveyor","slag","crusher","ladle"],
+  hazards:["conveyor","slag","crusher","ladle","loader"],
   traps:[
     {type:"conveyor",x:400,y:1140,w:400,h:22,dir:1,beltSpeed:330,beltForce:1300},
     {type:"conveyor",x:2160,y:1140,w:400,h:22,dir:-1,beltSpeed:330,beltForce:1300},
@@ -53,5 +55,7 @@ export const FOUNDRY_ARENA = {
     {type:"crusher",x:1280,y:1140,w:280,h:290,dir:1},
     {type:"ladle",x:790,y:1380,w:150,h:760,dir:1},
     {type:"ladle",x:1770,y:1380,w:150,h:760,dir:-1},
+    {type:"loader",x:250,y:1140,w:130,h:190,dir:1},
+    {type:"loader",x:2310,y:1140,w:130,h:190,dir:-1},
   ],
 };

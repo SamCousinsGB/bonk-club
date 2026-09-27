@@ -1,3 +1,4 @@
+import { ladlePose } from "../src/foundry.js";
 import { updateReactions } from '../src/reactions.js';
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -94,8 +95,8 @@ test("foundry molten pits kill and destroyed machinery stays absent until reset"
 
 test("ladles warn before pouring, kill only in the stream and stop after a mounting cut",()=>{
   const w=fixture("foundry"),h=w.hazards.find(h=>h.type==="ladle"),p=w.players[0];
-  place(p,790,960);h.age=4.5;tick(w);assert.ok(h.warning>0&&!h.active);assert.equal(p.hp,100);
-  h.age=6.5;place(w.players[1],880,960);tick(w);
+  place(p,ladlePose({...h,age:6.5}).x,960);h.age=4.5;tick(w);assert.ok(h.warning>0&&!h.active);assert.equal(p.hp,100);
+  h.age=6.5;place(w.players[1],730,960);tick(w);
   assert.equal(p.alive,true); // Pouring must travel from the mouth to the fighter.
   for(let i=0;i<100 && p.alive;i++)tick(w);
   assert.equal(p.alive,false);assert.equal(w.players[1].hp,100);assert.equal(w.ragdolls[0].effect,"burn");

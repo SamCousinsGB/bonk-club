@@ -294,7 +294,7 @@ export function hazardProps(world, h, zone, dt) {
     const box = bodyBounds(b);
     if (h.type === "conveyor") {
       if (Math.abs(box.y+box.h-h.y)<12 && box.x+box.w>zone.x && box.x<zone.x+zone.w &&
-          (!world.arena?.carWash || world.platforms.some(p => p.hp !== 0 && Math.abs(p.y-h.y)<2 &&
+          (!(world.arena?.carWash || world.arena?.theme==='foundry') || world.platforms.some(p => p.hp !== 0 && Math.abs(p.y-h.y)<2 &&
             Math.min(box.x+box.w,zone.x+zone.w,p.x+p.w)>Math.max(box.x,zone.x,p.x))))
         impulseProp(b, h.dir * b.mass * Math.min((world.arena?.carWash ? h.beltForce : 900)*dt,
           Math.max(0,(world.arena?.carWash ? h.beltSpeed : 420)-b.vx*h.dir)), 0);

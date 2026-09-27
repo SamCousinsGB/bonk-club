@@ -65,7 +65,7 @@ export function emitLiquid(world,kind,x,y,amount,velocity={}) {
   const depth=Math.min(y+200,clamp(velocity.depth??Math.sqrt(amount*WATER_WIDTH)*.65,24,velocity.depth?WATER_DEPTH:160));
   for(let n=0;n<WATER_LIMIT && left>1e-8;n++) {
     const offset=n?Math.ceil(n/2)*(n%2?1:-1):0;
-    const column=Math.floor(x/WATER_WIDTH)*WATER_WIDTH+offset*WATER_WIDTH;
+    const column=(velocity.centered?x-WATER_WIDTH/2:Math.floor(x/WATER_WIDTH)*WATER_WIDTH)+offset*WATER_WIDTH;
     if(column<0 || column+WATER_WIDTH>W)continue;
     if(world.platforms.some(p=>p.hp!==0 && !p.waterId &&
       segmentBox(x,y-1,column+WATER_WIDTH/2,y-1,p)))continue;
@@ -116,7 +116,7 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
   const steps=Math.ceil(dt/(1/60)),step=dt/steps;
   for(let tick=0;tick<steps;tick++) {
     const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable' &&
-      !(world.arena?.waterworks && p.oneWay));
+      !((world.arena?.waterworks || world.arena?.theme==='foundry') && p.oneWay));
     for(const q of liquids(world)) {
       if(q.h<=0)continue;
       if(q.frozen) {
