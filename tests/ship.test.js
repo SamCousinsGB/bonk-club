@@ -9,11 +9,11 @@ import {GuestPrediction} from '../src/guest-prediction.js';
 import {prepareProp} from '../src/props.js';
 const fixture=(players=[0,1])=>{const w=new World({arena:ARENAS.findIndex(a=>a.ship),players,shuffle:false,random:()=>.4});w.phase='fight';w.weaponTimer=w.grenadeTimer=999;return w;};
 const advance=(w,t)=>{for(let n=0;n<Math.round(t/STEP);n++)updateShip(w,STEP);};
-const breach=(w,x=850)=>carveExplosion(w,{x,y:1140,radius:95});
+const breach=(w,x=850)=>carveExplosion(w,{x,y:SHIP.bottom+10,radius:95});
 const total=w=>w.ship.volumes.reduce((a,b)=>a+b,0);
 
 test('intact hull floats dry; dents and above-water shell damage stay dry',()=>{
-  for(const blast of [null,{x:850,y:1186,radius:30},{x:216,y:711,radius:24}]) {
+  for(const blast of [null,{x:850,y:SHIP.bottom+56,radius:30},{x:216,y:711,radius:24}]) {
     const w=fixture();if(blast)carveExplosion(w,blast);advance(w,15);
     assert.equal(total(w),0);assert.ok(Math.abs(w.ship.sink)<2);assert.ok(validSnapshot(w.snapshot()));
   }
@@ -24,11 +24,11 @@ test('a through-hull blast floods only the breached watertight compartment first
   assert.ok(w.ship.sink>0);assert.ok(w.ship.angle<0);
 });
 test('bullet damage to an actual keel panel admits water',()=>{
-  const w=fixture(),p=w.platforms.find(p=>p.shipHull&&p.y===1130&&p.x>700);w.damageCover(p,130);advance(w,1);
+  const w=fixture(),p=w.platforms.find(p=>p.shipHull&&p.y===SHIP.bottom&&p.x>700);w.damageCover(p,130);advance(w,1);
   assert.ok(total(w)>1000);assert.ok(validSnapshot(w.snapshot()));
 });
 test('single shot-out side plates each open a passage, including between coarse floor samples',()=>{
-  for(const side of [-1,1])for(const y of [950,986,1022]) {
+  for(const side of [-1,1])for(const y of [950,986,1022,1166]) {
     const w=fixture(),p=w.platforms.find(p=>p.shipHull&&p.y===y&&(p.x<1280? -1:1)===side);
     assert.ok(p);shipOpenings(w);w.damageCover(p,130);advance(w,.3);
     assert.ok(total(w)>0,`${side} ${y}`);
@@ -36,12 +36,12 @@ test('single shot-out side plates each open a passage, including between coarse 
 });
 test('intact bulkheads retain water and broken bulkheads equalize with conserved volume',()=>{
   const w=fixture();w.ship.volumes[1]=60000;advance(w,2);assert.equal(w.ship.volumes[2],0);
-  const before=total(w);carveExplosion(w,{x:1078,y:1050,radius:62});advance(w,3);
+  const before=total(w);carveExplosion(w,{x:1078,y:SHIP.bottom-80,radius:62});advance(w,3);
   assert.ok(w.ship.volumes[2]>10000);assert.ok(Math.abs(total(w)-before)<.01);
 });
 test('water overtops intact low bulkheads when its actual free surface reaches the crest',()=>{
-  const w=fixture();w.ship.volumes[1]=160000;advance(w,.5);
-  assert.ok(w.ship.volumes[0]>0);assert.ok(w.ship.volumes[2]>0);assert.ok(Math.abs(total(w)-160000)<.1);
+  const w=fixture();w.ship.volumes[1]=200000;advance(w,.5);
+  assert.ok(w.ship.volumes[0]>0);assert.ok(w.ship.volumes[2]>0);assert.ok(Math.abs(total(w)-200000)<.1);
 });
 test('progressive flooding exhausts reserve buoyancy and sinks the ship',()=>{
   const w=fixture();for(const x of [510,850,1280,1680,2050])breach(w,x);advance(w,42);
@@ -171,4 +171,15 @@ test('submerged liner bots retain combat decisions and damage opponents',()=>{
   for(const [id,p] of w.players.entries())Object.assign(p,{x:1200+id*140,y:1030,ground:false,weapon:'blaster',ammo:14,rig:null});
   for(let n=0;n<2/STEP&&w.phase==='fight';n++)w.step(STEP);
   assert.ok(w.players.some(p=>p.hp<100));assert.ok(w.events.some(e=>e.type==='shoot'));
+});
+
+// Check the enlarged hold with real jump inputs, not only the route graph.
+test('every hold compartment permits an unassisted double jump onto its exit ledge',()=>{
+  for(const x of [575,770,1255,1650,1985]) {
+    const w=fixture(),p=w.players[0];w.cover=[];
+    Object.assign(p,{x,y:SHIP.bottom-30,vx:0,vy:0,ground:true,jumps:0,rig:null});
+    for(let n=0;n<180;n++)w.move(p,cleanInput({jump:n===0||n===45}),STEP);
+    assert.ok(p.ground&&Math.abs(p.y+30-970)<1,`hold ${x}: landed at ${p.y+30}`);
+    assert.equal(p.alive,true);
+  }
 });

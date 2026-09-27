@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { World, ARENAS } from '../src/engine.js';
 import { flowLiquidReservoirs } from '../src/liquid.js';
 import { liquidPolygonHit } from '../src/liquid-geometry.js';
-import { absorbShipWater, shipWaterRegions, shipCapacity, shipWaterAt } from '../src/ship.js';
+import { SHIP, absorbShipWater, shipWaterRegions, shipCapacity, shipWaterAt } from '../src/ship.js';
 import { reactionContacts, contactReaction, updateReactions } from '../src/reactions.js';
 import { RenderSnapshots } from '../src/render-state.js';
 import { validSnapshot, encodeState, decodeState } from '../src/network.js';
@@ -26,7 +26,7 @@ test('shared reservoir exchange conserves every material and bounds competing op
 });
 
 test('spilled tank water joins flood mass only at a real water surface or the hull floor',()=>{
-  const w=fixture();w.water=[water(1,800,1130,10),water(2,800,800,10)];
+  const w=fixture();w.water=[water(1,800,SHIP.bottom,10),water(2,800,800,10)];
   w.water[0].spark=.4;w.water[0].charge=1;
   absorbShipWater(w);assert.equal(w.ship.volumes[1],320);assert.equal(w.water.length,1);
   assert.equal(w.ship.sparks[1],.4);assert.equal(w.ship.charges[1],1);

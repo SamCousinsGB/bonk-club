@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.50.3",
-  "releaseNotes": "Fix rounds hanging after drowning",
+  "version": "0.51.0",
+  "releaseNotes": "Larger Ocean Liner with clearer decks and quieter scenery",
   "private": true,
   "type": "module",
   "scripts": {

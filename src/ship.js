@@ -4,18 +4,19 @@ import { segmentBox } from './collision.js';
 import { impulseProp } from './props.js';
 
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
-export const SHIP = Object.freeze({ x:1280, y:800, sea:900, top:680, bottom:1130, oxygen:12,
+export const SHIP = Object.freeze({ x:1280, y:800, sea:900, top:680, bottom:1220, oxygen:12,
   escapeSink:1100, maxSink:1900, edges:[230,654,1078,1502,1926,2350] });
-export const shipBottom = x => Math.min(1130,680+(x-230)*450/210,680+(2350-x)*450/230);
+const hullDepth=SHIP.bottom-SHIP.top;
+export const shipBottom = x => Math.min(SHIP.bottom,SHIP.top+(x-230)*hullDepth/210,SHIP.top+(2350-x)*hullDepth/230);
 export const shipCell = x => x<230 || x>2350 ? -1 : Math.min(4,Math.floor((x-230)/424));
 export function shipHull() {
   const out=[];
-  for(let y=680;y<1130;y+=18) {
-    const inset=(y-680)/450;
+  for(let y=SHIP.top;y<SHIP.bottom;y+=18) {
+    const inset=(y-SHIP.top)/hullDepth;
     out.push({x:202+210*inset,y,w:37,h:18}, {x:2350-230*inset,y,w:38,h:18});
   }
-  for(let x=412;x<2140;x+=96)out.push({x,y:1130,w:Math.min(96,2140-x),h:28});
-  return out.map(p=>({...p,material:'metal',shipHull:true,boundary:p.y<1130,destructible:true,panel:'metal',hp:120,maxHp:120}));
+  for(let x=412;x<2140;x+=96)out.push({x,y:SHIP.bottom,w:Math.min(96,2140-x),h:28});
+  return out.map(p=>({...p,material:'metal',shipHull:true,boundary:p.y<SHIP.bottom,destructible:true,panel:'metal',hp:120,maxHp:120}));
 }
 export const shipCapacity = i => volumeAt(i,680,0);
 // Volume and free surfaces use the same cross-section as the visible cutaway.
@@ -52,7 +53,7 @@ export function validShip(s) {
     Array.isArray(s.volumes)&&s.volumes.length===5&&s.volumes.every((v,i)=>Number.isFinite(v)&&v>=0&&v<=shipCapacity(i)+.02) &&
     Array.isArray(s.currents)&&s.currents.length===5&&s.currents.every(v=>Number.isFinite(v)&&Math.abs(v)<=240);
 }
-export function shipPose(s) {return {angle:s?.angle||0,x:0,y:s?.sink||0,scale:.9};}
+export function shipPose(s) {return {angle:s?.angle||0,x:0,y:s?.sink||0,scale:1};}
 export function shipLocalPoint(p,s) {
   const pose=shipPose(s),c=Math.cos(pose.angle),sn=Math.sin(pose.angle),x=(p.x-1280)/pose.scale,y=(p.y-800-pose.y)/pose.scale;
   return {x:1280+x*c+y*sn,y:800-x*sn+y*c};
@@ -65,14 +66,14 @@ export function shipOpenings(world) {
   if(cached?.platforms===world.platforms&&cached.version===world.terrainVersion)return cached.openings;
   const hull=world.platforms.filter(p=>p.shipHull&&p.hp!==0),walls=world.platforms.filter(p=>p.shipBulkhead&&p.hp!==0),openings=[];
   for(let x=452;x<2120;x+=26.5) {
-    const y=1130;
+    const y=SHIP.bottom;
     if(!hull.some(p=>segmentBox(x,y-36,x,y+44,p)))openings.push({i:shipCell(x),j:-1,x,y,width:26.5});
   }
-  for(let y=689;y<1130;y+=18)for(const side of [-1,1]) {
-    const x=side<0?230+(y-680)*210/450:2350-(y-680)*230/450;
+  for(let y=689;y<SHIP.bottom;y+=18)for(const side of [-1,1]) {
+    const x=side<0?230+(y-680)*210/hullDepth:2350-(y-680)*230/hullDepth;
     if(!hull.some(p=>segmentBox(x-48,y,x+48,y,p)))openings.push({i:shipCell(x),j:-1,x,y,width:18});
   }
-  for(let i=0;i<4;i++)for(let y=696;y<1128;y+=24) {
+  for(let i=0;i<4;i++)for(let y=696;y<SHIP.bottom-2;y+=24) {
     const x=SHIP.edges[i+1];
     if(!walls.some(p=>segmentBox(x-24,y,x+24,y,p)))openings.push({i,j:i+1,x,y,width:24});
   }
@@ -183,7 +184,7 @@ export function shipWaterRegions(state) {
   const levels=shipLevels(s),slope=-Math.tan(s.angle);
   return s.volumes.flatMap((volume,i)=>{
     if(volume<=.001)return [];
-    let poly=[{x:230,y:680},{x:440,y:1130},{x:2120,y:1130},{x:2350,y:680}];
+    let poly=[{x:230,y:680},{x:440,y:SHIP.bottom},{x:2120,y:SHIP.bottom},{x:2350,y:680}];
     for(const distance of [p=>p.x-SHIP.edges[i],p=>SHIP.edges[i+1]-p.x,p=>p.y-levels[i]-slope*(p.x-1280)]) {
       const next=[];
       for(let n=0;n<poly.length;n++) {
