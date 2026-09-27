@@ -1,5 +1,23 @@
 # Bonk Club — current handoff
 
+## Colossus full standing pose and individual targets (v0.63.2 / protocol 87)
+
+- The mech rises through its hips and articulated armoured legs, standing fully
+  upright over the ridge. Sam's proportion correction gives it shorter, thicker
+  legs, a broader chest and shoulders, and heavier arms. Original weathered
+  metal surfaces, scene airlight and mountain overlap keep it in the landscape.
+- Each charge selects a living fighter, including idle humans and bots, and
+  projects through their height. It no longer averages the group or clamps aim
+  to the centre. Aim locks for the four-second warning; later cycles rotate
+  through survivors. Off-screen endpoints remain bounded and transported.
+  Refresh for protocol 87. The rise, opening eyes and irregular rests remain.
+- Focused targeting checks cover upper and outer ledges, repeat selection,
+  warning locks and compact hot joins. The bot combat regression isolates one
+  actual destructive sweep so a repeat attack cannot kill the pair before
+  measuring their firing decisions. Final release validation is in progress.
+  Evidence: bonk-club-qa/colossus-full-height.
+
+
 ## Platform and wire hanging (v0.63.1 / protocol 86)
 
 - For human fighters on thin platforms and intact transmission wires, a fresh

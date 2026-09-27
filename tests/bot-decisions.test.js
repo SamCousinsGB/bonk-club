@@ -172,6 +172,9 @@ test("black-hole carriers seek usable firing ground after the Colossus cuts thei
   const shooters=new Set();
   for(let n=0;n<30/STEP&&w.phase==="fight"&&shooters.size<2;n++){
     w.step(STEP);
+    // This regression measures combat on the destroyed route. A second
+    // player-targeted sweep can end the round before either has firing room.
+    if(w.hazards[0].age>=15)w.hazards[0].nextChargeAt=null;
     for(const shot of w.projectiles)if(shot.weapon==="blackhole")shooters.add(shot.owner);
   }
   assert.ok(w.terrainVersion>0,"exercise the actual changed terrain");

@@ -1,5 +1,6 @@
 import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
 import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
+import {COLOSSUS_FIGURE} from './colossus-rig.js';
 
 const TAU=Math.PI*2;
 let backdrop, foothills, airlight, mist, energyTexture;
@@ -46,7 +47,8 @@ function sceneAirlight(){
     // now colour its haze in the same places as the surrounding landscape.
     airlight=document.createElement('canvas');airlight.width=12;airlight.height=8;
     const p=airlight.getContext('2d'),sx=backdrop.naturalWidth/2560,sy=backdrop.naturalHeight/1440;
-    p.drawImage(backdrop,1100*sx,570*sy,360*sx,240*sy,0,0,12,8);
+    const {x,y,w,h}=COLOSSUS_FIGURE;
+    p.drawImage(backdrop,x*sx,y*sy,w*sx,h*sy,0,0,12,8);
   }
   return airlight;
 }

@@ -104,8 +104,11 @@ export function updateColossus(world,h,dt) {
     h.nextChargeAt=h.chargeAt+COLOSSUS.charge+COLOSSUS.fire+rest;
   }
   const living=world.players.filter(p=>p.alive);
-  if(living.length){
-    const x=living.reduce((n,p)=>n+p.x,0)/living.length,y=living.reduce((n,p)=>n+p.y,0)/living.length;
+  // Rotate through actual fighters, including idle humans and bots. Averaging
+  // opponents sent attacks into empty space between widely separated players.
+  const target=living[h.cycleId%living.length];
+  if(target){
+    const {x,y}=target;
     // Cascaded low-pass motion adds real delay and suppresses twitching when
     // opponents cross or die. The firing eye stays fixed during discharge.
     h.attentionX+=(clamp(x,0,2560)-h.attentionX)*(1-Math.exp(-dt/2.8));
@@ -116,7 +119,16 @@ export function updateColossus(world,h,dt) {
     }
   }
   if(began || (before.phase<0 && now.phase>=0)){
-    h.strikeX=clamp(h.gazeX,450,2110);h.cutX=null;h.hitIds=[];
+    if(target){
+      // strikeX is the far endpoint, not a player's screen X. Project through
+      // the chosen fighter at their own height so outer/upper ledges are reached.
+      // Lock at the start of the warning, leaving the full charge time to dodge.
+      const pose={...h,age:h.chargeAt+COLOSSUS.charge+COLOSSUS.fire*.5};
+      const eyes=colossusRig(pose).eyes,eye={x:(eyes[0].x+eyes[1].x)/2,y:(eyes[0].y+eyes[1].y)/2};
+      const aimY=Math.max(eye.y+64,clamp(target.y-15,0,1440));
+      h.strikeX=clamp(eye.x+(clamp(target.x,0,2560)-eye.x)*(1510-eye.y)/(aimY-eye.y),-24000,26560);
+    }
+    h.cutX=null;h.hitIds=[];
   }
   h.warning=now.charge>0 ? Math.max(0,COLOSSUS.charge-now.phase) : 0;
   h.active=now.firing;
@@ -150,7 +162,7 @@ export function validColossus(h,arena) {
   return arena?.colossus===true && h.x===1280 && h.y===1440 && h.w===320 && h.h===200 &&
     h.done===false && [h.gazeX,h.attentionX].every(v=>Number.isFinite(v)&&v>=0&&v<=2560) &&
     [h.gazeY,h.attentionY].every(v=>Number.isFinite(v)&&v>=0&&v<=1440) &&
-    Number.isFinite(h.strikeX)&&h.strikeX>=450&&h.strikeX<=2110 && [0,1].includes(h.eye) &&
+    Number.isFinite(h.strikeX)&&h.strikeX>=-24000&&h.strikeX<=26560 && [0,1].includes(h.eye) &&
     Number.isInteger(h.cycleId)&&h.cycleId>=0&&h.cycleId<=1000000 &&
     Number.isFinite(h.chargeAt)&&h.chargeAt>=COLOSSUS.wake &&
     (h.cycleId===0?h.chargeAt===COLOSSUS.wake:h.chargeAt<=h.age+.01&&

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
 import {COLOSSUS,colossusPhase,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
-import {colossusRig,colossusEyeOpening,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE} from '../src/colossus-rig.js';
+import {colossusRig,colossusEyeOpening,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE,COLOSSUS_LEGS,COLOSSUS_ARMS} from '../src/colossus-rig.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -30,12 +30,14 @@ test('eyes open gradually before the first charge and remain faintly awake betwe
 
 test('first attack waits for a complete rise and eye opening; later random attacks keep him standing',()=>{
   const w=fixture(),h=w.hazards[0];w.cover=[];
-  w.players.forEach(p=>{p.x=70;p.y=750;});
+  w.players.forEach(p=>{p.x=70;p.y=750;});w.hit=()=>{}; // Keep the timing/budget fixture alive through repeated targeted attacks.
   let draws=0;w.random=()=>[0,.5,.99][draws++%3];
   const start=colossusRig(h);
   advance(w,COLOSSUS.rise);
   assert.equal(colossusStand(h.age),1);assert.ok(colossusEyeOpening(h.age)<1e-8);
-  assert.ok(start.head.y-colossusRig(h).head.y>40,"rise visibly above the ridge");
+  assert.ok(start.head.y-colossusRig(h).head.y>85,"rise visibly above the ridge");
+  const upright=colossusRig(h);
+  assert.ok(upright.body.y<630&&upright.legs.every(l=>l.knee.y<685),"hips and both knees rise above the ridge");
   advance(w,COLOSSUS.eyes);
   assert.equal(colossusEyeOpening(h.age),1);assert.equal(h.active,false);
   advance(w,COLOSSUS.charge);
@@ -73,6 +75,7 @@ test('colossus terraces connect every spawn to contested weapons with the distan
 
 test('gaze has mechanical lag, stays bounded, and follows players without moving the locked attack',()=>{
   const w=fixture(),h=w.hazards[0];
+  w.hit=()=>{}; // Measure tracking independently of the now-targeted stationary fighters dying.
   w.players.forEach(p=>{p.x=2300;p.y=1000;});advance(w,.1);
   assert.ok(h.gazeX>1280&&h.gazeX<1282);
   const untracked=colossusEye({...h,gazeX:1280});
@@ -96,6 +99,43 @@ test('four second charge does no damage or terrain edits, then lethal contact re
   assert.ok(h.active);assert.equal(p.alive,false);assert.equal(safe.hp,100);
   assert.equal(w.lastDeathCause,'colossus');assert.ok(w.terrainVersion>0);
   assert.ok(w.platforms.some(p=>p.sourceId));assert.ok(validSnapshot(w.snapshot()));
+});
+
+test('each warning targets an actual idle fighter at their own height, including outer and upper ledges',()=>{
+  for(const [x,y] of [[70,750],[2490,750],[100,1320],[2460,1320],[400,610],[2200,610]]){
+    const w=fixture(),h=w.hazards[0];
+    Object.assign(w.players[0],{x,y,spawnShield:0,vx:0,vy:0});
+    // Far-away opponents must not pull the attack into the empty group average.
+    w.players.slice(1).forEach(p=>Object.assign(p,{x:2560-x,y:1320}));
+    advance(w,COLOSSUS.wake+STEP);
+    const joined=transport(w).hazards[0];
+    assert.ok(Math.abs(joined.strikeX-h.strikeX)<.006,'off-screen endpoints survive compact hot join');
+    let nearest=Infinity;
+    for(let n=0;n<=120;n++){
+      const progress=n/120,pose={...h,age:h.chargeAt+COLOSSUS.charge+progress*COLOSSUS.fire};
+      for(const b of colossusBeams(pose,progress))nearest=Math.min(nearest,Math.abs(beamX(b,y-15)-x));
+    }
+    assert.ok(nearest<12,`sweep misses idle fighter at ${x},${y}: ${nearest}`);
+    advance(w,COLOSSUS.charge+COLOSSUS.fire);
+    assert.equal(w.players[0].alive,false,`idle fighter at ${x},${y} is exposed to the real beam`);
+  }
+});
+
+test('repeat attacks rotate through living fighters and keep a stable, escapable warning',()=>{
+  const w=fixture(),h=w.hazards[0];w.hit=()=>{};
+  w.players.forEach((p,i)=>Object.assign(p,{x:200+i*720,y:1260}));
+  const locked=[];
+  for(let n=0;n<45/STEP;n++){
+    const previous=h.cycleId;advance(w,STEP);
+    if(h.cycleId!==previous){
+      const target=w.players.filter(p=>p.alive)[h.cycleId%w.players.filter(p=>p.alive).length];
+      const beam=colossusBeam({...h,age:h.chargeAt+5.5},.5,0);
+      assert.ok(Math.abs(beamX({...beam,ex:h.strikeX},target.y-15)-target.x)<12);
+      const strike=h.strikeX;target.x+=80;advance(w,1);assert.equal(h.strikeX,strike);
+      locked.push(strike);if(locked.length===1)w.players[0].alive=false;
+    }
+  }
+  assert.ok(locked.length>=2&&new Set(locked).size===locked.length);
 });
 
 test('beam carves only its swept contact, releases removed supports and destroys contacted physical props',()=>{
@@ -147,16 +187,16 @@ test('rig moves visibly within six seconds, keeps rigid limb lengths and planted
   for(let age=0;age<180;age+=.1){
     const r=colossusRig({...h,age}),next=colossusRig({...h,age:age+.1});
     for(const arm of r.arms){
-      assert.ok(Math.abs(distance(arm.shoulder,arm.elbow)-67*COLOSSUS_SCALE)<1e-8);
-      assert.ok(Math.abs(distance(arm.elbow,arm.hand)-77*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(arm.shoulder,arm.elbow)-COLOSSUS_ARMS.upper*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(arm.elbow,arm.hand)-COLOSSUS_ARMS.lower*COLOSSUS_SCALE)<1e-8);
     }
     r.legs.forEach((leg,i)=>{
       assert.deepEqual(leg.foot,start.legs[i].foot);
-      assert.ok(Math.abs(distance(leg.hip,leg.knee)-72*COLOSSUS_SCALE)<1e-8);
-      assert.ok(Math.abs(distance(leg.knee,leg.foot)-78*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(leg.hip,leg.knee)-COLOSSUS_LEGS.upper*COLOSSUS_SCALE)<1e-8);
+      assert.ok(Math.abs(distance(leg.knee,leg.foot)-COLOSSUS_LEGS.lower*COLOSSUS_SCALE)<1e-8);
     });
-    assert.ok(distance(r.head,next.head)<2.5);
-    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<2));
+    assert.ok(distance(r.head,next.head)<4.8);
+    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<4.4));
     COLOSSUS_EYES.forEach((e,i)=>assert.deepEqual(colossusEye({...h,age},i),rigPoint(r.head,e.x,e.y)));
   }
 });
@@ -205,7 +245,7 @@ test('an unarmed bot walks out of the warning on surviving terrain and survives 
 
 test('a full sweep, second eye and repeated attacks remain bounded and round reset restores everything',()=>{
   const w=fixture(),h=w.hazards[0];
-  w.players.forEach(p=>{p.x=70;p.y=750;});
+  w.players.forEach((p,i)=>{p.x=400+i*590;p.y=1280;});w.hit=()=>{}; // Exercise cuts across occupied terraces throughout the budget fixture.
   for(let n=0;n<120*121;n++){
     w.time+=STEP;updateColossus(w,h,STEP);
     if(n%120===0){assert.ok(validSnapshot(w.snapshot()),`invalid at ${h.age}`);assert.ok(w.platforms.length<450);}
@@ -227,7 +267,7 @@ test('damaged-world hot join carries exact optical pose, charge, beam and collis
     assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<.02);assert.ok(Math.abs(a.ex-b.ex)<.02);
   }
   assert.equal(q.eye,h.eye);assert.ok(s.platforms.length===w.platforms.length);
-  for(const patch of [{gazeX:Infinity},{gazeY:-1},{attentionX:3000},{strikeX:0},{eye:2},{eye:1},
+  for(const patch of [{gazeX:Infinity},{gazeY:-1},{attentionX:3000},{strikeX:-24001},{strikeX:26561},{strikeX:NaN},{eye:2},{eye:1},
     {cycleId:-1},{cycleId:1.5},{chargeAt:NaN},{chargeAt:9},{chargeAt:-1},
     {nextChargeAt:1},{nextChargeAt:Infinity},{nextChargeAt:999},{warning:11},{duration:9},{done:true},{x:10}]){
     const bad=structuredClone(s);Object.assign(bad.hazards[0],patch);assert.equal(validSnapshot(bad),false,JSON.stringify(patch));

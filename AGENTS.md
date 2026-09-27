@@ -108,16 +108,18 @@ Start new work from current `origin/main` in one clean worktree.
   surviving steel, car facing consistent with collision, and no decorative
   beams across destroyed tiles or the middle joint. Preserve host-owned motion,
   blast fragments, changed-world joins and reset.
-- **Colossus:** a small, dark, square-headed ancient mech stands far beyond the
-  valley, with its legs hidden behind the mountains. Preserve the original
-  weathered, heavy silhouette; no toy-like body, round chest reactor or black
-  dot eyes. Head, torso and arms are separate articulated parts and must visibly
-  move within seconds, independently of the scenery. Both eyes charge together
-  for ten seconds, then sweep two perspective-correct lasers for 4.5 seconds in a
-  forty-second cycle. Warning, light, damage and terrain cuts share the actual
-  projected beam. The remote controller cannot be destroyed by local weapons.
-  Preserve surviving routes, ordinary-control bot escapes, bounded effects,
-  seekable audio, reduced motion, host authority, damaged-world joins and reset.
+- **Colossus:** an ancient square-headed mech rises fully upright beyond the
+  valley, with articulated legs above the ridge and feet grounded behind it.
+  Preserve the original weathered silhouette, scene-matched haze and separate
+  moving head, torso and limbs. No round chest reactor or black dot eyes.
+  Rise for 5.5 seconds, open faint blue eyes for 2.5, then charge both eyes for
+  four seconds and sweep for three. Remain standing with open eyes, resting
+  3.5–9.5 host-chosen seconds before each further charge. Each warning locks
+  onto an actual living fighter, idle or moving, projected at their own height.
+  Warning, light, damage and cuts share the beam; retain time to escape.
+  The remote controller cannot be destroyed locally. Preserve surviving routes,
+  ordinary-control bot escapes, bounded effects, seekable audio, reduced motion,
+  host authority, damaged-world joins and reset.
 - **Waterworks:** six breakable mains flood a large central basin through shared
   water physics. Eight movable generators alternate in two stable banks six seconds
   apart, each with 7 seconds off, 1 amber warning, 4 live, powering only actual

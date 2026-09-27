@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.1",
-  "releaseNotes": "Hang beneath thin platforms; held Tesla arcs stop on grip",
+  "version": "0.63.2",
+  "releaseNotes": "Colossus stands fully upright with heavier proportions and targets individual fighters",
   "private": true,
   "type": "module",
   "scripts": {
