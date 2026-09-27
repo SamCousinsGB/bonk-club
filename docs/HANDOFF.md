@@ -1,5 +1,20 @@
 # Bonk Club — current handoff
 
+## Colossus upright emergence and attached neck (v0.63.5 / protocol 90)
+
+- Removed the fixed-foot frontal squat and its outward knee solver. The whole
+  upright figure emerges vertically from behind the foreground ridge, with
+  straight parallel legs beneath the hips, then remains upright. The crown
+  starts below the ridge, so there is no visible crouched or splayed pose.
+- Narrowed the torso and shoulder spacing further, slimmed limbs and relaxed
+  the arms. The head now pivots at the torso's neck collar, with no independent
+  sideways neck translation or exaggerated tilt. Eye light and physical beams
+  share the newly anchored facial landmarks. Refresh all tabs for protocol 90.
+- Regression checks cover every rise/standing pose, straight knees, close leg
+  alignment, hidden initial crown and an attached neck at both gaze extremes.
+  Release validation is in progress. Evidence: bonk-club-qa/colossus-upright.
+
+
 ## Colossus natural proportions (v0.63.4 / protocol 89)
 
 - Sam requested a normal tall, slender ratio. Narrowed the torso and shoulder

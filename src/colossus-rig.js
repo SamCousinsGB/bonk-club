@@ -3,7 +3,8 @@
 import {colossusStand} from './colossus-timing.js';
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const COLOSSUS_EYES=Object.freeze([{x:-11.2,y:-8.5},{x:10.4,y:-8.5}]);
+export const COLOSSUS_EYES=Object.freeze([{x:-10.8,y:-49.1},{x:10.8,y:-49.1}]);
+export const COLOSSUS_NECK=Object.freeze({x:1.7,y:-155});
 export const COLOSSUS_SCALE=.58;
 export const COLOSSUS_LEGS=Object.freeze({upper:110,lower:122});
 export const COLOSSUS_ARMS=Object.freeze({upper:90,lower:96});
@@ -15,30 +16,30 @@ function frame(x,y,angle,sx=1){
   return {x,y,a:Math.cos(angle)*sx,b:Math.sin(angle)*sx,c:-Math.sin(angle),d:Math.cos(angle)};
 }
 function endpoint(p,angle,length){return {x:p.x+Math.sin(angle)*length,y:p.y+Math.cos(angle)*length};}
-function knee(hip,foot,side){
-  const dx=foot.x-hip.x,dy=foot.y-hip.y,d=Math.hypot(dx,dy),{upper,lower}=COLOSSUS_LEGS;
-  const along=(upper*upper-lower*lower+d*d)/(2*d),across=Math.sqrt(Math.max(0,upper*upper-along*along));
-  return {x:hip.x+dx*along/d+side*dy*across/d,y:hip.y+dy*along/d-side*dx*across/d};
-}
 export function colossusRig(h){
   const t=h.age,look=clamp(((h.gazeX??1280)-1280)/1280,-1,1);
-  const standing=colossusStand(t),crouch=1-standing;
-  const lean=-crouch*.16+Math.sin(t*.21)*.015;
-  const body=frame(1280+Math.sin(t*.19)*6,552+crouch*168+Math.sin(t*.17)*.5,lean);
-  const neck=rigPoint(body,Math.sin(t*.27)*9+look*5,-158+crouch*25);
-  const head=frame(neck.x,neck.y-38,lean+Math.sin(t*.29-.4)*.13,
-    .93-Math.sin(t*.23+look*.5)**2*.15);
+  const standing=colossusStand(t),hidden=1-standing;
+  // Reveal an already upright figure from the valley. Do not solve a frontal
+  // squat against fixed feet: that splays both knees sideways like a crab.
+  const lean=Math.sin(t*.21)*.006;
+  const body=frame(1280+Math.sin(t*.19)*3,552+hidden*470+Math.sin(t*.17)*.5,lean);
+  const neck=rigPoint(body,COLOSSUS_NECK.x,COLOSSUS_NECK.y);
+  // Rotate around the cast neck collar, keeping its base attached to the torso.
+  const head=frame(neck.x,neck.y,lean+Math.sin(t*.19)*.025+look*.008,
+    .97-Math.sin(t*.23+look*.5)**2*.035);
   const arms=[-1,1].map(side=>{
-    const shoulder=rigPoint(body,side*76,-121);
+    const shoulder=rigPoint(body,side*62,-123);
     // Keep daylight beneath both shoulders throughout the slow articulation.
-    const a=side*(.22+Math.sin(t*.23+side*.5)*.08)+lean;
+    const a=side*(.10+Math.sin(t*.23+side*.5)*.03)+lean;
     const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper);
-    const b=a-side*(.08+(.5+.5*Math.sin(t*.19+side))*.26);
+    const b=a-side*(.045+Math.sin(t*.19+side)*.02);
     return {side,shoulder,elbow,hand:endpoint(elbow,b,COLOSSUS_ARMS.lower)};
   });
   const legs=[-1,1].map(side=>{
-    const hip=rigPoint(body,side*32,0),foot={x:1280+side*43,y:780};
-    return {side,hip,knee:knee(hip,foot,side),foot};
+    const x=side*25;
+    return {side,hip:rigPoint(body,x,0),
+      knee:rigPoint(body,x,COLOSSUS_LEGS.upper),
+      foot:rigPoint(body,x,COLOSSUS_LEGS.upper+COLOSSUS_LEGS.lower)};
   });
   const distant=p=>({x:1280+(p.x-1280)*COLOSSUS_SCALE,y:565+(p.y-500)*COLOSSUS_SCALE});
   const scaled=f=>({...distant(f),a:f.a*COLOSSUS_SCALE,b:f.b*COLOSSUS_SCALE,c:f.c*COLOSSUS_SCALE,d:f.d*COLOSSUS_SCALE});

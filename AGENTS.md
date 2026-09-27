@@ -110,7 +110,9 @@ Start new work from current `origin/main` in one clean worktree.
   blast fragments, changed-world joins and reset.
 - **Colossus:** an ancient bronze automaton inspired by the Colossus of Rhodes rises beyond the
   valley, with natural tall, slender statue proportions, articulated legs above
-  the ridge and feet grounded behind it. Avoid a broad squat torso or oversized limbs.
+  the ridge. Reveal the complete upright figure vertically from behind the mountain;
+  never use an outward-kneed frontal squat. Keep legs straight beneath the hips,
+  narrow the chest, and pivot the head at its attached neck collar.
   Preserve the stern classical face, solar diadem, patinated bronze, scene-matched haze and separate
   moving head, torso and limbs. No round chest reactor or black dot eyes.
   Rise for 5.5 seconds, open faint blue eyes for 2.5, then charge both eyes for

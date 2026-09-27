@@ -46,22 +46,22 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   for(const leg of rig.legs){
     const left=leg.side<0;
     limb(c,leg.hip,leg.knee,left?[184,955,164,244]:[674,955,164,244],
-      left?[276,978]:[746,978],left?[253,1161]:[770,1161],.62);
+      left?[276,978]:[746,978],left?[253,1161]:[770,1161],.5);
     limb(c,leg.knee,leg.foot,left?[144,1132,160,380]:[719,1132,164,380],
-      left?[253,1161]:[770,1161],left?[212,1480]:[814,1480],.9);
+      left?[253,1161]:[770,1161],left?[212,1480]:[814,1480],.7);
   }
   for(const arm of rig.arms){
     const left=arm.side<0;
     limb(c,arm.shoulder,arm.elbow,left?[176,471,146,254]:[702,471,146,254],
-      left?[248,508]:[776,508],left?[218,692]:[806,692],.62);
+      left?[248,508]:[776,508],left?[218,692]:[806,692],.52);
     limb(c,arm.elbow,arm.hand,left?[176,663,149,289]:[700,663,149,289],
-      left?[218,692]:[806,692],left?[261,918]:[763,918],.68);
+      left?[218,692]:[806,692],left?[261,918]:[763,918],.56);
   }
   c.save();transform(c,rig.body);
-  c.drawImage(weathered,546,4,364,470,-78,-158,156,202);
+  c.drawImage(weathered,546,4,364,470,-63,-164,126,220);
   c.restore();
   c.save();transform(c,rig.head);
-  c.drawImage(weathered,108,8,327,448,-42,-63,84,110);
+  c.drawImage(weathered,108,8,327,448,-41.6,-103.6,84,110);
   c.restore();
   c.globalCompositeOperation='source-atop';
   if(airlight){

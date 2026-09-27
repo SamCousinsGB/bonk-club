@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
 import {COLOSSUS,colossusPhase,colossusEye,colossusBeam,colossusBeams,beamX,updateColossus,carveColossusBeam} from '../src/colossus.js';
-import {colossusRig,colossusEyeOpening,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE,COLOSSUS_LEGS,COLOSSUS_ARMS} from '../src/colossus-rig.js';
+import {colossusRig,colossusEyeOpening,rigPoint,COLOSSUS_EYES,COLOSSUS_SCALE,COLOSSUS_LEGS,COLOSSUS_ARMS,COLOSSUS_NECK} from '../src/colossus-rig.js';
 import {carveExplosion} from '../src/terrain.js';
 import {validSnapshot} from '../src/network.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
@@ -177,9 +177,10 @@ test('both moving eyes fire together, damage both paths and leave the space betw
   assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
 });
 
-test('rig moves visibly within six seconds, keeps rigid limb lengths and planted feet',()=>{
+test('upright emergence keeps legs straight, the neck attached and motion deliberate',()=>{
   const h=fixture().hazards[0],start=colossusRig(h),later=colossusRig({...h,age:6});
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  assert.ok(rigPoint(start.head,0,-103.6).y>710,"even the crown begins below the foreground ridge");
   // At the ordinary 1600px desktop camera, head travel exceeds 10px and a
   // hand travels over 10px. This is intentionally visible in normal gameplay.
   assert.ok(distance(start.head,later.head)*1600/2560>10);
@@ -191,12 +192,22 @@ test('rig moves visibly within six seconds, keeps rigid limb lengths and planted
       assert.ok(Math.abs(distance(arm.elbow,arm.hand)-COLOSSUS_ARMS.lower*COLOSSUS_SCALE)<1e-8);
     }
     r.legs.forEach((leg,i)=>{
-      assert.deepEqual(leg.foot,start.legs[i].foot);
+      const upper={x:leg.knee.x-leg.hip.x,y:leg.knee.y-leg.hip.y};
+      const lower={x:leg.foot.x-leg.knee.x,y:leg.foot.y-leg.knee.y};
+      assert.ok(Math.abs(upper.x*lower.y-upper.y*lower.x)<1e-8,"no sideways knee bend at any point in the rise");
+      assert.ok(Math.abs(leg.foot.x-leg.hip.x)<1,"legs stay beneath the hips, never splayed outward");
+      if(age>=6)assert.ok(distance(leg.foot,later.legs[i].foot)<5,"only small standing posture shifts after emergence");
       assert.ok(Math.abs(distance(leg.hip,leg.knee)-COLOSSUS_LEGS.upper*COLOSSUS_SCALE)<1e-8);
       assert.ok(Math.abs(distance(leg.knee,leg.foot)-COLOSSUS_LEGS.lower*COLOSSUS_SCALE)<1e-8);
     });
-    assert.ok(distance(r.head,next.head)<4.8);
-    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<4.4));
+    const collar=rigPoint(r.body,COLOSSUS_NECK.x,COLOSSUS_NECK.y);
+    assert.ok(distance(r.head,collar)<1e-8,"head rotates around the attached neck collar");
+    for(const gazeX of [0,2560]){
+      const looking=colossusRig({...h,age,gazeX});
+      assert.ok(distance(looking.head,rigPoint(looking.body,COLOSSUS_NECK.x,COLOSSUS_NECK.y))<1e-8);
+    }
+    assert.ok(distance(r.head,next.head)<8);
+    r.arms.forEach((arm,i)=>assert.ok(distance(arm.hand,next.arms[i].hand)<8));
     COLOSSUS_EYES.forEach((e,i)=>assert.deepEqual(colossusEye({...h,age},i),rigPoint(r.head,e.x,e.y)));
   }
 });

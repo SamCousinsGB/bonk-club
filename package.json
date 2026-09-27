@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.4",
-  "releaseNotes": "Colossus proportions adjusted to a tall, slender statue",
+  "version": "0.63.5",
+  "releaseNotes": "Colossus rises upright with straight legs and an attached neck",
   "private": true,
   "type": "module",
   "scripts": {
