@@ -6,6 +6,24 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- v0.51.0 / protocol 73 enlarges Ocean Liner: the hold is 540 units deep (20%
+  deeper), the ship frame renders at full scale instead of 0.9, and lower ledges
+  retain normal double-jump exits. Refresh all player tabs before joining.
+- Quiet recessed rooms replace decorative pipes, engines, racks, ribs and stairs.
+  Muted superstructure and sparse railings leave actual platforms, fighters,
+  pickups, hull openings and flood surfaces readable. Physical cargo remains.
+- Shared hull depth drives collision, flood capacity, shell art, water clipping,
+  submerged openings and transported state. Lower side-plate flooding and real
+  double-jump landings in all five compartments are covered by regression tests.
+- Source browser checks cover movement, a flooded damaged-hull snapshot round
+  trip, rendering at 1600x900 and 844x390, and reduced motion. Production browser
+  checks cover host/guest movement, real lobby map selection and a third player
+  joining the active round, with no browser errors. Evidence:
+  `bonk-club-qa/ocean-readability-*`. Final release CI/Pages and public artifact
+  parity must pass before claiming this revision live.
+
+## Included prior fix
+
 - v0.50.3 / protocol 72 fixes a round-end deadlock: submerged/frozen leaking
   explosive containers have suspended fuses and no longer prevent a survivor win.
   Active fuses still delay scoring and can turn that survivor into a draw.
