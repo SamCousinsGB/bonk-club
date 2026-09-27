@@ -37,8 +37,14 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
 - Local shared tests, desktop unit tests, Windows executable smoke and desktop
   browser host/guest/hot-join checks passed before integration. The desktop menu
   and actual gameplay were visually inspected. No mobile checks were performed.
-- Final integrated CI, Windows/Linux packaging, Pages and public parity must
-  finish before this revision is described as live.
+- Published with v0.53.2 / revision `ddba2a8` after the concurrent Waterworks fix.
+  [Release workflow 36322939163](https://github.com/SamCousinsGB/bonk-club/actions/runs/36322939163)
+  passed shared/server tests, all six stress shards, Windows/Linux executable
+  checks and packaging, release verification and Pages. All 17 local, CI and public
+  files matched byte for byte. Public desktop host/guest controls, hot join and host
+  departure passed with relay routes and no page errors. Desktop menu/gameplay
+  were visually verified. Evidence: `bonk-club-qa/desktop-only-parity.json` and
+  `bonk-club-qa/desktop-only-public.json`. No mobile checks or builds were run.
 
 ## Previous gameplay update
 
