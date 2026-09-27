@@ -37,7 +37,17 @@ builds, keyboard/mouse, controllers, window resizing and fullscreen remain in sc
   and finite dust. Crashes preserve surviving guideway and fixed signals.
 - Focused coverage includes double-jump clearance, rotated collision, repeated
   service after damage, bounded long rounds and compact hot joins. Desktop visual
-  and release evidence lives in `bonk-club-qa/monorail`. Release verification pending.
+  and release evidence lives in `bonk-club-qa/monorail`.
+- Live revision `6faf3ac` passed regular tests, all six arena stress shards,
+  Windows/Linux executable checks and Pages deployment in
+  [release workflow 36330935989](https://github.com/SamCousinsGB/bonk-club/actions/runs/36330935989).
+  All 17 local, CI and public files match byte for byte. Public v0.55.0 host/guest
+  movement, third-player hot join and host departure passed through real TURN
+  without browser errors. Damaged-world testing also compared the exact track,
+  articulated wreck and subsequent opposite-direction train between host and guest.
+- Local regular/focused tests and the Bullet Train bot/seeded arena stress tests
+  passed. The redundant unsharded local stress run was stopped after the complete
+  six-shard CI run passed; its incomplete log is not a separate passing result.
 
 ## Ocean Liner background cargo
 
