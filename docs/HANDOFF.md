@@ -1,6 +1,6 @@
 # Bonk Club — current handoff
 
-## Platform and wire hanging (v0.63.0 / protocol 86)
+## Platform and wire hanging (v0.63.1 / protocol 86)
 
 - For human fighters on thin platforms and intact transmission wires, a fresh
   S/down press moves them to a hand grip below the actual support. Releasing and
@@ -9,6 +9,7 @@
 - Hanging uses the real support ID and follows its movement. Breakage, hits,
   knockdown and death release the grip. Attacks, throws and prop grabs are
   disabled while both hands hold on; an equipped weapon draws at the belt.
+  A held Tesla arc also stops when the grip begins.
   Bots retain their existing drop-through behaviour.
 - New hang state and the S press latch are transported for host authority,
   guest prediction and hot joins. All clients must refresh for protocol 86.
