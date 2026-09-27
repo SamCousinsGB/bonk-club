@@ -13,9 +13,17 @@
 - Cars face their travel direction in both art and collision. Corrected
   left-bound downhill acceleration. Broken tiles cannot draw connecting beams
   across the middle expansion joint or between crater fragments.
-- Focused mechanics, route checks, desktop intact/collapsed renders and a
-  changed-world host/guest/late-join comparison passed. Full release verification
-  is in progress. Refresh all players together for protocol 80.
+- Focused mechanics, the full regular suite, bridge/monorail stress cases,
+  desktop intact/collapsed renders and an exact changed-world host/guest/late-join
+  comparison passed. Service doorways have an actual bot pickup regression test.
+- Revision `afbc9de` passed [release workflow 36334032593](https://github.com/SamCousinsGB/bonk-club/actions/runs/36334032593):
+  validation, all six arena stress shards, Windows/Linux executable checks,
+  common-revision verification and Pages deployment. All 18 local, CI and public
+  files match byte for byte. Fresh public desktop browsers passed measured
+  host/guest movement, guest jumping, relay-only late join, resizing/reduced motion
+  and host departure without page errors. Evidence is in `bonk-club-qa/bridge-art`;
+  this is one-machine relay QA, not cross-ISP or Steam validation. The task-owned
+  development server is stopped. Refresh all players together for protocol 80.
 
 ## Colossus (v0.57.0 / protocol 79)
 
