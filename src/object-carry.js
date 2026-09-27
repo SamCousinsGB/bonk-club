@@ -3,7 +3,7 @@ import { segmentBox } from "./collision.js";
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 const bodies = world => [...world.cover, ...world.chunks];
-const able = p => p.alive && !p.knockdown && !p.freeze && !(p.stun > 0) && !p.capturedBy;
+const able = p => p.alive && !p.knockdown && !p.freeze && !(p.stun > 0) && !p.capturedBy && !p.hangSupport;
 export const carriedObject = (world, p) => p.carryId
   ? bodies(world).find(b => b.id === p.carryId && b.hp > 0) || null : null;
 

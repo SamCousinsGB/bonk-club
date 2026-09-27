@@ -260,6 +260,8 @@ export class World {
       carryId: null,
       pickupCooldown: 0,
       support: null,
+      hangSupport: null,
+      duckHeld: false,
       block: false,
       blockTime: 0,
       blockHeld: false,
@@ -499,9 +501,9 @@ export class World {
     for (const p of this.players) {
       if (!p.alive) continue;
       const i = actions.get(p.id);
-      if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown) this.throwWeapon(p);
+      if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.hangSupport) this.throwWeapon(p);
       p.throwHeld = i.throw;
-      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown) {
+      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown && !p.hangSupport) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
         else if (i.attack) this.attack(p);
       }
@@ -598,6 +600,8 @@ export class World {
   move(p, i, dt) {
     i = swimPlayer(this, p, i, dt);
     if (!p.alive) return;
+    const duckPressed = !!i.duck && !p.duckHeld;
+    p.duckHeld = !!i.duck;
     let solids = this.solids(p);
     const boxBefore=playerBox(p);p.spikeY=boxBefore.y+boxBefore.h;
     const support = p.ground && solids.find((s) => s.id === p.support);
@@ -634,6 +638,7 @@ export class World {
       if (!p.hp) { this.kill(p,{effect:"burn",ash:true}); return; }
     }
     if(p.knockdown>0){
+      p.hangSupport = null;
       p.cooldown=Math.max(0,p.cooldown-dt);p.flash=Math.max(0,p.flash-dt);p.swing=0;p.block=false;
       if (moveCaptured(p,this,solids,dt)) return;
       if (movePowerFlight(this,p,dt)) return;
@@ -642,13 +647,67 @@ export class World {
     if (p.ground) p.airLunge = false;
     p.dropThrough = Math.max(0, (p.dropThrough || 0) - dt);
     const thin = s => s.oneWay || s.material === "cable";
-    if (i.duck && !p.freeze && p.stun <= 0 && support && thin(support)) {
+    let hanging = p.hangSupport && solids.find(s => s.id === p.hangSupport && thin(s));
+    if (p.hangSupport && (!hanging || p.freeze || p.stun > 0)) {
+      p.hangSupport = null;
+      p.vy = Math.max(p.vy, 80);
+      hanging = null;
+    }
+    if (!p.bot && duckPressed && !p.freeze && p.stun <= 0 && support && thin(support) && !p.carryId) {
+      const hangY = support.y + support.h + 62;
+      if (!solids.some(s => s !== support && !thin(s) && p.x + 15 > s.x && p.x - 15 < s.x + s.w &&
+          hangY + 30 > s.y && hangY - 28 < s.y + s.h)) {
+        const dy = hangY - p.y;
+        p.y = hangY;
+        for (const q of p.rig || []) { q.y += dy; q.py += dy; }
+        p.hangSupport = support.id;
+        p.ground = false; p.support = null; p.prone = false; p.coyote = 0;
+        p.vx = p.vy = 0;
+        hanging = support;
+      }
+    }
+    if (hanging && duckPressed && hanging !== support) {
+      p.hangSupport = null;
+      p.dropThrough = .22;
+      p.vy = 160;
+      hanging = null;
+    }
+    if (hanging) {
+      if (i.jump && !p.jumpHeld && !solids.some(s => s !== hanging && !thin(s) &&
+          p.x + 15 > s.x && p.x - 15 < s.x + s.w &&
+          hanging.y > s.y && hanging.y - 58 < s.y + s.h)) {
+        const oldY = p.y;
+        p.y = hanging.y - 30;
+        for (const q of p.rig || []) { q.y += p.y - oldY; q.py += p.y - oldY; }
+        p.hangSupport = null; p.ground = true; p.support = hanging.id;
+        p.vx = p.vy = 0; p.jumps = 0; p.jumpHeld = true;
+        return;
+      }
+      const oldX = p.x, oldY = p.y;
+      const gripInset = Math.min(15, hanging.w / 2);
+      p.x = Math.max(hanging.x + gripInset, Math.min(hanging.x + hanging.w - gripInset,
+        p.x + (hanging.dx || 0) + (Number(i.right) - Number(i.left)) * 110 * dt));
+      p.y = hanging.y + hanging.h + 62;
+      for (const q of p.rig || []) {
+        q.x += p.x - oldX; q.px += p.x - oldX;
+        q.y += p.y - oldY; q.py += p.y - oldY;
+      }
+      p.vx = p.vy = 0;
+      p.ground = false; p.support = null; p.prone = false;
+      p.cooldown = Math.max(0, p.cooldown - dt);
+      p.stun = Math.max(0, p.stun - dt);
+      p.swing = 0; p.block = false; p.gaitSpeed = 0;
+      p.jumpHeld = !!i.jump;
+      p.aimAngle = i.aim === null ? (p.facing === 1 ? 0 : Math.PI) : i.aim;
+      return;
+    }
+    if (p.bot && i.duck && !p.freeze && p.stun <= 0 && support && thin(support)) {
       p.dropThrough = .22; p.ground = false; p.support = null; p.coyote = 0;
       p.vy = Math.max(p.vy, 160);
     }
-    if (p.dropThrough > 0 || i.duck && !p.freeze && p.stun <= 0)
+    if (p.dropThrough > 0 || p.bot && i.duck && !p.freeze && p.stun <= 0)
       solids = solids.filter(s => !thin(s));
-    const prone = !!i.duck && !p.swimming;
+    const prone = !!i.duck && !p.swimming && !p.hangSupport;
     if (prone !== p.prone) {
       // Keep the feet fixed even when a hit has just cleared ground/support.
       // Growing downward from a prone airborne centre can start inside a floor,
@@ -816,7 +875,7 @@ export class World {
     }
   }
   attack(p, alternate = false) {
-    if(p.freeze>0||p.knockdown>0||p.carryId)return;
+    if(p.freeze>0||p.knockdown>0||p.carryId||p.hangSupport)return;
     if (p.weapon && p.ammo <= 0) return;
     const base = p.weapon ? WEAPONS[p.weapon] : { kind: "melee" };
     if (alternate && (!base.alt || p.ammo < base.alt.ammoCost)) return;
@@ -952,6 +1011,7 @@ export class World {
     if(options.execute)damage=Math.max(damage,q.hp*2);
     if (q.rush > 0 && !q.weapon && options.projectile) damage *= 0.65;
     q.hp = Math.max(0, q.hp - damage);
+    if (q.hangSupport) { q.hangSupport = null; q.vy = Math.max(q.vy, 80); }
     const burstBubble = q.bubble > 0 && damage >= 20;
     if(["gib","slice"].includes(options.effect))bloodBurst(this,q.x,q.y-12,dir*force,vertical*force,q.hp?6:22);
     const knockback = dir * force * (1 + (100 - q.hp) / 220);
@@ -989,6 +1049,7 @@ export class World {
     if (p.carryId) releaseObject(this, p);
     if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
+    p.hangSupport = null;
     p.hp = 0;
     if (this.phase === "fight") this.onKill?.({ victim: p, source, cause: this.lastDeathCause });
     if (p.weapon && !ash && effect!=="singularity")

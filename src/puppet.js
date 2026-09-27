@@ -68,10 +68,10 @@ export function updateRig(p, dt, platforms, time) {
   }
   const rig = p.rig,
     prone = !!p.prone;
-  const desired = p.swimming && !p.ground ? (p.swimStroke ? (p.aimAngle??0)+Math.PI/2 : clamp(p.vx*.003,-.8,.8)) : prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
+  const desired = p.hangSupport ? 0 : p.swimming && !p.ground ? (p.swimStroke ? (p.aimAngle??0)+Math.PI/2 : clamp(p.vx*.003,-.8,.8)) : prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
   let a = p.bodyAngle || 0,
     av = p.angularVelocity || 0;
-  const strength = p.stun > 0 ? 8 : prone ? 36 : p.ground ? 100 : 35;
+  const strength = p.stun > 0 ? 8 : p.hangSupport ? 100 : prone ? 36 : p.ground ? 100 : 35;
   av += (Math.sin(desired - a) * strength - av * (p.stun > 0 ? 1.2 : 7)) * dt;
   a += av * dt;
   p.bodyAngle = a;
@@ -106,6 +106,8 @@ export function updateRig(p, dt, platforms, time) {
     };
     footA = foot(p.walk, -9);
     footB = foot(p.walk + Math.PI, 9);
+  } else if (p.hangSupport) {
+    footA = rotate([-11, 24]); footB = rotate([12, 28]);
   } else if(p.swimming) {
     const kick=Math.sin(time*8+p.id)*11;
     footA=rotate([-10+kick,27]);footB=rotate([10-kick,30]);
@@ -137,7 +139,10 @@ export function updateRig(p, dt, platforms, time) {
   }
   let handA, handB;
   const melee = meleePose(p);
-  if (p.carryId && p.carryPoint) {
+  if (p.hangSupport) {
+    handA = [p.x - 13, p.y - 62];
+    handB = [p.x + 13, p.y - 62];
+  } else if (p.carryId && p.carryPoint) {
     const gx = p.carryPoint.x - neck[0], gy = p.carryPoint.y - neck[1];
     const reach = Math.min(1, 35 / (Math.hypot(gx, gy) || 1));
     handA = [neck[0] + gx * reach, neck[1] + gy * reach - 6];
@@ -199,7 +204,7 @@ export function updateRig(p, dt, platforms, time) {
           : i < 3
             ? 0.23
             : i === 4 || i === 6
-              ? p.carryId ? 0.38 : 0.1
+              ? p.hangSupport ? 0.45 : p.carryId ? 0.38 : 0.1
               : i >= 7 && p.ground
                 ? 0.16
                 : 0.065;

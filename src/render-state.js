@@ -8,7 +8,7 @@ const simulationOnly = new Set([
   "morphPose", "morphSplit",
   "spikeY", "ragVx", "ragVy", "bleed", "rest", "captureAge", "capturedBy", "outer", "sampleSerial",
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
-  "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "pickupCooldown", "support",
+  "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "duckHeld", "pickupCooldown", "support",
   "dropThrough", "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
   "crashCooldown",
   "jetTick",
@@ -110,7 +110,8 @@ export function interpolateStates(a, b, t, mode = "all") {
   if (mode !== "world") out.players = b.players.map(p => {
     const old = a.players.find(q => q.id === p.id);
     return old && old.occupant === p.occupant && old.alive === p.alive &&
-      !!old.knockdown === !!p.knockdown && !!old.freeze === !!p.freeze && old.morph === p.morph
+      !!old.knockdown === !!p.knockdown && !!old.freeze === !!p.freeze && old.morph === p.morph &&
+      old.hangSupport === p.hangSupport
       ? blend(old, p, t) : p;
   });
   out.time = lerp(a.time,b.time,t);

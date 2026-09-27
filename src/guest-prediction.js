@@ -7,7 +7,7 @@ import { blend } from "./render-state.js";
 import { WeaponPrediction } from "./weapon-prediction.js";
 
 const INPUT_STEP = 1 / 60, MAX_PENDING = 30, STALE_MS = 250;
-const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "facing", "aimAngle",
+const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "hangSupport", "facing", "aimAngle",
   "walk", "gaitSpeed", "rig", "bodyAngle", "angularVelocity", "landing", "swing",
   "swingDuration", "meleeMove", "comboStep", "comboTime", "recoilTime", "block", "blockTime", "carryPoint"];
 const controllable = p => p?.alive && !p.knockdown && !p.freeze && !p.strands && !p.morph;
@@ -90,10 +90,10 @@ export class GuestPrediction {
       const x = p.x, y = p.y;
       World.prototype.move.call(w, p, input, STEP);
       if (p.carryPoint) p.carryPoint = { x: p.carryPoint.x + p.x - x, y: p.carryPoint.y + p.y - y };
-      if (input.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.carryId)
+      if (input.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.carryId && !p.hangSupport)
         World.prototype.throwWeapon.call(w,p);
       p.throwHeld=input.throw;
-      if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block) {
+      if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.hangSupport) {
         if (input.block && p.weapon) World.prototype.attack.call(w, p, true);
         else if (input.attack) World.prototype.attack.call(w, p);
       }
@@ -141,7 +141,9 @@ export class GuestPrediction {
           };
           this.step(this.input, this.future, context);
         }
-        if (this.future.prone === this.player.prone) motion = blend(this.player, this.future, fraction);
+        if (this.future.prone === this.player.prone &&
+            this.future.hangSupport === this.player.hangSupport)
+          motion = blend(this.player, this.future, fraction);
       }
       for (const key of motionKeys) local[key] = motion[key];
       let { x: dx, y: dy } = this.correction;

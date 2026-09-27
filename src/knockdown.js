@@ -44,6 +44,7 @@ export function knockDown(p, type) {
   p.prone = false;
   p.ground = false;
   p.support = null;
+  p.hangSupport = null;
   p.jumpBuffer = 0;
   p.rig ||= makeRig(p);
   // Each limb receives a different tangential impulse: the body folds and tumbles.
