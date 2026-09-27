@@ -9,6 +9,16 @@ import { compactSnapshot, expandSnapshot } from '../src/snapshot-wire.js';
 const arena=ARENAS.findIndex(a=>a.bridge);
 const advance=(world,seconds)=>{for(let i=0;i<seconds/STEP;i++)world.step(STEP);};
 
+test('a pistol shot severs the physical main cable',()=>{
+  const world=new World({players:[0],fillSolo:false,arena,shuffle:false});
+  const cable=world.cables[0],point=cable.points[5];
+  world.projectiles=[{x:point.x-25,y:point.y,vx:5000,vy:0,kind:'bullet',weapon:'blaster',
+    damage:24,force:440,life:1,r:4,owner:0,hitIds:[],age:0}];
+  world.updateProjectiles(STEP);
+  assert.equal(cable.links.filter(Boolean).length,23);
+  assert.ok(validSnapshot(world.snapshot()));
+});
+
 test('bridge traffic, cable damage, collapse, snapshot and round reset',()=>{
   const world=new World({players:[0],fillSolo:false,arena,shuffle:false,random:()=>.5});
   const far=()=>world.platforms.find(p=>p.bridgePanel===7);
