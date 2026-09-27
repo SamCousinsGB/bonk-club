@@ -6,6 +6,22 @@ history through v0.40.0 is archived in
 
 ## Current release
 
+- v0.52.0 / protocol 74: Scrap Foundry ladles share the rotated spout position
+  between art, molten emission and AI warnings. Opposite tilts pour inward; the
+  shared solver preserves finite contents and real travel/contact damage.
+- Two blocked-outlet-aware scrap feeders supply bounded physical metal to the
+  immediately running inward belts. New lower slatted crossings pass molten
+  streams through to the pits; upper routes remain available. Either broken
+  ladle attachment stops emission, and destroyed crossings persist until reset.
+- Focused tests cover mirrored lips, warnings, grating drainage, bounded scrap,
+  attachment destruction and compact changed-world hot join/reset. Source browser
+  checks confirmed both pours, scrap motion, cut geometry and a guest joining a
+  damaged ongoing round without console errors. Release CI and public parity must
+  finish before this revision is described as live.
+- Preserves the v0.51.0 Ocean Liner changes and v0.50.3 round-result fix below.
+
+## Earlier updates
+
 - v0.51.0 / protocol 73 enlarges Ocean Liner: the hold is 540 units deep (20%
   deeper), the ship frame renders at full scale instead of 0.9, and lower ledges
   retain normal double-jump exits. Refresh all player tabs before joining.

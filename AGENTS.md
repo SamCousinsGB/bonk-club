@@ -150,7 +150,10 @@ Start new work from current `origin/main` in one clean worktree.
   collision, arena damage and validated guest/hot-join state; never restore one
   rigid whole-train body.
 - **Scrap Foundry:** two breakable tilting ladles, lethal molten streams, inward
-  conveyors, a central press and upper catwalks with amber warnings.
+  conveyors, a central press and upper catwalks with amber warnings. Molten emission
+  and art share each rotated pouring lip. Bounded metal scrap feeders respect
+  blocked outlets; lower slatted crossings pass molten streams into the pits.
+  Either lost ladle attachment stops emission; preserve changed-world hot join.
 - **Arc Furnace:** six pass-through physical cables and a 16-second 9-open / 2-warning /
   5-active cycle that may become irregular after damage. Active arcs block the centre;
   the grate cools over 2.5 seconds and scenery is never collision. Bullets, beams and
