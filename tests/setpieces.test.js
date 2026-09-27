@@ -125,11 +125,15 @@ test("fast shots collide with the passing train and cannot shoot through it",()=
   w.updateProjectiles(1/30);assert.equal(w.projectiles.length,0);
 });
 
-test("thin decks land from above, pass upwards and drop onto solid floors",()=>{
+test("thin decks land from above, hold a hanging fighter, then release to solid floors",()=>{
   const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
   w.cover=[];place(p,870,deck.y-100,{vy:100});
   for(let i=0;i<60;i++)w.move(p,cleanInput({}),STEP);
   assert.equal(p.support,deck.id);const y=p.y;
+  for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
+  assert.equal(p.hangSupport,deck.id);assert.equal(p.y,deck.y+deck.h+62);
+  assert.equal(p.ground,false);assert.equal(p.prone,false);
+  w.move(p,cleanInput({}),STEP);
   for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
   assert.ok(p.y>y+200&&p.ground);assert.equal(p.y,TRAIN_Y-10);assert.equal(p.prone,true);
   // A solid floor always supports prone fighters, even while S is held.
@@ -138,24 +142,73 @@ test("thin decks land from above, pass upwards and drop onto solid floors",()=>{
   for(let i=0;i<28;i++)w.move(p,cleanInput({}),STEP);assert.ok(p.y<deck.y-30);
 });
 
-test("brief drop input cannot reattach and guest prediction replays the same drop",()=>{
+test("guest prediction replays a hang and second press drop",()=>{
   const w=fixture(),p=w.players[1],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
   place(p,870,deck.y-30,{ground:true,support:deck.id});
   const encoder=new RenderSnapshots(),prediction=new GuestPrediction(),s={...encoder.make(w.snapshot()),inputAcks:[0,0,0,0]};
   prediction.receive(s,1,1000);prediction.advance(cleanInput({duck:true}),1,1017);
   for(let i=0;i<2;i++)w.move(p,cleanInput({duck:true}),STEP);
-  assert.ok(prediction.player.y>deck.y-30);assert.equal(prediction.player.support,null);
+  assert.equal(prediction.player.hangSupport,deck.id);assert.equal(prediction.player.y,p.y);
+  for(let i=0;i<24;i++)w.move(p,cleanInput({}),STEP);
+  assert.equal(p.hangSupport,deck.id);
+  prediction.advance(cleanInput({}),2,1034);
+  prediction.advance(cleanInput({duck:true}),3,1051);
+  w.move(p,cleanInput({duck:true}),STEP);
+  assert.equal(prediction.player.hangSupport,null);assert.equal(p.hangSupport,null);
   for(let i=0;i<24;i++)w.move(p,cleanInput({}),STEP);assert.ok(p.y>deck.y);
   const next=encoder.make(w.snapshot());assert.ok(validSnapshot(next));
   next.players[1].motion.dropThrough=-1;assert.equal(validSnapshot(next),false);
 });
 
-test("holding S descends through the actual transmission cable tiles",()=>{
+test("transmission cable tiles support hanging until a second S press",()=>{
   const w=fixture("transmission");for(let i=0;i<40;i++)updateCables(w,STEP);
   const tile=cableSolids(w).find(s=>s.x>1150),p=w.players[0];assert.ok(tile);
   place(p,tile.x+tile.w/2,tile.y-30,{ground:true,support:tile.id});const start=p.y;
   for(let i=0;i<20;i++)w.move(p,cleanInput({duck:true}),STEP);
-  assert.ok(p.y>start+55&&!p.ground);assert.ok(p.prone);
+  assert.equal(p.hangSupport,tile.id);assert.ok(p.y>start+55&&!p.ground);
+  assert.ok(p.x>=tile.x&&p.x<=tile.x+tile.w);
+  w.move(p,cleanInput({}),STEP);w.move(p,cleanInput({duck:true}),STEP);
+  assert.equal(p.hangSupport,null);assert.ok(p.vy>0);
+});
+
+test("W climbs from a hang, respects headroom, and keeps the weapon belted",()=>{
+  const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
+  w.cover=[];place(p,870,deck.y-30,{ground:true,support:deck.id,weapon:"blaster",ammo:12});
+  w.move(p,cleanInput({duck:true}),STEP);
+  assert.equal(p.hangSupport,deck.id);assert.equal(p.weapon,"blaster");
+  const ammo=p.ammo;w.attack(p);assert.equal(p.ammo,ammo);
+  w.move(p,cleanInput({}),STEP);
+  const ceiling={id:"ceiling",x:850,y:deck.y-60,w:50,h:15,material:"metal",hp:100};
+  w.platforms.push(ceiling);
+  w.move(p,cleanInput({jump:true}),STEP);
+  assert.equal(p.hangSupport,deck.id,"a ceiling blocks the climb");
+  w.move(p,cleanInput({}),STEP);w.platforms.pop();
+  w.move(p,cleanInput({jump:true}),STEP);
+  assert.equal(p.hangSupport,null);assert.equal(p.support,deck.id);
+  assert.equal(p.y,deck.y-30);assert.equal(p.weapon,"blaster");
+});
+
+test("a broken hanging support releases the fighter",()=>{
+  const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
+  w.cover=[];place(p,870,deck.y-30,{ground:true,support:deck.id});
+  w.move(p,cleanInput({duck:true}),STEP);
+  deck.hp=0;w.move(p,cleanInput({}),STEP);
+  assert.equal(p.hangSupport,null);assert.ok(p.vy>0);
+});
+
+test("a hanging fighter follows a moving deck and survives a hot-join snapshot",()=>{
+  const w=fixture(),p=w.players[0],deck=w.platforms.find(s=>s.oneWay&&s.x===750);
+  w.cover=[];place(p,870,deck.y-30,{ground:true,support:deck.id});
+  w.move(p,cleanInput({duck:true}),STEP);
+  const joined=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
+  assert.equal(joined.players[0].hangSupport,deck.id);
+  assert.equal(joined.players[0].motion.hangSupport,deck.id);
+  const bad=structuredClone(joined);bad.players[0].hangSupport=42;
+  assert.equal(validSnapshot(bad),false);
+  deck.y+=12;deck.dy=12;
+  w.move(p,cleanInput({right:true}),STEP);
+  assert.equal(p.y,deck.y+deck.h+62);
+  assert.ok(p.x>870);
 });
 
 test("destruction preserves the thin surface flag and invalid wire flags are rejected",()=>{

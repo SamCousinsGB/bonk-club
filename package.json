@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.62.0",
-  "releaseNotes": "Arena selection reduced to twelve maps",
+  "version": "0.63.0",
+  "releaseNotes": "Hang beneath thin platforms and wires before dropping",
   "private": true,
   "type": "module",
   "scripts": {
