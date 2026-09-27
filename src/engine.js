@@ -129,7 +129,7 @@ export class World {
       new Set(players).size !== players.length ||
       players.some((i) => !Number.isInteger(i) || i < 0 || i > 3)
     )
-      throw new Error("Choose 1â€“4 distinct player slots.");
+      throw new Error("Choose 1–4 distinct player slots.");
     this.ids = players.length === 1 && fillSolo ? [0, 1, 2, 3] : [...players];
     this.botIds = new Set(
       players.length === 1 && fillSolo

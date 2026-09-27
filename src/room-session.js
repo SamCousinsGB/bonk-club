@@ -392,7 +392,7 @@ export class RoomSession {
       const t = this.later(() => {
         fail(Object.assign(new Error(this.connectionTimeout(c)), { type: "connection-timeout" }));
       }, 25000);
-      c.on("open", () => this.emit("onStatus", "Joining roomÃ¢â‚¬Â¦"));
+      c.on("open", () => this.emit("onStatus", "Joining room..."));
       c.on("data", (m) => {
         if (this.connection !== c || this.closed || !m || typeof m !== "object")
           return;
