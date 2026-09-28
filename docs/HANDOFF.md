@@ -16,9 +16,15 @@
   concurrent Colossus integration; final CI must validate the integrated source.
   Desktop pose inspection and real relay host/guest play covered shimmying,
   dropping, broken supports and a third player joining a damaged hanging scene.
-- Includes the concurrent Colossus distant-presence update below. Release
-  CI/Pages and exact public artifact parity are still pending. Evidence:
-  `bonk-club-qa/natural-hanging/`.
+- Includes the concurrent Colossus distant-presence update below. Revision
+  `8ad96d0` passed [release workflow 36491667334](https://github.com/SamCousinsGB/bonk-club/actions/runs/36491667334):
+  all six arena stress groups, shared/server tests, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files
+  match exactly. The final bundle and public site passed real relay host/guest
+  hanging and shimmying, a third-player late join, reduced motion, desktop
+  window resizing and host departure without page errors. Public frame samples
+  showed a continuous drop; a close-up motion clip is saved with the evidence.
+  The task-owned preview is stopped. Evidence: `bonk-club-qa/natural-hanging/`.
 
 ## Colossus distant presence (v0.63.7 / protocol 92)
 
