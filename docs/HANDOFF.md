@@ -15,9 +15,17 @@
   protocol stay unchanged. Thirty focused checks, the full regular suite and
   browser build pass. Desktop pose/motion inspection and the release bundle's
   real relay host/guest controls, both beams, repeats, changed-world late join,
-  reduced motion, resizing and host departure pass without page errors. Confirm
-  release CI, parity and public verification before describing this as live.
-  Evidence: `bonk-club-qa/colossus-cinematic/`.
+  reduced motion, resizing and host departure pass without page errors.
+- Revision `520c71d` passed [release workflow 36496593063](https://github.com/SamCousinsGB/bonk-club/actions/runs/36496593063),
+  including all six arena stress groups, shared/server tests, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match exactly. Public desktop relay controls, twin beams,
+  repeated attacks, changed-world late join, reduced motion, window resizing
+  and host departure pass without page errors; screenshots were inspected.
+- A separate public relay join during holy fire saw the blistering victim;
+  the result waited through ash and appeared 5.09 seconds after ignition.
+  The task preview is stopped. Evidence and 20-second gameplay clip:
+  `bonk-club-qa/colossus-cinematic/`.
 
 ## Stationary Colossus and copper beams (v0.64.3 / protocol 97)
 
