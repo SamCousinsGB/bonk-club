@@ -12,10 +12,19 @@
 - The seated phase, individual grips and active reach travel with host state.
   Prediction copies this state, preserving independent limb velocities and
   late joins during either sitting or reaching. Refresh all tabs for protocol 95.
-- Focused hanging, transport, prediction and inherited death-physics checks
-  pass; desktop pose inspection confirms the sit, hand alternation and loose
-  limbs. Includes the concurrent v0.64.0 Colossus update below. Final release
-  checks and publication are pending. Evidence: `bonk-club-qa/hanging-handsteps/`.
+- All 52 focused checks and the final full regular suite pass. The local full
+  stress run passed before integration; the final integrated source passed
+  all six CI stress groups. Desktop pose inspection confirms sitting, both
+  reaching directions, reversals and loose limbs. Includes v0.64.0 below.
+- Revision `0462894` passed [release workflow 36493414226](https://github.com/SamCousinsGB/bonk-club/actions/runs/36493414226),
+  including shared/server tests, Windows/Linux executable checks, release
+  verification and Pages. All 19 local, CI and public files match exactly.
+  Final-bundle and public relay host/guest controls, hanging, hand steps,
+  late join, reduced motion, desktop resizing and host departure passed
+  without page errors. Frame samples confirm the brief stationary sit.
+  Source relay QA also checked broken support release and changed-world joins.
+  The task preview is stopped. Evidence and motion clip:
+  `bonk-club-qa/hanging-handsteps/`.
 
 ## Colossus posture and holy fire (v0.64.0 / protocol 94)
 
