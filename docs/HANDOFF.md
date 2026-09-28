@@ -1,5 +1,20 @@
 # Bonk Club — current handoff
 
+## Steadier hanging head (v0.64.2 / protocol 96)
+
+- The physical neck now holds the head upright relative to gravity and damps
+  movement relative to the shoulders. Changing grips no longer amplifies the
+  torso swing into a whipping, bobbing head. The seated entry, alternating
+  grips, loose body and legs, collisions and release momentum remain intact.
+- The shared host/prediction solver uses the existing transported rig state;
+  no new fields are needed. Refresh all tabs for protocol 96 so both sides
+  use the same neck response.
+- Focused hanging/prediction checks and the full regular suite pass, including
+  a regression covering head tilt, vertical bob, reversals and retained body
+  swing. Desktop pose inspection and source relay host/guest/late-join checks
+  pass. Final stress and release verification are still in progress.
+- Evidence and motion clip: `bonk-club-qa/steady-hanging-head/`.
+
 ## Alternating hanging grips and seated entry (v0.64.1 / protocol 95)
 
 - Pressing S/down now lowers the fighter into a bent-knee seated pose, pauses

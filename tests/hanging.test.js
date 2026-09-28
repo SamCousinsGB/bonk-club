@@ -63,6 +63,27 @@ test("an individual foot impulse bends its knee without imposing a matching leg 
   assert.ok(Math.abs(p.x-p.rig[2].x)<.001,"gameplay position follows the physical hips");
 });
 
+test("hand changes and reversals keep the head upright while the body and legs swing",()=>{
+  for(const dir of [-1,1]){
+    const {p,advance}=fixture();advance(180,{duck:true});
+    const heights=[],tilts=[],bodies=[],legs=[];
+    for(const direction of [dir,-dir,0]){
+      for(let i=0;i<100;i++){
+        advance(1,{left:direction<0,right:direction>0});
+        const [head,neck,hip]=p.rig;
+        heights.push(head.y);
+        tilts.push(Math.abs(Math.atan2(head.x-neck.x,neck.y-head.y)));
+        bodies.push(p.bodyAngle);legs.push(p.rig[8].x-hip.x);
+        assert.ok(Math.abs(distance(head,neck)-18)<.15,"the physical neck retains its length");
+      }
+    }
+    const range=values=>Math.max(...values)-Math.min(...values);
+    assert.ok(Math.max(...tilts)<.22,"the head does not whip with the torso at each grip");
+    assert.ok(range(heights)<12,"small shoulder movement does not become a large head bob");
+    assert.ok(range(bodies)>.8&&range(legs)>25,"head control leaves the lower body loose");
+  }
+});
+
 test("hanging limbs collide with solid scenery while hands follow a moving support",()=>{
   const {w,p,deck,advance}=fixture();advance(150,{duck:true});
   const wall={id:"hang-wall",x:905,y:deck.y+20,w:100,h:160,hp:100,material:"metal"};

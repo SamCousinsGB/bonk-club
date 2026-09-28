@@ -92,13 +92,13 @@ export function moveHanging(p, support, input, solids, dt) {
       rig[index].y+=(seatY+y-rig[index].y)*motor;
     }
   }
-  // A relaxed neck keeps the head above the shoulders. Once the seat
-  // releases, hips, knees and feet remain passive.
+  // The neck holds the head upright independently of the swinging torso.
+  // Dampen motion relative to the shoulders so each new grip cannot whip
+  // the head back and forth. Hips, knees and feet remain passive.
   const neck = rig[1], hip = rig[2], head = rig[0];
-  const length = Math.hypot(neck.x-hip.x,neck.y-hip.y) || 1;
-  const neckSpring = 1 - Math.exp(-12 * dt);
-  head.x += (neck.x+(neck.x-hip.x)*18/length-head.x)*neckSpring;
-  head.y += (neck.y+(neck.y-hip.y)*18/length-head.y)*neckSpring;
+  const neckSpring = 2025 * dt * dt, neckDamping = 1 - Math.exp(-70 * dt);
+  head.x += (neck.x-head.x)*neckSpring-((head.x-head.px)-(neck.x-neck.px))*neckDamping;
+  head.y += (neck.y-18-head.y)*neckSpring-((head.y-head.py)-(neck.y-neck.py))*neckDamping;
   for (let pass = 0; pass < 14; pass++) {
     for (const [ai, bi, length] of JOINTS) {
       const a = rig[ai], b = rig[bi], dx = b.x-a.x, dy = b.y-a.y;

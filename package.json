@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.1",
-  "releaseNotes": "Alternating hand grips and a brief seated pause before hanging",
+  "version": "0.64.2",
+  "releaseNotes": "Steadier head movement while hanging and moving hand over hand",
   "private": true,
   "type": "module",
   "scripts": {
