@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.6",
-  "releaseNotes": "Colossus climbs from the mountain, tilts his head and charges with a visible aura",
+  "version": "0.63.7",
+  "releaseNotes": "Colossus has weathered anatomy, distant haze and slower movement; removed the glowing aura",
   "private": true,
   "type": "module",
   "scripts": {

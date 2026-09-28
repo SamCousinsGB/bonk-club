@@ -1,6 +1,5 @@
 import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
 import {drawColossusFigure,drawColossusGrip,warmColossusFigure} from './colossus-figure.js';
-import {drawColossusAura} from './colossus-aura.js';
 import {COLOSSUS_FIGURE} from './colossus-rig.js';
 
 const TAU=Math.PI*2;
@@ -94,13 +93,13 @@ function beamTexture() {
 function eye(c,h,index,energy) {
   if(energy<=0)return;
   const p=colossusEye(h,index);
-  glow(c,p.x,p.y,8+energy*65,energy*.35);
+  glow(c,p.x,p.y,5+energy*20,energy*.3);
   if(energy>.3){
     c.save();c.globalCompositeOperation='screen';
-    const g=c.createLinearGradient(p.x-95,p.y,p.x+95,p.y);
+    const g=c.createLinearGradient(p.x-32,p.y,p.x+32,p.y);
     g.addColorStop(0,'#77e2ff00');g.addColorStop(.48,`rgba(179,235,252,${energy*.28})`);
     g.addColorStop(.5,`rgba(228,251,255,${energy*.6})`);g.addColorStop(.52,`rgba(179,235,252,${energy*.28})`);g.addColorStop(1,'#77e2ff00');
-    c.fillStyle=g;c.fillRect(p.x-95,p.y-.5,190,1+energy);c.restore();
+    c.fillStyle=g;c.fillRect(p.x-32,p.y-.5,64,1+energy);c.restore();
   }
 }
 export function drawColossusSky(c,state,reduced=false) {
@@ -110,15 +109,20 @@ export function drawColossusSky(c,state,reduced=false) {
   c.fillStyle='#273b4b';c.fillRect(0,0,2560,1440);
   if(backdrop?.complete&&backdrop.naturalWidth)c.drawImage(backdrop,0,0,2560,1440);
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
-  // A slow exposure change draws the eye to the awakened machine without strobing.
-  drawColossusAura(c,h,energy,reduced);
   drawColossusFigure(c,h,energy,sceneAirlight());
   drawFoothills(c);
   drawColossusGrip(c,h);
-  c.fillStyle=`rgba(6,17,30,${.09+energy*.17})`;c.fillRect(0,0,2560,1440);
+  // The warning comes from the eyes and actual sweep. The body emits no light.
+  c.fillStyle=`rgba(6,17,30,${.1+energy*.09})`;c.fillRect(0,0,2560,1440);
   eye(c,h,0,energy);eye(c,h,1,energy);
   const cloud=cloudTexture(),time=reduced?0:h.age;
   c.save();
+  // Broad valley fog crosses both creature and landscape, obscuring the lower
+  // anatomy without outlining it or creating a creature-centred halo.
+  for(let n=0;n<3;n++){
+    c.globalAlpha=[.2,.32,.38][n];
+    c.drawImage(cloud,480+n*180+Math.sin(time*.009+n)*100,570+n*61,1350,120+n*22);
+  }
   for(let n=0;n<4;n++){
     c.globalAlpha=[.13,.17,.2,.14][n];
     const x=-520+n*660+Math.sin(time*.011+n)*110;

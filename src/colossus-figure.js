@@ -3,7 +3,7 @@ import {colossusRig,colossusEyeOpening,COLOSSUS_EYES,COLOSSUS_FIGURE} from './co
 let parts,weathered,figure;
 export function warmColossusFigure(){
   if(!parts&&typeof Image!=='undefined'){
-    parts=new Image();parts.src=new URL('./assets/colossus-bronze.webp',import.meta.url).href;
+    parts=new Image();parts.src=new URL('./assets/colossus-weathered.webp',import.meta.url).href;
     parts.decoding='async';
   }
 }
@@ -26,9 +26,9 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     const pixels=p.getImageData(0,0,weathered.width,weathered.height),d=pixels.data;
     for(let i=0;i<d.length;i+=4){
       const light=d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;
-      d[i]=40+light*.4+(d[i]-light)*1.1;
-      d[i+1]=43+light*.4+(d[i+1]-light)*1.1;
-      d[i+2]=48+light*.4+(d[i+2]-light)*1.1;
+      d[i]=32+light*.34+(d[i]-light)*.55;
+      d[i+1]=37+light*.34+(d[i+1]-light)*.55;
+      d[i+2]=44+light*.34+(d[i+2]-light)*.55;
     }
     p.putImageData(pixels,0,0);
     figure=document.createElement('canvas');figure.width=COLOSSUS_FIGURE.w*2;figure.height=COLOSSUS_FIGURE.h*2;
@@ -41,59 +41,45 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   c.setTransform(2,0,0,2,-x*2,-y*2);
   const rig=colossusRig(h);
   c.save();
-  // Antique cast-bronze parts. Atlas joint landmarks map onto the same rigid
-  // skeleton as the moving head and both laser origins.
+  // Overlapping anatomical landmarks keep the shoulders, hips and tendons
+  // continuous. The smaller head and full-length thighs avoid doll proportions.
   for(const leg of rig.legs){
     const left=leg.side<0;
-    limb(c,leg.hip,leg.knee,left?[184,955,164,244]:[674,955,164,244],
-      left?[276,978]:[746,978],left?[253,1161]:[770,1161],.5);
-    limb(c,leg.knee,leg.foot,left?[144,1132,160,380]:[719,1132,164,380],
-      left?[253,1161]:[770,1161],left?[212,1480]:[814,1480],.7);
+    limb(c,leg.hip,leg.knee,left?[214,974,134,234]:[675,974,135,234],
+      left?[286,1000]:[739,1000],left?[270,1163]:[755,1163],.62);
+    limb(c,leg.knee,leg.foot,left?[173,1131,146,390]:[706,1131,143,390],
+      left?[270,1163]:[755,1163],left?[232,1483]:[793,1483],.8);
   }
   for(const arm of rig.arms){
     const left=arm.side<0;
-    limb(c,arm.shoulder,arm.elbow,left?[176,471,146,254]:[702,471,146,254],
-      left?[248,508]:[776,508],left?[218,692]:[806,692],.52);
-    limb(c,arm.elbow,arm.hand,left?[176,663,149,289]:[700,663,149,289],
-      left?[218,692]:[806,692],left?[261,918]:[763,918],.56);
+    limb(c,arm.shoulder,arm.elbow,left?[210,496,143,244]:[672,500,143,240],
+      left?[296,538]:[723,539],left?[246,706]:[776,706],.64);
+    limb(c,arm.elbow,arm.hand,left?[206,675,109,297]:[706,675,110,297],
+      left?[246,706]:[776,706],left?[261,936]:[760,936],.68);
   }
   c.save();transform(c,rig.body);
-  c.drawImage(weathered,546,4,364,470,-63,-164,126,220);
+  c.drawImage(weathered,553,24,340,469,-75,-167,150,208);
   c.restore();
   c.save();transform(c,rig.head);
-  c.drawImage(weathered,108,8,327,448,-41.6,-103.6,84,110);
+  c.drawImage(weathered,105,7,331,468,-34,-96,68,96);
   c.restore();
   c.globalCompositeOperation='source-atop';
   if(airlight){
-    c.globalAlpha=.42;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+    c.globalAlpha=.62;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
     c.drawImage(airlight,x,y,w,height);c.globalAlpha=1;
   }
   c.globalCompositeOperation='source-over';
-  if(energy>0){
-    // Light the real bronze silhouette and its articulated joints as power
-    // travels upward. Keep the light clipped to surviving opaque bronze.
-    c.save();c.globalCompositeOperation='source-atop';
-    c.strokeStyle=`rgba(133,228,249,${energy*.8})`;c.lineWidth=1.1+energy;
-    c.shadowColor='#8febff';c.shadowBlur=6+energy*7;
-    for(const arm of rig.arms){
-      c.beginPath();c.moveTo(arm.hand.x,arm.hand.y);c.lineTo(arm.elbow.x,arm.elbow.y);
-      c.lineTo(arm.shoulder.x,arm.shoulder.y);c.lineTo(rig.head.x,rig.head.y);c.stroke();
-    }
-    transform(c,rig.body);c.beginPath();c.moveTo(-23,24);c.lineTo(-14,-40);c.lineTo(-27,-76);
-    c.lineTo(-6,-106);c.lineTo(3,-155);c.moveTo(22,20);c.lineTo(10,-42);c.lineTo(28,-92);c.lineTo(3,-155);c.stroke();
-    c.restore();
-  }
   c.save();transform(c,rig.head);
   // Slow mechanical shutters reveal cold blue light even between attacks.
-  const opening=colossusEyeOpening(h.age),aperture=opening*(3.8+energy*1.6);
+  const opening=colossusEyeOpening(h.age),aperture=opening*(1.8+energy*2.6);
   if(opening>0)for(const e of COLOSSUS_EYES){
     c.shadowColor=`rgba(137,205,239,${opening*(.3+energy*.4)})`;
-    c.shadowBlur=3+energy*3;
-    c.fillStyle=`rgba(${energy>.3?'213,251,255':'147,209,239'},${opening*(.65+energy*.35)})`;
-    c.fillRect(e.x-3.8,e.y-aperture/2,7.6,aperture);
+    c.shadowBlur=1+energy*3;
+    c.fillStyle=`rgba(${energy>.3?'213,251,255':'147,185,201'},${opening*(.26+energy*.74)})`;
+    c.fillRect(e.x-3,e.y-aperture/2,6,aperture);
   }
   c.restore();c.restore();
-  target.save();target.filter='blur(0.45px)';
+  target.save();target.filter='blur(0.65px)';
   target.drawImage(figure,x,y,w,height);target.restore();
 }
 

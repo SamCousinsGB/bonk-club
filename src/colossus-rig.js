@@ -1,13 +1,12 @@
-// Shared mechanical skeleton. The distant machine is assembled from rigid
-// parts, never sampled from a background image. Beam origins use this same rig.
+// Shared anatomy and pose. Painted eyes and host-owned beams use this same rig.
 import {COLOSSUS,colossusStand,colossusPhase} from './colossus-timing.js';
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const COLOSSUS_EYES=Object.freeze([{x:-10.8,y:-49.1},{x:10.8,y:-49.1}]);
-export const COLOSSUS_NECK=Object.freeze({x:1.7,y:-155});
-export const COLOSSUS_SCALE=.58;
-export const COLOSSUS_LEGS=Object.freeze({upper:110,lower:122});
-export const COLOSSUS_ARMS=Object.freeze({upper:90,lower:96});
+export const COLOSSUS_EYES=Object.freeze([{x:-9.1,y:-52.7},{x:7.7,y:-52.7}]);
+export const COLOSSUS_NECK=Object.freeze({x:-1,y:-150});
+export const COLOSSUS_SCALE=.5;
+export const COLOSSUS_LEGS=Object.freeze({upper:130,lower:140});
+export const COLOSSUS_ARMS=Object.freeze({upper:100,lower:112});
 export const COLOSSUS_FIGURE=Object.freeze({x:1060,y:410,w:440,h:410});
 export function rigPoint(frame,x,y){
   return {x:frame.x+frame.a*x+frame.c*y,y:frame.y+frame.b*x+frame.d*y};
@@ -39,29 +38,32 @@ export function colossusRig(h){
   const charge=phase.charge,shot=t-(h.chargeAt??COLOSSUS.wake)-COLOSSUS.charge;
   const recoil=smooth(shot/.18)*(1-smooth((shot-.18)/.85));
   const exertion=phase.firing?1:phase.phase>=COLOSSUS.charge+COLOSSUS.fire?phase.cooling:charge;
-  const lean=track(t,[[0,.24],[1.25,.14],[2.7,-.14],[4,.08],[5.5,0]])+
-    awake*(Math.sin(t*.72)*.024-look*.018-recoil*.055);
-  const body=frame(1280+track(t,[[0,22],[1.3,-12],[2.7,25],[4,-9],[5.5,0]])+awake*Math.sin(t*.6)*5,
-    track(t,[[0,1022],[1.05,900],[2.55,780],[3.8,680],[5.5,552]])+awake*(Math.sin(t*1.4)*2.8+recoil*7),lean);
+  // Settle onto one leg and hold the weight there. Slow shallow breathing moves
+  // the whole chest; no independent, looping arm swing or sideways head bob.
+  const breath=awake*Math.sin(t*.19)*.8;
+  const lean=track(t,[[0,.17],[1.25,.1],[2.7,-.08],[4,.035],[5.5,.04]])-recoil*.014;
+  const body=frame(1280+track(t,[[0,22],[1.3,-12],[2.7,25],[4,-9],[5.5,-5]]),
+    track(t,[[0,1080],[1.05,940],[2.55,810],[3.8,690],[5.5,600]])+breath+recoil*3,lean);
   const neck=rigPoint(body,COLOSSUS_NECK.x,COLOSSUS_NECK.y);
-  const tilt=track(t,[[0,-.24],[1.4,-.3],[3.2,.18],[5.5,.05],[6.5,-.38],[7.3,-.38],[8,-.12]]);
-  const head=frame(neck.x,neck.y,lean+tilt+awake*(look*.19+Math.sin(t*.83)*.065+exertion*.14-recoil*.2),
-    .97-Math.sin(t*.45+look*.5)**2*.06);
+  const tilt=track(t,[[0,-.16],[1.4,-.12],[3.2,.05],[5.5,-.045],[7.7,-.085]]);
+  // Small deliberate turns retain an attached neck and an unreadable stare.
+  const head=frame(neck.x,neck.y,lean+tilt+awake*(look*.065-exertion*.028-recoil*.035),
+    .97-Math.abs(look)*.035);
   const arms=[-1,1].map(side=>{
-    const shoulder=rigPoint(body,side*62,-123);
-    const a=side*(.15+Math.sin(t*.9+side)*.10+exertion*.42+1.8*(1-smooth(t/1.3)))+lean;
-    const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper),b=a-side*(.12+exertion*.32);
+    const shoulder=rigPoint(body,side*63,side<0?-136:-127);
+    const a=(side<0?-.07:.18)+side*1.65*(1-smooth(t/1.3))+lean;
+    const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper),b=a-side*(side<0?.22:.29);
     const rest=endpoint(elbow,b,COLOSSUS_ARMS.lower),left=side<0;
     const grip=smooth((t-(left?.15:.65))/.75)*(1-smooth((t-(left?2.9:3))/.9));
     // Asymmetric planted hands haul the shoulders past the actual painted ridge.
-    const target={x:mix(rest.x,1280+side*(left?150:155),grip),y:mix(rest.y,left?722:761,grip)};
+    const target={x:mix(rest.x,1280+side*(left?174:180),grip),y:mix(rest.y,left?754:800,grip)};
     const solved=reach(shoulder,target,COLOSSUS_ARMS.upper,COLOSSUS_ARMS.lower,side);
     return {side,shoulder,elbow:solved.joint,hand:solved.end,grip};
   });
   const legs=[-1,1].map(side=>{
-    const hip=rigPoint(body,side*25,0),fold=1-smooth((t-(side<0?2.3:3.1))/2.2);
+    const hip=rigPoint(body,side*27,22),fold=1-smooth((t-(side<0?2.3:3.1))/2.2);
     // Knees tuck in succession under the climbing body, then extend beneath it.
-    const a=lean+side*.018+fold*(side<0?-.85:.65),b=lean+fold*(side<0?1.25:-1.15);
+    const a=lean+(side<0?-.03:.04)+fold*(side<0?-.85:.65),b=lean+(side<0?.01:-.035)+fold*(side<0?1.25:-1.15);
     const knee=endpoint(hip,a,COLOSSUS_LEGS.upper);
     return {side,hip,knee,foot:endpoint(knee,b,COLOSSUS_LEGS.lower)};
   });

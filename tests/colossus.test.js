@@ -37,7 +37,8 @@ test('first attack waits for a complete rise and eye opening; later random attac
   assert.equal(colossusStand(h.age),1);assert.ok(colossusEyeOpening(h.age)<1e-8);
   assert.ok(start.head.y-colossusRig(h).head.y>85,"rise visibly above the ridge");
   const upright=colossusRig(h);
-  assert.ok(upright.body.y<630&&upright.legs.every(l=>l.knee.y<685),"hips and both knees rise above the ridge");
+  assert.ok(upright.body.y<630&&upright.legs.every(l=>l.knee.y>685&&l.foot.y>740),
+    'the torso emerges while the distant ridge hides the lower legs');
   advance(w,COLOSSUS.eyes);
   assert.equal(colossusEyeOpening(h.age),1);assert.equal(h.active,false);
   advance(w,COLOSSUS.charge);
@@ -177,7 +178,7 @@ test('both moving eyes fire together, damage both paths and leave the space betw
   assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
 });
 
-test('climb plants each hand while articulated shoulders haul upward, then the head tilts',()=>{
+test('climb plants each hand, then settles into stillness with restrained head movement',()=>{
   const h=fixture().hazards[0],a=colossusRig({...h,age:1.4}),b=colossusRig({...h,age:2.8});
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   assert.ok(a.body.y-b.body.y>60,'the torso pulls past the stationary handholds');
@@ -188,12 +189,15 @@ test('climb plants each hand while articulated shoulders haul upward, then the h
   const leftFirst=colossusRig({...h,age:.9});
   assert.equal(leftFirst.arms[0].grip,1);assert.ok(leftFirst.arms[1].grip<.3);
   const standing=colossusRig({...h,age:5.5}),tilted=colossusRig({...h,age:6.7});
-  assert.ok(Math.abs(Math.atan2(standing.head.b,standing.head.a)-Math.atan2(tilted.head.b,tilted.head.a))>.3,
-    'visible head tilt after hauling out, before charging');
+  const tilt=Math.abs(Math.atan2(standing.head.b,standing.head.a)-Math.atan2(tilted.head.b,tilted.head.a));
+  assert.ok(tilt>.01&&tilt<.07,'small deliberate head turn instead of a sideways puppet cock');
   assert.ok(standing.arms.every(a=>a.grip===0));
   const restA=colossusRig({...h,age:18}),restB=colossusRig({...h,age:20.5});
   const relative=r=>({x:r.arms[0].hand.x-r.body.x,y:r.arms[0].hand.y-r.body.y});
-  assert.ok(distance(relative(restA),relative(restB))>8,'arms keep moving relative to the torso between attacks');
+  assert.ok(distance(relative(restA),relative(restB))<.01,'relaxed arms hold their weight between attacks');
+  const charged=colossusRig({...h,age:11.8});
+  assert.ok(distance(relative(restA),relative(charged))<.01,'charging does not spread or float the arms');
+  assert.ok(distance(restA.head,restB.head)<.5,'the body breathes slowly without bobbing');
 });
 
 test('articulated climb and attack poses keep solid limbs, an attached neck and continuous beam origins',()=>{

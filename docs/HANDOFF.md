@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Colossus distant presence (v0.63.7 / protocol 92)
+
+- Replaces the mechanical bronze atlas with continuous weathered anatomy,
+  relaxed open hands, a smaller head, sloping uneven shoulders and full thighs.
+  The lower legs sit behind the ridge; stronger landscape airlight and broad
+  valley haze place the creature farther away. Art provenance/prompt:
+  `docs/art/colossus-weathered.md`.
+- Removes the literal aura, corona strands, hand halos, body-light paths and
+  rising energy motes. Eye warnings and physical twin beams remain. Planted
+  climbing grips give way to a weighted, nearly still pose, shallow breathing
+  and small deliberate gaze turns, without arm spreading during charge.
+- Shared rig landmarks keep painted eyes, host damage and late-join poses in
+  agreement. Refresh every tab for protocol 92. No snapshot shape changes.
+- Release validation is in progress; do not describe this revision as live
+  until CI/Pages, exact artifact parity and public desktop verification pass.
+  Evidence: `bonk-club-qa/colossus-presence/`.
+
 ## Colossus climb and awakening (v0.63.6 / protocol 91)
 
 - Replaces the vertical statue reveal with staggered ridge grips, bent elbows,
