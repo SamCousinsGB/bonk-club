@@ -1,5 +1,25 @@
 # Bonk Club — current handoff
 
+## Natural hanging (v0.63.8 / protocol 93)
+
+- A fresh S/down press lowers the existing pose under gravity while the hands
+  reach the platform or wire. Weighted body joints replace the instantaneous
+  relocation and fixed hip/leg pose. The torso, knees and feet swing freely;
+  shimmying and moving supports drive real inertia, with solid-body collisions.
+- The body position follows the physical hips, and dropping retains swing
+  momentum. Independent limb velocities and grip position travel with host
+  state so guest prediction and late joins continue the same movement.
+  Existing climb, second-press drop, weapon restrictions and grip loss remain.
+  Refresh all tabs for protocol 93.
+- Six new physics/transport regressions, the existing hanging/prediction checks
+  and full regular suite pass. The local full stress run passed before the
+  concurrent Colossus integration; final CI must validate the integrated source.
+  Desktop pose inspection and real relay host/guest play covered shimmying,
+  dropping, broken supports and a third player joining a damaged hanging scene.
+- Includes the concurrent Colossus distant-presence update below. Release
+  CI/Pages and exact public artifact parity are still pending. Evidence:
+  `bonk-club-qa/natural-hanging/`.
+
 ## Colossus distant presence (v0.63.7 / protocol 92)
 
 - Replaces the mechanical bronze atlas with continuous weathered anatomy,

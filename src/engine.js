@@ -1,4 +1,5 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
+import { beginHang, moveHanging } from "./hanging.js";
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { BRIDGE_ARENA } from "./bridge-arena.js";
 import { updateBridge } from "./bridge.js";
@@ -657,19 +658,14 @@ export class World {
       const hangY = support.y + support.h + 62;
       if (!solids.some(s => s !== support && !thin(s) && p.x + 15 > s.x && p.x - 15 < s.x + s.w &&
           hangY + 30 > s.y && hangY - 28 < s.y + s.h)) {
-        const dy = hangY - p.y;
-        p.y = hangY;
-        for (const q of p.rig || []) { q.y += dy; q.py += dy; }
-        p.hangSupport = support.id;
-        p.ground = false; p.support = null; p.prone = false; p.coyote = 0;
-        p.vx = p.vy = 0;
+        beginHang(p, support);
         hanging = support;
       }
     }
     if (hanging && duckPressed && hanging !== support) {
       p.hangSupport = null;
       p.dropThrough = .22;
-      p.vy = 160;
+      p.vy = Math.max(p.vy, 80);
       hanging = null;
     }
     if (hanging) {
@@ -683,16 +679,7 @@ export class World {
         p.vx = p.vy = 0; p.jumps = 0; p.jumpHeld = true;
         return;
       }
-      const oldX = p.x, oldY = p.y;
-      const gripInset = Math.min(15, hanging.w / 2);
-      p.x = Math.max(hanging.x + gripInset, Math.min(hanging.x + hanging.w - gripInset,
-        p.x + (hanging.dx || 0) + (Number(i.right) - Number(i.left)) * 110 * dt));
-      p.y = hanging.y + hanging.h + 62;
-      for (const q of p.rig || []) {
-        q.x += p.x - oldX; q.px += p.x - oldX;
-        q.y += p.y - oldY; q.py += p.y - oldY;
-      }
-      p.vx = p.vy = 0;
+      moveHanging(p, hanging, i, solids, dt);
       p.ground = false; p.support = null; p.prone = false;
       p.cooldown = Math.max(0, p.cooldown - dt);
       p.stun = Math.max(0, p.stun - dt);

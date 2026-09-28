@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.7",
-  "releaseNotes": "Colossus has weathered anatomy, distant haze and slower movement; removed the glowing aura",
+  "version": "0.63.8",
+  "releaseNotes": "Natural hanging with a gradual drop and loose swinging limbs",
   "private": true,
   "type": "module",
   "scripts": {

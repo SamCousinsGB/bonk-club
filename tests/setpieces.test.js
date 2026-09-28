@@ -131,7 +131,7 @@ test("thin decks land from above, hold a hanging fighter, then release to solid 
   for(let i=0;i<60;i++)w.move(p,cleanInput({}),STEP);
   assert.equal(p.support,deck.id);const y=p.y;
   for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
-  assert.equal(p.hangSupport,deck.id);assert.equal(p.y,deck.y+deck.h+62);
+  assert.equal(p.hangSupport,deck.id);assert.ok(Math.abs(p.y-(deck.y+deck.h+60))<12);
   assert.equal(p.ground,false);assert.equal(p.prone,false);
   w.move(p,cleanInput({}),STEP);
   for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
@@ -205,9 +205,11 @@ test("a hanging fighter follows a moving deck and survives a hot-join snapshot",
   assert.equal(joined.players[0].motion.hangSupport,deck.id);
   const bad=structuredClone(joined);bad.players[0].hangSupport=42;
   assert.equal(validSnapshot(bad),false);
-  deck.y+=12;deck.dy=12;
-  w.move(p,cleanInput({right:true}),STEP);
-  assert.equal(p.y,deck.y+deck.h+62);
+  for(let i=0;i<90;i++)w.move(p,cleanInput({}),STEP);
+  const oldY=p.y;
+  for(let i=0;i<30;i++){deck.y+=.4;deck.dy=.4;w.move(p,cleanInput({right:true}),STEP);}
+  assert.ok(p.y>oldY+5);
+  assert.ok(Math.abs(p.rig[4].y-deck.y-deck.h)<.01);
   assert.ok(p.x>870);
 });
 

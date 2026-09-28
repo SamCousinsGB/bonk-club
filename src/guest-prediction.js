@@ -54,9 +54,13 @@ export class GuestPrediction {
     }
     this.pending = this.pending.filter(c => c.seq > ack);
     this.player = { ...structuredClone(p), ...p.motion };
-    // Render transport omits Verlet history. Rebuild it with the authoritative
-    // body velocity before advancing the same procedural pose motors.
-    for (const q of this.player.rig || []) { q.px = q.x - p.vx * STEP; q.py = q.y - p.vy * STEP; }
+    // Hanging needs each loose limb's own momentum when replaying a host pose.
+    // Other active poses can reconstruct omitted history from body velocity.
+    for (const [i, q] of (this.player.rig || []).entries()) {
+      const velocity = p.motion.hangVelocity?.[i];
+      q.px = q.x - (velocity?.x ?? p.vx * STEP);
+      q.py = q.y - (velocity?.y ?? p.vy * STEP);
+    }
     const platforms = structuredClone(state.platforms);
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
