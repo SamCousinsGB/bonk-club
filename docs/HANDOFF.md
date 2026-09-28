@@ -18,8 +18,18 @@
   poses and motion were inspected, including reduced motion. The final bundle
   passed real relay host/guest controls, both copper beams, repeated attacks,
   changed-world late join, resizing and host departure without page errors.
-  Includes the steady hanging head fix below. Confirm CI/Pages and exact public
-  parity before calling this live. Evidence: `bonk-club-qa/colossus-copper/`.
+  Includes the steady hanging head fix below.
+- Revision `0075d88` passed [release workflow 36495126682](https://github.com/SamCousinsGB/bonk-club/actions/runs/36495126682),
+  including all six arena stress groups, shared/server tests, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match exactly. Public desktop relay host/guest controls, both
+  textured beams, repeat attacks, changed-world late join, reduced motion,
+  resizing and host departure passed without page errors. Frame samples show
+  no rise; a small gaze turn moves the painted eye vertically by only 0.12px.
+- A separate public relay check joined during holy fire, saw the blistering
+  victim and waited through ash; the result appeared after 5.21 seconds.
+  The task-owned preview is stopped. Evidence and 20-second gameplay clip:
+  `bonk-club-qa/colossus-copper/`.
 
 ## Steadier hanging head (v0.64.2 / protocol 96)
 
