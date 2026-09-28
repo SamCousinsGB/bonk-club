@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Fluid hanging and pull-ups (v0.64.5 / protocol 98)
+
+- S/down eases from standing through a short seated pose into a hang; W/jump
+  now pulls up through sitting to standing over 0.95 seconds instead of
+  teleporting onto the support. Reversing an unfinished drop stays continuous.
+- The head and shoulders follow a level path during hand-over-hand movement,
+  with no vertical bob or head tilt. The waist and legs retain gravity, inertia,
+  collisions and release momentum. Knees retain enough flexion to avoid locking.
+- Entry and climb progress plus the support-relative shoulder position travel
+  with host state. The shared solver preserves guest prediction and late joins
+  during lowering, a reach or a pull-up. Refresh all tabs for protocol 98.
+- Focused checks and desktop pose inspection pass. Source relay host/guest QA
+  measured zero head bob/tilt while the waist swung, checked pull-ups on both
+  peers, changed-world joins and support break/release. Final integrated suite,
+  stress and release verification are in progress. Includes v0.64.4 below.
+- Evidence and motion clip: `bonk-club-qa/fluid-hanging/`.
+
 ## Colossus beam optics (v0.64.4 / protocol 97 unchanged)
 
 - Replaces the opaque patterned beam with an emissive warm core, translucent

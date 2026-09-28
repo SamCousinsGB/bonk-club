@@ -183,7 +183,11 @@ test("W climbs from a hang, respects headroom, and keeps the weapon belted",()=>
   w.move(p,cleanInput({jump:true}),STEP);
   assert.equal(p.hangSupport,deck.id,"a ceiling blocks the climb");
   w.move(p,cleanInput({}),STEP);w.platforms.pop();
+  const before=p.y;
   w.move(p,cleanInput({jump:true}),STEP);
+  assert.equal(p.hangSupport,deck.id,"the pull-up starts without teleporting");
+  assert.ok(Math.abs(p.y-before)<3);
+  for(let i=0;i<120;i++)w.move(p,cleanInput({jump:true}),STEP);
   assert.equal(p.hangSupport,null);assert.equal(p.support,deck.id);
   assert.equal(p.y,deck.y-30);assert.equal(p.weapon,"blaster");
 });

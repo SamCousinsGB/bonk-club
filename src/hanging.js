@@ -3,7 +3,7 @@ import { collidePoint } from "./body-physics.js";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const thin = s => s.oneWay || s.material === "cable";
-const weights = [.9, .4, .35, 1, 0, 1, 0, 1, .8, 1, .8];
+const weights = [0, 0, .35, 1, 0, 1, 0, 1, .8, 1, .8];
 const smooth = t => { t=clamp(t,0,1); return t*t*(3-2*t); };
 const HAND_STEP = .28;
 
@@ -17,8 +17,14 @@ export function beginHang(p, support) {
   const spread=Math.min(13,support.w/2);
   const center=clamp(p.x-support.x,spread,support.w-spread);
   p.hangMotion={age:0,left:center-spread,right:center+spread,moving:-1,
-    time:0,from:0,to:0,seatY:p.rig[2].y-support.y};
+    time:0,from:0,to:0,center:p.rig[0].x-support.x,startY:p.rig[0].y+18-support.y,climb:-1};
   p.ground = false; p.support = null; p.prone = false; p.coyote = 0;
+}
+
+export function climbFromHang(p, support) {
+  if(p.hangMotion.climb>=0)return;
+  p.hangMotion.climb=0;
+  p.hangMotion.startY=p.rig[1].y-support.y;
 }
 
 // Hand positions are relative to the support. One grip stays planted while
@@ -26,7 +32,7 @@ export function beginHang(p, support) {
 function handTargets(p,support,input,dt) {
   const s=p.hangMotion,dir=Number(input.right)-Number(input.left);
   s.age=Math.min(2,s.age+dt);
-  if(s.age>=1 && s.moving===-1 && dir) {
+  if(s.age>=1.1 && s.climb<0 && s.moving===-1 && dir) {
     const hand=dir>0?(s.left<s.right?0:1):(s.left>s.right?0:1);
     const from=hand===0?s.left:s.right, other=hand===0?s.right:s.left;
     const to=clamp(other+dir*26,2,support.w-2);
@@ -34,7 +40,7 @@ function handTargets(p,support,input,dt) {
       s.moving=hand;s.time=0;s.from=from;s.to=to;p.facing=dir;
     }
   }
-  const y=support.y+support.h*smooth((s.age-.55)/.18);
+  const y=support.y+support.h*(s.climb<0?smooth((s.age-.42)/.4):1-smooth(s.climb/.55));
   const targets=[{x:support.x+s.left,y},{x:support.x+s.right,y}];
   if(s.moving!==-1) {
     s.time=Math.min(.6,s.time+dt);
@@ -51,58 +57,81 @@ function handTargets(p,support,input,dt) {
   return targets;
 }
 
-// After the brief seated entry, the hands carry the weight. The particles
-// supply the visible pose, body position and release speed.
+// Lowering and climbing share a continuous shoulder path. Once hanging,
+// the head stays level while the waist and legs swing below the shoulders.
 export function moveHanging(p, support, input, solids, dt) {
   const rig = p.rig, oldX = p.x, oldY = p.y;
   const targets=handTargets(p,support,input,dt),state=p.hangMotion;
-  const sitting=1-smooth((state.age-.55)/.18);
+  if(state.climb>=0)state.climb=Math.min(.95,state.climb+dt);
+  const rising=state.climb>=0,stand=rising?smooth((state.climb-.55)/.4):0;
+  const sitting=rising?smooth(state.climb/.5):1-smooth((state.age-.42)/.5);
   const mass=[...weights],free=state.moving===-1?-1:state.moving===0?4:6;
   if(free!==-1)mass[free]=1;
   const origins = rig.map(q => ({x:q.x, y:q.y}));
   const contacts = rig.map(() => new Set());
   const collision = solids.filter(s => !thin(s));
   const drag = Math.exp(-.65 * dt);
-  for (const q of rig) {
-    const vx = (q.x - q.px) * drag, vy = (q.y - q.py) * drag;
+  for (const [index,q] of rig.entries()) {
+    const damping=index>=7?drag*Math.exp(-20*sitting*dt):drag;
+    const vx = (q.x - q.px) * damping, vy = (q.y - q.py) * damping;
     q.px = q.x; q.py = q.y;
-    q.x += vx; q.y += vy + 1800 * dt * dt;
+    if(index>1){q.x += vx; q.y += vy + 1800 * dt * dt;}
   }
+  const neck=rig[1],hip=rig[2],head=rig[0];
+  const center=(targets[0].x+targets[1].x)/2-support.x;
+  state.center+=(center-state.center)*(1-Math.exp(-14*dt));
+  neck.x=support.x+state.center;
+  if(rising){
+    // Reversing an unfinished drop must not lower the head before rising.
+    const seat=Math.min(-28,state.startY);
+    neck.y=support.y+(state.climb<.55
+      ? state.startY+(seat-state.startY)*smooth(state.climb/.55)
+      : seat+(-57-seat)*stand);
+  }else{
+    neck.y=support.y+(state.age<.42
+      ? state.startY+(-28-state.startY)*smooth(state.age/.28)
+      : -28+(support.h+52)*smooth((state.age-.42)/.68));
+  }
+  collidePoint(neck,collision,3,origins[1],contacts[1]);
+  head.x=neck.x;head.y=neck.y-18;
+  collidePoint(head,collision,10,origins[0],contacts[0]);
+  neck.x=head.x;neck.y=head.y+18;
+  state.center=neck.x-support.x;
   // Hands first find the edge during the sit. A travelling hand is driven
   // by its arm muscles below, and carries no fixed constraint.
   const grips = [4, 6].map((index, i) => {
-    const q = origins[index], {x,y} = targets[i];
+    const q = origins[index];
+    let {x,y}=targets[i];
+    if(stand>0){
+      const restX=neck.x+(i===0?-p.facing*13:p.facing*18),restY=neck.y+(i===0?34:10);
+      x+=(restX-x)*stand;y+=(restY-y)*stand;
+    }
+    // Hands meet/release the edge within arm reach as the shoulders lower/rise.
+    const armReach=Math.min(1,35.8/(Math.hypot(x-neck.x,y-neck.y)||1));
+    x=neck.x+(x-neck.x)*armReach;y=neck.y+(y-neck.y)*armReach;
     const reach = Math.min(1, 420 * dt / (Math.hypot(x-q.x,y-q.y) || 1));
     return {x:q.x+(x-q.x)*reach, y:q.y+(y-q.y)*reach};
   });
   if(free!==-1) {
     const hand=rig[free],target=targets[state.moving],motor=1-Math.exp(-65*dt);
     hand.x+=(target.x-hand.x)*motor;hand.y+=(target.y-hand.y)*motor;
-    // Flex the supporting elbow enough for the free hand to reach the edge.
-    const anchor=targets[1-state.moving],pull=1-Math.exp(-7*dt);
-    rig[1].x+=(anchor.x+Math.sign(state.to-state.from)*9-rig[1].x)*pull;
-    rig[1].y+=(anchor.y+24-rig[1].y)*pull;
   }
-  const seatY=support.y+state.seatY+(-5-state.seatY)*smooth(state.age/.24);
+  const seatY=neck.y+23;
   if(sitting>0) {
     const motor=(1-Math.exp(-20*dt))*sitting,f=p.facing;
-    for(const [index,x,y] of [[1,-f*5,-23],[0,-f*6,-41],[7,f*16,7],
+    const legStand=rising?stand:1-smooth(state.age/.28);
+    for(const [index,x,y] of [[7,f*16,7],
       [8,f*16,26],[9,f*23,9],[10,f*25,27]]) {
-      rig[index].x+=(p.hangX+x-rig[index].x)*motor;
-      rig[index].y+=(seatY+y-rig[index].y)*motor;
+      const restX=index<9?-9:9,restY=index%2?18:31;
+      rig[index].x+=(neck.x+x+(restX-x)*legStand-rig[index].x)*motor;
+      rig[index].y+=(seatY+y+(restY-y)*legStand-rig[index].y)*motor;
     }
   }
-  // The neck holds the head upright independently of the swinging torso.
-  // Dampen motion relative to the shoulders so each new grip cannot whip
-  // the head back and forth. Hips, knees and feet remain passive.
-  const neck = rig[1], hip = rig[2], head = rig[0];
-  const neckSpring = 2025 * dt * dt, neckDamping = 1 - Math.exp(-70 * dt);
-  head.x += (neck.x-head.x)*neckSpring-((head.x-head.px)-(neck.x-neck.px))*neckDamping;
-  head.y += (neck.y-18-head.y)*neckSpring-((head.y-head.py)-(neck.y-neck.py))*neckDamping;
   for (let pass = 0; pass < 14; pass++) {
     for (const [ai, bi, length] of JOINTS) {
       const a = rig[ai], b = rig[bi], dx = b.x-a.x, dy = b.y-a.y;
       const d = Math.hypot(dx,dy) || 1, sum = mass[ai]+mass[bi];
+      if(!sum)continue;
       const correction = (d-length)/d;
       a.x += dx*correction*mass[ai]/sum;
       a.y += dy*correction*mass[ai]/sum;
@@ -120,7 +149,16 @@ export function moveHanging(p, support, input, solids, dt) {
         b.x += x*(radius-d)*.5; b.y += y*(radius-d)*.5;
       }
     }
-    for (let i = 0; i < rig.length; i++) {
+    // Keep a little knee flexion so a hanging leg cannot lock into one rod.
+    for(const index of [8,10]){
+      const foot=rig[index],dx=foot.x-hip.x,dy=foot.y-hip.y,d=Math.hypot(dx,dy);
+      if(d>36){
+        const correction=(d-36)/d,sum=mass[2]+mass[index];
+        hip.x+=dx*correction*mass[2]/sum;hip.y+=dy*correction*mass[2]/sum;
+        foot.x-=dx*correction*mass[index]/sum;foot.y-=dy*correction*mass[index]/sum;
+      }
+    }
+    for (let i = 2; i < rig.length; i++) {
       if ((i === 4 || i === 6) && i!==free) continue;
       collidePoint(rig[i], collision, i === 0 ? 10 : 3,
         pass === 0 ? origins[i] : rig[i], contacts[i]);
@@ -130,7 +168,7 @@ export function moveHanging(p, support, input, solids, dt) {
       rig[index].x = grips[i].x; rig[index].y = grips[i].y;
     }
     if(sitting>0) {
-      hip.x+=(p.hangX-hip.x)*.45*sitting;
+      hip.x+=(neck.x-hip.x)*.45*sitting;
       hip.y+=(seatY-hip.y)*.45*sitting;
     }
   }
@@ -146,4 +184,6 @@ export function moveHanging(p, support, input, solids, dt) {
   p.angularVelocity = Math.atan2(Math.sin(angle-(p.bodyAngle||0)),
     Math.cos(angle-(p.bodyAngle||0))) / dt;
   p.bodyAngle = angle;
+  return rising && state.climb>=.95 && Math.abs(neck.y-(support.y-57))<.1 &&
+    Math.abs(hip.y-(support.y-34))<.2;
 }

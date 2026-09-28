@@ -49,16 +49,19 @@ test("shimmying pulls the hands and leaves the torso and feet swinging after rel
     assert.ok([4,6].every(i=>Math.abs(Math.abs(p.rig[i].x-grip)-13)<4));
   }
   assert.ok(Math.min(...x)<-5&&Math.max(...x)>5,"body swings through the grip");
-  assert.ok(Math.min(...leg)<-10&&Math.max(...leg)>10,"legs lag and swing relative to the torso");
+  assert.ok(Math.min(...leg)<-5&&Math.max(...leg)>5&&Math.max(...leg)-Math.min(...leg)>20,
+    "legs lag and swing relative to the torso");
   assert.ok(Math.abs(p.bodyAngle-Math.atan2(p.rig[1].x-p.rig[2].x,p.rig[2].y-p.rig[1].y))<.001);
 });
 
 test("an individual foot impulse bends its knee without imposing a matching leg pose",()=>{
   const {p,advance}=fixture();advance(200,{duck:true});
   p.rig[8].px-=Math.sign(p.rig[8].x-p.rig[10].x)*3;p.rig[8].py+=2;
-  advance(12);
+  let legLength=37;
+  for(let i=0;i<12;i++){
+    advance(1);legLength=Math.min(legLength,distance(p.rig[2],p.rig[8]));
+  }
   assert.ok(distance(p.rig[8],p.rig[10])>10);
-  const legLength=distance(p.rig[2],p.rig[8]);
   assert.ok(legLength<35,"the knee bends instead of keeping a rigid straight leg");
   assert.ok(Math.abs(p.x-p.rig[2].x)<.001,"gameplay position follows the physical hips");
 });
@@ -78,8 +81,8 @@ test("hand changes and reversals keep the head upright while the body and legs s
       }
     }
     const range=values=>Math.max(...values)-Math.min(...values);
-    assert.ok(Math.max(...tilts)<.22,"the head does not whip with the torso at each grip");
-    assert.ok(range(heights)<12,"small shoulder movement does not become a large head bob");
+    assert.equal(Math.max(...tilts),0,"the head remains upright through grip changes");
+    assert.equal(range(heights),0,"the head stays at one height while moving and reversing");
     assert.ok(range(bodies)>.8&&range(legs)>25,"head control leaves the lower body loose");
   }
 });
@@ -103,10 +106,46 @@ test("the fighter sits with bent knees before releasing the hips into the drop",
   assert.ok(Math.abs(seated-(deck.y-5))<3,"hips rest on the platform");
   assert.ok(p.rig[0].y<deck.y-30&&p.rig[8].y>deck.y+10);
   assert.ok(distance(p.rig[2],p.rig[8])<35,"legs bend over the edge");
-  advance(24,{duck:true});
+  advance(12,{duck:true});
   assert.ok(Math.abs(p.rig[2].y-seated)<2,"brief seated pause");
   advance(70,{duck:true});
   assert.ok(p.rig[2].y>deck.y+40,"the body then drops below the grip");
+});
+
+test("lowering and climbing form continuous paths without jumping the body onto the deck",()=>{
+  for(const [dropTicks,reachTicks] of [[20,0],[180,0],[180,14]]){
+    const {p,deck,advance}=fixture();
+    let previous=structuredClone(p),maxStep=0;
+    for(let i=0;i<dropTicks;i++){
+      advance(1,{duck:true});
+      assert.ok(p.rig[0].y>=previous.rig[0].y-.01,"the head lowers without bouncing upward");
+      maxStep=Math.max(maxStep,...p.rig.map((q,j)=>distance(q,previous.rig[j])));
+      previous=structuredClone(p);
+    }
+    advance(reachTicks,{right:true});advance(1);previous=structuredClone(p);
+    for(let i=0;i<126;i++){
+      advance(1,{jump:true});
+      if(i<105)assert.ok(p.hangSupport,"getting up takes time instead of teleporting");
+      if(p.hangSupport)assert.ok(p.rig[0].y<=previous.rig[0].y+.15,"the head rises without bobbing or dipping first");
+      maxStep=Math.max(maxStep,...p.rig.map((q,j)=>distance(q,previous.rig[j])));
+      previous=structuredClone(p);
+    }
+    assert.equal(p.hangSupport,null);assert.equal(p.support,deck.id);
+    assert.equal(p.y,deck.y-30);assert.equal(p.ground,true);
+    assert.ok(maxStep<6,`every limb moves continuously: ${maxStep}`);
+  }
+});
+
+test("climbing follows a moving support and loses its grip when the support breaks",()=>{
+  const {w,p,deck,advance}=fixture();advance(180,{duck:true});advance(24,{right:true});
+  const x=p.rig[0].x;
+  for(let i=0;i<60;i++){
+    deck.x+=.2;deck.y+=.1;deck.dx=.2;deck.dy=.1;
+    advance(1,{jump:true});
+  }
+  assert.ok(p.hangSupport&&p.hangMotion.climb>0&&p.rig[0].x>x+5);
+  carveExplosion(w,{x:p.hangX,y:deck.y,radius:85});advance(1);
+  assert.equal(p.hangSupport,null);assert.ok(p.vy>0);
 });
 
 test("both directions alternate hands while each supporting grip stays fixed",()=>{
@@ -148,10 +187,11 @@ test("reaching the end of a deck leaves two distinct grips on the surviving supp
   }
 });
 
-test("late joins during the seated pause and a reaching hand resume without mutating received state",async()=>{
-  for(const stage of ["sit","reach"]){
+test("late joins while sitting, reaching or climbing resume without mutating received state",async()=>{
+  for(const stage of ["sit","reach","climb"]){
     const {w,p,advance}=fixture();advance(stage==="sit"?42:170,{duck:true});
     if(stage==="reach")advance(14,{right:true});
+    if(stage==="climb")advance(36,{jump:true});
     const state={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]};
     const joined=expandSnapshot(await decodeState(await encodeState(compactSnapshot(state))),validSnapshot);
     const original=structuredClone(joined),prediction=new GuestPrediction();
@@ -202,6 +242,8 @@ test("compact late joins preserve independent limb velocities and predict the sa
     m=>m.hangVelocity[3].y=101,m=>m.hangVelocity="bad",m=>m.hangVelocity=null,
     m=>m.hangMotion=null,m=>m.hangMotion.moving=2,m=>m.hangMotion.age=3,
     m=>m.hangMotion.time=Infinity,m=>m.hangMotion.left=-1,
+    m=>m.hangMotion.center=Infinity,m=>m.hangMotion.startY=151,
+    m=>m.hangMotion.climb=-.5,m=>m.hangMotion.climb=1,
   ]){
     const bad=structuredClone(joined);mutate(bad.players[0].motion);assert.equal(validSnapshot(bad),false);
   }

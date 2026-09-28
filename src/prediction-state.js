@@ -22,8 +22,9 @@ export function validMotion(m) {
     (m.hangSupport === null || typeof m.hangSupport === "string" && m.hangSupport.length <= 160);
 }
 function validHangMotion(s) {
-  return s && ["age","left","right","moving","time","from","to","seatY"].every(k=>Number.isFinite(s[k])) &&
+  return s && ["age","left","right","moving","time","from","to","center","startY","climb"].every(k=>Number.isFinite(s[k])) &&
     s.age>=0 && s.age<=2 && [-1,0,1].includes(s.moving) && s.time>=0 && s.time<=.6 &&
-    ["left","right","from","to"].every(k=>s[k]>=0&&s[k]<=10000) && Math.abs(s.seatY)<=150;
+    ["left","right","from","to"].every(k=>s[k]>=0&&s[k]<=10000) &&
+    Math.abs(s.center)<=10000 && Math.abs(s.startY)<=150 && (s.climb===-1||s.climb>=0&&s.climb<=.95);
 }
 export const validInputSequence = n => Number.isSafeInteger(n) && n >= 0;

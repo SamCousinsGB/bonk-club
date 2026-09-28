@@ -1,5 +1,5 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
-import { beginHang, moveHanging } from "./hanging.js";
+import { beginHang, climbFromHang, moveHanging } from "./hanging.js";
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { BRIDGE_ARENA } from "./bridge-arena.js";
 import { updateBridge } from "./bridge.js";
@@ -677,15 +677,14 @@ export class World {
       if (i.jump && !p.jumpHeld && !solids.some(s => s !== hanging && !thin(s) &&
           p.x + 15 > s.x && p.x - 15 < s.x + s.w &&
           hanging.y > s.y && hanging.y - 58 < s.y + s.h)) {
-        const oldY = p.y;
-        p.y = hanging.y - 30;
-        for (const q of p.rig || []) { q.y += p.y - oldY; q.py += p.y - oldY; }
-        p.hangSupport = null; p.ground = true; p.support = hanging.id;
-        p.vx = p.vy = 0; p.jumps = 0; p.jumpHeld = true;
-        return;
+        climbFromHang(p,hanging);
       }
-      moveHanging(p, hanging, i, solids, dt);
-      p.ground = false; p.support = null; p.prone = false;
+      const stood=moveHanging(p, hanging, i, solids, dt);
+      p.ground = stood; p.support = stood?hanging.id:null; p.prone = false;
+      if(stood){
+        p.hangSupport=null;p.y=hanging.y-30;p.vx=p.vy=0;p.jumps=0;
+        p.bodyAngle=p.angularVelocity=0;
+      }
       p.cooldown = Math.max(0, p.cooldown - dt);
       p.stun = Math.max(0, p.stun - dt);
       p.swing = 0; p.block = false; p.gaitSpeed = 0;

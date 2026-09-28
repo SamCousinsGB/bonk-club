@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.4",
-  "releaseNotes": "Colossus beam lighting, heat haze and terrain impact effects",
+  "version": "0.64.5",
+  "releaseNotes": "Smooth lowering and pull-ups, with a fixed head and swinging waist and legs",
   "private": true,
   "type": "module",
   "scripts": {
