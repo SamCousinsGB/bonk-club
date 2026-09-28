@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.3",
-  "releaseNotes": "Stationary distant Colossus, joined shoulders and corroded copper eye beams",
+  "version": "0.64.4",
+  "releaseNotes": "Colossus beam lighting, heat haze and terrain impact effects",
   "private": true,
   "type": "module",
   "scripts": {

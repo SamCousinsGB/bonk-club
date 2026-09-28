@@ -17,9 +17,12 @@ Protocol 97 prevents mixed eye origins in an online room.
 Atmosphere is applied to the assembled figure using the landscape's airlight.
 Wide valley fog crosses both scenery and figure. There is no emissive body,
 hand halo, orbiting corona or rising energy particle effect. The eye warning
-and actual damaging beams remain, now with recessed copper eye light and
-procedural red/copper oxide grain, dark pits and green patina in the actual
-beam cone. Only small host-driven gaze turns change the creature's pose.
+and actual damaging beams remain. The v0.64.4 beam rebuild uses a warm emissive
+core, copper/red scattering, dilute travelling haze, restrained optical bloom
+and refraction in the air beside the beam. Opaque oxide pigment, green flecks
+and wire-like seams are removed. Surviving stone receives spill, vapor and
+sparks only near the actual cuts, merging adjacent collision slices into one
+impact. Only small host-driven gaze turns change the creature's pose.
 
 ## Generation prompt
 

@@ -2,11 +2,9 @@ import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beam
 import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
 import {COLOSSUS_FIGURE} from './colossus-rig.js';
 
-const TAU=Math.PI*2;
-let backdrop, foothills, airlight, mist, energyTexture;
+let backdrop, foothills, airlight, mist, energyTexture, beamBloom, vapour, heatSource;
 const clamp=n=>Math.max(0,Math.min(1,n));
 const line=(c,x,y,ex,ey,color,width)=>{c.beginPath();c.moveTo(x,y);c.lineTo(ex,ey);c.strokeStyle=color;c.lineWidth=width;c.stroke();};
-const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
 export function warmColossusArt() {
   warmColossusFigure();
   if(!energyTexture&&typeof document!=='undefined')beamTexture();
@@ -73,8 +71,8 @@ function cloudTexture() {
 function glow(c,x,y,r,alpha,hot=false) {
   if(alpha<=0)return;
   const g=c.createRadialGradient(x,y,0,x,y,r);
-  g.addColorStop(0,hot?`rgba(244,153,93,${alpha})`:`rgba(186,62,37,${alpha})`);
-  g.addColorStop(.18,`rgba(178,48,28,${alpha*.42})`);
+  g.addColorStop(0,hot?`rgba(255,224,181,${alpha})`:`rgba(186,62,37,${alpha})`);
+  g.addColorStop(.18,`rgba(223,78,40,${alpha*.42})`);
   g.addColorStop(1,'rgba(102,20,15,0)');
   c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
 }
@@ -87,22 +85,35 @@ function beamTexture() {
     const a=Math.floor(x),b=Math.floor(y),fx=x-a,fy=y-b,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
     return (hash(a,b)*(1-u)+hash(a+1,b)*u)*(1-v)+(hash(a,b+1)*(1-u)+hash(a+1,b+1)*u)*v;
   };
-  // Cached oxide grain occupies the same narrowing cone as physical contact:
-  // radius 60 at the far end, with a faint, clearly separate red haze outside.
-  // Dark pits remain opaque pigment instead of becoming white under screen blend.
+  beamBloom=document.createElement('canvas');beamBloom.width=720;beamBloom.height=1024;
+  const b=beamBloom.getContext('2d'),bloom=b.createImageData(720,1024),bd=bloom.data;
+  // Radiance across a cylindrical shaft seen in perspective: a continuous hot
+  // core, copper penumbra and broad red scattering. Density only modulates light;
+  // no opaque pigment, surface grain, parallel wires or hard triangular border.
   for(let y=0;y<1024;y++)for(let x=0;x<720;x++){
-    const depth=(y+.5)/1024,u=(x-359.5)/(120*depth),edge=Math.abs(u),i=(y*720+x)*4;
-    if(edge>2.5)continue;
-    const broad=noise(u*2.6+20,y/28),grain=noise(u*41+120,y/5);
-    const vein=noise(u*5+40,y/95),pit=clamp((broad-.49)*4);
-    const copper=clamp((grain*.22+broad*.4+vein*.38-.32)*1.9),patina=clamp((noise(u*4+63,y/38)-.58)*5);
-    const interior=clamp((1.04-edge)*24);
-    d[i]=105+copper*135-pit*62-patina*49;
-    d[i+1]=25+copper*104-pit*21+patina*23;
-    d[i+2]=20+copper*53-pit*12+patina*17;
-    d[i+3]=interior*(224+grain*31)+(1-interior)*Math.exp(-Math.max(0,edge-1)*3.8)*23;
+    const depth=(y+.5)/1024,u=(x-359.5)/(120*depth),i=(y*720+x)*4;
+    if(Math.abs(u)>3)continue;
+    const density=.87+noise(u*2+19,y/91)*.13;
+    const drift=(noise(7,y/135)-.5)*.075;
+    const core=Math.exp(-(((u+drift)/.36)**2)),mantle=Math.exp(-u*u*1.65);
+    const scattering=Math.exp(-u*u*.44);
+    d[i]=255;d[i+1]=72+mantle*67+core*106;d[i+2]=35+mantle*41+core*150;
+    d[i+3]=Math.min(255,(core*215+mantle*117)*density);
+    bd[i]=244;bd[i+1]=62+mantle*33;bd[i+2]=30+mantle*16;
+    bd[i+3]=scattering*64*density;
   }
-  c.putImageData(pixels,0,0);
+  c.putImageData(pixels,0,0);b.putImageData(bloom,0,0);
+  // One soft cloud sprite serves the dilute shaft haze and vaporised stone.
+  // The radial taper removes every rectangular edge before compositing.
+  vapour=document.createElement('canvas');vapour.width=192;vapour.height=192;
+  const v=vapour.getContext('2d'),cloud=v.createImageData(192,192);
+  for(let y=0;y<192;y++)for(let x=0;x<192;x++){
+    const u=(x-95.5)/96,w=(y-95.5)/96,r=u*u+w*w,i=(y*192+x)*4;
+    const billow=noise(x/43,y/43)*.6+noise(x/17,y/17)*.3+noise(x/7,y/7)*.1;
+    cloud.data[i]=226;cloud.data[i+1]=140;cloud.data[i+2]=99;
+    cloud.data[i+3]=Math.max(0,1-r)**2*(.25+billow*.75)*210;
+  }
+  v.putImageData(cloud,0,0);
   return energyTexture;
 }
 function eye(c,h,index,energy) {
@@ -168,10 +179,82 @@ export function colossusShake(state) {
   const p=colossusPhase(h.age,h.chargeAt);
   return p.firing?8+9*Math.exp(-p.fire*18):p.charge**4*3;
 }
+function heatShimmer(c,beams,time){
+  if(!heatSource)heatSource=document.createElement('canvas');
+  const {width,height}=c.canvas;
+  if(heatSource.width!==width||heatSource.height!==height){heatSource.width=width;heatSource.height=height;}
+  const s=heatSource.getContext('2d');s.clearRect(0,0,width,height);s.drawImage(c.canvas,0,0);
+  // Refract only the air beside each shaft, using one scene capture. The inner
+  // and outer cones form a narrow fringe; bounded offsets cannot drag the HUD.
+  for(const beam of beams){
+    const length=Math.hypot(beam.ex-beam.x,beam.ey-beam.y),nx=(beam.ey-beam.y)/length,ny=-(beam.ex-beam.x)/length;
+    const first=Math.max(0,Math.floor(c.getTransform().transformPoint(beam).y));
+    c.save();c.beginPath();
+    for(const r of [beam.radius*1.8,beam.radius*.7]){
+      c.moveTo(beam.x,beam.y);c.lineTo(beam.ex+nx*r,beam.ey+ny*r);c.lineTo(beam.ex-nx*r,beam.ey-ny*r);c.closePath();
+    }
+    c.clip('evenodd');c.setTransform(1,0,0,1,0,0);c.globalAlpha=.65;
+    const step=Math.max(1,(height-first)/32);
+    for(let y=first;y<height;y+=step){
+      const h=Math.min(step,height-y),depth=(y-first)/Math.max(1,height-first);
+      const dx=Math.sin(time*8+y*.035+beam.eye)*(.4+depth)*width/1600;
+      c.drawImage(heatSource,0,y,width,h,dx,y,width,h);
+    }
+    c.restore();
+  }
+}
+function surfaceLight(c,state,beam,time,reduced){
+  const hits=[],platforms=state.platforms.slice(0,260),bottoms=new Map();
+  for(const p of platforms){
+    const key=Math.round((p.y+p.h)*10),row=bottoms.get(key)||[];row.push(p);bottoms.set(key,row);
+  }
+  for(const p of platforms){
+    if(p.y<beam.y||p.y>1440)continue;
+    const edges=beamEdges(beam,p.y),lo=Math.min(...edges),hi=Math.max(...edges),x=beamX(beam,p.y);
+    const spread=(hi-lo)*.5+65,left=Math.max(p.x,x-spread),right=Math.min(p.x+p.w,x+spread);
+    if(right>left){
+      // Remove faces covered by the slice above. Collision strips inside one
+      // cut slab must not turn into a stack of illuminated horizontal shelves.
+      let spans=[[left,right]];
+      for(const above of bottoms.get(Math.round(p.y*10))||[]){
+        spans=spans.flatMap(([a,b])=>above.x>=b||above.x+above.w<=a?[[a,b]]:
+          [[a,Math.min(b,above.x)],[Math.max(a,above.x+above.w),b]].filter(([a,b])=>b-a>.1));
+      }
+      const g=c.createLinearGradient(x-spread,p.y,x+spread,p.y);
+      g.addColorStop(0,'#ff704000');g.addColorStop(.5,'#ffd6a699');g.addColorStop(1,'#ff704000');
+      c.fillStyle=g;for(const [a,b] of spans)c.fillRect(a,p.y,b-a,Math.min(3,p.h));
+    }
+    for(const edge of [p.x,p.x+p.w]){
+      if(Math.min(Math.abs(edge-lo),Math.abs(edge-hi))>14||edge<0||edge>2560)continue;
+      // Many eight-unit collision slices describe one cut face. Merge their
+      // visible contacts so that neither bloom nor particles pile up per slice.
+      if(hits.some(hit=>Math.hypot(hit.x-edge,hit.y-p.y)<80))continue;
+      hits.push({x:edge,y:p.y});
+    }
+  }
+  for(const hit of hits.sort((a,b)=>b.y-a.y).slice(0,8)){
+    c.save();c.translate(hit.x,hit.y);c.scale(1,.42);glow(c,0,0,100,.65,true);c.restore();
+    glow(c,hit.x,hit.y,32,.8,true);
+    const seed=hit.x*.031+hit.y*.017+beam.eye;
+    for(let n=0;n<4;n++){
+      const age=reduced?(n+.5)/4:(time*.42+n*.27+seed)%1,r=26+age*54;
+      c.save();c.globalAlpha*=.19*(1-age);
+      c.drawImage(vapour,hit.x+Math.sin(seed+n)*age*38-r,hit.y-12-age*72-r,r*2,r*2);c.restore();
+    }
+    if(!reduced)for(let n=0;n<12;n++){
+      const age=(time*1.3+n*.381+seed)%1,a=n*2.399+seed;
+      const vx=Math.cos(a)*(42+n*4),vy=-55-Math.abs(Math.sin(a))*(90+n*3);
+      const x=hit.x+vx*age,y=hit.y+vy*age+95*age*age;
+      line(c,x,y,x-vx*.025,y-(vy+190*age)*.025,`rgba(255,${170+Math.floor((1-age)*58)},118,${(1-age)**2*.8})`,1.3);
+    }
+  }
+}
 export function drawColossusBeam(c,state,reduced=false) {
   const h=state.phase==='fight'&&state.hazards.find(h=>h.type==='colossus');if(!h)return;
   const phase=colossusPhase(h.age,h.chargeAt);if(!phase.firing && phase.charge<=0)return;
-  for(const beam of colossusBeams(h))drawColossusRay(c,state,h,phase,beam,reduced);
+  const beams=colossusBeams(h);
+  if(phase.firing&&!reduced)heatShimmer(c,beams,h.age);
+  for(const beam of beams)drawColossusRay(c,state,h,phase,beam,reduced);
 }
 function drawColossusRay(c,state,h,phase,beam,reduced) {
   const a=colossusBeam(h,0,beam.eye),b=colossusBeam(h,1,beam.eye);
@@ -195,46 +278,28 @@ function drawColossusRay(c,state,h,phase,beam,reduced) {
     }
     c.restore();return;
   }
-  // Project surviving structures away from the light; shadows change with the
-  // live cuts and never leave a phantom slab spanning an erased opening.
-  c.fillStyle=reduced?'#050c170c':'#03091618';
-  for(const p of state.platforms.slice(0,260)){
-    const project=x=>({x:beam.x+(x-beam.x)*2.8,y:beam.y+(p.y-beam.y)*2.8});
-    const l=project(p.x),r=project(p.x+p.w);
-    c.beginPath();c.moveTo(p.x,p.y);c.lineTo(p.x+p.w,p.y);c.lineTo(r.x,r.y);c.lineTo(l.x,l.y);c.closePath();c.fill();
-  }
+  // Perspective, exposure and scattering supply depth. A fully opaque shadow
+  // from every collision slice would stripe and repeatedly darken the scene.
   const envelope=Math.min(1,(phase.fire*COLOSSUS.fire+.03)/.12,(1-phase.fire)*COLOSSUS.fire/.18);
-  c.globalAlpha=envelope;
-  // Tarnished red/copper grain fills the dangerous cone. Thin migrating seams
-  // and oxide flecks move along its length without shifting its collision edge.
+  c.globalAlpha=envelope;c.globalCompositeOperation='screen';
   c.save();c.translate(beam.x,beam.y);c.rotate(Math.atan2(beam.ey-beam.y,beam.ex-beam.x)-Math.PI/2);
   const length=Math.hypot(beam.ex-beam.x,beam.ey-beam.y);
+  beamTexture();
+  c.drawImage(beamBloom,-280,0,560,length);
   c.drawImage(beamTexture(),-180,0,360,length);
   const time=reduced?0:h.age;
-  for(let n=0;n<3;n++){
-    c.beginPath();c.moveTo(0,0);
-    for(let step=1;step<=24;step++){
-      const depth=step/24,x=((n-1)*.56+Math.sin(step*.71+n*2.3-time*.45)*.12)*beam.radius*depth;
-      if((step+n)%7<3)c.moveTo(x,length*depth);else c.lineTo(x,length*depth);
-    }
-    c.strokeStyle=n===1?'#eab08070':'#3d242680';c.lineWidth=n===1?1.1:2.3;c.stroke();
-  }
-  for(let n=0;n<24;n++){
-    const depth=(n*.6180339+time*.13)%1,lane=Math.sin(n*7.13)*.88;
-    c.fillStyle=n%4===0?'#78908280':'#371e20b0';
-    c.fillRect(lane*beam.radius*depth,length*depth,(1+n%3)*depth,(5+n%7)*depth);
+  // Thin turbulent pockets of air catch the light without becoming a solid
+  // surface. Motion comes from travelling density, not flickering brightness.
+  for(let n=0;n<9;n++){
+    const depth=.08+((n*.6180339+time*.055)%1)*.92;
+    const x=Math.sin(n*3.71+time*.17)*beam.radius*depth*.85;
+    const w=(70+n%3*24)*depth,hazeLength=110+depth*190;
+    c.save();c.globalAlpha=envelope*.14*Math.sin(depth*Math.PI);
+    c.drawImage(vapour,x-w/2,length*depth-hazeLength/2,w,hazeLength);c.restore();
   }
   c.restore();
-  c.globalCompositeOperation='screen';
-  glow(c,beam.x,beam.y,34,.45,true);
-  // Bloom is local; it never whites out the HUD or hides all the escape routes.
-  c.fillStyle=`rgba(154,48,28,${reduced ? .009 : .02})`;c.fillRect(0,0,2560,1440);
-  for(const p of state.platforms.slice(0,260)){
-    const x=beamX(beam,p.y);
-    for(const edge of [p.x,p.x+p.w])if(Math.abs(edge-x)<110){
-      glow(c,edge,p.y,70,.3,true);
-      line(c,edge,p.y,edge,p.y+p.h,'#de8f5d',2);
-    }
-  }
+  glow(c,beam.x,beam.y,52,.7,true);
+  c.save();c.translate(beam.x,beam.y);c.scale(1,.08);glow(c,0,0,100,.38,true);c.restore();
+  surfaceLight(c,state,beam,time,reduced);
   c.restore();
 }

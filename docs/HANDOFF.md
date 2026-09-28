@@ -1,5 +1,24 @@
 # Bonk Club — current handoff
 
+## Colossus beam optics (v0.64.4 / protocol 97 unchanged)
+
+- Replaces the opaque patterned beam with an emissive warm core, translucent
+  copper/red penumbra and soft atmospheric bloom. Cached density variation and
+  travelling haze add depth without wires, green pigment or a hard cone border.
+- A bounded scene capture refracts only the air beside each shaft. The eyes
+  receive restrained optical flare; no body aura or get-up animation returns.
+- Light catches surviving stone around the actual cut, with local vapor and
+  sparks. Neighbouring collision slices share one impact, and covered internal
+  faces do not become illuminated stripes. The old repeated slab shadows are
+  removed. Reduced motion keeps steady light and disables refraction/sparks.
+- Art only: authoritative beam paths, damage, holy fire, result timing and wire
+  protocol stay unchanged. Thirty focused checks, the full regular suite and
+  browser build pass. Desktop pose/motion inspection and the release bundle's
+  real relay host/guest controls, both beams, repeats, changed-world late join,
+  reduced motion, resizing and host departure pass without page errors. Confirm
+  release CI, parity and public verification before describing this as live.
+  Evidence: `bonk-club-qa/colossus-cinematic/`.
+
 ## Stationary Colossus and copper beams (v0.64.3 / protocol 97)
 
 - Sam removed the get-up animation entirely: the creature is present at full
