@@ -11,11 +11,18 @@
 - Entry and climb progress plus the support-relative shoulder position travel
   with host state. The shared solver preserves guest prediction and late joins
   during lowering, a reach or a pull-up. Refresh all tabs for protocol 98.
-- Focused checks and desktop pose inspection pass. Source relay host/guest QA
+- All 55 focused checks, the full integrated regular suite and desktop pose
+  inspection pass. The local full stress run passed before the renderer-only
+  Colossus integration; all six final CI stress groups pass. Source relay QA
   measured zero head bob/tilt while the waist swung, checked pull-ups on both
-  peers, changed-world joins and support break/release. Final integrated suite,
-  stress and release verification are in progress. Includes v0.64.4 below.
-- Evidence and motion clip: `bonk-club-qa/fluid-hanging/`.
+  peers, changed-world joins and support break/release. Includes v0.64.4 below.
+- Revision `bbf0ca3` passed [release workflow 36497329379](https://github.com/SamCousinsGB/bonk-club/actions/runs/36497329379),
+  including shared/server tests, Windows/Linux executable checks, release
+  verification and Pages. All 19 local, CI and public files match exactly.
+  Final-bundle and public relay host/guest lowering, hand steps, continuous
+  pull-ups, late joins, reduced motion, desktop resizing and host departure
+  passed without page errors. The task preview is stopped.
+- Evidence and motion clip: `bonk-club-qa/fluid-hanging/drop-hang-pull-up.webm`.
 
 ## Colossus beam optics (v0.64.4 / protocol 97 unchanged)
 
