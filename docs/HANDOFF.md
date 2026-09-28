@@ -9,11 +9,18 @@
 - The shared host/prediction solver uses the existing transported rig state;
   no new fields are needed. Refresh all tabs for protocol 96 so both sides
   use the same neck response.
-- Focused hanging/prediction checks and the full regular suite pass, including
+- All 53 focused hanging/prediction checks and the full regular suite pass, including
   a regression covering head tilt, vertical bob, reversals and retained body
-  swing. Desktop pose inspection and source relay host/guest/late-join checks
-  pass. Final stress and release verification are still in progress.
-- Evidence and motion clip: `bonk-club-qa/steady-hanging-head/`.
+  swing. The full local stress run and all six CI stress groups pass. Desktop
+  pose inspection and source relay host/guest/late-join checks pass.
+- Revision `40b02c2` passed [release workflow 36494647923](https://github.com/SamCousinsGB/bonk-club/actions/runs/36494647923),
+  including shared/server tests, Windows/Linux executable checks, release
+  verification and Pages. All 19 local, CI and public files match exactly.
+  Final-bundle and public relay host/guest hanging, hand steps, late joins,
+  reduced motion, desktop resizing and host departure passed without page
+  errors. The public seated pause stayed still before the gradual drop.
+- The task preview is stopped. Evidence and motion clip:
+  `bonk-club-qa/steady-hanging-head/`.
 
 ## Alternating hanging grips and seated entry (v0.64.1 / protocol 95)
 
