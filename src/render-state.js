@@ -10,7 +10,7 @@ const simulationOnly = new Set([
   "freezePose", "freezeCooldown", "stretchOrigin", "originX", "originY", "originAngle", "fieldId",
   "px", "py", "swept", "blockHeld", "impactTime", "coyote", "jumpHeld", "jumpBuffer", "throwHeld", "duckHeld", "pickupCooldown", "support",
   "dropThrough", "stun", "cooldown", "airLunge", "angularVelocity", "landing", "ownerLock", "travelled", "gaitSpeed",
-  "crashCooldown", "hangX",
+  "crashCooldown", "hangX", "hangMotion",
   "jetTick",
   "cutX",
 ]);

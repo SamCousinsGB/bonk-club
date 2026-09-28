@@ -130,7 +130,7 @@ test("thin decks land from above, hold a hanging fighter, then release to solid 
   w.cover=[];place(p,870,deck.y-100,{vy:100});
   for(let i=0;i<60;i++)w.move(p,cleanInput({}),STEP);
   assert.equal(p.support,deck.id);const y=p.y;
-  for(let i=0;i<80;i++)w.move(p,cleanInput({duck:true}),STEP);
+  for(let i=0;i<150;i++)w.move(p,cleanInput({duck:true}),STEP);
   assert.equal(p.hangSupport,deck.id);assert.ok(Math.abs(p.y-(deck.y+deck.h+60))<12);
   assert.equal(p.ground,false);assert.equal(p.prone,false);
   w.move(p,cleanInput({}),STEP);
@@ -164,9 +164,9 @@ test("transmission cable tiles support hanging until a second S press",()=>{
   const w=fixture("transmission");for(let i=0;i<40;i++)updateCables(w,STEP);
   const tile=cableSolids(w).find(s=>s.x>1150),p=w.players[0];assert.ok(tile);
   place(p,tile.x+tile.w/2,tile.y-30,{ground:true,support:tile.id});const start=p.y;
-  for(let i=0;i<20;i++)w.move(p,cleanInput({duck:true}),STEP);
+  for(let i=0;i<150;i++)w.move(p,cleanInput({duck:true}),STEP);
   assert.equal(p.hangSupport,tile.id);assert.ok(p.y>start+55&&!p.ground);
-  assert.ok(p.x>=tile.x&&p.x<=tile.x+tile.w);
+  assert.ok(p.hangX>=tile.x&&p.hangX<=tile.x+tile.w);
   w.move(p,cleanInput({}),STEP);w.move(p,cleanInput({duck:true}),STEP);
   assert.equal(p.hangSupport,null);assert.ok(p.vy>0);
 });
@@ -209,7 +209,7 @@ test("a hanging fighter follows a moving deck and survives a hot-join snapshot",
   const oldY=p.y;
   for(let i=0;i<30;i++){deck.y+=.4;deck.dy=.4;w.move(p,cleanInput({right:true}),STEP);}
   assert.ok(p.y>oldY+5);
-  assert.ok(Math.abs(p.rig[4].y-deck.y-deck.h)<.01);
+  assert.ok([4,6].some(i=>Math.abs(p.rig[i].y-deck.y-deck.h)<.01));
   assert.ok(p.x>870);
 });
 

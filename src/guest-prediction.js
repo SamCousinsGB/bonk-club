@@ -53,7 +53,7 @@ export class GuestPrediction {
       this.pending = []; this.player = null; this.context = null; return;
     }
     this.pending = this.pending.filter(c => c.seq > ack);
-    this.player = { ...structuredClone(p), ...p.motion };
+    this.player = { ...structuredClone(p), ...structuredClone(p.motion) };
     // Hanging needs each loose limb's own momentum when replaying a host pose.
     // Other active poses can reconstruct omitted history from body velocity.
     for (const [i, q] of (this.player.rig || []).entries()) {

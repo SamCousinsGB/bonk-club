@@ -41,11 +41,12 @@ test("hanging starts from the walking pose and falls continuously into a grip",(
 
 test("shimmying pulls the hands and leaves the torso and feet swinging after release",()=>{
   const {p,advance}=fixture();advance(180,{duck:true});advance(55,{right:true});
+  for(let i=0;i<120&&p.hangMotion.moving!==-1;i++)advance(1);
+  assert.equal(p.hangMotion.moving,-1);advance(2);
   const grip=p.hangX, x=[], leg=[];
   for(let i=0;i<240;i++){
     advance(1);x.push(p.rig[2].x-grip);leg.push(p.rig[8].x-p.rig[2].x);
-    assert.ok(Math.abs(p.rig[4].x-(grip-13))<.001);
-    assert.ok(Math.abs(p.rig[6].x-(grip+13))<.001);
+    assert.ok([4,6].every(i=>Math.abs(Math.abs(p.rig[i].x-grip)-13)<4));
   }
   assert.ok(Math.min(...x)<-5&&Math.max(...x)>5,"body swings through the grip");
   assert.ok(Math.min(...leg)<-10&&Math.max(...leg)>10,"legs lag and swing relative to the torso");
@@ -70,8 +71,78 @@ test("hanging limbs collide with solid scenery while hands follow a moving suppo
     deck.x+=.2;deck.dx=.2;deck.y+=.15;deck.dy=.15;advance(1,{right:true});
     assert.ok(p.rig.slice(7).every(q=>q.x<=wall.x-2.9||q.y<wall.y-3),"loose legs cannot pass through a wall");
   }
-  assert.ok(p.hangX>900);
-  assert.ok(Math.abs(p.rig[4].y-deck.y-deck.h)<.01);
+  assert.ok(p.hangX>=887&&p.hangX<915,"the moving deck carries the planted hand up to the obstruction");
+  assert.ok([4,6].some(i=>Math.abs(p.rig[i].y-deck.y-deck.h)<.01));
+});
+
+test("the fighter sits with bent knees before releasing the hips into the drop",()=>{
+  const {p,deck,advance}=fixture();
+  advance(36,{duck:true});
+  const seated=p.rig[2].y;
+  assert.ok(Math.abs(seated-(deck.y-5))<3,"hips rest on the platform");
+  assert.ok(p.rig[0].y<deck.y-30&&p.rig[8].y>deck.y+10);
+  assert.ok(distance(p.rig[2],p.rig[8])<35,"legs bend over the edge");
+  advance(24,{duck:true});
+  assert.ok(Math.abs(p.rig[2].y-seated)<2,"brief seated pause");
+  advance(70,{duck:true});
+  assert.ok(p.rig[2].y>deck.y+40,"the body then drops below the grip");
+});
+
+test("both directions alternate hands while each supporting grip stays fixed",()=>{
+  for(const dir of [-1,1]){
+    const {p,deck,advance}=fixture();advance(160,{duck:true});
+    const start=p.x,sequence=[];let previous=-1,airborneReach=false;
+    for(let i=0;i<150;i++){
+      advance(1,{left:dir<0,right:dir>0});
+      const s=p.hangMotion;
+      if(s.moving===-1)continue;
+      if(s.moving!==previous){sequence.push(s.moving);previous=s.moving;}
+      const held=s.moving===0?6:4,offset=s.moving===0?s.right:s.left;
+      assert.ok(Math.abs(p.rig[held].x-deck.x-offset)<.001);
+      assert.ok(Math.abs(p.rig[held].y-deck.y-deck.h)<.001);
+      airborneReach ||= p.rig[s.moving===0?4:6].y>deck.y+deck.h+8;
+    }
+    assert.ok(sequence.length>=3&&sequence.every((hand,i)=>!i||hand!==sequence[i-1]));
+    assert.ok((p.x-start)*dir>50&&airborneReach);
+    advance(90,{left:dir>0,right:dir<0});
+    assert.ok(p.hangMotion.moving!==-1,"reversal starts a new reach");
+  }
+});
+
+test("a blocked reaching hand returns to its grip when movement stops",()=>{
+  const {w,p,deck,advance}=fixture();advance(170,{duck:true});
+  w.platforms.push({id:"hand-obstruction",x:890,y:deck.y+14,w:100,h:120,hp:100,material:"metal"});
+  advance(90,{right:true});assert.notEqual(p.hangMotion.moving,-1);
+  advance(120);assert.equal(p.hangMotion.moving,-1);
+  assert.ok([4,6].every(i=>Math.abs(p.rig[i].y-deck.y-deck.h)<.01));
+});
+
+test("reaching the end of a deck leaves two distinct grips on the surviving support",()=>{
+  for(const dir of [-1,1]){
+    const {p,deck,advance}=fixture();advance(170,{duck:true});
+    advance(360,{left:dir<0,right:dir>0});
+    assert.equal(p.hangMotion.moving,-1);
+    assert.ok(Math.abs(p.hangMotion.left-p.hangMotion.right)>6);
+    assert.ok([4,6].every(i=>p.rig[i].x>=deck.x&&p.rig[i].x<=deck.x+deck.w));
+  }
+});
+
+test("late joins during the seated pause and a reaching hand resume without mutating received state",async()=>{
+  for(const stage of ["sit","reach"]){
+    const {w,p,advance}=fixture();advance(stage==="sit"?42:170,{duck:true});
+    if(stage==="reach")advance(14,{right:true});
+    const state={...new RenderSnapshots().make(w.snapshot()),inputAcks:[0,0,0,0]};
+    const joined=expandSnapshot(await decodeState(await encodeState(compactSnapshot(state))),validSnapshot);
+    const original=structuredClone(joined),prediction=new GuestPrediction();
+    prediction.receive(joined,0,1000);
+    for(let i=1;i<=9;i++){
+      const input=stage==="reach"?{right:true}:{};
+      advance(2,input);prediction.advance(cleanInput(input),i,1000+i*1000/60);
+    }
+    assert.deepEqual(joined,original,"prediction owns a copy of grip and reach state");
+    assert.ok(distance(prediction.player,p)<1,stage);
+    assert.ok(p.rig.every((q,i)=>distance(q,prediction.player.rig[i])<1),stage);
+  }
 });
 
 test("letting go retains swing momentum and broken supports, hits, death and reset release the hands",()=>{
@@ -108,6 +179,8 @@ test("compact late joins preserve independent limb velocities and predict the sa
   for(const mutate of [
     m=>m.hangX=Infinity,m=>m.hangVelocity.pop(),m=>m.hangVelocity[8].x=Infinity,
     m=>m.hangVelocity[3].y=101,m=>m.hangVelocity="bad",m=>m.hangVelocity=null,
+    m=>m.hangMotion=null,m=>m.hangMotion.moving=2,m=>m.hangMotion.age=3,
+    m=>m.hangMotion.time=Infinity,m=>m.hangMotion.left=-1,
   ]){
     const bad=structuredClone(joined);mutate(bad.players[0].motion);assert.equal(validSnapshot(bad),false);
   }

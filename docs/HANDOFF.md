@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Alternating hanging grips and seated entry (v0.64.1 / protocol 95)
+
+- Pressing S/down now lowers the fighter into a bent-knee seated pose, pauses
+  briefly on the support, then releases the hips into the physical hang.
+  The torso and legs keep their existing loose gravity-driven motion.
+- Sideways travel alternates hands: one stays planted relative to the moving
+  support while the other releases, swings below the edge and catches ahead.
+  The supporting elbow flexes and the body follows. Stopping finishes the
+  current reach; reversals swap direction and obstructed reaches can return.
+- The seated phase, individual grips and active reach travel with host state.
+  Prediction copies this state, preserving independent limb velocities and
+  late joins during either sitting or reaching. Refresh all tabs for protocol 95.
+- Focused hanging, transport, prediction and inherited death-physics checks
+  pass; desktop pose inspection confirms the sit, hand alternation and loose
+  limbs. Includes the concurrent v0.64.0 Colossus update below. Final release
+  checks and publication are pending. Evidence: `bonk-club-qa/hanging-handsteps/`.
+
 ## Colossus posture and holy fire (v0.64.0 / protocol 94)
 
 - Sam corrected the first distant-pose pass: the head needed more size, the
