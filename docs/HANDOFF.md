@@ -37,9 +37,20 @@
 - Focused tests, the integrated full regular suite, Colossus stress shard
   and browser build pass. Desktop staged host/guest checks cover movement,
   both beams, repeats, reduced motion, a guest joining mid-burn and the result
-  appearing 5.15 seconds after ignition. No page errors. Includes the natural
-  hanging update below. Confirm final CI/Pages and exact public parity before
-  describing this update as live. Evidence: `bonk-club-qa/colossus-holy/`.
+  appearing 5.15 seconds after ignition. Includes the natural hanging update below.
+- Revision `88ee682` passed [release workflow 36492875598](https://github.com/SamCousinsGB/bonk-club/actions/runs/36492875598):
+  all six arena stress groups, shared/server tests, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files
+  match exactly. Public desktop relay host/guest play passed movement, twin
+  beams, repeated attacks, changed-world late join, reduced motion, window
+  resizing and host departure without page errors.
+- A dedicated public relay check confirmed a third player joining mid-burn
+  sees the swollen, blistering victim; the result appeared 5.11 seconds after
+  ignition, after ash. The first attempt timed out joining; the next loaded
+  after the short effect ended. Preloading the invite page before ignition
+  made the timing-specific check pass without game changes. The staged check
+  also passed twice. Evidence and a 20-second gameplay clip:
+  `bonk-club-qa/colossus-holy/`. Both task-owned previews are stopped.
 
 ## Natural hanging (v0.63.8 / protocol 93)
 
