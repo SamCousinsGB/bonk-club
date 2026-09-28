@@ -50,17 +50,20 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     limb(c,leg.knee,leg.foot,left?[173,1131,146,390]:[706,1131,143,390],
       left?[270,1163]:[755,1163],left?[232,1483]:[793,1483],.8);
   }
+  // Use each continuous arm plate without a cut across the elbow. The torso
+  // covers only the shoulder attachment, avoiding a second floating deltoid.
+  const armPlate=(arm,front=false)=>{
+    const left=arm.side<0,top=front?640:(left?496:500);
+    limb(c,arm.shoulder,arm.hand,[left?206:672,top,left?147:144,972-top],
+      left?[296,538]:[723,539],left?[261,936]:[760,936],.84);
+  };
+  for(const arm of rig.arms)armPlate(arm);
   c.save();transform(c,rig.body);
   c.drawImage(weathered,553,24,340,469,-75,-167,150,208);
   c.restore();
-  // Both arms are in front of the torso, including through discharge. Drawing
-  // the chest over them made the relaxed hands look tucked behind the back.
+  // Forearms and open hands stay in front beside the hips in every phase.
   for(const arm of rig.arms){
-    const left=arm.side<0;
-    limb(c,arm.shoulder,arm.elbow,left?[210,496,143,244]:[672,500,143,240],
-      left?[296,538]:[723,539],left?[246,706]:[776,706],.64);
-    limb(c,arm.elbow,arm.hand,left?[206,675,109,297]:[706,675,110,297],
-      left?[246,706]:[776,706],left?[261,936]:[760,936],.68);
+    armPlate(arm,true);
   }
   c.save();transform(c,rig.head);
   c.drawImage(weathered,105,7,331,468,-44,-120,88,120);
@@ -72,27 +75,15 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   }
   c.globalCompositeOperation='source-over';
   c.save();transform(c,rig.head);
-  // Slow mechanical shutters reveal cold blue light even between attacks.
+  // Recessed copper apertures stay faint between attacks.
   const opening=colossusEyeOpening(h.age),aperture=opening*(1.8+energy*2.6);
   if(opening>0)for(const e of COLOSSUS_EYES){
-    c.shadowColor=`rgba(137,205,239,${opening*(.3+energy*.4)})`;
+    c.shadowColor=`rgba(198,70,40,${opening*(.3+energy*.4)})`;
     c.shadowBlur=1+energy*3;
-    c.fillStyle=`rgba(${energy>.3?'213,251,255':'147,185,201'},${opening*(.26+energy*.74)})`;
+    c.fillStyle=`rgba(${energy>.3?'239,145,91':'160,78,53'},${opening*(.26+energy*.74)})`;
     c.fillRect(e.x-3,e.y-aperture/2,6,aperture);
   }
   c.restore();c.restore();
   target.save();target.filter='blur(0.65px)';
   target.drawImage(figure,x,y,w,height);target.restore();
-}
-
-// Only the gripping knuckles pass in front of the ridge. The body and tucked
-// legs remain occluded by its actual silhouette throughout the climb.
-export function drawColossusGrip(c,h){
-  if(!figure)return;
-  const {x,y,w,h:height}=COLOSSUS_FIGURE;
-  for(const arm of colossusRig(h).arms)if(arm.grip>.8){
-    c.save();c.globalAlpha=(arm.grip-.8)*5;c.beginPath();
-    c.ellipse(arm.hand.x,arm.hand.y,7,10,0,0,Math.PI*2);c.clip();
-    c.drawImage(figure,x,y,w,height);c.restore();
-  }
 }

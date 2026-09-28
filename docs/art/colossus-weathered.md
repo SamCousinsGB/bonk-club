@@ -8,15 +8,18 @@ encoded as WebP with alpha preserved. The previous atlas remains in source.
 Natural shoulder, elbow and wrist contours replace the mechanical cuffs and
 hinges. The runtime rig uses a proportionate head, full thighs below the pelvis,
 uneven relaxed shoulders and open hands. Painted eyes and authoritative beam
-origins share landmarks. The v0.64.0 correction enlarges the head, keeps both
-arms in front of the chest and uses one continuous climb. Protocol 94 prevents
-mixed rigs in an online room.
+origins share landmarks. The v0.64.3 rig keeps the enlarged head, attaches the
+arms inside the torso's deltoids and uses each continuous arm plate with its
+forearm and hand in front. The whole body is already present at full height
+on the first frame; no climb, breathing loop or firing recoil remains.
+Protocol 97 prevents mixed eye origins in an online room.
 
 Atmosphere is applied to the assembled figure using the landscape's airlight.
 Wide valley fog crosses both scenery and figure. There is no emissive body,
 hand halo, orbiting corona or rising energy particle effect. The eye warning
-and actual damaging beams remain. After climbing, shallow whole-body breathing
-and small gaze turns replace continual independent arm and head oscillation.
+and actual damaging beams remain, now with recessed copper eye light and
+procedural red/copper oxide grain, dark pits and green patina in the actual
+beam cone. Only small host-driven gaze turns change the creature's pose.
 
 ## Generation prompt
 

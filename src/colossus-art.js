@@ -1,5 +1,5 @@
 import { COLOSSUS, colossusPhase, colossusEye, colossusBeam, colossusBeams, beamX, beamEdges } from './colossus.js';
-import {drawColossusFigure,drawColossusGrip,warmColossusFigure} from './colossus-figure.js';
+import {drawColossusFigure,warmColossusFigure} from './colossus-figure.js';
 import {COLOSSUS_FIGURE} from './colossus-rig.js';
 
 const TAU=Math.PI*2;
@@ -9,6 +9,7 @@ const line=(c,x,y,ex,ey,color,width)=>{c.beginPath();c.moveTo(x,y);c.lineTo(ex,e
 const circle=(c,x,y,r,color)=>{c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=color;c.fill();};
 export function warmColossusArt() {
   warmColossusFigure();
+  if(!energyTexture&&typeof document!=='undefined')beamTexture();
   if(!backdrop && typeof Image!=='undefined'){
     backdrop=new Image();backdrop.src=new URL('./assets/colossus-landscape.webp',import.meta.url).href;
     backdrop.decoding='async';
@@ -72,34 +73,48 @@ function cloudTexture() {
 function glow(c,x,y,r,alpha,hot=false) {
   if(alpha<=0)return;
   const g=c.createRadialGradient(x,y,0,x,y,r);
-  g.addColorStop(0,hot?`rgba(245,254,255,${alpha})`:`rgba(115,203,226,${alpha})`);
-  g.addColorStop(.18,`rgba(143,221,245,${alpha*.5})`);
-  g.addColorStop(1,'rgba(91,184,224,0)');
+  g.addColorStop(0,hot?`rgba(244,153,93,${alpha})`:`rgba(186,62,37,${alpha})`);
+  g.addColorStop(.18,`rgba(178,48,28,${alpha*.42})`);
+  g.addColorStop(1,'rgba(102,20,15,0)');
   c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
 }
 function beamTexture() {
   if(energyTexture)return energyTexture;
-  const strip=document.createElement('canvas');strip.width=720;strip.height=1;
-  const s=strip.getContext('2d'),bloom=s.createLinearGradient(0,0,720,0);
-  for(const [at,color] of [[0,'#63bfea00'],[.12,'#63bfea08'],[.28,'#8cdef636'],[.33,'#b9f5ff85'],[.38,'#e5fcffe6'],[.45,'#ffffff'],[.55,'#ffffff'],[.62,'#e5fcffe6'],[.67,'#b9f5ff85'],[.72,'#8cdef636'],[.88,'#63bfea08'],[1,'#63bfea00']])bloom.addColorStop(at,color);
-  s.fillStyle=bloom;s.fillRect(0,0,720,1);
   energyTexture=document.createElement('canvas');energyTexture.width=720;energyTexture.height=1024;
-  const c=energyTexture.getContext('2d');
-  for(let y=0;y<1024;y++){
-    const width=720*(y+.5)/1024;c.drawImage(strip,(720-width)/2,y,width,1);
+  const c=energyTexture.getContext('2d'),pixels=c.createImageData(720,1024),d=pixels.data;
+  const hash=(x,y)=>{let n=Math.imul(x,374761393)+Math.imul(y,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;};
+  const noise=(x,y)=>{
+    const a=Math.floor(x),b=Math.floor(y),fx=x-a,fy=y-b,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
+    return (hash(a,b)*(1-u)+hash(a+1,b)*u)*(1-v)+(hash(a,b+1)*(1-u)+hash(a+1,b+1)*u)*v;
+  };
+  // Cached oxide grain occupies the same narrowing cone as physical contact:
+  // radius 60 at the far end, with a faint, clearly separate red haze outside.
+  // Dark pits remain opaque pigment instead of becoming white under screen blend.
+  for(let y=0;y<1024;y++)for(let x=0;x<720;x++){
+    const depth=(y+.5)/1024,u=(x-359.5)/(120*depth),edge=Math.abs(u),i=(y*720+x)*4;
+    if(edge>2.5)continue;
+    const broad=noise(u*2.6+20,y/28),grain=noise(u*41+120,y/5);
+    const vein=noise(u*5+40,y/95),pit=clamp((broad-.49)*4);
+    const copper=clamp((grain*.22+broad*.4+vein*.38-.32)*1.9),patina=clamp((noise(u*4+63,y/38)-.58)*5);
+    const interior=clamp((1.04-edge)*24);
+    d[i]=105+copper*135-pit*62-patina*49;
+    d[i+1]=25+copper*104-pit*21+patina*23;
+    d[i+2]=20+copper*53-pit*12+patina*17;
+    d[i+3]=interior*(224+grain*31)+(1-interior)*Math.exp(-Math.max(0,edge-1)*3.8)*23;
   }
+  c.putImageData(pixels,0,0);
   return energyTexture;
 }
 function eye(c,h,index,energy) {
   if(energy<=0)return;
   const p=colossusEye(h,index);
-  glow(c,p.x,p.y,5+energy*20,energy*.3);
+  glow(c,p.x,p.y,4+energy*13,energy*.38);
   if(energy>.3){
     c.save();c.globalCompositeOperation='screen';
     const g=c.createLinearGradient(p.x-32,p.y,p.x+32,p.y);
-    g.addColorStop(0,'#77e2ff00');g.addColorStop(.48,`rgba(179,235,252,${energy*.28})`);
-    g.addColorStop(.5,`rgba(228,251,255,${energy*.6})`);g.addColorStop(.52,`rgba(179,235,252,${energy*.28})`);g.addColorStop(1,'#77e2ff00');
-    c.fillStyle=g;c.fillRect(p.x-32,p.y-.5,64,1+energy);c.restore();
+    g.addColorStop(0,'#ad3c2400');g.addColorStop(.42,`rgba(187,60,34,${energy*.23})`);
+    g.addColorStop(.5,`rgba(243,152,97,${energy*.65})`);g.addColorStop(.58,`rgba(187,60,34,${energy*.23})`);g.addColorStop(1,'#ad3c2400');
+    c.fillStyle=g;c.fillRect(p.x-9,p.y-.5,18,1+energy);c.restore();
   }
 }
 export function drawColossusSky(c,state,reduced=false) {
@@ -111,7 +126,6 @@ export function drawColossusSky(c,state,reduced=false) {
   const energy=fighting?(phase.firing?1:phase.charge**1.65):0;
   drawColossusFigure(c,h,energy,sceneAirlight());
   drawFoothills(c);
-  drawColossusGrip(c,h);
   // The warning comes from the eyes and actual sweep. The body emits no light.
   c.fillStyle=`rgba(6,17,30,${.1+energy*.09})`;c.fillRect(0,0,2560,1440);
   eye(c,h,0,energy);eye(c,h,1,energy);
@@ -167,17 +181,17 @@ function drawColossusRay(c,state,h,phase,beam,reduced) {
     // Its two steady margins remain legible with sound off and reduced motion.
     const q=clamp((phase.charge-.18)/.5);
     const left=a.ex<b.ex?a:b,right=a.ex<b.ex?b:a;
-    c.fillStyle=`rgba(158,214,231,${q*.055})`;
+    c.fillStyle=`rgba(164,56,35,${q*.075})`;
     const lx=Math.min(...beamEdges(left,1510)),rx=Math.max(...beamEdges(right,1510));
     c.beginPath();c.moveTo(left.x,left.y);c.lineTo(lx,1510);
     c.lineTo(rx,1510);c.lineTo(right.x,right.y);c.closePath();c.fill();
-    for(const edge of [a,b])line(c,edge.x,edge.y,edge.ex,edge.ey,`rgba(172,232,244,${q*.22})`,1.5);
+    for(const edge of [a,b])line(c,edge.x,edge.y,edge.ex,edge.ey,`rgba(227,132,87,${q*.38})`,1.5);
     // Illumination is clipped to actual surviving stone, including prior cuts.
     for(const p of state.platforms){
       const edges=[...beamEdges(a,p.y),...beamEdges(b,p.y)];
       const lo=Math.min(...edges),hi=Math.max(...edges);
       const x=Math.max(p.x,lo),right=Math.min(p.x+p.w,hi);
-      if(right>x){c.fillStyle=`rgba(160,222,231,${q*.42})`;c.fillRect(x,p.y,right-x,3);}
+      if(right>x){c.fillStyle=`rgba(222,119,75,${q*.5})`;c.fillRect(x,p.y,right-x,3);}
     }
     c.restore();return;
   }
@@ -189,26 +203,37 @@ function drawColossusRay(c,state,h,phase,beam,reduced) {
     const l=project(p.x),r=project(p.x+p.w);
     c.beginPath();c.moveTo(p.x,p.y);c.lineTo(p.x+p.w,p.y);c.lineTo(r.x,r.y);c.lineTo(l.x,l.y);c.closePath();c.fill();
   }
-  c.globalCompositeOperation='screen';
   const envelope=Math.min(1,(phase.fire*COLOSSUS.fire+.03)/.12,(1-phase.fire)*COLOSSUS.fire/.18);
   c.globalAlpha=envelope;
-  // Soft outer energy, a hard dangerous edge and a white-hot central core.
+  // Tarnished red/copper grain fills the dangerous cone. Thin migrating seams
+  // and oxide flecks move along its length without shifting its collision edge.
   c.save();c.translate(beam.x,beam.y);c.rotate(Math.atan2(beam.ey-beam.y,beam.ex-beam.x)-Math.PI/2);
   const length=Math.hypot(beam.ex-beam.x,beam.ey-beam.y);
   c.drawImage(beamTexture(),-180,0,360,length);
-  c.restore();
-  if(!reduced)for(let n=0;n<5;n++){
-    const offset=Math.sin(h.age*1.2+n*1.7)*38;
-    line(c,beam.x+offset*.005,beam.y,beam.ex+offset,beam.ey,'#eeffff40',1+n%2);
+  const time=reduced?0:h.age;
+  for(let n=0;n<3;n++){
+    c.beginPath();c.moveTo(0,0);
+    for(let step=1;step<=24;step++){
+      const depth=step/24,x=((n-1)*.56+Math.sin(step*.71+n*2.3-time*.45)*.12)*beam.radius*depth;
+      if((step+n)%7<3)c.moveTo(x,length*depth);else c.lineTo(x,length*depth);
+    }
+    c.strokeStyle=n===1?'#eab08070':'#3d242680';c.lineWidth=n===1?1.1:2.3;c.stroke();
   }
-  glow(c,beam.x,beam.y,85,.6,true);
+  for(let n=0;n<24;n++){
+    const depth=(n*.6180339+time*.13)%1,lane=Math.sin(n*7.13)*.88;
+    c.fillStyle=n%4===0?'#78908280':'#371e20b0';
+    c.fillRect(lane*beam.radius*depth,length*depth,(1+n%3)*depth,(5+n%7)*depth);
+  }
+  c.restore();
+  c.globalCompositeOperation='screen';
+  glow(c,beam.x,beam.y,34,.45,true);
   // Bloom is local; it never whites out the HUD or hides all the escape routes.
-  c.fillStyle=`rgba(165,219,241,${reduced ? .0125 : .0275})`;c.fillRect(0,0,2560,1440);
+  c.fillStyle=`rgba(154,48,28,${reduced ? .009 : .02})`;c.fillRect(0,0,2560,1440);
   for(const p of state.platforms.slice(0,260)){
     const x=beamX(beam,p.y);
     for(const edge of [p.x,p.x+p.w])if(Math.abs(edge-x)<110){
-      glow(c,edge,p.y,95,.25,true);
-      line(c,edge,p.y,edge,p.y+p.h,'#ecfcff',2);
+      glow(c,edge,p.y,70,.3,true);
+      line(c,edge,p.y,edge,p.y+p.h,'#de8f5d',2);
     }
   }
   c.restore();

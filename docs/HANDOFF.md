@@ -1,5 +1,26 @@
 # Bonk Club — current handoff
 
+## Stationary Colossus and copper beams (v0.64.3 / protocol 97)
+
+- Sam removed the get-up animation entirely: the creature is present at full
+  height from countdown and reset, with no rise, planted ridge grips, breathing
+  loop or discharge recoil. Small host-driven gaze turns remain.
+- Shoulder attachments sit inside the painted deltoids below the neck. Each
+  continuous arm plate replaces the split elbow assembly; the torso conceals
+  the attachment and forearms/open hands remain visible beside the thighs.
+- Recessed copper eye light, rust-red warning margins and a cached mottled
+  red/copper beam replace the blue/white light. Dark oxide pits, green patina,
+  broken seams and moving flecks stay inside the same damaging cone. Reduced
+  motion freezes the texture movement. Holy fire and the full terminal wait remain.
+- Shared eye origins changed, so refresh all tabs for protocol 97. No snapshot
+  fields were added. Thirty focused checks, the integrated full regular suite,
+  Colossus stress shard and browser build pass. Desktop initial/charge/fire
+  poses and motion were inspected, including reduced motion. The final bundle
+  passed real relay host/guest controls, both copper beams, repeated attacks,
+  changed-world late join, resizing and host departure without page errors.
+  Includes the steady hanging head fix below. Confirm CI/Pages and exact public
+  parity before calling this live. Evidence: `bonk-club-qa/colossus-copper/`.
+
 ## Steadier hanging head (v0.64.2 / protocol 96)
 
 - The physical neck now holds the head upright relative to gravity and damps

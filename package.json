@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.2",
-  "releaseNotes": "Steadier head movement while hanging and moving hand over hand",
+  "version": "0.64.3",
+  "releaseNotes": "Stationary distant Colossus, joined shoulders and corroded copper eye beams",
   "private": true,
   "type": "module",
   "scripts": {

@@ -13,7 +13,6 @@ import {navigation,routesFrom,surfaceAt} from '../src/navigation.js';
 import {firePhaser} from '../src/phaser.js';
 import {nuclearField,updateNuclear} from '../src/nuclear.js';
 import {blackholeField,updateBlackhole} from '../src/blackhole.js';
-import {colossusStand} from '../src/colossus-timing.js';
 import {makeRig} from '../src/puppet.js';
 
 function fixture(){const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1,2,3],shuffle:false,random:()=>.42});w.phase='fight';return w;}
@@ -28,17 +27,17 @@ test('eyes open gradually before the first charge and remain faintly awake betwe
   assert.equal(colossusEyeOpening(0),0,"round reset closes the shutters");
 });
 
-test('first attack waits for a complete rise and eye opening; later random attacks keep him standing',()=>{
+test('colossus is already present before the first warning and stays present through repeats and reset',()=>{
   const w=fixture(),h=w.hazards[0];w.cover=[];
   w.players.forEach(p=>{p.x=70;p.y=750;});w.hit=()=>{}; // Keep the timing/budget fixture alive through repeated targeted attacks.
   let draws=0;w.random=()=>[0,.5,.99][draws++%3];
   const start=colossusRig(h);
-  advance(w,COLOSSUS.rise);
-  assert.equal(colossusStand(h.age),1);assert.ok(colossusEyeOpening(h.age)<1e-8);
-  assert.ok(start.head.y-colossusRig(h).head.y>85,"rise visibly above the ridge");
+  advance(w,COLOSSUS.watch);
+  assert.ok(colossusEyeOpening(h.age)<1e-8);
+  assert.deepEqual(start.body,colossusRig(h).body,'no introductory rise');
   const upright=colossusRig(h);
   assert.ok(upright.body.y<630&&upright.legs.every(l=>l.knee.y>685&&l.foot.y>740),
-    'the torso emerges while the distant ridge hides the lower legs');
+    'the torso is already visible while the distant ridge hides the lower legs');
   advance(w,COLOSSUS.eyes);
   assert.equal(colossusEyeOpening(h.age),1);assert.equal(h.active,false);
   advance(w,COLOSSUS.charge);
@@ -53,14 +52,14 @@ test('first attack waits for a complete rise and eye opening; later random attac
       assert.ok(Math.abs(joined.nextChargeAt-h.nextChargeAt)<.006);
       assert.ok(Math.abs(joined.chargeAt-h.chargeAt)<.006);
     }
-    assert.equal(colossusStand(h.age),1);
+    assert.deepEqual(colossusRig(h).body,start.body);
     assert.equal(colossusEyeOpening(h.age),1);
   }
   assert.ok(rests.length>=3);assert.ok(Math.abs(rests[0]-3.5)<.001);
   assert.ok(Math.abs(rests[1]-6.5)<.001);assert.ok(Math.abs(rests[2]-9.44)<.001);
   assert.equal(draws,rests.length,"only the host samples once after each sweep");
   w.startRound();assert.equal(w.hazards[0].chargeAt,COLOSSUS.wake);
-  assert.equal(w.hazards[0].nextChargeAt,null);assert.equal(colossusStand(w.hazards[0].age),0);
+  assert.equal(w.hazards[0].nextChargeAt,null);assert.deepEqual(colossusRig(w.hazards[0]).body,start.body);
 });
 
 test('colossus terraces connect every spawn to contested weapons with the distant mech above play',()=>{
@@ -178,36 +177,24 @@ test('both moving eyes fire together, damage both paths and leave the space betw
   assert.ok(solidAt(middle));assert.ok(validSnapshot(transport(w)));
 });
 
-test('climb plants each hand, then settles into stillness with restrained head movement',()=>{
-  const h=fixture().hazards[0],a=colossusRig({...h,age:1.4}),b=colossusRig({...h,age:2.8});
-  const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  assert.ok(a.body.y-b.body.y>60,'the torso pulls past the stationary handholds');
-  for(let i=0;i<2;i++){
-    assert.ok(distance(a.arms[i].hand,b.arms[i].hand)<.01,'planted hands cannot slide up with the torso');
-    assert.ok(distance(a.arms[i].elbow,b.arms[i].elbow)>25,'elbows articulate during the pull');
+test('body and hanging arms hold one pose during countdown, charge, discharge and recovery',()=>{
+  const h=fixture().hazards[0],start=colossusRig(h);
+  for(const age of [0,.1,1.4,2.8,5.5,6.7,8,11.8,12,13.5,15,18,20.5,180]){
+    const r=colossusRig({...h,age});
+    assert.deepEqual(r,start,`age alone must not move the creature at ${age}`);
+    for(const a of r.arms){
+      assert.ok(a.hand.y>r.body.y+25,'hands hang beside the thighs');
+      assert.ok(a.side*(a.hand.x-r.body.x)>27,'hands stay clear of the torso');
+      assert.ok(a.shoulder.y>r.head.y+10,'deltoids sit below the neck collar');
+    }
   }
-  const leftFirst=colossusRig({...h,age:1.1});
-  assert.equal(leftFirst.arms[0].grip,1);assert.ok(leftFirst.arms[1].grip<1);
-  const standing=colossusRig({...h,age:5.5}),tilted=colossusRig({...h,age:6.7});
-  const tilt=Math.abs(Math.atan2(standing.head.b,standing.head.a)-Math.atan2(tilted.head.b,tilted.head.a));
-  assert.ok(tilt>.01&&tilt<.07,'small deliberate head turn instead of a sideways puppet cock');
-  assert.ok(standing.arms.every(a=>a.grip===0));
-  const restA=colossusRig({...h,age:18}),restB=colossusRig({...h,age:20.5});
-  const relative=r=>({x:r.arms[0].hand.x-r.body.x,y:r.arms[0].hand.y-r.body.y});
-  assert.ok(distance(relative(restA),relative(restB))<.01,'relaxed arms hold their weight between attacks');
-  const charged=colossusRig({...h,age:11.8});
-  assert.ok(distance(relative(restA),relative(charged))<.01,'charging does not spread or float the arms');
-  assert.ok(distance(restA.head,restB.head)<.5,'the body breathes slowly without bobbing');
 });
 
-test('articulated climb and attack poses keep solid limbs, an attached neck and continuous beam origins',()=>{
+test('stationary anatomy and gaze keep solid limbs, an attached neck and matching beam origins',()=>{
   const h=fixture().hazards[0],start=colossusRig(h),later=colossusRig({...h,age:6});
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  assert.ok(rigPoint(start.head,0,-120).y>710,"even the crown begins below the foreground ridge");
-  // At the ordinary 1600px desktop camera, head travel exceeds 10px and a
-  // hand travels over 10px. This is intentionally visible in normal gameplay.
-  assert.ok(distance(start.head,later.head)*1600/2560>10);
-  assert.ok(Math.max(...start.arms.map((a,i)=>distance(a.hand,later.arms[i].hand)))*1600/2560>10);
+  assert.ok(rigPoint(start.head,0,-120).y<500,'crown is visible from the first frame');
+  assert.deepEqual(start,later);
   for(let age=0;age<180;age+=.1){
     const r=colossusRig({...h,age}),next=colossusRig({...h,age:age+.1});
     for(const arm of r.arms){
@@ -215,7 +202,7 @@ test('articulated climb and attack poses keep solid limbs, an attached neck and 
       assert.ok(Math.abs(distance(arm.elbow,arm.hand)-COLOSSUS_ARMS.lower*COLOSSUS_SCALE)<1e-8);
     }
     r.legs.forEach((leg,i)=>{
-      if(age>=6)assert.ok(Math.abs(leg.foot.x-leg.hip.x)<9,'extended legs stay beneath the hips after the climb');
+      assert.ok(Math.abs(leg.foot.x-leg.hip.x)<9,'legs always stay beneath the hips');
       assert.ok(Math.abs(distance(leg.hip,leg.knee)-COLOSSUS_LEGS.upper*COLOSSUS_SCALE)<1e-8);
       assert.ok(Math.abs(distance(leg.knee,leg.foot)-COLOSSUS_LEGS.lower*COLOSSUS_SCALE)<1e-8);
     });
@@ -236,7 +223,7 @@ test('articulated climb and attack poses keep solid limbs, an attached neck and 
   }
 });
 
-test('joining during the climb, head tilt or attack reconstructs the pose from transported state',()=>{
+test('joining during quiet, warning or attack reconstructs the stationary pose and gaze',()=>{
   const w=fixture(),h=w.hazards[0],distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   for(const age of [1.6,2.7,5,6.8,9.25,12.2,15.5]){
     h.age=age;h.active=colossusPhase(age,h.chargeAt).firing;
