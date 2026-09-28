@@ -42,7 +42,7 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
   const rig=colossusRig(h);
   c.save();
   // Overlapping anatomical landmarks keep the shoulders, hips and tendons
-  // continuous. The smaller head and full-length thighs avoid doll proportions.
+  // continuous. Full-length thighs and a proportionate head avoid doll anatomy.
   for(const leg of rig.legs){
     const left=leg.side<0;
     limb(c,leg.hip,leg.knee,left?[214,974,134,234]:[675,974,135,234],
@@ -50,6 +50,11 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     limb(c,leg.knee,leg.foot,left?[173,1131,146,390]:[706,1131,143,390],
       left?[270,1163]:[755,1163],left?[232,1483]:[793,1483],.8);
   }
+  c.save();transform(c,rig.body);
+  c.drawImage(weathered,553,24,340,469,-75,-167,150,208);
+  c.restore();
+  // Both arms are in front of the torso, including through discharge. Drawing
+  // the chest over them made the relaxed hands look tucked behind the back.
   for(const arm of rig.arms){
     const left=arm.side<0;
     limb(c,arm.shoulder,arm.elbow,left?[210,496,143,244]:[672,500,143,240],
@@ -57,11 +62,8 @@ export function drawColossusFigure(c,h,energy=0,airlight=null){
     limb(c,arm.elbow,arm.hand,left?[206,675,109,297]:[706,675,110,297],
       left?[246,706]:[776,706],left?[261,936]:[760,936],.68);
   }
-  c.save();transform(c,rig.body);
-  c.drawImage(weathered,553,24,340,469,-75,-167,150,208);
-  c.restore();
   c.save();transform(c,rig.head);
-  c.drawImage(weathered,105,7,331,468,-34,-96,68,96);
+  c.drawImage(weathered,105,7,331,468,-44,-120,88,120);
   c.restore();
   c.globalCompositeOperation='source-atop';
   if(airlight){

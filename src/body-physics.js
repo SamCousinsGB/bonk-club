@@ -63,7 +63,7 @@ export function passiveBody(
   joints,
   solids,
   dt,
-  { gravity = 1800, anchor = null, restitution = 0, stiffness = .5, drag = .992, mass = 1 } = {},
+  { gravity = 1800, anchor = null, restitution = 0, stiffness = .5, drag = .992, mass = 1, radii = null } = {},
 ) {
   const origins = points.map((p) => ({ x: p.x, y: p.y }));
   const carried = points.map(() => new Set());
@@ -89,7 +89,7 @@ export function passiveBody(
       b.y -= dy * k;
     }
     for (let i = 0; i < points.length; i++)
-      collidePoint(points[i], solids, i === 0 ? 10 : 3, n === 0 ? origins[i] : points[i], carried[i], { restitution, mass });
+      collidePoint(points[i], solids, radii?.[i] ?? (i === 0 ? 10 : 3), n === 0 ? origins[i] : points[i], carried[i], { restitution, mass });
     if (anchor) {
       const p = points[anchor.point];
       p.x = p.px = anchor.x;

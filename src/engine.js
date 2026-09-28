@@ -35,6 +35,7 @@ import { advanceFlight, projectileInArena, projectileEscaped, canSpawnProjectile
 import { recordFlight } from "./flight-replay.js";
 import { moveCaptured, bodyStrands, orbitBody } from "./singularity-body.js";
 import { projectileEffect, deathPose, updateDeath, deathJoints } from "./death-effects.js";
+import {updateHolyFire} from './holy-fire.js';
 import { carveRectangle } from "./nuclear.js";
 import { NUCLEAR, updateParry, canParry, consumeParry, carryImpulse } from "./impact.js";
 import { activeSlots } from "./slots.js";
@@ -547,6 +548,10 @@ export class World {
         }
       }
       const alive = this.players.filter((p) => p.alive);
+      // Finish the entire sweep and its terminal burn, including simultaneous
+      // deaths or bodies that have already left the playable world.
+      const pendingJudgement=this.hazards.some(h=>h.type==='colossus'&&(h.active||h.age<h.deathUntil)) ||
+        this.ragdolls.some(r=>r.effect==='holy'&&r.life>0);
       const pendingBlast = alive.some(p=>p.bubble>0) ||
         // Water and ice suspend container fuses; these cannot hold a result open.
         this.cover.some(b=>b.hp>0&&explosiveBarrel(b)&&b.leak&&!b.spent&&!(b.cold>0)) || this.gas.some(g=>g.lit>0) ||
@@ -554,7 +559,7 @@ export class World {
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       // A delayed blast can still turn one survivor into a draw, but once
       // everyone is already dead there is no combat outcome left to resolve.
-      if (alive.length <= 1 && (alive.length === 0 || !pendingBlast) && (this.players.length >= 2 || alive.length === 0)) {
+      if (alive.length <= 1 && !pendingJudgement && (alive.length === 0 || !pendingBlast) && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         this.victoryCause = this.winner === null ? null : this.lastDeathCause;
         if (this.winner !== null) this.scores[this.winner]++;
@@ -991,6 +996,7 @@ export class World {
       this.event("parry", { x: (p.x + q.x) / 2, y: q.y - 10, color: q.color });
       return;
     }
+    if(options.effect==='holy'){q.freeze=0;q.chill=0;}
     if (q.freeze>0 && options.effect !== "ice" && damage>=20) {
       damage*=1.5;q.freeze=0;options={...options,effect:"ice"};
     }
@@ -1560,6 +1566,7 @@ export class World {
       }
       tumbleTurbineBody(this,rag,dt);
       if(updateDeath(rag,dt))continue;
+      if(rag.effect==='holy'){updateHolyFire(rag,this.solids(),dt);continue;}
       if(updateTransformedDeath(rag,this.solids(),dt))continue;
       if(rag.effect==="impale"&&updateImpaled(this,rag,dt))continue;
       if (rag.ash) rag.ashAge += dt;

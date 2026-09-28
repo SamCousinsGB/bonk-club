@@ -186,8 +186,8 @@ test('climb plants each hand, then settles into stillness with restrained head m
     assert.ok(distance(a.arms[i].hand,b.arms[i].hand)<.01,'planted hands cannot slide up with the torso');
     assert.ok(distance(a.arms[i].elbow,b.arms[i].elbow)>25,'elbows articulate during the pull');
   }
-  const leftFirst=colossusRig({...h,age:.9});
-  assert.equal(leftFirst.arms[0].grip,1);assert.ok(leftFirst.arms[1].grip<.3);
+  const leftFirst=colossusRig({...h,age:1.1});
+  assert.equal(leftFirst.arms[0].grip,1);assert.ok(leftFirst.arms[1].grip<1);
   const standing=colossusRig({...h,age:5.5}),tilted=colossusRig({...h,age:6.7});
   const tilt=Math.abs(Math.atan2(standing.head.b,standing.head.a)-Math.atan2(tilted.head.b,tilted.head.a));
   assert.ok(tilt>.01&&tilt<.07,'small deliberate head turn instead of a sideways puppet cock');
@@ -203,7 +203,7 @@ test('climb plants each hand, then settles into stillness with restrained head m
 test('articulated climb and attack poses keep solid limbs, an attached neck and continuous beam origins',()=>{
   const h=fixture().hazards[0],start=colossusRig(h),later=colossusRig({...h,age:6});
   const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-  assert.ok(rigPoint(start.head,0,-103.6).y>710,"even the crown begins below the foreground ridge");
+  assert.ok(rigPoint(start.head,0,-120).y>710,"even the crown begins below the foreground ridge");
   // At the ordinary 1600px desktop camera, head travel exceeds 10px and a
   // hand travels over 10px. This is intentionally visible in normal gameplay.
   assert.ok(distance(start.head,later.head)*1600/2560>10);

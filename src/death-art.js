@@ -8,6 +8,7 @@ import { drawAppearance } from "./identity.js";
 import { drawCape, materialPaint, drawFinish } from "./cosmetic-art.js";
 import { drawSingularityBody } from "./singularity-art.js";
 import { scannerFlicker } from "./scanner.js";
+import {drawHolyFire} from './holy-fire-art.js';
 function energy(r, points, color, time) {
   const c = r.ctx;
   c.save();
@@ -58,7 +59,9 @@ export function drawDeath(r, rag, time) {
     pts = rag.points,
     age = rag.deathAge;
   c.save();
-  if (TRANSMUTATIONS.includes(rag.effect)) {
+  if (rag.effect==='holy') {
+    drawHolyFire(r,rag);
+  } else if (TRANSMUTATIONS.includes(rag.effect)) {
     c.globalAlpha = Math.min(1,rag.life);
     const pieces = age >= (rag.effect === "gold" ? 1.15 : rag.effect === "jelly" ? .65 : .9);
     drawTransformedBody(r,pts,rag.effect,age,time,pieces);

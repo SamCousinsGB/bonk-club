@@ -12,6 +12,7 @@ import { PROP_MATERIALS, CHUNK_LIMIT } from "./props.js";
 import { SINGULARITY } from "./blackhole.js";
 import { MATTER_KINDS, MATTER_LIMIT } from "./accretion.js";
 import { DEATH_EFFECTS } from "./death-effects.js";
+import {HOLY_FIRE} from './holy-fire.js';
 import { NUCLEAR, PARRY } from "./impact.js";
 import { defaultSlots, validSlots, allowsPlayer, activeSlots, SLOT_LABELS } from "./slots.js";
 import { RenderSnapshots } from "./render-state.js";
@@ -40,7 +41,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 93;
+export const PROTOCOL = 94;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -1045,6 +1046,7 @@ export function validSnapshot(s) {
         (r.ash === undefined || (r.ash === true && finite(r.ashAge) && r.ashAge >= 0 && r.ashAge <= NUCLEAR.ashDuration && [-1,1].includes(r.ashDirection))) &&
         validAppearance(r) &&
         (r.effect===undefined || (DEATH_EFFECTS.includes(r.effect) && finite(r.deathAge) && r.deathAge>=0 && r.deathAge<=6)) &&
+        (r.effect!=='holy' || (r.ash===undefined&&r.deathAge<=HOLY_FIRE.duration+.01&&r.life>=0&&r.life<=HOLY_FIRE.duration+.01)) &&
         (r.effect!=="singularity" || ([r.targetX,r.targetY].every(finite)&&list(r.strands,10,s=>list(s.points,6,xy)&&s.points.length===6)&&r.strands.length===10)) &&
         (r.effect!=="gib" || (Array.isArray(r.severed)&&r.severed.length===2&&r.severed.every(i=>integer(i,0,9)))) &&
         (r.effect!=="impale" || (r.anchor&&xy(r.anchor)&&integer(r.anchor.point,0,10))) &&

@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.63.8",
-  "releaseNotes": "Natural hanging with a gradual drop and loose swinging limbs",
+  "version": "0.64.0",
+  "releaseNotes": "Colossus has a larger head, a steadier climb and a holy-fire death that burns fighters to ash",
   "private": true,
   "type": "module",
   "scripts": {

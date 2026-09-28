@@ -2,7 +2,7 @@
 import {COLOSSUS,colossusStand,colossusPhase} from './colossus-timing.js';
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export const COLOSSUS_EYES=Object.freeze([{x:-9.1,y:-52.7},{x:7.7,y:-52.7}]);
+export const COLOSSUS_EYES=Object.freeze([{x:-11.83,y:-65.9},{x:10,y:-65.9}]);
 export const COLOSSUS_NECK=Object.freeze({x:-1,y:-150});
 export const COLOSSUS_SCALE=.5;
 export const COLOSSUS_LEGS=Object.freeze({upper:130,lower:140});
@@ -41,9 +41,11 @@ export function colossusRig(h){
   // Settle onto one leg and hold the weight there. Slow shallow breathing moves
   // the whole chest; no independent, looping arm swing or sideways head bob.
   const breath=awake*Math.sin(t*.19)*.8;
-  const lean=track(t,[[0,.17],[1.25,.1],[2.7,-.08],[4,.035],[5.5,.04]])-recoil*.014;
-  const body=frame(1280+track(t,[[0,22],[1.3,-12],[2.7,25],[4,-9],[5.5,-5]]),
-    track(t,[[0,1080],[1.05,940],[2.55,810],[3.8,690],[5.5,600]])+breath+recoil*3,lean);
+  const lean=track(t,[[0,.11],[1.5,.11],[2.8,.055],[4.5,.03],[5.5,.04]])-recoil*.014;
+  // Hands establish their holds before the main pull. The chest clears the
+  // ridge in one continuous heave, then the legs drive the final extension.
+  const body=frame(1280+track(t,[[0,8],[1.5,8],[3,-3],[5.5,-5]]),
+    track(t,[[0,1100],[.85,1010],[1.5,930],[3,765],[4.4,640],[5.5,600]])+breath+recoil*3,lean);
   const neck=rigPoint(body,COLOSSUS_NECK.x,COLOSSUS_NECK.y);
   const tilt=track(t,[[0,-.16],[1.4,-.12],[3.2,.05],[5.5,-.045],[7.7,-.085]]);
   // Small deliberate turns retain an attached neck and an unreadable stare.
@@ -51,10 +53,10 @@ export function colossusRig(h){
     .97-Math.abs(look)*.035);
   const arms=[-1,1].map(side=>{
     const shoulder=rigPoint(body,side*63,side<0?-136:-127);
-    const a=(side<0?-.07:.18)+side*1.65*(1-smooth(t/1.3))+lean;
-    const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper),b=a-side*(side<0?.22:.29);
+    const a=side*(.18+1.25*(1-smooth(t/1.3)))+lean;
+    const elbow=endpoint(shoulder,a,COLOSSUS_ARMS.upper),b=a-side*.12;
     const rest=endpoint(elbow,b,COLOSSUS_ARMS.lower),left=side<0;
-    const grip=smooth((t-(left?.15:.65))/.75)*(1-smooth((t-(left?2.9:3))/.9));
+    const grip=smooth((t-(left?.1:.25))/.95)*(1-smooth((t-(left?3.15:3.35))/.65));
     // Asymmetric planted hands haul the shoulders past the actual painted ridge.
     const target={x:mix(rest.x,1280+side*(left?174:180),grip),y:mix(rest.y,left?754:800,grip)};
     const solved=reach(shoulder,target,COLOSSUS_ARMS.upper,COLOSSUS_ARMS.lower,side);

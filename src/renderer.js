@@ -1080,6 +1080,7 @@ export class Renderer {
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {
+      if(rag.effect==='holy')continue;
       if(drawDeath(this,rag,time))continue;
       if(rag.ash)drawAshSkeleton(this,rag);
     }
@@ -1195,6 +1196,9 @@ export class Renderer {
     for (const f of state.fields)
       if (f.kind === "blackhole") drawBlackhole(this, f, time);
     if(arena.colossus)drawColossusBeam(c,state,this.reduced);
+    // Radiant victims emit their own light. Terrain shadows from the eye beams
+    // must not dim their flame or erase the terminal sequence behind the bloom.
+    for(const rag of state.ragdolls)if(rag.effect==='holy')drawDeath(this,rag,time);
     drawSpacetimeWarp(this, state.fields);
     if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     if (!menuArena) drawChat(c, state, this.chatMessages || []);

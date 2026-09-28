@@ -3,12 +3,13 @@ import { beamTouches } from './phaser.js';
 import { bodyBounds, damageProp } from './props.js';
 import { colossusRig } from './colossus-rig.js';
 import {COLOSSUS,colossusPhase} from './colossus-timing.js';
+import {HOLY_FIRE} from './holy-fire.js';
 export {COLOSSUS,colossusPhase} from './colossus-timing.js';
 
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 export function initialColossus() {
   return {gazeX:1280, gazeY:1100, attentionX:1280, attentionY:1100,
-    strikeX:1280, eye:0, cycleId:0, cutX:null,chargeAt:COLOSSUS.wake,nextChargeAt:null};
+    strikeX:1280, eye:0, cycleId:0, cutX:null,chargeAt:COLOSSUS.wake,nextChargeAt:null,deathUntil:0};
 }
 export function colossusEye(h, eye = h.eye) {
   return colossusRig(h).eyes[eye];
@@ -143,8 +144,9 @@ export function updateColossus(world,h,dt) {
     const hit=beams.find(b=>beamTouches(playerBox(p),{...b,radius:b.radius+sweepPad}));
     if(!hit)continue;
     h.hitIds.push(p.id);
-    world.hit(p,{x:hit.x,y:hit.y,vx:0,vy:0},1000,1050,Math.sign(p.x-hit.x)||1,.3,
-      {blast:true,effect:'plasma',cause:'colossus',hitstop:0});
+    world.hit(p,{x:hit.x,y:hit.y,vx:0,vy:0},1000,90,Math.sign(p.x-hit.x)||1,-.3,
+      {blast:true,effect:'holy',cause:'colossus',hitstop:0});
+    if(!p.alive)h.deathUntil=h.age+HOLY_FIRE.duration;
   }
   for(const p of [...world.cover,...world.chunks])if(p.hp>0&&beams.some(b=>beamTouches(bodyBounds(p),{...b,radius:b.radius+sweepPad})))
     damageProp(world,p,1000,(Math.sign(p.x-beam.x)||1)*420,-260);
@@ -158,9 +160,10 @@ export function updateColossus(world,h,dt) {
 }
 
 export function validColossus(h,arena) {
-  if(h.type!=='colossus')return !['gazeX','strikeX','eye','cycleId','chargeAt','nextChargeAt'].some(k=>k in h);
+  if(h.type!=='colossus')return !['gazeX','strikeX','eye','cycleId','chargeAt','nextChargeAt','deathUntil'].some(k=>k in h);
   return arena?.colossus===true && h.x===1280 && h.y===1440 && h.w===320 && h.h===200 &&
     h.done===false && [h.gazeX,h.attentionX].every(v=>Number.isFinite(v)&&v>=0&&v<=2560) &&
+    Number.isFinite(h.deathUntil)&&h.deathUntil>=0&&h.deathUntil<=h.age+HOLY_FIRE.duration+.01 &&
     [h.gazeY,h.attentionY].every(v=>Number.isFinite(v)&&v>=0&&v<=1440) &&
     Number.isFinite(h.strikeX)&&h.strikeX>=-24000&&h.strikeX<=26560 && [0,1].includes(h.eye) &&
     Number.isInteger(h.cycleId)&&h.cycleId>=0&&h.cycleId<=1000000 &&

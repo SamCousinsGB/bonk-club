@@ -2,6 +2,7 @@ import { seedOrbit, orbitPoint, limitRope } from "./orbit.js";
 import { WEAPONS } from "./arsenal.js";
 import { JOINTS } from "./puppet.js";
 import { TRANSMUTATIONS, seedTransformedDeath, rigidPose } from "./transmutation.js";
+import {HOLY_FIRE,holyJoints} from './holy-fire.js';
 export const DEATH_EFFECTS = [
   ...TRANSMUTATIONS,
   "slice",
@@ -16,6 +17,7 @@ export const DEATH_EFFECTS = [
   "burn",
   "blast",
   "singularity",
+  "holy",
 ];
 export const CUT_JOINTS = [
   ...JOINTS.filter(([a, b]) => a !== 1 || b !== 2),
@@ -37,6 +39,7 @@ export function projectileEffect(b) {
 export function deathPose(rag, effect, angle = 0, target = null) {
   if (!effect) return;
   Object.assign(rag, { effect, deathAge: 0 });
+  if(effect==='holy')rag.life=HOLY_FIRE.duration;
   seedTransformedDeath(rag);
   if (effect === "slice") {
     const a = rag.points[1],
@@ -122,6 +125,7 @@ export function updateDeath(rag, dt) {
 }
 
 export function deathJoints(rag) {
+  if(rag.effect==='holy')return holyJoints(rag);
   if (rag.effect === "ice") return rag.deathAge < .4 ? rag.morphPose : [];
   if (rag.ash) return JOINTS.filter((_, i) => !crumbledBone(rag, i));
   if (["bubble", "blend"].includes(rag.effect)) return BUBBLE_JOINTS;

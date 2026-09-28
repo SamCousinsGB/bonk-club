@@ -1,5 +1,29 @@
 # Bonk Club — current handoff
 
+## Colossus posture and holy fire (v0.64.0 / protocol 94)
+
+- Sam corrected the first distant-pose pass: the head needed more size, the
+  climb still looked wrong, and the arms appeared behind the back during fire.
+  Head art is now 29% wider and 25% taller than v0.63.7. A continuous heave
+  replaces alternating lateral pulls; hands establish the grips before the
+  chest rises and legs extend. Both relaxed arms draw in front of the torso.
+- Laser contact now starts a distinct 5.2-second holy-fire death: white/gold
+  flame, swelling, raised blisters, ruptures, physical contractions and heat
+  lift, followed by falling ash. It preserves initial momentum and swept
+  collision; swelling has matching body radii, then joints release into ash.
+- The host keeps the fight active through the full sweep and the final burn,
+  including all-dead draws and wholly escaped bodies. A later victim extends
+  the wait. Scores and result appear once the terminal sequence finishes.
+- Holy effect age/points and the hazard's deathUntil deadline are validated
+  and transported for interpolation/late join, and clear on round reset.
+  Refresh every client for protocol 94.
+- Focused tests, the integrated full regular suite, Colossus stress shard
+  and browser build pass. Desktop staged host/guest checks cover movement,
+  both beams, repeats, reduced motion, a guest joining mid-burn and the result
+  appearing 5.15 seconds after ignition. No page errors. Includes the natural
+  hanging update below. Confirm final CI/Pages and exact public parity before
+  describing this update as live. Evidence: `bonk-club-qa/colossus-holy/`.
+
 ## Natural hanging (v0.63.8 / protocol 93)
 
 - A fresh S/down press lowers the existing pose under gravity while the hands
@@ -39,8 +63,10 @@
   and small deliberate gaze turns, without arm spreading during charge.
 - Shared rig landmarks keep painted eyes, host damage and late-join poses in
   agreement. Refresh every tab for protocol 92. No snapshot shape changes.
-- Release validation is in progress; do not describe this revision as live
-  until CI/Pages, exact artifact parity and public desktop verification pass.
+- Revision 1b13fa9 passed release workflow 36490781520 and Pages. All 19 local
+  and CI files matched exactly; its release bundle passed desktop relay
+  host/guest, late join, both beams and repeat attacks. Sam's further posture
+  corrections above arrived before the separate public browser pass.
   Evidence: `bonk-club-qa/colossus-presence/`.
 
 ## Colossus climb and awakening (v0.63.6 / protocol 91)

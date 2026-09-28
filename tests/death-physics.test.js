@@ -8,7 +8,7 @@ import { validSnapshot } from "../src/network.js";
 import { RenderSnapshots, interpolateStates } from "../src/render-state.js";
 import { combatFloor } from "./helpers.js";
 
-const effects = [null, "burn", "plasma", "tesla", "phaser", "ice", "blast", "slice", "gib"];
+const effects = [null, "burn", "plasma", "tesla", "phaser", "ice", "blast", "slice", "gib", "holy"];
 function fixture(effect, { x = 500, y = 400, vx = 240, vy = 120 } = {}) {
   const w = new World({ players: [0,1,2,3], shuffle: false });
   combatFloor(w); w.phase = "fight"; w.cover = []; w.hazards = [];
@@ -42,7 +42,8 @@ test("dead bodies and crumbled pieces collide with walls and thin floors",()=>{
     advance(w,1.25);
     assert.ok(rag.points.every(p=>p.x<=597.01),`${effect}: wall blocks all pieces`);
     assert.ok(rag.points.every(p=>p.y<=597.01),`${effect}: thin floor catches all pieces`);
-    assert.ok(rag.points.some(p=>p.y>580),`${effect}: remains reach the floor`);
+    // Holy fire briefly lifts the body; its ashes settle in the dedicated test.
+    if(effect!=='holy')assert.ok(rag.points.some(p=>p.y>580),`${effect}: remains reach the floor`);
   }
 });
 
