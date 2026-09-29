@@ -2,7 +2,7 @@
 export {colossusEyeOpening} from './colossus-timing.js';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const COLOSSUS_EYES=Object.freeze([{x:-11.83,y:-65.9},{x:10,y:-65.9}]);
-export const COLOSSUS_NECK=Object.freeze({x:-1,y:-150});
+export const COLOSSUS_NECK=Object.freeze({x:-1,y:-138});
 export const COLOSSUS_SCALE=.5;
 export const COLOSSUS_LEGS=Object.freeze({upper:130,lower:140});
 export const COLOSSUS_ARMS=Object.freeze({upper:94,lower:101});

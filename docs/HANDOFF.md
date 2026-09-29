@@ -1,5 +1,18 @@
 # Bonk Club — current handoff
 
+## Lower Colossus head (v0.64.6 / protocol 99)
+
+- Lowers the head by 12 rig units (6 world units, about 4 pixels at 1600px)
+  to shorten the visible neck. Head size, shoulders, still pose and cinematic
+  beam artwork remain. The shared eye/beam origins follow the adjustment.
+- Refresh all tabs for protocol 99 to prevent mixed eye origins in one room.
+  Includes the fluid hanging update below. Thirty focused checks, the full
+  regular suite, Colossus stress shard and browser build pass. Desktop poses
+  were inspected; the release bundle passed relay host/guest controls, twin
+  beams, repeats, late join, reduced motion, resizing and host departure without
+  page errors. Confirm CI/Pages and exact public parity before calling this live.
+  Evidence: `bonk-club-qa/colossus-neck/`.
+
 ## Fluid hanging and pull-ups (v0.64.5 / protocol 98)
 
 - S/down eases from standing through a short seated pose into a hang; W/jump

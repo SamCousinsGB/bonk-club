@@ -185,7 +185,7 @@ test('body and hanging arms hold one pose during countdown, charge, discharge an
     for(const a of r.arms){
       assert.ok(a.hand.y>r.body.y+25,'hands hang beside the thighs');
       assert.ok(a.side*(a.hand.x-r.body.x)>27,'hands stay clear of the torso');
-      assert.ok(a.shoulder.y>r.head.y+10,'deltoids sit below the neck collar');
+      assert.ok(a.shoulder.y>r.head.y+5,'deltoids sit below the lowered neck collar');
     }
   }
 });

@@ -12,7 +12,8 @@ origins share landmarks. The v0.64.3 rig keeps the enlarged head, attaches the
 arms inside the torso's deltoids and uses each continuous arm plate with its
 forearm and hand in front. The whole body is already present at full height
 on the first frame; no climb, breathing loop or firing recoil remains.
-Protocol 97 prevents mixed eye origins in an online room.
+The v0.64.6 correction lowers the head 12 rig units without changing its size,
+shortening the visible neck. Protocol 99 prevents mixed eye origins in a room.
 
 Atmosphere is applied to the assembled figure using the landscape's airlight.
 Wide valley fog crosses both scenery and figure. There is no emissive body,

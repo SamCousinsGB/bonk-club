@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.5",
-  "releaseNotes": "Smooth lowering and pull-ups, with a fixed head and swinging waist and legs",
+  "version": "0.64.6",
+  "releaseNotes": "Lowered Colossus head for a shorter neck",
   "private": true,
   "type": "module",
   "scripts": {
