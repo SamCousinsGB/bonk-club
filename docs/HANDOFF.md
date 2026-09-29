@@ -10,8 +10,13 @@
   regular suite, Colossus stress shard and browser build pass. Desktop poses
   were inspected; the release bundle passed relay host/guest controls, twin
   beams, repeats, late join, reduced motion, resizing and host departure without
-  page errors. Confirm CI/Pages and exact public parity before calling this live.
-  Evidence: `bonk-club-qa/colossus-neck/`.
+  page errors.
+- Revision `3ff38ab` passed [release workflow 36502476302](https://github.com/SamCousinsGB/bonk-club/actions/runs/36502476302),
+  including all six stress groups and Pages. All 19 public files match the clean
+  local build and CI artifact exactly. Public desktop relay gameplay passed
+  controls, twin beams, repeats, changed-world late join, reduced motion, resizing
+  and host departure with no page errors. Inspected live standing and beam views;
+  the task preview is stopped. Evidence: `bonk-club-qa/colossus-neck/`.
 
 ## Fluid hanging and pull-ups (v0.64.5 / protocol 98)
 
