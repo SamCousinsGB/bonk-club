@@ -9,13 +9,20 @@
 - Existing burn snapshots drive flames and the status HUD for every client.
   Prediction never clears burn or changes health. No wire fields changed.
   The in-match controls now explain that rolling on the ground puts out fire.
-- Focused checks and all 1,330 regular checks pass. Desktop source relay QA
+- Focused checks, all 1,330 regular checks and all 57 stress cases pass. Desktop source relay QA
   verifies right-mouse host rolling, Shift guest rolling, stationary curl,
   flames/status clearing, stopped burn damage, late join and re-ignition with
-  no page errors. Burning and extinguished scenes were inspected. Stress and
-  publication are pending. Evidence is in `desktop/test-results/roll-fire/`;
+  no page errors. Burning and extinguished scenes were inspected.
+- Revision `772fe9c` passed [release workflow 37237666092](https://github.com/SamCousinsGB/bonk-club/actions/runs/37237666092),
+  including game/server validation, all six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match byte for byte. Fresh public host/guest controls, hot join
+  and departure pass over relay without page errors; public desktop gameplay
+  was inspected. This verifies one-machine relay play, not cross-ISP latency.
+- Evidence is in `desktop/test-results/roll-fire/`;
   source QA is `desktop/tests/roll-fire-browser.mjs` (set the repository's
   configured Vite room-service and TURN URL variables before running).
+  Task preview port 5412 is closed. Worktree clean after this handoff commit.
 
 ## Refinery oil flooding (v0.73.0 / protocol 109)
 
