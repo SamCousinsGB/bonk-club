@@ -21,8 +21,15 @@
   passes guest controls, engine ignition, acid corrosion, coolant ice, exact
   damaged-world hot join, reset and departure, without page errors. Inspected
   six actual arena rounds plus the combined reaction scenarios and reduced motion.
-  Evidence is in this worktree's ignored `desktop/test-results/fuel/`. Verify the
-  remaining stress, CI and public checks before claiming this live.
+  All 27 local stress checks also pass. Evidence is in this worktree's ignored
+  `desktop/test-results/fuel/`; the source preview is stopped.
+- Gameplay revision `9000316` passed
+  [release workflow 37226260812](https://github.com/SamCousinsGB/bonk-club/actions/runs/37226260812),
+  including shared/server tests, all six stress groups, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files match
+  byte for byte. Fresh public v0.68.0 relay host/guest controls, hot join and
+  departure pass without page errors; public gameplay was visually inspected.
+  Relay checks use one QA machine and do not establish separate-ISP latency.
 - Refresh every player tab for protocol 104.
 
 ## Unarmed Colossus AI (v0.67.1 / protocol 103)
