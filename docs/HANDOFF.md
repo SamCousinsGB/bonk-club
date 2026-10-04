@@ -20,8 +20,16 @@
   3.8 to 3.0 ms. These are local workload timings, not FPS or internet latency.
 - The production build and three-browser bundle test pass readiness, controls,
   options, hot join and host departure over real relay routes with no page errors.
-  Evidence: this worktree's ignored `desktop/test-results/liquids/`.
-  Release CI/Pages and public parity are pending.
+- Revision `5767897` passed [release workflow 37212634734](https://github.com/SamCousinsGB/bonk-club/actions/runs/37212634734):
+  shared/server tests, all six stress shards, Windows/Linux executable checks,
+  release verification and Pages. Linux smoke passed on one retry after a
+  controller-menu wait timed out; no test gate was bypassed.
+- All 19 local, CI and public files match exactly. Fresh public desktop relay
+  host/guest controls, options, hot join and host departure passed with no page
+  errors, and public gameplay was visually inspected. Refresh tabs for v0.66.0.
+  This is one-machine relay QA, not separate-ISP validation.
+- Evidence: this worktree's ignored `desktop/test-results/liquids/`. The task's
+  source preview server is stopped.
 
 ## Tucks, rolls and faster down poses (v0.65.0 / protocol 101)
 
