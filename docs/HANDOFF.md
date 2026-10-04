@@ -27,8 +27,16 @@
   it is a rendering measurement, not network latency.
 - Refresh all player tabs for protocol 107. Evidence and desktop source
   screenshots are under desktop/test-results/refinery.
-- Release verification is in progress; append the actual revision, workflow
-  and public artifact/browser results after publication.
+- Integrated the concurrent Crown HUD/respawn release before publication; the
+  combined regular suite and production Crown match on Refinery pass.
+- Revision `4b09570` passed [release workflow 37232028371](https://github.com/SamCousinsGB/bonk-club/actions/runs/37232028371),
+  including shared/server validation, all six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public browser files match byte for byte. Fresh public Refinery host/guest
+  controls, readiness, hot join and departure pass over real relay routes
+  without page errors; public desktop gameplay was visually inspected.
+- Task preview servers are stopped. The worktree is clean after this handoff
+  commit. This was one-machine relay QA, not separate-ISP testing.
 
 ## Crown HUD and respawn feedback (v0.70.3 / protocol 106)
 
