@@ -16,12 +16,17 @@
 - One original seekable audio recording layers warning pulses, pump spin-up,
   ignition, sustained combustion and purge. Late joins seek to the live phase;
   mute, round reset, departure and stale snapshots cannot restart ignition.
-- Local focused checks, all regular tests, all 27 arena stress checks and
+- Local focused checks, all 1,237 regular tests, all 27 arena stress checks and
   desktop source relay QA pass: guest movement, exact damaged-floor hot join,
   engine phase agreement, reset, reduced motion, resizing and actual bot combat.
   Evidence: `desktop/test-results/rocket/` in the rocket-test-stand worktree.
-- Refresh all player tabs for protocol 103. CI, release artifact parity and
-  public browser verification must finish before claiming it live.
+- Revision `2d2c7ff` passed [release workflow 37216669666](https://github.com/SamCousinsGB/bonk-club/actions/runs/37216669666),
+  including all six stress shards, shared/server validation, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and public
+  files match byte for byte. Fresh public Rocket Test Stand relay host/guest
+  controls, readiness, hot join and host departure pass without page errors.
+- Refresh all player tabs for protocol 103. Source preview servers are stopped.
+  The relay checks use one machine and do not establish separate-ISP latency.
 
 ## Enemy AI activity (v0.66.2 / protocol 102)
 
