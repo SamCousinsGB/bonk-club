@@ -14,12 +14,19 @@
   correct chemical, finite contents and valid transport, and checks a narrow
   cut plus a solid obstruction. The desktop relay check now fires actual
   railgun shots through complete petrol and acid sections before a late join.
-- All 1,311 regular checks pass. Desktop source relay QA passes real shots,
+- All 1,311 regular checks and all 57 stress cases pass. Desktop source relay QA passes real shots,
   visible petrol/acid leaks, matching broken sections for existing and late
   guests, pressure rupture, reset, pump audio, controls and bot combat. The
   rendered leak and hot-join scenes were inspected at 1600 x 900.
+- Revision `b145c39` passed [release workflow 37232843554](https://github.com/SamCousinsGB/bonk-club/actions/runs/37232843554),
+  including shared/server checks, all six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match byte for byte. Fresh public Refinery host/guest controls,
+  hot join and departure pass over relay with no page errors; desktop gameplay
+  was visually inspected. This is one-machine relay QA, not cross-ISP testing.
 - Evidence and desktop screenshots are under
-  `desktop/test-results/refinery-leaks/`. Release verification pending.
+  `desktop/test-results/refinery-leaks/`. Task preview servers are stopped.
+  Refresh all player tabs for the fix. The worktree is clean after this handoff.
 
 ## Crown HUD and respawn feedback (v0.71.1 / protocol 107)
 
