@@ -17,8 +17,18 @@
   sections, sustained fresh fuel, expiry, shielding, cooling, transport and
   audio. Desktop QA now ignites a real leak with the equipped flamethrower and
   checks continuing flames and audio for a late join.
-- Release verification pending. Evidence is under
-  `desktop/test-results/refinery-fire/`.
+- All 1,319 regular checks and all 57 stress cases pass. Desktop source relay
+  QA verifies a sustained flame after an equipped flamethrower shot, matching
+  hot-join flames, active flame audio, later pipe destruction, pressure rupture,
+  reset, reduced motion and bot combat. Flame and guest scenes were inspected.
+- Revision `c457ab5` passed [release workflow 37233851527](https://github.com/SamCousinsGB/bonk-club/actions/runs/37233851527),
+  including shared/server validation, six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match byte for byte. Fresh public Refinery host/guest controls,
+  hot join and departure pass over relay without page errors; public desktop
+  gameplay was visually inspected. This is one-machine relay QA, not cross-ISP.
+- Evidence is under `desktop/test-results/refinery-fire/`. Task preview servers
+  are stopped. The worktree is clean after this handoff commit.
 
 ## Refinery pipe leaks (v0.71.2 / protocol 107)
 
