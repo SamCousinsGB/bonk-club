@@ -13,7 +13,7 @@
   observed impact foam. Batched native Canvas paths reduce airborne-liquid draw
   cost. Reduced motion suppresses the additional animated detail. No wire fields
   were added; host authority, finite contents, conductivity and reset remain.
-- Local checks: 1,160 regular tests, all 25 arena stress checks, source desktop
+- Local checks: 1,161 regular tests, all 25 arena stress checks, source desktop
   rendering, guest controls/swimming and exact damaged-water/terrain hot join.
   Paired solver medians improve from 0.75/1.30 ms to 0.47/0.71 ms in flooded and
   breached Waterworks workloads. A paired 1600x900 Canvas sample improves from

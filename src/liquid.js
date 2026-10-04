@@ -153,7 +153,7 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
           x>=p.x && x<p.x+p.w && p.y>=bottom-.8 && p.y<=bottom+q.vy*step &&
           p.h+q.h<=WATER_DEPTH && (!floor||p.y<floor.y));
         if(pool) {
-          const end={x:shape.x,y:pool.y-shape.h,w:shape.w,h:shape.h};
+          const end={x:q.x+(q.w-shape.w)/2,y:pool.y-shape.h,w:shape.w,h:shape.h};
           pool.vx=clamp(((pool.vx||0)*pool.h+q.vx*q.h)/(pool.h+q.h),-900,900);
           pool.h+=q.h;pool.y-=q.h;pool.spark=Math.max(pool.spark||0,q.spark||0);
           if(q.kind){pool.life=Math.max(pool.life,q.life);pool.fire=Math.max(pool.fire,q.fire);pool.cold=Math.max(pool.cold,q.cold);}

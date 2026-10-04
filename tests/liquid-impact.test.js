@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { World, ARENAS } from '../src/engine.js';
-import { moveLiquid, liquidForces, blastLiquid, WATER_LIMIT } from '../src/liquid.js';
+import { moveLiquid, liquidForces, blastLiquid, waterWireContact, WATER_LIMIT } from '../src/liquid.js';
 import { liquidColumns } from '../src/liquid-spatial.js';
 import { WaterImpacts, drawWater } from '../src/water-art.js';
 import { RenderSnapshots } from '../src/render-state.js';
@@ -37,6 +37,13 @@ test('intervening solid geometry intercepts a jet before the water below it',()=
   const w=lab(),pool=parcel(1,800,850,150),jet=parcel(2,800,775,8,{grounded:false,vy:600});
   w.platforms.push({x:760,y:800,w:160,h:12});w.water=[pool,jet];
   moveLiquid(w,.05);assert.ok(w.water.some(q=>q.grounded&&Math.abs(q.y+q.h-800)<.1));
+});
+
+test('a diagonal jet transfers its final swept wire contact when absorbed at the surface',()=>{
+  const w=lab(),pool=parcel(1,832,800,200),jet=parcel(2,800,772,8,{grounded:false,vy:1000,vx:900,fallDistance:72});
+  w.platforms.push({x:800,y:800,w:32,h:200},{x:864,y:800,w:32,h:200});
+  w.water=[pool,jet];moveLiquid(w,1/30,[{a:{x:845,y:779},b:{x:845,y:781}}]);
+  assert.ok(!w.water.includes(jet));assert.equal(waterWireContact(pool),true);
 });
 
 test('explosions eject finite pool volume, create opposing currents and carry hot or conductive liquid',()=>{
