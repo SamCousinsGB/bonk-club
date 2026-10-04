@@ -8,8 +8,7 @@
 - Crown placement now prefers safe surviving alternatives. A validated available
   flag keeps an unplaceable crown out of play until a safe site returns. Hazard
   recovery cancels the wait; inactivity or absent scoring alone never causes a
-  reset. A living
-  carrier can finish its hold despite lost terrain.
+  reset. A living carrier can finish its hold despite lost terrain.
 - Rebuild the same arena/round with the existing countdown, profiles, match
   options, round scores and accumulated Crown seconds. Increment life identities
   so guests reset prediction/interpolation. A validated arena-rebuilt event shows
@@ -19,7 +18,15 @@
   run also passed all 53 cases. Source relay QA joins a guest during a failed
   plane round, then verifies automatic recovery, preserved times/wins, exact
   rebuilt-world agreement and guest controls. Actual desktop before/after
-  gameplay and the recovery notice were inspected. CI/Pages verification is pending.
+  gameplay and the recovery notice were inspected.
+- Revision `942493a` passed [release workflow 37230322896](https://github.com/SamCousinsGB/bonk-club/actions/runs/37230322896),
+  including shared/server tests, all six stress shards, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files match
+  byte for byte. Fresh public Crown play on Cargo Plane Hold passed crown pickup,
+  guest controls, hot join and host departure over real relay routes, without
+  page errors. Public desktop gameplay was visually inspected. Forced recovery
+  was verified in the source relay test; public QA used ordinary gameplay.
+  This is one-machine relay QA, not separate-ISP testing.
 - Repeatable check: `desktop/tests/crown-recovery-browser.mjs`; evidence is in
   `desktop/test-results/crown-recovery/`. Task preview servers are stopped.
 
