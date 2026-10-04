@@ -1,5 +1,36 @@
 # Bonk Club — current handoff
 
+## Crown HUD and respawn feedback (v0.71.1 / protocol 107)
+
+- A centred Crown panel follows the current holder and counts down their actual
+  remaining hold time. When loose, it clearly labels the leader's remaining
+  requirement; inactive possession never implies that the clock is running.
+- Room join/leave notices sit above chat during Crown play, clear of the timer.
+- Four colour-coded player cards retain cumulative Crown time, equipment and
+  health. The last five seconds highlight the holder, pulse the central timer
+  and play bounded ascending countdown tones. Snapshot repeats, late joins,
+  possession changes and stalls cannot replay old ticks; mute is respected.
+- A red pulsing YOU arrow follows the local fighter for 2.8 seconds after spawn
+  or respawn, keyed by round, occupant and life identity. Reduced motion keeps
+  both the marker and the urgent timer steady. The HUD adds no simulation or wire fields.
+- All 61 integrated feedback/Crown/audio/Refinery checks and 1,309 regular checks
+  pass. Desktop
+  relay QA covers possession/loose states, real respawn, countdown audio calls,
+  hot join, reduced motion and 1600/1280/960-wide desktop window layouts. Source
+  screenshots were inspected. Production build and bundle multiplayer pass.
+  The final notice-placement fix incorporates the Refinery release and protocol 107.
+- Revision `2225973` passed [release workflow 37232309306](https://github.com/SamCousinsGB/bonk-club/actions/runs/37232309306),
+  including shared/server validation, all six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and public
+  files match byte for byte. Fresh public Crown play on Cargo Plane Hold passed
+  central HUD visibility, real join-notice separation, guest controls, hot join
+  and host departure over relay routes, with no page errors. Public gameplay
+  was visually inspected. Task preview servers are stopped; this is one-machine
+  relay QA, not separate-ISP testing. Refresh all players for the current build.
+- Repeatable check: `desktop/tests/crown-hud-browser.mjs`, with the repository's
+  VITE_ROOM_SERVICE_URL and VITE_TURN_CREDENTIALS_URL set. Evidence is under
+  `desktop/test-results/crown-hud/`.
+
 ## Refinery (v0.71.0 / protocol 107)
 
 - Adds a fourteenth arena: a tall fractionation column surrounded by four pipe
@@ -37,29 +68,6 @@
   without page errors; public desktop gameplay was visually inspected.
 - Task preview servers are stopped. The worktree is clean after this handoff
   commit. This was one-machine relay QA, not separate-ISP testing.
-
-## Crown HUD and respawn feedback (v0.71.1 / protocol 107)
-
-- A centred Crown panel follows the current holder and counts down their actual
-  remaining hold time. When loose, it clearly labels the leader's remaining
-  requirement; inactive possession never implies that the clock is running.
-- Room join/leave notices sit above chat during Crown play, clear of the timer.
-- Four colour-coded player cards retain cumulative Crown time, equipment and
-  health. The last five seconds highlight the holder, pulse the central timer
-  and play bounded ascending countdown tones. Snapshot repeats, late joins,
-  possession changes and stalls cannot replay old ticks; mute is respected.
-- A red pulsing YOU arrow follows the local fighter for 2.8 seconds after spawn
-  or respawn, keyed by round, occupant and life identity. Reduced motion keeps
-  both the marker and the urgent timer steady. No simulation or wire fields change.
-- Focused feedback/Crown/audio checks and 1,294 regular checks pass. Desktop
-  relay QA covers possession/loose states, real respawn, countdown audio calls,
-  hot join, reduced motion and 1600/1280/960-wide desktop window layouts. Source
-  screenshots were inspected. Production build and bundle multiplayer pass.
-  The final notice-placement fix incorporates the Refinery release and protocol
-  107. Integrated CI/Pages and public release verification pending.
-- Repeatable check: `desktop/tests/crown-hud-browser.mjs`, with the repository's
-  VITE_ROOM_SERVICE_URL and VITE_TURN_CREDENTIALS_URL set. Evidence is under
-  `desktop/test-results/crown-hud/`.
 
 ## Crown automatic arena recovery (v0.70.2 / protocol 106)
 
