@@ -15,7 +15,7 @@ export const fixtureBounds = t => {
   return {x:t.x-half,y:t.y-t.h,w:half*2,h:t.h};
 };
 export function nearFixture(x,y,traps,margin=30) {
-  return traps.some(t=>{if(t.type==='colossus')return false;const b=fixtureBounds(t);return !t.done && x>b.x-margin&&x<b.x+b.w+margin&&y>b.y-35&&y<t.y+25;});
+  return traps.some(t=>{if(t.type==='colossus'||t.type==='rocket')return false;const b=fixtureBounds(t);return !t.done && x>b.x-margin&&x<b.x+b.w+margin&&y>b.y-35&&y<t.y+25;});
 }
 export function dressArena(arena) {
   const {platforms,spawns,traps}=arena;

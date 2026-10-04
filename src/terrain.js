@@ -38,7 +38,7 @@ export function carveExplosion(world, blast, { fixtures = true, preservePlatform
     return remains.map(({ x, y, w }) => ({ x, y, w }));
   });
   for (const h of fixtures ? world.hazards : []) {
-    if (h.type === "colossus" || h.type === "powerline" || h.type === "furnace" || h.type === "train" || h.type === "airflow") continue; // Remote controllers and independent powered structures survive local terrain cuts.
+    if (h.type === "rocket" || h.type === "colossus" || h.type === "powerline" || h.type === "furnace" || h.type === "train" || h.type === "airflow") continue; // Remote controllers and independent powered structures survive local terrain cuts.
     if (h.done) continue;
     const box = {
     x: h.bodyX - h.w / 4, y: h.bodyY - 16, w: h.w / 2, h: 32,

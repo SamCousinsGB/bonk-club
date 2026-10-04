@@ -1,4 +1,5 @@
 import { TrainSound } from './train-sound.js';
+import { RocketSound, synthesizeRocket } from './rocket-sound.js';
 import { ColossusSound, synthesizeColossus } from './colossus-sound.js';
 import { SOUND_NAMES, SOUND_RATE, NUKE_FUSE, synthesizeSound, weaponSound } from './sound-design.js';
 import { W } from './scale.js';
@@ -20,12 +21,13 @@ export class Sound {
     this.furnace = new FurnaceSound();
     this.train = new TrainSound();
     this.colossus = new ColossusSound();
+    this.rocket = new RocketSound();
   }
   get muted() { return this._muted; }
   set muted(value) {
     this._muted = !!value;
     if (this.master?.gain) this.master.gain.setTargetAtTime(value ? 0 : .8, this.context.currentTime, .008);
-    if (value) { this.stopAlarm(); this.furnace.stop(this); this.train.stop(this); this.colossus.stop(this); }
+    if (value) { this.stopAlarm(); this.furnace.stop(this); this.train.stop(this); this.colossus.stop(this); this.rocket.stop(this); }
   }
   connect() {
     const c = this.context;
@@ -61,6 +63,7 @@ export class Sound {
       const queue = SOUND_NAMES.flatMap(name => name === 'siren' ? [[name, 0]] : [0, 1, 2].map(v => [name, v]));
       queue.unshift(...Object.keys(FURNACE_SOUNDS).map(name => [name, 0]));
       queue.push(['colossus',0]);
+      queue.push(['rocket-test',0]);
       const schedule = globalThis.requestIdleCallback
         ? fn => globalThis.requestIdleCallback(fn, { timeout: 1500 })
         : fn => globalThis.setTimeout(fn, 25);
@@ -77,7 +80,7 @@ export class Sound {
   buffer(name, variant = 0) {
     const key = name + ':' + variant;
     if (!this.buffers.has(key)) {
-      const samples = name==='colossus' ? synthesizeColossus(SOUND_RATE) : Object.hasOwn(FURNACE_SOUNDS, name) ? synthesizeFurnace(name, SOUND_RATE) : synthesizeSound(name, variant);
+      const samples = name==='rocket-test' ? synthesizeRocket(SOUND_RATE) : name==='colossus' ? synthesizeColossus(SOUND_RATE) : Object.hasOwn(FURNACE_SOUNDS, name) ? synthesizeFurnace(name, SOUND_RATE) : synthesizeSound(name, variant);
       const buffer = this.context.createBuffer(1, samples.length, SOUND_RATE);
       buffer.getChannelData(0).set(samples);
       this.buffers.set(key, buffer);
@@ -145,6 +148,7 @@ export class Sound {
     this.furnace.update(this, state);
     this.train.update(this, state);
     this.colossus.update(this, state);
+    this.rocket.update(this, state);
     for (const contact of this.landings.update(state)) this.sample(contact.name, contact);
     const projectile = state?.projectiles?.filter(b => b.nuclear && Number.isFinite(b.life) && b.life > 0 && b.life <= NUKE_FUSE + .01)
       .reduce((first, b) => !first || b.life < first.life ? b : first, null);
@@ -166,7 +170,7 @@ export class Sound {
     if (voice) this.alarm = { key, voice, stateTime: state.time };
   }
   play(type, detail = {}) {
-    if(type==='hazard'&&detail.kind==='colossus')return; // The seekable state voice owns the charge and discharge.
+    if(type==='hazard'&&['colossus','rocket'].includes(detail.kind))return; // Seekable state voices own the centrepiece cycles.
     if (!this.ready()) return;
     const c = this.context;
     if (type === 'player-join' || type === 'player-leave') {

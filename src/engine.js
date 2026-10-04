@@ -1,4 +1,5 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
+import { ROCKET_ARENA } from './rocket-arena.js';
 import { beginHang, climbFromHang, moveHanging } from "./hanging.js";
 import { movementShape, updatePosture } from "./curl.js";
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
@@ -88,7 +89,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA, COLOSSUS_ARENA];
+export const ARENAS = [TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA, COLOSSUS_ARENA, ROCKET_ARENA];
 export const DEFAULT_ARENA = ARENAS.findIndex(arena => arena.carWash);
 export const emptyInput = () => ({
   left: false,

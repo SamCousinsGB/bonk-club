@@ -1023,7 +1023,7 @@ export class BotController {
     }
     if (hazard && !b.flight) {
       const z=hazardZone(hazard,p.y);
-      if(hazard.type==='colossus'){
+      if(hazard.type==='colossus'||hazard.type==='rocket'){
         // The long warning permits walking to surviving support. Never turn a
         // laser dodge into an unchecked jump into the hole it just carved.
         const candidates=here?[z.x-48,z.x+z.w+48].filter(x=>x>here.x+24&&x<here.x+here.w-24&&

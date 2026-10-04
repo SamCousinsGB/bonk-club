@@ -1,5 +1,28 @@
 # Bonk Club — current handoff
 
+## Rocket Test Stand (v0.67.0 / protocol 103)
+
+- Adds a thirteenth arena with an articulated engine, upper gantry, two open
+  grating crossings and a broad lower flame trench. Every spawn can reach each
+  contested opening weapon using ordinary controls.
+- A host-owned 17-second cycle has six seconds idle, three warning, five firing
+  and three purge. Successive sweeps reverse smoothly. One shared clipped ray
+  fan controls visible exhaust, solid shielding, damage and physical thrust.
+  Grating passes the jet; blast breaches change its path. The remote engine is
+  backdrop hardware; every playable platform remains destructible.
+- Original cached Canvas artwork includes cryogenic tanks, hydraulic actuators,
+  cooling tubes, turbulent exhaust, contact light and bounded venting. Reduced
+  motion suppresses turbulence animation, dust and camera vibration.
+- One original seekable audio recording layers warning pulses, pump spin-up,
+  ignition, sustained combustion and purge. Late joins seek to the live phase;
+  mute, round reset, departure and stale snapshots cannot restart ignition.
+- Local focused checks, all regular tests, all 27 arena stress checks and
+  desktop source relay QA pass: guest movement, exact damaged-floor hot join,
+  engine phase agreement, reset, reduced motion, resizing and actual bot combat.
+  Evidence: `desktop/test-results/rocket/` in the rocket-test-stand worktree.
+- Refresh all player tabs for protocol 103. CI, release artifact parity and
+  public browser verification must finish before claiming it live.
+
 ## Enemy AI activity (v0.66.2 / protocol 102)
 
 - Cluster-launcher planning now uses the same default fuse as real projectiles.

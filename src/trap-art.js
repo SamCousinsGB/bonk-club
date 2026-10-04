@@ -34,7 +34,7 @@ function scannerFront(c,h) {
 // scanners around the fighters: left/rear post first, right/front post last.
 export function drawHazards(c,hazards,time,theme,layer="all",reduced=false,platforms=[]){
   for(const h of hazards||[]){
-    if(h.type==='colossus')continue; // Its distant eye and beam have their own layers.
+    if(h.type==='colossus'||h.type==='rocket')continue; // Centrepieces have their own layers.
     if(h.done&&h.type!=="train")continue;
     if(h.assemblyStation)continue;
     if(h.type==="ladle"){if(layer!=="front")drawLadle(c,h,time,reduced);continue;}

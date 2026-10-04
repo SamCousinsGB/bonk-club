@@ -1,5 +1,6 @@
 // Only these identifiers cross the wire; clients render the same local copy.
 export const VICTORY_MESSAGES = Object.freeze({
+  rocket: "By surviving the engine test",
   colossus: "By surviving the colossus laser",
   drowning: "By outlasting the flood",
   train: "By catching the express",

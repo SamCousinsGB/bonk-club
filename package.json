@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.66.2",
-  "releaseNotes": "Fix AI stalls when fighting, fetching weapons and leaving ledges",
+  "version": "0.67.0",
+  "releaseNotes": "Rocket Test Stand: sweeping exhaust, destructible crossings and engine audio",
   "private": true,
   "type": "module",
   "scripts": {

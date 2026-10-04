@@ -1,5 +1,6 @@
 import { dangerous, hazardZone } from "./hazards.js";
 import { colossusDanger } from './colossus.js';
+import { rocketDanger } from './rocket.js';
 
 // Warning areas are already unsafe destinations: do not start a jump that ends
 // inside a machine about to turn on. Scanners/loaders/belts are not kill zones.
@@ -8,6 +9,7 @@ const lethal = new Set(["geyser", "crusher", "pendulum", "saw", "tesla", "steam"
 export function botDanger(hazards, x, y, padding = 18) {
   return hazards.some(h => {
     if(h.type==='colossus')return colossusDanger(h,x,y,padding);
+    if(h.type==='rocket')return rocketDanger(h,x,y,padding);
     if (!lethal.has(h.type) || !dangerous(h)) return false;
     let z = hazardZone(h);
     // A raised press head's current contact box misses its imminent downstroke.
