@@ -1,5 +1,32 @@
 # Bonk Club — current handoff
 
+## Tucks, rolls and faster down poses (v0.65.0 / protocol 101)
+
+- Hold right mouse / Shift / controller LT to curl. A/D or the left stick steers
+  ground rolls and airborne flips. G / B / circle retains grab, parry and alternate
+  fire. Curling suspends attacks and parries; set carried props down to tuck.
+- The existing eleven-point rig folds with spring motors and per-limb collision.
+  Ground rotation follows travel; air steering supplies bounded torque. Release
+  unfolds over 0.18 seconds where the standing body fits. Rolls preserve external
+  momentum and use an 18% higher control-speed limit without extra lift or jumps.
+- S lies down faster on solid floors. Slatted-platform sitting takes 0.14 seconds
+  and continues into a hang by 0.5 seconds, retaining physical hands and legs.
+- Host snapshots carry validated tuck state and limb momentum; guests replay the
+  same movement and preserve damaged-world joins and resets. Refresh every tab
+  for protocol 101. The game menu and README contain the revised controls.
+- Local validation: 1,150 regular tests, all six arena stress groups, production
+  build and desktop source/bundle relay checks passed. Visually inspected rolls,
+  flips and faster hanging. Source QA also covered blur, reduced motion, resizing,
+  a virtual controller input, and a curled guest's damaged-terrain hot join.
+- Revision `10cf0c6` passed [release workflow 37210784952](https://github.com/SamCousinsGB/bonk-club/actions/runs/37210784952),
+  including shared/server tests, all stress groups, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public browser
+  files match exactly. Fresh public relay host/guest controls, right-click tuck,
+  hot join and host departure passed with no page errors. Public gameplay was
+  visually inspected. This is one-machine relay QA, not cross-ISP qualification.
+- Evidence: the attached tuck-roll worktree's `desktop/test-results/curl/`,
+  `public-curl.png` and `browser-online.json`. Task preview servers are stopped.
+
 ## Performance, networking and restraint physics (v0.64.7 / protocol 100)
 
 - Every AI route rebuild has a trace budget, with occupied supports planned
