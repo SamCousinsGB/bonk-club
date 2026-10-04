@@ -20,16 +20,22 @@
   audio. Removed the floating cracker temperature readout.
 - Protocol 110 validates supplied volume, intake state, pipe temperatures and
   exact protected earth geometry. Refresh every player's tab together.
-- Focused checks and all 1,336 regular checks pass. Desktop source relay QA
+- Focused checks, all 1,336 regular checks and all 57 stress cases pass. Desktop source relay QA
   verifies equipped railgun rupture, lake formation, equipped flamethrower
   ignition, burning-pool hot join, intact earth after a large blast, continuing
   external feed, reset and reduced-motion desktop resizing without page errors.
   Actual gameplay showed seven smoke columns, 24 burning gas parcels and a
   180-unit-deep burning lake. Inspected normal, burning and resized scenes.
+- Revision `481de3e` passed [release workflow 37238847916](https://github.com/SamCousinsGB/bonk-club/actions/runs/37238847916),
+  including game/server validation, all six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match byte for byte. Fresh public host/guest controls, hot join
+  and departure pass over relay without page errors; public desktop gameplay
+  was inspected. This verifies one-machine relay play, not cross-ISP latency.
 - Evidence is in `desktop/test-results/refinery-inferno/`; source QA is
   `desktop/tests/refinery-inferno-browser.mjs` with the configured Vite room and
-  TURN URLs. Source preview port 5413 is closed. Stress and release verification
-  are pending below before delivery.
+  TURN URLs. Source preview port 5413 is closed. Worktree clean after this
+  handoff commit.
 
 ## Rolling extinguishes fighters (v0.74.0 / protocol 109)
 
