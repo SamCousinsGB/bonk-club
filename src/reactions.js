@@ -11,7 +11,7 @@ import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
-import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact } from './liquid.js';
+import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact, blastLiquid } from './liquid.js';
 export { WATER_LIMIT, WATER_WIDTH } from './liquid.js';
 import { poweredWirePieces } from "./powerline-circuit.js";
 
@@ -268,6 +268,7 @@ export function explosionReaction(world, b) {
   const radius = b.radius || 145;
   if (b.nuclear) return;
   const cold = b.weapon === "cryo";
+  if(!cold)blastLiquid(world,b);
   for(const q of world.spills) if(near(q,b.x,b.y,radius)&&clear(world,b,centre(q))) {
     if(cold){q.cold=3.2;q.fire=0;}
     else if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;

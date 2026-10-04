@@ -1,5 +1,28 @@
 # Bonk Club — current handoff
 
+## Liquid physics and rendering (v0.66.0 / protocol 101)
+
+- Liquid collision and body-contact queries use local horizontal bins rebuilt
+  from current geometry. Falling streams join a pool at its free surface and
+  transfer finite volume, horizontal momentum, material and electrical contacts.
+- Moving bodies entrain water; plunging bodies and explosions eject actual
+  surface volume into bounded ballistic splashes. Blasts create outward currents
+  and can throw burning oil or molten metal. Walls shield liquid, the combined
+  384-parcel budget remains, and rejected splashes retain their pool volume.
+- Pools have depth shading, surface highlights, current streaks, bubbles and
+  observed impact foam. Batched native Canvas paths reduce airborne-liquid draw
+  cost. Reduced motion suppresses the additional animated detail. No wire fields
+  were added; host authority, finite contents, conductivity and reset remain.
+- Local checks: 1,160 regular tests, all 25 arena stress checks, source desktop
+  rendering, guest controls/swimming and exact damaged-water/terrain hot join.
+  Paired solver medians improve from 0.75/1.30 ms to 0.47/0.71 ms in flooded and
+  breached Waterworks workloads. A paired 1600x900 Canvas sample improves from
+  3.8 to 3.0 ms. These are local workload timings, not FPS or internet latency.
+- The production build and three-browser bundle test pass readiness, controls,
+  options, hot join and host departure over real relay routes with no page errors.
+  Evidence: this worktree's ignored `desktop/test-results/liquids/`.
+  Release CI/Pages and public parity are pending.
+
 ## Tucks, rolls and faster down poses (v0.65.0 / protocol 101)
 
 - Hold right mouse / Shift / controller LT to curl. A/D or the left stick steers

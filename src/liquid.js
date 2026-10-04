@@ -5,6 +5,7 @@ import { segmentBox, playerBox } from './collision.js';
 import { bodyBounds, impulseProp } from './props.js';
 import { carryImpulse } from './impact.js';
 import { knockDown } from './knockdown.js';
+import { liquidColumns } from './liquid-spatial.js';
 
 export const WATER_LIMIT = 384, WATER_WIDTH = 32, WATER_DEPTH = 640, TANK_CAPACITY = 1200;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
@@ -111,55 +112,78 @@ function wireSweep(q,old,wires) {
 // parcels while hydrostatic head and retained momentum drive lateral flux.
 // Substeps bound collision travel; material viscosity changes flux, not the solver.
 export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
-  if(world.prediction)return;
+  if(world.prediction || !(dt>0) || !(world.water.length+world.spills.length))return;
   for(const q of liquids(world)){contacts.set(q,false);paths.set(q,[]);}
   const steps=Math.ceil(dt/(1/60)),step=dt/steps;
   for(let tick=0;tick<steps;tick++) {
     const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable' &&
       !((world.arena?.waterworks || world.arena?.theme==='foundry') && p.oneWay));
-    for(const q of liquids(world)) {
+    // The halo covers a neighbour, swept travel and landing alignment. Querying
+    // one bin avoids both a full terrain scan and per-parcel candidate arrays.
+    const parcels=liquids(world),terrain=parcels.length>8?liquidColumns(solids,undefined,80):{at:()=>solids};
+    const surfaceColumns=liquidColumns(parcels.filter(q=>q.grounded&&!q.frozen&&q.h>.5));
+    for(const q of parcels) {
       if(q.h<=0)continue;
+      const nearby=terrain.at(q.x);
       if(q.frozen) {
-        const area=solids.filter(p=>p.waterId===q.id).reduce((s,p)=>s+p.w*p.h,0);
+        const area=nearby.reduce((s,p)=>s+(p.waterId===q.id?p.w*p.h:0),0);
         if(Math.abs(area-q.w*q.h)>.1){q.h=0;thaw(world,q);continue;}
         q.frozen=Math.max(0,q.frozen-step);if(!q.frozen)thaw(world,q);
         continue;
       }
-      const old={...q},bottom=q.y+q.h,shape=liquidBounds(q);
+      const oldY=q.y,bottom=q.y+q.h,bounds=liquidBounds(q);
+      const shape={x:bounds.x,y:bounds.y,w:bounds.w,h:bounds.h};
       q.vx=clamp(q.vx||0,-900,900);
       q.vy=clamp(q.vy+1000*step,-600,1000);
       if(!q.grounded) {
         let nx=clamp(q.x+q.vx*step,0,W-q.w);
-        const side=solids.some(p=>p.waterId!==q.id && p.y<bottom-.5 && p.y+p.h>shape.y+.5 &&
+        const side=nearby.some(p=>p.waterId!==q.id && p.y<bottom-.5 && p.y+p.h>shape.y+.5 &&
           segmentBox(q.x+q.w/2,shape.y+shape.h/2,nx+q.w/2,shape.y+shape.h/2,p,q.w/2));
         if(side){nx=q.x;q.vx*=.2;}
         q.x=nx;
       }
       const x=q.x+q.w/2;
       let floor=null;
-      for(const p of solids)if(p.waterId!==q.id && x>p.x && x<p.x+p.w && p.y>=bottom-.8 &&
+      for(const p of nearby)if(p.waterId!==q.id && x>p.x && x<p.x+p.w && p.y>=bottom-.8 &&
         (!floor||p.y<floor.y))floor=p;
+      // A stream strikes the free surface rather than falling invisibly to the
+      // basin floor. Transfer its finite volume, momentum and swept contacts.
+      if(!q.grounded && q.vy>0) {
+        const pool=surfaceColumns.at(x).find(p=>p!==q && kindOf(p)===kindOf(q) && p.h>0 &&
+          x>=p.x && x<p.x+p.w && p.y>=bottom-.8 && p.y<=bottom+q.vy*step &&
+          p.h+q.h<=WATER_DEPTH && (!floor||p.y<floor.y));
+        if(pool) {
+          const end={x:shape.x,y:pool.y-shape.h,w:shape.w,h:shape.h};
+          pool.vx=clamp(((pool.vx||0)*pool.h+q.vx*q.h)/(pool.h+q.h),-900,900);
+          pool.h+=q.h;pool.y-=q.h;pool.spark=Math.max(pool.spark||0,q.spark||0);
+          if(q.kind){pool.life=Math.max(pool.life,q.life);pool.fire=Math.max(pool.fire,q.fire);pool.cold=Math.max(pool.cold,q.cold);}
+          paths.get(pool)?.push(...(paths.get(q)||[]),[shape,end]);
+          if(waterWireContact(q)||(wires.length&&wireSweep(end,shape,wires)))contacts.set(pool,true);
+          q.h=0;continue;
+        }
+      }
       if(q.vy>=0 && floor && bottom+q.vy*step>=floor.y) {
         q.y=floor.y-q.h;q.vy=0;q.grounded=true;
         // Keep columns aligned on landing, unless a side wall occupies that cell.
         const nx=clamp(Math.round(q.x/WATER_WIDTH)*WATER_WIDTH,0,W-q.w);
-        if(!solids.some(p=>p!==floor && !p.waterId && overlap({...q,x:nx},p)))q.x=nx;
+        if(!nearby.some(p=>p!==floor && !p.waterId && overlap({x:nx,y:q.y,w:q.w,h:q.h},p)))q.x=nx;
       } else {
         let ceiling=null;
-        if(q.vy<0)for(const p of solids)if(p.waterId!==q.id && x>p.x && x<p.x+p.w &&
+        if(q.vy<0)for(const p of nearby)if(p.waterId!==q.id && x>p.x && x<p.x+p.w &&
           p.y+p.h<=q.y+.8 && q.y+q.vy*step<=p.y+p.h && (!ceiling||p.y+p.h>ceiling.y+ceiling.h))ceiling=p;
         if(ceiling){q.y=ceiling.y+ceiling.h;q.vy=0;}else q.y+=q.vy*step;
         q.grounded=false;
       }
       if(q.y<-200){q.y=-200;q.vy=Math.max(0,q.vy);}
-      q.fallDistance=q.grounded||q.vy<0?0:clamp((q.fallDistance??72)+Math.max(0,q.y-old.y),0,72);
+      q.fallDistance=q.grounded||q.vy<0?0:clamp((q.fallDistance??72)+Math.max(0,q.y-oldY),0,72);
       if(!paths.has(q))paths.set(q,[]);
-      paths.get(q).push([liquidBounds(old),{...liquidBounds(q)}]);
-      if(wires.length && wireSweep(liquidBounds(q),liquidBounds(old),wires))contacts.set(q,true);
+      const moved=liquidBounds(q),end={x:moved.x,y:moved.y,w:moved.w,h:moved.h};
+      paths.get(q).push([shape,end]);
+      if(wires.length && wireSweep(end,shape,wires))contacts.set(q,true);
     }
     const pools=new Map();
     const key=(q,x=q.x,y=q.y+q.h)=>`${kindOf(q)}:${Math.round(x*10)}:${Math.round(y*10)}`;
-    for(const q of liquids(world))if(q.grounded && !q.frozen && q.h>0) {
+    for(const q of parcels)if(q.grounded && !q.frozen && q.h>0) {
       const k=key(q),old=pools.get(k);
       if(old && old.h+q.h<=WATER_DEPTH) {
         old.vx=((old.vx||0)*old.h+(q.vx||0)*q.h)/(old.h+q.h);
@@ -173,11 +197,11 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
     const ordered=[...pools.values()].sort((a,b)=>(tick%2?1:-1)*(a.x-b.x));
     for(const q of ordered) {
       if(q.h<=.04)continue;
-      const floorY=q.y+q.h;
+      const floorY=q.y+q.h,nearby=terrain.at(q.x);
       for(const dir of tick%2?[1,-1]:[-1,1]) {
         const nx=q.x+dir*q.w;if(nx<0 || nx+q.w>W)continue;
         let outletY=floorY;
-        for(const p of solids)if(!p.waterId && p.y<floorY && p.y+p.h>=floorY-.5 &&
+        for(const p of nearby)if(!p.waterId && p.y<floorY && p.y+p.h>=floorY-.5 &&
           segmentBox(q.x+q.w/2,floorY-.2,nx+q.w/2,floorY-.2,p))outletY=Math.min(outletY,p.y);
         const available=q.h-(floorY-outletY);
         if(available<=.02)continue;
@@ -193,7 +217,7 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
         let flux=Math.min(available*.22,flow*(pressure + Math.max(0,head-.12)*step*5 + Math.max(0,(q.vx||0)*dir)*available*step/q.w*.24));
         if(flux<.008 || other && other.h>=WATER_DEPTH)continue;
         const surface=outletY-Math.min(available,Math.max(other?.h||0,.5))*.5;
-        if(solids.some(p=>!p.waterId && segmentBox(q.x+q.w/2,surface,nx+q.w/2,surface,p)))continue;
+        if(nearby.some(p=>!p.waterId && segmentBox(q.x+q.w/2,surface,nx+q.w/2,surface,p)))continue;
         if(!other) {
           if(world.water.length+world.spills.length>=WATER_LIMIT)continue;
           other={id:++world.reactionSerial,x:nx,y:outletY,w:q.w,h:0,vx:speed,vy:0,
@@ -212,20 +236,59 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
 }
 
 export const waterForces = (world,dt) => liquidForces(world,dt);
+// Lift actual surface volume into a ballistic sheet. No decorative duplicate
+// water: a full parcel budget leaves the volume in the pool.
+function splashLiquid(world,q,amount,vx,vy) {
+  const take=Math.min(amount,q.h*.3);
+  if(take<.2 || world.water.length+world.spills.length>=WATER_LIMIT)return false;
+  const jet={...q,id:++world.reactionSerial,h:take,grounded:false,
+    vx:clamp(vx,-900,900),vy:clamp(vy,-600,1000),fallDistance:0};
+  q.y+=take;q.h-=take;
+  listFor(world,kindOf(q)).push(jet);
+  return true;
+}
+
+export function blastLiquid(world,blast) {
+  if(world.prediction)return;
+  const radius=blast.radius||145,solids=world.platforms.filter(p=>p.hp!==0&&!p.waterId);
+  let splashes=0;
+  for(const q of liquids(world)) {
+    if(q.frozen || q.h<.02)continue;
+    const b=liquidBounds(q),x=clamp(blast.x,b.x,b.x+b.w),y=clamp(blast.y,b.y,b.y+b.h);
+    const distance=Math.hypot(x-blast.x,y-blast.y);
+    if(distance>=radius || solids.some(p=>segmentBox(blast.x,blast.y,x,y,p)))continue;
+    const force=1-distance/radius,dir=Math.sign(b.x+b.w/2-blast.x)||1;
+    q.vx=clamp((q.vx||0)+dir*460*force,-900,900);
+    if(!q.grounded)q.vy=clamp(q.vy-360*force,-600,1000);
+    else if(splashes<12 && Math.abs(q.y-blast.y)<radius && splashLiquid(world,q,28*force,q.vx,-(220+350*force)))splashes++;
+  }
+}
+
 export function liquidForces(world,dt) {
-  const all=liquids(world);
+  const all=liquids(world).filter(q=>!q.frozen).map(q=>({liquid:q,box:liquidBounds(q)}));
   if(world.prediction || !all.length)return;
+  const columns=liquidColumns(all,q=>q.box);
   const actors=[...world.players.filter(p=>p.alive),...world.cover.filter(p=>p.hp>0),
     ...world.chunks.filter(p=>p.hp>0),...(world.drops||[])];
+  let splashes=0;
   for(const b of actors) {
     const fighter=b.alive!==undefined,box=fighter?playerBox(b):b.mass?bodyBounds(b):{x:b.x-8,y:b.y-8,w:16,h:16};
-    let area=0,vx=0,vy=0,depth=0;
-    for(const liquid of all) {
-      const q=liquidBounds(liquid);
-      if(liquid.frozen || !overlap(box,q) || (fighter && world.arena?.waterworks && liquid.grounded && liquid.h>22))continue;
+    let area=0,vx=0,vy=0,depth=0;const wetted=[];
+    for(const {liquid,box:q} of columns.between(box.x,box.x+box.w)) {
+      if(!overlap(box,q))continue;
       const a=Math.max(0,Math.min(box.x+box.w,q.x+q.w)-Math.max(box.x,q.x))*
         Math.max(0,Math.min(box.y+box.h,q.y+q.h)-Math.max(box.y,q.y));
+      wetted.push({q:liquid,area:a});
+      if(fighter && world.arena?.waterworks && liquid.grounded && liquid.h>22)continue;
       area+=a;vx+=a*(liquid.vx||0);vy+=a*liquid.vy;depth=Math.max(depth,liquid.h);
+    }
+    // Bodies entrain the water they actually intersect. The mass of a deep
+    // column resists the same motion more than a shallow film does.
+    for(const {q,area:a} of wetted)if(q.grounded && q.h>2) {
+      const coupling=1-Math.exp(-dt*a/(q.w*q.h)*2.4),relative=(b.vx||0)-(q.vx||0);
+      q.vx=clamp((q.vx||0)+relative*coupling,-900,900);
+      if(splashes<8 && (b.vy||0)>180 && box.y<q.y && box.y+box.h>q.y &&
+        splashLiquid(world,q,Math.min(5,(b.vy||0)*dt*.12),(b.vx||0)+Math.sign(q.x+q.w/2-box.x-box.w/2)*90,-Math.min(420,(b.vy||0)*.55)))splashes++;
     }
     if(!area)continue;
     const immersed=clamp(area/(box.w*box.h),0,1),mass=b.mass||55;
@@ -244,7 +307,7 @@ export function liquidForces(world,dt) {
   // Death bodies use Verlet particles. Feed the same current into each wetted
   // limb's velocity so a floating corpse still collides and tumbles normally.
   for(const rag of world.ragdolls||[])for(const p of rag.points||[]) {
-    const q=all.find(liquid=>{const q=liquidBounds(liquid);return !liquid.frozen && p.x>=q.x && p.x<=q.x+q.w && p.y>=q.y && p.y<=q.y+q.h;});
+    const found=columns.at(p.x).find(({box:q})=>p.x>=q.x && p.x<=q.x+q.w && p.y>=q.y && p.y<=q.y+q.h),q=found?.liquid;
     if(!q)continue;
     const drag=1-Math.exp(-dt*7),vx=(p.x-p.px)*120,vy=(p.y-p.py)*120;
     p.px-=clamp(((q.vx||0)-vx)*drag,-180,180)/120;

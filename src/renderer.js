@@ -1077,7 +1077,7 @@ export class Renderer {
     if(arena.ship){drawShipDetails(c,state,time,this.reduced);drawShipWater(c,state,time,this.reduced,true);}
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
-    drawReactions(c, state, this.reduced ? 0 : time);
+    drawReactions(c, state, this.reduced ? 0 : time, this.reduced);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {

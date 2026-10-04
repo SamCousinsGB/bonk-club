@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.65.0",
-  "releaseNotes": "Faster down poses, held tucks, ground rolls and airborne flips",
+  "version": "0.66.0",
+  "releaseNotes": "Faster liquids, surface impacts, body wakes and explosive splashes",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
     "test:stress": "node --test --test-reporter=dot tests/*.stress.js",
     "test:release": "npm test && npm run test:stress",
     "benchmark:netcode": "node scripts/benchmark-netcode.mjs",
+    "benchmark:liquids": "node scripts/benchmark-liquids.mjs",
     "desktop:build": "node scripts/build-desktop.mjs",
     "desktop:package": "node scripts/package-desktop.mjs",
     "steam:prepare": "node scripts/prepare-steam.mjs",

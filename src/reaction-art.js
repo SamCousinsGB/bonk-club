@@ -101,9 +101,9 @@ function flame(c,x,y,height,phase) {
   c.beginPath();c.moveTo(x-3,y);c.quadraticCurveTo(x-5,y-height*.3,x+sway*.6,y-height*.58);
   c.quadraticCurveTo(x+8,y-height*.2,x+3,y);c.fillStyle="#ffe794";c.fill();
 }
-export function drawReactions(c,state,time) {
+export function drawReactions(c,state,time,reduced=false) {
   c.save();
-  drawWater(c,state,time);
+  drawWater(c,state,time,reduced);
   drawSpills(c,state,time);
   for(const b of [...(state.cover||[]),...(state.chunks||[]),...state.platforms.filter(p=>p.fire||p.charge)]) {
     if(b.hp===0)continue;
