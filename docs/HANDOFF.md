@@ -18,7 +18,16 @@
   readiness, hot join and departure with no page errors. Desktop source matches
   exercise Colossus, Car Assembly and Waterworks; a seeded activity audit covers
   all 12 arenas. Evidence is in this worktree's ignored `desktop/test-results/`.
-  Release CI/Pages and exact public artifact parity remain to be verified.
+- Revision `fb300c9` passed [release workflow 37214176095](https://github.com/SamCousinsGB/bonk-club/actions/runs/37214176095):
+  shared/server tests, all six stress shards, Windows/Linux executable checks,
+  release verification and Pages. All 25 local stress checks also passed.
+- All 19 local, CI and public files match byte for byte. Fresh public desktop
+  host/guest controls, readiness, hot join and host departure passed over relay
+  routes without page errors, and public gameplay was visually inspected.
+  Refresh tabs for v0.66.2. Relay QA used one machine, not separate ISPs.
+- Evidence: `desktop/test-results/ai-parity.json`, `ai-browser.json`,
+  `ai-tests.tap`, the arena audit files and `browser-online.json` in this
+  worktree. Both task preview servers are stopped.
 
 ## Platform head stretching (v0.66.1 / protocol 102)
 
