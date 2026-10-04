@@ -42,6 +42,28 @@ Twelve electrical Canvas comparisons matched every pixel. These CPU measurements
 are not internet-latency claims. Real relay QA on the same machine passed loss,
 stall recovery, changed-world hot joining and reset without page errors.
 
+The 1,800-tick four-bot workloads below use the same initial seed and a blast at
+tick 600. Values are milliseconds per simulation tick, comparing `25cd5c4` with
+`686bf14`. Route scheduling and restraint corrections change subsequent combat,
+so these are whole-workload samples, not identical-trajectory solver timings.
+Tail cost improves more consistently than the median; Waterworks p95 is within
+ordinary measurement noise and the plane/bridge medians increase.
+
+| Arena | Before median | After median | Before p95 | After p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Arc Furnace | 1.358 | 1.082 | 7.131 | 6.669 |
+| Car Assembly | 7.451 | 5.426 | 25.883 | 21.291 |
+| Cargo Plane Hold | 2.888 | 3.334 | 18.035 | 14.342 |
+| Waterworks | 6.180 | 4.376 | 16.929 | 16.866 |
+| Suspension Bridge | 1.438 | 2.763 | 10.339 | 5.118 |
+
+Release [37204216871](https://github.com/SamCousinsGB/bonk-club/actions/runs/37204216871)
+passed all shared/server checks, six stress groups, Windows/Linux executable
+checks and Pages. All 19 local/CI/public files matched exactly. The unmodified
+public v0.64.7 bundle passed real relay host/guest controls, readiness/options,
+hot join and host departure with no page errors. These remain one-machine
+measurements; separate-ISP and native Steam qualification are not established.
+
 ## v0.46.1 changes (historical)
 
 - Motion and world state have independent encoding jobs **and workers**. A
@@ -73,7 +95,7 @@ stall recovery, changed-world hot joining and reset without page errors.
   immediately. The warp shader skips inactive sources without changing its
   geometry, amplitude, reduced-motion behaviour or physics.
 
-The wire shape remains protocol **69**. World and motion histories are separate,
+That historical release used protocol **69**; v0.64.7 uses **100**. World and motion histories are separate,
 retain at most 32 snapshots, and deltas use only acknowledged baselines. Missing
 baselines request a full state. Compressed frames are limited to 250 KB and
 decompression to 1 MB. Each stream assembler retains at most two partial frames.

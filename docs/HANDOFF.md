@@ -23,8 +23,11 @@
 - All six local arena stress groups pass, along with 1,141 regular tests.
   Evidence is in the task worktree's ignored `desktop/test-results/`. See
   `docs/NETCODE.md` and `npm run benchmark:performance` for measurement scope.
-  Release CI/Pages and public parity must pass before this
-  revision is described as live.
+  Revision `686bf14` passed [release workflow 37204216871](https://github.com/SamCousinsGB/bonk-club/actions/runs/37204216871):
+  shared/server tests, all six stress groups, Windows/Linux executable checks,
+  release verification and Pages. All 19 local, CI and public files match
+  exactly. Fresh public relay host/guest readiness, controls, options, hot join
+  and host departure passed with no page errors. Task preview servers are stopped.
 
 ## Lower Colossus head (v0.64.6 / protocol 99)
 
