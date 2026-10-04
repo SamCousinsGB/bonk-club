@@ -795,7 +795,7 @@ function gameMenu(forceOpen = false) {
   showPanel(
     "game-menu",
     heading("Game menu") +
-      `<p>The game continues while this menu is open.</p><p>Hold right mouse / Shift to curl. A/D rolls or flips. G grabs, parries or uses alternate fire. Controller: hold LT to curl; B / circle for grab or alternate action.</p><button id="resume" class="button primary">BACK TO GAME</button>${room && !room.offline ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CUSTOMISE</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
+      `<p>The game continues while this menu is open.</p><p>Hold right mouse / Shift to curl. A/D rolls or flips. Rolling on the ground puts out fire. G grabs, parries or uses alternate fire. Controller: hold LT to curl; B / circle for grab or alternate action.</p><button id="resume" class="button primary">BACK TO GAME</button>${room && !room.offline ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CUSTOMISE</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {

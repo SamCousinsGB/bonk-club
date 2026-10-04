@@ -842,6 +842,10 @@ export class World {
         else {p.y=s.y+s.h+top;p.vy=Math.max(0,p.vy);}
       }
     }
+    // A moving ground roll smothers the fighter's flames. Fresh fire contacts
+    // later in the tick can still ignite them; guests wait for host authority.
+    if (!this.prediction && p.curl && p.ground && p.stun <= 0 &&
+        Math.abs(p.x - oldX) > 20 * dt) p.burn = 0;
     // Use actual travel after collision, excluding lifts, blocked motion and
     // airborne drift. Hits still move the body without making its legs pedal.
     const running = p.ground && !p.prone && !p.curl && !p.freeze && p.stun <= 0 && dir !== 0;

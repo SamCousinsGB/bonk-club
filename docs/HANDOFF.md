@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Rolling extinguishes fighters (v0.74.0 / protocol 109)
+
+- Actual movement while curled on the ground clears the fighter's burn on the
+  host. Standing curls, midair flips, lying down, platform motion and
+  incapacitated fighters do not. Rolling does not remove oil or grant immunity;
+  a fresh flame hit or ongoing burning-pool contact can ignite the fighter again.
+- Existing burn snapshots drive flames and the status HUD for every client.
+  Prediction never clears burn or changes health. No wire fields changed.
+  The in-match controls now explain that rolling on the ground puts out fire.
+- Focused checks and all 1,330 regular checks pass. Desktop source relay QA
+  verifies right-mouse host rolling, Shift guest rolling, stationary curl,
+  flames/status clearing, stopped burn damage, late join and re-ignition with
+  no page errors. Burning and extinguished scenes were inspected. Stress and
+  publication are pending. Evidence is in `desktop/test-results/roll-fire/`;
+  source QA is `desktop/tests/roll-fire-browser.mjs` (set the repository's
+  configured Vite room-service and TURN URL variables before running).
+
 ## Refinery oil flooding (v0.73.0 / protocol 109)
 
 - Crude and cracker contents use the shared oil palette, matching oil released

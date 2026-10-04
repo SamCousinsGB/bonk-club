@@ -10,6 +10,9 @@ import {GuestPrediction} from '../src/guest-prediction.js';
 import {validSnapshot, encodeState, decodeState} from '../src/network.js';
 import {compactSnapshot, expandSnapshot} from '../src/snapshot-wire.js';
 import {carveExplosion} from '../src/terrain.js';
+import {impactSpecial} from '../src/specials.js';
+import {addSpill,updateReactions} from '../src/reactions.js';
+import {fighterStatuses} from '../src/status-effects.js';
 
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function fixture() {
@@ -35,6 +38,53 @@ test('held tuck folds the existing rig promptly and rolls in either direction',(
     assert.ok(JOINTS.every(([a,b,l])=>Math.abs(distance(rig[a],rig[b])-l)<1));
     assert.equal(playerBox(p).h,52);
   }
+});
+
+test('rolling either way puts out a burning fighter and stops further burn damage',()=>{
+  for(const dir of [-1,1]){
+    const {w,p,step}=fixture();impactSpecial(w,{kind:'flame',burn:1},p,true);
+    assert.equal(p.burn,3);p.oiled=2;
+    step(24,{curl:true,left:dir<0,right:dir>0});
+    assert.equal(p.burn,0);assert.ok(p.hp>98);assert.equal(p.oiled,2,'rolling does not remove fuel or grant fire immunity');
+    const hp=p.hp;step(60,{});assert.equal(p.hp,hp);
+    assert.ok(!fighterStatuses(w,p).some(s=>s.id==='burning'));
+  }
+});
+
+test('standing, lying, airborne tucks and incapacitated motion cannot smother fire',()=>{
+  for(const kind of ['still','walk','prone','air','knocked','stunned','lift']){
+    const {w,p,step}=fixture();impactSpecial(w,{kind:'flame',burn:1},p,true);
+    if(kind==='air')Object.assign(p,{y:300,ground:false,support:null,rig:null});
+    if(kind==='knocked')knockDown(p,'hammer');
+    if(kind==='stunned')p.stun=.5;
+    if(kind==='lift')w.platforms[0].dx=2;
+    step(12,{curl:!['walk','prone'].includes(kind),right:!['still','lift'].includes(kind),duck:kind==='prone'});
+    assert.ok(p.burn>2.8,kind);assert.ok(p.hp<99,kind);
+  }
+});
+
+test('a fresh flame hit and a burning pool can ignite a fighter after rolling',()=>{
+  const {w,p,step}=fixture();impactSpecial(w,{kind:'flame',burn:1},p,true);
+  step(12,{curl:true,right:true});assert.equal(p.burn,0);
+  step(1,{});impactSpecial(w,{kind:'flame',burn:1},p,true);assert.equal(p.burn,3);
+  const hp=p.hp;step(12,{});assert.ok(p.hp<hp);
+  addSpill(w,'oil',p.x,565,300,true);
+  for(let i=0;i<12;i++){step(1,{curl:true,right:true});updateReactions(w,STEP);}
+  assert.ok(p.burn>0,'ongoing fire exposure still ignites a rolling fighter');
+  assert.ok(w.spills.some(q=>q.fire>0),'rolling does not extinguish the fuel pool');
+});
+
+test('guest rolling waits for the host burn state and extinguishing survives a hot join',()=>{
+  const {w,p,step}=fixture();impactSpecial(w,{kind:'flame',burn:1},p,true);
+  const encoder=new RenderSnapshots(),snapshot=ack=>({...encoder.make(w.snapshot()),inputAcks:[ack,0,0,0]});
+  const initial=snapshot(0),prediction=new GuestPrediction();prediction.receive(initial,0,1000);
+  for(let seq=1;seq<=6;seq++)prediction.advance(cleanInput({curl:true,right:true}),seq,1000+seq*1000/60);
+  assert.equal(prediction.player.burn,3);assert.equal(prediction.player.hp,100);
+  step(12,{curl:true,right:true});assert.equal(p.burn,0);
+  const hot=expandSnapshot(compactSnapshot(snapshot(6)),validSnapshot);assert.ok(hot);
+  prediction.receive(hot,0,1101);assert.equal(prediction.sample(hot,1101).players[0].burn,0);
+  assert.equal(hot.players[0].burn,0);assert.equal(hot.players[0].curl,true);
+  w.startRound();assert.equal(w.players[0].burn,0);
 });
 
 test('midair tuck gains modest range, spins and reverses without extra lift',()=>{
