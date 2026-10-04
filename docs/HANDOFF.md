@@ -1,5 +1,25 @@
 # Bonk Club — current handoff
 
+## Enemy AI activity (v0.66.2 / protocol 102)
+
+- Cluster-launcher planning now uses the same default fuse as real projectiles.
+  Bots route around structural obstacles on a shared floor, clear nearby marked
+  breakable panels, and temporarily abandon blocked pickups to resume fighting.
+- Checked step-down routes start from the safe side of the edge guard. At close
+  contact on solid ledges, bots use ordinary prone melee attacks when a standing
+  lunge would be fatal; slats/wires retain their drop-through protection.
+- Difficulty, aim error, reaction delays, health, speed, explosive clearance and
+  human controls are unchanged. No snapshot fields or wire protocol changed.
+- Adds 53 activity regressions covering all 37 weapons, elevated machine-gun
+  deployment, both melee directions, blocked pickups, breakable panels, safe
+  step-downs and slatted-platform safety. Existing AI safety checks also pass.
+- All 1,225 regular tests and the production build pass on the integrated source.
+  The production bundle's three-browser relay test passes guest controls,
+  readiness, hot join and departure with no page errors. Desktop source matches
+  exercise Colossus, Car Assembly and Waterworks; a seeded activity audit covers
+  all 12 arenas. Evidence is in this worktree's ignored `desktop/test-results/`.
+  Release CI/Pages and exact public artifact parity remain to be verified.
+
 ## Platform head stretching (v0.66.1 / protocol 102)
 
 - Active limbs can land on a platform only after the fighter's feet clear its

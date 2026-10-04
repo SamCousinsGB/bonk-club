@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.66.1",
-  "releaseNotes": "Fix head and body stretching when jumping beneath platforms",
+  "version": "0.66.2",
+  "releaseNotes": "Fix AI stalls when fighting, fetching weapons and leaving ledges",
   "private": true,
   "type": "module",
   "scripts": {
