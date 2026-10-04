@@ -19,7 +19,18 @@
 - All 1,245 regular tests pass. Desktop source gameplay with two and four bots
   and no pickups was inspected; bots traverse and fight before discharge.
   Evidence: ignored `desktop/test-results/colossus-*` files in enemy-ai worktree.
-- Final stress checks, release CI, public parity and browser checks are pending.
+- All 27 stress checks pass on the final code. Revision `5200714` passed
+  [release workflow 37217297468](https://github.com/SamCousinsGB/bonk-club/actions/runs/37217297468),
+  including shared/server tests, all six stress shards, Windows/Linux executable
+  checks, release verification and Pages. The earlier candidate run was cancelled
+  to include the newly reproduced damaged-terrace escape before publication.
+- All 19 local, CI and public files match byte for byte. Fresh public relay
+  host/guest controls, hot join and departure pass without page errors. Public
+  Colossus gameplay with no opening/refill weapons was visually inspected:
+  bots traverse and fight. Refresh tabs for v0.67.1. Relay QA used one machine.
+- Final evidence includes `colossus-parity.json`, `colossus-public-browser.json`,
+  `colossus-source-four-browser.json` and `browser-online.json`. Task preview
+  servers are stopped; the worktree is clean after this handoff commit.
 
 ## Rocket Test Stand (v0.67.0 / protocol 103)
 
