@@ -19,14 +19,20 @@
   player's tab together. New regression coverage checks every crude section
   after shots and cuts, lake depth and persistence, real projectile ignition,
   sustained surface combustion, drainage, bounded admission and hot-join state.
-- All 1,326 regular checks pass. Desktop source relay QA verifies an equipped
+- All 1,326 regular checks and all 57 stress cases pass. Desktop source relay QA verifies an equipped
   railgun rupture, substantial pooling, equipped flamethrower ignition,
   matching burning fuel for a late join, active pouring/fire audio, real floor
   drainage, reset and reduced-motion desktop resizing without page errors.
   Tank oil, pouring, pooled fuel and host/guest fire scenes were inspected.
-  Stress and publication checks are pending.
-  Evidence is under `desktop/test-results/refinery-flood/`; repeat the actual
+- Revision `2aa0d0a` passed [release workflow 37236910675](https://github.com/SamCousinsGB/bonk-club/actions/runs/37236910675),
+  including shared/server validation, six stress shards, Windows/Linux
+  executable checks, release verification and Pages. All 19 local, CI and
+  public files match byte for byte. Fresh public Refinery host/guest controls,
+  hot join and departure pass over relay without page errors; public desktop
+  gameplay was visually inspected. This is one-machine relay QA, not cross-ISP.
+- Evidence is under `desktop/test-results/refinery-flood/`; repeat the actual
   weapon, flood, ignition and hot-join check with `desktop/tests/refinery-flood-browser.mjs`.
+  Task preview port 5411 is closed. The worktree is clean after this handoff commit.
 
 ## Flammable refinery gas sprays (v0.72.0 / protocol 108)
 
