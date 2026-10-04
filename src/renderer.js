@@ -1036,7 +1036,7 @@ export class Renderer {
     if (arena.theme === "railway") drawTrack(c,state);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
-    drawGas(c, state, time);
+    drawGas(c, state, time, this.reduced);
     drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced, state.platforms);
     if(arena.rocket)drawRocketExhaust(c,state,this.reduced);
     if(arena.refinery)drawRefineryProcess(c,state,this.reduced);

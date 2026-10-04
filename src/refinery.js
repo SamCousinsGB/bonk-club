@@ -56,10 +56,10 @@ function release(world,kind,amount,at,hot=false){
   if(kind==='gas'){
     // Coalesce only the current outlet's unlit cloud; a full atmosphere queue
     // leaves material in the pipe/tank instead of silently deleting it.
-    const g=world.gas.find(g=>!g.lit&&g.life>2.7&&Math.hypot(g.x-at.x,g.y-at.y)<28&&g.r<50);
+    const g=world.gas.find(g=>g.spray&&!g.lit&&g.life>2.7&&Math.hypot(g.x-at.x,g.y-at.y)<28&&g.r<50);
     let accepted;
     if(g){accepted=Math.min(amount,(50-g.r)/2);g.r+=accepted*2;}
-    else if(world.gas.length<24){accepted=Math.min(amount,12);world.gas.push({id:++world.reactionSerial,x:at.x,y:at.y,vx:clamp(at.vx||0,-450,450),vy:clamp((at.vy||0)-75,-450,450),r:Math.min(50,5+accepted*2),life:3.2,lit:hot?.22:0,owner:0});}
+    else if(world.gas.length<24){accepted=Math.min(amount,12);world.gas.push({id:++world.reactionSerial,x:at.x,y:at.y,vx:clamp(at.vx||0,-450,450),vy:clamp((at.vy||0)-75,-450,450),r:Math.min(50,8+accepted*2),life:3.2,lit:hot?.22:0,owner:0,spray:true});}
     else return 0;
     return accepted;
   }

@@ -1,5 +1,25 @@
 # Bonk Club — current handoff
 
+## Flammable refinery gas sprays (v0.72.0 / protocol 108)
+
+- Escaping refinery gas now sustains a visible moving flame when ignited by
+  flames, sparks, plasma, Tesla, heat or nearby combustion. New emitted parcels
+  catch from the existing flame front; the finite spray burns out when supply
+  ends. Cylinder clouds retain their separate delayed pressure flash.
+- Flames ignite exposed fighters, fuel and nearby gas. Surviving solid cover
+  blocks their contact and spread; water, coolant and cryo quench the spray.
+  Bots recognise the burning stream. Original blue-core flame art follows the
+  actual gas velocity, with reduced-motion support and one seekable roar voice.
+- Protocol 108 carries a validated spray flag through snapshots, deltas and
+  hot joins. Refresh all player tabs together. Round reset clears the flames;
+  guest prediction cannot advance combustion or damage.
+- Regression coverage checks actual projectile ignition at all eleven gas
+  sections, sustained fresh fuel, expiry, shielding, cooling, transport and
+  audio. Desktop QA now ignites a real leak with the equipped flamethrower and
+  checks continuing flames and audio for a late join.
+- Release verification pending. Evidence is under
+  `desktop/test-results/refinery-fire/`.
+
 ## Refinery pipe leaks (v0.71.2 / protocol 107)
 
 - Whole-section weapon damage now releases the pipe's own finite chemical.

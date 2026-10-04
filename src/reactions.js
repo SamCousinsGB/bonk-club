@@ -293,8 +293,8 @@ export function reactionContacts(world, shot, x, y, ex, ey) {
       const hit = segmentBox(x, y, ex, ey, liquidBounds(q), shot.r);
       if (hit) out.push({ reaction: q, hit });
     }
-  if (ballistic(shot) || ["flame", "spark", "plasma", "rocket", "tesla"].includes(shot.kind))
-    for (const g of world.gas) if (!g.lit) {
+  if (ballistic(shot) || ["flame", "spark", "plasma", "rocket", "tesla", "frost"].includes(shot.kind))
+    for (const g of world.gas) if (g.life>0&&(!g.lit || shot.kind==='frost')) {
       const hit = segmentBox(x, y, ex, ey, { x: g.x-g.r*.7, y: g.y-g.r*.7, w:g.r*1.4, h:g.r*1.4 }, shot.r);
       if (hit) out.push({ reaction: g, gas: true, hit });
     }
@@ -314,7 +314,10 @@ export function contactReaction(world, shot, collision) {
     else if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;
     return shot.kind==="flame"||shot.kind==="spark"||shot.kind==="frost";
   }
-  if (collision.gas) { q.lit = .22; q.owner = shot.owner; return shot.kind === "flame" || shot.kind === "spark"; }
+  if (collision.gas) {
+    if(shot.kind==='frost'){q.lit=0;q.life=0;return true;}
+    q.lit = .22; q.owner = shot.owner; return shot.kind === "flame" || shot.kind === "spark";
+  }
   if (shot.kind === "tesla") q.spark = .7;
   if (shot.kind === "frost") freezeWater(world, q);
   // A flame is quenched on first water contact, before it can hit a fighter
@@ -344,6 +347,8 @@ export function explosionReaction(world, b) {
     else ignite(c);
   }
   if (cold) {
+    for(const g of world.gas)if(near({x:g.x-g.r,y:g.y-g.r,w:g.r*2,h:g.r*2},b.x,b.y,radius)&&clear(world,b,g)){g.lit=0;g.life=0;}
+    world.gas=world.gas.filter(g=>g.life>0);
     for (const p of world.players) if (p.alive && Math.hypot(p.x-b.x,p.y-b.y)<radius && clear(world,b,p)) wet(p, 1);
   } else for (const g of world.gas)
     if (!g.lit && Math.hypot(g.x-b.x,g.y-b.y)<radius+g.r*.5 && clear(world,b,g)) { g.lit=.22; g.owner=b.owner ?? 0; }
@@ -490,6 +495,46 @@ function updateSpills(world, dt, bs, ps) {
   world.spills=world.spills.filter(q=>q.h>1e-8&&q.life>0);
 }
 
+function updateGas(world,dt,bs,ps) {
+  if(!world.gas.length)return;
+  // A fed refinery spray burns as a moving flame. Detached cylinder clouds
+  // keep their delayed pressure flash. Both spend their finite emitted fuel.
+  const solid=walls(world).filter(p=>!p.oneWay),cooled=new Set();
+  const visible=(a,b)=>!solid.some(p=>segmentBox(a.x,a.y,b.x,b.y,p));
+  for(const g of world.gas){
+    g.life-=dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.vx*=.985;g.r=Math.min(62,g.r+dt*14);
+    if(!g.spray)continue;
+    const box={x:g.x-g.r,y:g.y-g.r,w:g.r*2,h:g.r*2};
+    if(world.water.some(q=>liquidTouches(q,box))||world.spills.some(q=>q.kind==='coolant'&&liquidTouches(q,box))){
+      g.lit=0;g.life-=dt*3;cooled.add(g);continue;
+    }
+    if(!g.lit&&g.life>0&&(
+      ps.some(p=>p.burn>0&&near(playerBox(p),g.x,g.y,g.r)&&visible(g,p))||
+      world.spills.some(q=>q.kind==='molten'&&near(q,g.x,g.y,g.r)&&visible(g,centre(q)))||
+      world.hazards.some(h=>h.type==='geyser'&&h.active&&!h.done&&overlap(box,hazardZone(h))&&visible(g,{x:h.x,y:h.y-5}))
+    ))g.lit=.22;
+  }
+  // Only the previous flame front spreads this tick; no instantaneous
+  // recursive ignition across an entire cloud, or through surviving walls.
+  const burning=world.gas.filter(g=>g.life>0&&g.lit>0);
+  for(const g of world.gas)if(g.life>0&&!g.lit&&!cooled.has(g)){
+    const source=burning.find(b=>(b.spray||g.spray)&&Math.hypot(b.x-g.x,b.y-g.y)<b.r+g.r&&visible(b,g));
+    if(source){g.lit=.22;g.owner=source.owner;}
+  }
+  for(const g of world.gas)if(g.lit>0&&g.life>0){
+    if(g.spray){
+      g.life-=dt*2;
+      for(const b of bs)if(near(b,g.x,g.y,g.r)&&visible(g,centre(b)))ignite(b);
+      for(const p of ps)if(near(playerBox(p),g.x,g.y,g.r)&&visible(g,p))igniteFighter(p);
+      for(const q of world.spills)if(!q.fire&&!q.cold&&SPILLS[q.kind].burn&&near(q,g.x,g.y,g.r)&&visible(g,centre(q)))q.fire=SPILLS[q.kind].burn;
+    }else{
+      g.lit=Math.max(0,g.lit-dt);
+      if(!g.lit){g.life=0;world.explode({x:g.x,y:g.y,kind:'grenade',weapon:'gas',owner:g.owner,radius:g.r+28,damage:38,force:480});}
+    }
+  }
+  world.gas=world.gas.filter(g=>g.life>0&&g.y>-100&&g.y<H+100&&g.x>-100&&g.x<W+100);
+}
+
 export function updateReactions(world, dt) {
   if(world.prediction||world.phase!=="fight"||dt<=0)return;
   world.reactionClock+=dt;
@@ -519,7 +564,8 @@ export function updateReactions(world, dt) {
     const box=bodyBounds(b), origin=centre(b);
     for(const c of bs)if(c!==b&&overlap(box,bodyBounds(c),9))ignite(c);
     for(const p of ps)if(overlap(playerBox(p),box,13)&&clear(world,origin,p))igniteFighter(p);
-    for(const g of world.gas)if(!g.lit&&Math.hypot(g.x-origin.x,g.y-origin.y)<g.r+Math.max(b.w,b.h)/2)g.lit=.22;
+    for(const g of world.gas)if(!g.lit&&Math.hypot(g.x-origin.x,g.y-origin.y)<g.r+Math.max(b.w,b.h)/2&&
+      (!g.spray||!walls(world).some(p=>!p.oneWay&&segmentBox(origin.x,origin.y,g.x,g.y,p))))g.lit=.22;
     b.burnTick=(b.burnTick||0)+dt;
     if(b.burnTick>=.4-1e-8){world.damageCover(b,b.burnTick*(b.chunk?8:12));b.burnTick=0;}
   }
@@ -537,12 +583,7 @@ export function updateReactions(world, dt) {
       for(const b of bs)if(overlap(bodyBounds(b),z)&&clear(world,origin,centre(b))){b.cold=1.5;b.fire=0;}
     }
   }
-  for(const g of world.gas) {
-    g.life-=dt;g.x+=g.vx*dt;g.y+=g.vy*dt;g.vx*=.985;g.r=Math.min(62,g.r+dt*14);
-    if(g.lit>0) {g.lit=Math.max(0,g.lit-dt);if(!g.lit&&g.life>0){g.life=0;
-      world.explode({x:g.x,y:g.y,kind:"grenade",weapon:"gas",owner:g.owner,radius:g.r+28,damage:38,force:480});}}
-  }
-  world.gas=world.gas.filter(g=>g.life>0&&g.y>-100&&g.y<H+100&&g.x>-100&&g.x<W+100);
+  updateGas(world,dt,bs,ps);
   conduction(world,dt,wires);
   absorbShipWater(world);
 }
@@ -558,6 +599,7 @@ export function consumeReactionArea(world, blast) {
 
 export function reactionDanger(world, x, y) {
   return refineryDanger(world,x,y) || (world.ship?.charges.some(q=>q>0) && shipWaterAt(world,x,y) && world.ship.charges[shipWaterAt(world,x,y).i]>0) ||
+    world.gas.some(g=>g.spray&&g.lit>0&&Math.hypot(g.x-x,g.y-y)<g.r+26) ||
     world.water.some(q=>q.charge&&!q.frozen&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
     world.spills.some(q=>(q.fire>0||q.kind==='molten'||q.kind==='acid'&&!q.cold)&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
     world.cover.some(b=>b.hp>0&&((explosiveBarrel(b)&&b.leak&&!b.cold&&b.fuse<1.5&&Math.hypot(x-centre(b).x,y-centre(b).y)<(b.kind==='canister'?gasBlastRadius(b)+35:230))||
@@ -582,6 +624,6 @@ export function validReactions(s) {
     number(q.frozen,0,7)&&validReactionObject(q))&&new Set(s.water.map(q=>q.id)).size===s.water.length&&
     Array.isArray(s.gas)&&s.gas.length<=GAS_LIMIT&&s.gas.every(g=>Number.isInteger(g.id)&&g.id>0&&
     number(g.x,-200,W+200)&&number(g.y,-200,H+400)&&number(g.vx,-500,500)&&number(g.vy,-500,500)&&
-    number(g.r,1,62)&&number(g.life,0,3.2)&&number(g.lit,0,.22)&&Number.isInteger(g.owner)&&g.owner>=0&&g.owner<=3)&&
+    number(g.r,1,62)&&number(g.life,0,3.2)&&number(g.lit,0,.22)&&(g.spray===undefined||typeof g.spray==='boolean')&&Number.isInteger(g.owner)&&g.owner>=0&&g.owner<=3)&&
     new Set([...s.water,...s.gas,...s.spills].map(q=>q.id)).size===s.water.length+s.gas.length+s.spills.length;
 }

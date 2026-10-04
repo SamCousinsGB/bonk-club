@@ -77,9 +77,27 @@ export function drawReactiveProp(c,p) {
   c.restore();return true;
 }
 
-export function drawGas(c,state,time) {
+export function drawGas(c,state,time,reduced=false) {
+  if(reduced)time=0;
   for(const g of state.gas||[]) {
     c.save();
+    if(g.spray&&g.lit){
+      // The moving gas parcels are the flame, including their real flow
+      // direction and finite tail. No decorative fire across an empty break.
+      const r=g.r,phase=time*15+g.id*2.3,fade=Math.min(1,g.life*3);
+      c.translate(g.x,g.y);c.rotate(Math.atan2(g.vy,g.vx));c.globalAlpha=fade;
+      const glow=c.createRadialGradient(0,0,0,0,0,r*1.6);glow.addColorStop(0,'#ffc36c66');glow.addColorStop(1,'#fb713a00');
+      circle(c,0,0,r*1.6,glow);
+      const flame=c.createLinearGradient(-r,0,r,0);flame.addColorStop(0,'#58a7ff');flame.addColorStop(.3,'#d2f3ff');flame.addColorStop(.5,'#fff2a1');flame.addColorStop(1,'#ef663a');
+      for(let i=0;i<3;i++){
+        const y=(i-1)*r*.26,tip=r*(.76+.2*Math.sin(phase+i*2)),sway=Math.sin(phase+i)*r*.12;
+        c.beginPath();c.moveTo(-r*.8,y);
+        c.bezierCurveTo(-r*.25,y-r*.28,r*.25,y-r*.34,tip,y+sway);
+        c.bezierCurveTo(r*.2,y+r*.3,-r*.35,y+r*.24,-r*.8,y);c.fillStyle=flame;c.fill();
+      }
+      line(c,[[-r*.75,0],[-r*.2,0],[r*.35,Math.sin(phase)*r*.05]],'#eaffff',Math.max(1.2,r*.1));
+      c.restore();continue;
+    }
     const opacity=Math.min(.19,g.life*.16);
     c.globalAlpha=opacity;
     for(let i=0;i<5;i++) {

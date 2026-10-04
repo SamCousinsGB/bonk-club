@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.71.2",
-  "releaseNotes": "Broken refinery pipes release their chemicals",
+  "version": "0.72.0",
+  "releaseNotes": "Escaping refinery gas can sustain spreading flames",
   "private": true,
   "type": "module",
   "scripts": {
