@@ -1,4 +1,4 @@
-import {REFINERY_TANKS as TANKS,REFINERY_PIPES as PIPES} from './refinery-arena.js';
+import {REFINERY_TANKS as TANKS,refineryPipeSpec} from './refinery-arena.js';
 import {refineryLiquids} from './refinery.js';
 import {SPILLS} from './barrels.js';
 const TAU=Math.PI*2,COLORS=['#b99b68','#e6ba58','#77cfce','#b8d566'];
@@ -60,7 +60,18 @@ export function drawRefineryBackground(c,state,reduced){
   }
 }
 export function drawRefineryPlatform(c,p){
-  const pipe=p.refineryPipe!==undefined?PIPES[p.refineryPipe]:null,tank=p.refineryTank!==undefined?TANKS[p.refineryTank]:null;
+  if(p.refineryGround){
+    c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
+    c.fillStyle='#514637';c.fillRect(p.x,p.y,p.w,p.h);
+    for(let y=Math.floor(p.y/25)*25;y<p.y+p.h;y+=25){
+      line(c,[[p.x,y+Math.sin(p.x*.01)*4],[p.x+p.w,y+Math.sin((p.x+p.w)*.01)*4]],y%50?'#78644a':'#312e27',4);
+    }
+    for(let x=Math.floor(p.x/19)*19;x<p.x+p.w;x+=19)for(let y=Math.floor(p.y/29)*29;y<p.y+p.h;y+=29){
+      c.fillStyle=(x+y)%3?'#9b826050':'#25282277';c.fillRect(x+(y%13),y+(x%11),5,3);
+    }
+    c.fillStyle='#b29b6d';c.fillRect(p.x,p.y,p.w,4);c.restore();return;
+  }
+  const pipe=p.refineryPipe!==undefined?refineryPipeSpec(p.refineryPipe):null,tank=p.refineryTank!==undefined?TANKS[p.refineryTank]:null;
   if(pipe){
     const vertical=pipe.x===pipe.ex,g=vertical?gradient(c,p.x,p.w,'#182f36','#849b8e','#29464b'):c.createLinearGradient(0,p.y,0,p.y+p.h);
     if(!vertical){g.addColorStop(0,'#9aac97');g.addColorStop(.3,'#5b7875');g.addColorStop(.65,'#304e55');g.addColorStop(1,'#172f38');}
@@ -102,7 +113,9 @@ export function drawRefineryProcess(c,state,reduced){
     line(c,[[q.x,q.y],[q.x+q.w,q.y]],liquid.rim,2);
   }
   for(const p of surviving){
-    if(p.refineryPipe===undefined)continue;const spec=PIPES[p.refineryPipe],q=r.pipes[spec.id],ratio=q.volume/spec.capacity;if(ratio<.015)continue;
+    if(p.refineryPipe===undefined)continue;const spec=refineryPipeSpec(p.refineryPipe),q=spec.id===-1?r.feed:r.pipes[spec.id],ratio=spec.id===-1?1:q.volume/spec.capacity;
+    if(q.temperature>.15){c.fillStyle=`rgba(255,95,25,${Math.min(.55,q.temperature*.25)})`;c.fillRect(p.x,p.y,p.w,p.h);}
+    if(ratio<.015)continue;
     const dx=spec.ex-spec.x,dy=spec.ey-spec.y,len=Math.hypot(dx,dy),color=spec.route===0?SPILLS.oil.color:COLORS[spec.route];
     c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
     line(c,[[spec.x,spec.y],[spec.x+dx*ratio,spec.y+dy*ratio]],color+'b0',8);
@@ -129,6 +142,5 @@ export function drawRefineryProcess(c,state,reduced){
   // Heater light is tied to process heat and the surviving bottom mounting.
   const core=TANKS[1];if(surviving.some(p=>p.refineryTank===1&&p.y>1300)){
     for(let i=0;i<7;i++){const x=core.x+58+i*37,h=(12+Math.sin(time*13+i*2)*6)*r.heat;c.fillStyle='#f5a352';c.fillRect(x,1310-h,16,h);}
-    label(c,Math.round(20+r.heat*410)+' °C',1280,1262,'#f6b67a',22);
   }
 }

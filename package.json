@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.74.0",
-  "releaseNotes": "Rolling on the ground puts out fire",
+  "version": "0.75.0",
+  "releaseNotes": "Refinery fire basin, endless crude and burning pipe ruptures",
   "private": true,
   "type": "module",
   "scripts": {

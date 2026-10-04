@@ -24,10 +24,11 @@ export class RefinerySound{
     const r=state?.phase==='fight'&&state.refinery;if(!r||!sound.ready()){this.stop(sound);return;}
     const stamp=state.round+':'+r.clock,fresh=this.stamp!==stamp;this.stamp=stamp;
     const warning=r.tanks.filter(t=>t.warning>0).sort((a,b)=>a.warning-b.warning)[0],leaks=r.pipes.filter(q=>q.broken&&q.flow>.05),levels=new Map();
-    if(r.pipes[0].flow>.05||r.heat>.05)levels.set('refinery-pump',{x:1000,level:.45+r.heat*.3});
-    if(leaks.length||state.gas?.length||r.tanks.some(t=>t.burst&&t.volume>1))levels.set('refinery-hiss',{x:leaks.length?REFINERY_PIPES[leaks[0].id].x:state.gas?.[0]?.x??1280,level:Math.min(.65,.2+leaks.length*.06)});
+    if(r.feed.flow>.05||r.pipes[0].flow>.05||r.heat>.05)levels.set('refinery-pump',{x:1000,level:.45+r.heat*.3});
+    if(r.feed.broken||leaks.length||state.gas?.length||r.tanks.some(t=>t.burst&&t.volume>1))levels.set('refinery-hiss',{x:r.feed.broken?40:leaks.length?REFINERY_PIPES[leaks[0].id].x:state.gas?.[0]?.x??1280,level:Math.min(.65,.2+leaks.length*.06)});
     const pouring=leaks.filter(q=>REFINERY_PIPES[q.id].route!==2&&q.flow>10);
     if(pouring.length)levels.set('refinery-flow',{x:REFINERY_PIPES[pouring[0].id].x,level:Math.min(.75,.2+pouring.reduce((sum,q)=>sum+q.flow,0)/360)});
+    if(r.feed.broken&&r.feed.flow>10)levels.set('refinery-flow',{x:40,level:.75});
     const flames=[...(state.gas||[]).filter(g=>g.spray&&g.lit>0),...(state.spills||[]).filter(q=>q.fire>0&&q.h>.1)];
     if(flames.length)levels.set('refinery-fire',{x:flames.reduce((sum,g)=>sum+g.x,0)/flames.length,level:Math.min(.7,.25+flames.length*.04)});
     if(warning){const t=REFINERY_TANKS[warning.id];levels.set('refinery-alarm',{x:t.x+t.w/2,level:.8});}

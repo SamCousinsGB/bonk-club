@@ -24,10 +24,11 @@ test('all eleven gas pipe sprays ignite from a flame and sustain fire on newly e
     const w=fixture();for(let i=0;i<600;i++)updateRefinery(w,.05);
     w.damageCover(w.platforms.find(p=>p.refineryPipe===id),200);advance(w,.15);
     const g=w.gas.find(g=>g.spray);assert.ok(g,`pipe ${id} emits spray`);for(const [dx,dy] of [[0,1],[1,0],[-1,0],[0,-1]]){if(g.lit)break;shoot(w,g,'flame',dx,dy);}assert.ok(g.lit,`pipe ${id} ignites`);
-    const first=new Set(w.gas.map(g=>g.id));advance(w,3);
+    const first=new Set(w.gas.map(g=>g.id)),blasts=[],explode=w.explode.bind(w);w.explode=b=>{blasts.push(b);explode(b);};advance(w,3);
     assert.ok(w.gas.some(g=>g.lit&&!first.has(g.id)),`pipe ${id} lights newly emitted gas`);
     assert.ok(w.gas.length<=24);assert.ok(validSnapshot(transport(w)));
-    assert.equal(w.events.filter(e=>e.type==='explosion'&&e.weapon==='gas').length,0,'a fed spray burns without repeated grenade blasts');
+    assert.ok(blasts.every(b=>b.refineryBurst),'sprays only cause actual heated machinery ruptures');
+    assert.ok(blasts.length<=w.refinery.pipes.filter(q=>q.broken).length+w.refinery.tanks.filter(q=>q.burst).length+1);
   }
 });
 test('sprays accept sparks, plasma, flame, Tesla and environmental heat',()=>{

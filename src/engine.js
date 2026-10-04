@@ -1294,6 +1294,7 @@ export class World {
     );
   }
   damageCover(c, damage, vx = 0, vy = 0, point) {
+    if (c.refineryGround) return;
     if (!breakable(c) || c.hp <= 0) return;
     const body = propFor(this, c);
     if (body) { damageProp(this, body, damage, vx, vy, point); return; }

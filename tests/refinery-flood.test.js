@@ -14,7 +14,7 @@ const fixture=()=>{const w=new World({arena:ARENAS.findIndex(a=>a.refinery),play
 const advance=(w,t)=>{for(let i=0;i<Math.round(t/.05);i++){w.time+=.05;updateReactions(w,.05);}};
 const oil=w=>w.spills.filter(q=>q.kind==='oil');
 const volume=w=>oil(w).reduce((n,q)=>n+q.h,0);
-const stored=r=>r.tanks.reduce((n,q)=>n+q.volume,0)+r.pipes.reduce((n,q)=>n+q.volume,0)+r.products.reduce((a,b)=>a+b,0)+r.released+r.combusted;
+const stored=r=>r.tanks.reduce((n,q)=>n+q.volume,0)+r.pipes.reduce((n,q)=>n+q.volume,0)+r.products.reduce((a,b)=>a+b,0)+r.released+r.combusted-r.supplied;
 const transport=w=>JSON.parse(JSON.stringify(expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot)));
 function flood(){const w=fixture();advance(w,12);w.damageCover(w.platforms.find(p=>p.refineryPipe===3),200);advance(w,10);return w;}
 test('every crude section pours its actual finite oil after a shot or a through-cut',()=>{
@@ -29,24 +29,27 @@ test('every crude section pours its actual finite oil after a shot or a through-
     assert.ok(w.water.length+w.spills.length<=384);assert.ok(validSnapshot(transport(w)));
   }
 });
-test('a broken crude main forms a deep lake that remains after the source runs dry',()=>{
+test('a broken crude main keeps filling a deep lake from its external supply',()=>{
   const w=flood(),before=volume(w),runs=waterSurfaces(oil(w),w.platforms);
   assert.ok(runs.some(run=>run.length*32>=550&&run.some(q=>q.h>60)),'a substantial traversable-world pool forms');
-  assert.equal(w.refinery.tanks[0].volume,0);assert.ok(before>1500);
-  advance(w,60);assert.ok(Math.abs(volume(w)-before)<1e-5,'oil has no disappearing puddle timer');
+  assert.ok(w.refinery.tanks[0].volume>2000);assert.ok(before>1500);
+  advance(w,60);assert.ok(volume(w)>before+5000,'continuous incoming crude keeps flooding');
   assert.ok(validSnapshot(transport(w)));
 });
 test('the lake catches a flame projectile and burns from its surface instead of vanishing in seven seconds',()=>{
   const w=flood(),q=oil(w).find(q=>q.x>700&&q.x<900&&q.h>60),before=volume(w);
   w.projectiles.push({kind:'flame',weapon:'flame',owner:0,x:q.x+16,y:q.y-80,vx:0,vy:950,r:10,damage:10,force:50,life:.85,age:0,bounces:0,hitIds:[],burn:1});
   for(let i=0;i<16;i++)w.updateProjectiles(STEP);
-  assert.ok(oil(w).some(q=>q.fire>0));advance(w,10);
+  assert.ok(oil(w).some(q=>q.fire>0));
+  // Isolate consumption from the replenishing refinery and secondary bursts.
+  const process=w.refinery;w.refinery=null;advance(w,10);w.refinery=process;
   assert.ok(oil(w).some(q=>q.fire>0&&q.h>20));assert.ok(volume(w)>100&&volume(w)<before);
   assert.ok(validSnapshot(transport(w)));
 });
-test('cutting a real hole in the basin floor drains the accumulated oil',()=>{
-  const w=flood(),before=volume(w);carveExplosion(w,{x:800,y:1340,radius:95});advance(w,20);
-  assert.ok(volume(w)<before*.5);assert.ok(validSnapshot(transport(w)));
+test('blasts leave the bottom earth intact and accumulated oil contained',()=>{
+  const w=flood(),before=volume(w),ground=structuredClone(w.platforms.filter(p=>p.refineryGround));carveExplosion(w,{x:800,y:1424,radius:480});advance(w,20);
+  assert.deepEqual(w.platforms.filter(p=>p.refineryGround),ground);
+  assert.ok(volume(w)>=before);assert.ok(oil(w).every(q=>q.y+q.h<=1424.001));assert.ok(validSnapshot(transport(w)));
 });
 test('blocked or time-batched leaks keep unaccepted fuel inside the circuit without a wide emission slab',()=>{
   const w=fixture();advance(w,12);w.damageCover(w.platforms.find(q=>q.refineryPipe===3),200);

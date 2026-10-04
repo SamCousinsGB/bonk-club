@@ -44,6 +44,7 @@ export function beamIntersection(s, f, polygon) {
 export const beamTouches = (s, f) => beamIntersection(s, f).length > 0;
 
 export function carveBeam(s, f, nextId) {
+  if (s.refineryGround) return [s];
   let cut = beamIntersection(s, f);
   if (!cut.length) return [s];
   // Slice along the shorter dimension, with at most twelve cut bands per

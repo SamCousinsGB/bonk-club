@@ -11,6 +11,7 @@ export const inBlast = (p, f, radius = f.radius) =>
 // Thin horizontal slices follow the circular cut to within 8 units without
 // leaving invisible collision inside the crater. Intact elevators keep moving.
 export function carveRectangle(s, f, nextId) {
+  if (s.refineryGround) return [s];
   const nearX = Math.max(s.x, Math.min(s.x + s.w, f.x));
   const nearY = Math.max(s.y, Math.min(s.y + s.h, f.y));
   if (!inBlast({ x: nearX, y: nearY }, f)) return [s];

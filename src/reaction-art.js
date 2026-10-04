@@ -110,7 +110,8 @@ export function drawGas(c,state,time,reduced=false) {
   }
 }
 
-function flame(c,x,y,height,phase) {
+function flame(c,x,y,height,phase,width=6) {
+  c.save();c.translate(x,y);c.scale(width/6,1);x=0;y=0;
   const sway=Math.sin(phase)*height*.2;
   c.beginPath();c.moveTo(x-6,y);
   c.bezierCurveTo(x-13,y-height*.3,x+sway+5,y-height*.65,x+sway,y-height);
@@ -118,6 +119,7 @@ function flame(c,x,y,height,phase) {
   c.closePath();c.fillStyle="#fb713ace";c.fill();
   c.beginPath();c.moveTo(x-3,y);c.quadraticCurveTo(x-5,y-height*.3,x+sway*.6,y-height*.58);
   c.quadraticCurveTo(x+8,y-height*.2,x+3,y);c.fillStyle="#ffe794";c.fill();
+  c.restore();
 }
 export function drawReactions(c,state,time,reduced=false) {
   c.save();
@@ -163,7 +165,7 @@ export function drawReactions(c,state,time,reduced=false) {
 function drawSpills(c,state,time,reduced=false) {
   for(const q of state.spills||[]) {
     c.save();
-    if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),(q.grounded?Math.min(65,25+q.h*.45):Math.min(40,10+q.h*2))+Math.sin(q.id+time*7)*6,time*8+q.id);
+    if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),(q.grounded?(state.refinery?Math.min(240,65+q.h*1.5):Math.min(65,25+q.h*.45)):Math.min(40,10+q.h*2))+Math.sin(q.id+time*7)*6,time*8+q.id,state.refinery&&q.grounded?17:6);
     if(q.kind==='acid'||q.kind==='coolant') {
       for(let i=0;i<2;i++) {
         const age=reduced?.4:(time*.7+q.id*.13+i*.5)%1;

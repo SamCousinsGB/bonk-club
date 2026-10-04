@@ -13,15 +13,15 @@ import {liquidForces} from '../src/liquid.js';
 import {RefinerySound,REFINERY_SOUNDS,synthesizeRefinery} from '../src/refinery-sound.js';
 const fixture=()=>{const w=new World({arena:ARENAS.findIndex(a=>a.refinery),players:[0,1,2,3],shuffle:false,random:()=>.42});w.phase='fight';return w;};
 const advance=(w,t)=>{for(let i=0;i<Math.round(t/.05);i++)updateRefinery(w,.05);};
-const stored=r=>r.tanks.reduce((s,q)=>s+q.volume,0)+r.pipes.reduce((s,q)=>s+q.volume,0)+r.products.reduce((s,q)=>s+q,0)+r.released+r.combusted;
+const stored=r=>r.tanks.reduce((s,q)=>s+q.volume,0)+r.pipes.reduce((s,q)=>s+q.volume,0)+r.products.reduce((s,q)=>s+q,0)+r.released+r.combusted-r.supplied;
 const transport=w=>JSON.parse(JSON.stringify(expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot)));
-test('finite crude travels section by section, heats and splits into three independent products',()=>{
+test('incoming crude travels section by section, heats and splits into three independent products',()=>{
   const w=fixture(),total=stored(w.refinery);updateRefinery(w,.05);
   assert.ok(w.refinery.pipes[0].volume>0);assert.equal(w.refinery.tanks[1].volume,0);
   advance(w,30);const r=w.refinery;assert.ok(r.processed>600&&r.heat===1);
   for(let i=2;i<5;i++)assert.ok(r.tanks[i].volume>TANKS[i].initial+50);
   assert.ok(Math.abs(stored(r)-total)<1e-7);assert.equal(r.released,0);assert.ok(r.tanks.every(t=>!t.warning&&!t.burst));assert.ok(validSnapshot(transport(w)));
-  advance(w,120);assert.equal(r.tanks[0].volume,0);assert.ok(Math.abs(stored(r)-total)<1e-7);
+  advance(w,120);assert.ok(r.tanks[0].volume>2000&&r.supplied>2000);assert.ok(Math.abs(stored(r)-total)<1e-7);
 });
 test('a dent retains the bore; a through-cut disconnects flow and leaks at the actual cut',()=>{
   const w=fixture(),id=ROUTES[1].ids[3],p=PIPES[id];advance(w,20);

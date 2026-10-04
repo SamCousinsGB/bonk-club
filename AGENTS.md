@@ -76,7 +76,8 @@ Start new work from current `origin/main` in one clean worktree.
   out of the browser build and map pools.
 - Maps must vary in theme and topology. Preserve traversal headroom, clear takeoffs,
   double-jump routes, alternatives and elevators; avoid tower repetition and head traps.
-- Explosions deform every platform type with successive circular cuts. Marked wood/
+- Explosions deform platforms with successive circular cuts, except the impenetrable
+  Refinery earth basin. Marked wood/
   glass and wreckage take bullet damage; structural supports/lifts resist bullets.
   Destruction updates collision, navigation, snapshots and hot joins, then resets.
 - Props and rubble are physical bodies with material-appropriate mass, friction,
@@ -107,15 +108,18 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
-- **Refinery:** finite crude feeds a heated cracking column through 49 breakable
-  pipe sections. Separate petrol, gas and acid routes fill five bounded vessels;
-  each section stores material and advances it with pressure and backpressure.
-  Real bore cuts disconnect routes and release finite contents at actual breaks.
-  Tank openings drain by liquid head; roof breaches vent gas. Heat and blocked
-  outlets warn before pressure failure; water/coolant cool the vessels. Burst
-  shells become bounded physical metal before the blast is traced. Preserve
-  shared liquid forces, fire/acid reactions, traversable grating routes, original
-  process audio, reduced motion, host authority, damaged-world joins and reset.
+- **Refinery:** an endless off-screen crude intake supplies an approximated process
+  through 49 breakable pipe sections. Separate petrol, gas and acid routes fill
+  five bounded vessels; actual admitted material advances with backpressure.
+  Real bore cuts release contents at the openings. Heat ruptures pipe shells;
+  hot hydrocarbon vents spew burning gas as well as liquid. Tank openings drain
+  by liquid head; roof breaches vent gas. Heat and blocked outlets warn before
+  tank pressure failure; water/coolant cool and extinguish. Burst shells become
+  bounded physical metal before the blast is traced. The bottom earth floor and
+  V-sided banks are impenetrable and retain flooding fuel. Oil, petrol and tar
+  burn their actual volume slowly, feeding tall flames and bounded thick smoke.
+  Preserve shared liquid forces, traversable upper routes, original process and
+  fire audio, reduced motion, host authority, damaged-world joins and reset.
 - **Rocket Test Stand:** a remote gimballed engine sweeps exhaust beneath the
   upper gantry. Keep the 6 idle / 3 warning / 5 firing / 3 purge cycle, alternating
   sweeps and the shared clipped fan for art, shielding, damage and thrust.

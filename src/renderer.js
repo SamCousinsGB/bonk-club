@@ -3,6 +3,7 @@ import { RespawnCue, drawRespawnCue } from './respawn-cue.js';
 import { drawCrown, drawCrownGlow, drawLooseCrown } from './crown-art.js';
 import {drawRocketBackground,drawRocketPlatform,drawRocketExhaust,rocketShake} from './rocket-art.js';
 import {drawRefineryBackground,drawRefineryPlatform,drawRefineryProcess} from './refinery-art.js';
+import {drawRefinerySmoke} from './refinery-smoke.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawBridgeHall, drawBridgeStructure, drawBridgePlatform, drawBridgeAtmosphere } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
@@ -1036,6 +1037,7 @@ export class Renderer {
     if (arena.theme === "railway") drawTrack(c,state);
     drawWreckage(this,state.wreckage,time);
     drawCraters(this, state);
+    if(arena.refinery)for(const p of state.platforms)if(p.refineryGround)drawRefineryPlatform(c,p);
     drawGas(c, state, time, this.reduced);
     drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced, state.platforms);
     if(arena.rocket)drawRocketExhaust(c,state,this.reduced);
@@ -1101,6 +1103,7 @@ export class Renderer {
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
     drawReactions(c, state, this.reduced ? 0 : time, this.reduced);
+    if(arena.refinery)drawRefinerySmoke(c,state,this.reduced);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {

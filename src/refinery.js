@@ -1,4 +1,4 @@
-import {REFINERY_TANKS as TANKS,REFINERY_PIPES as PIPES,REFINERY_ROUTES as ROUTES} from './refinery-arena.js';
+import {REFINERY_TANKS as TANKS,REFINERY_PIPES as PIPES,REFINERY_ROUTES as ROUTES,REFINERY_INTAKE,refineryPipeSpec} from './refinery-arena.js';
 import {emitLiquid,liquidTouches} from './liquid.js';
 import {fractureProp,prepareProp} from './props.js';
 import {playerBox} from './collision.js';
@@ -8,9 +8,10 @@ const contains=(p,x,y)=>live(p)&&x>=p.x-.01&&x<=p.x+p.w+.01&&y>=p.y-.01&&y<=p.y+
 const topology=new WeakMap();
 export function resetRefinery(world){
   world.refinery=world.arena.refinery?{
-    clock:0,heat:0,processed:0,released:0,combusted:0,
+    clock:0,heat:0,processed:0,released:0,combusted:0,supplied:0,
+    feed:{flow:0,broken:false,temperature:0},
     tanks:TANKS.map((t,id)=>({id,volume:t.initial,temperature:0,pressure:0,warning:0,burst:false})),
-    pipes:PIPES.map(p=>({id:p.id,volume:0,flow:0,broken:false})),
+    pipes:PIPES.map(p=>({id:p.id,volume:0,flow:0,broken:false,temperature:0})),
     products:[0,0,0],
   }:null;
   topology.delete(world);
@@ -18,7 +19,7 @@ export function resetRefinery(world){
 // Search the actual surviving bore, rather than an original bounding box. A
 // shallow dent can leave it connected; a complete cross-cut opens both ends.
 export function pipeOpening(platforms,id){
-  const p=PIPES[id],vertical=p.x===p.ex,start=vertical?p.y:p.x,end=vertical?p.ey:p.ex,sign=Math.sign(end-start),length=Math.abs(end-start);
+  const p=refineryPipeSpec(id),vertical=p.x===p.ex,start=vertical?p.y:p.x,end=vertical?p.ey:p.ex,sign=Math.sign(end-start),length=Math.abs(end-start);
   const intervals=platforms.filter(q=>q.refineryPipe===id&&live(q)&&
     (vertical?p.x>=q.x&&p.x<=q.x+q.w:p.y>=q.y&&p.y<=q.y+q.h)).map(q=>{
       const a=vertical?q.y:q.x,b=a+(vertical?q.h:q.w);
@@ -47,7 +48,7 @@ export function tankOpenings(platforms,id){
 function geometry(world){
   let g=topology.get(world);
   if(!g||g.version!==world.terrainVersion||g.platforms!==world.platforms){
-    g={version:world.terrainVersion,platforms:world.platforms,pipes:PIPES.map(p=>pipeOpening(world.platforms,p.id)),tanks:TANKS.map((_,i)=>tankOpenings(world.platforms,i))};topology.set(world,g);
+    g={version:world.terrainVersion,platforms:world.platforms,feed:pipeOpening(world.platforms,-1),pipes:PIPES.map(p=>pipeOpening(world.platforms,p.id)),tanks:TANKS.map((_,i)=>tankOpenings(world.platforms,i))};topology.set(world,g);
   }
   return g;
 }
@@ -68,6 +69,28 @@ function release(world,kind,amount,at,hot=false){
 export function heatRefinery(world,touches,amount){
   const r=world.refinery;if(!r||world.prediction||world.phase!=='fight')return;
   r.tanks.forEach((q,i)=>{if(touches(TANKS[i]))q.temperature=clamp(q.temperature+amount,0,4);});
+  for(const p of [REFINERY_INTAKE,...PIPES])if(touches(pipeBox(p))){const q=p.id===-1?r.feed:r.pipes[p.id];q.temperature=clamp(q.temperature+amount,0,4);}
+}
+const pipeBox=p=>({x:Math.min(p.x,p.ex)-12,y:Math.min(p.y,p.ey)-12,w:Math.abs(p.ex-p.x)+24,h:Math.abs(p.ey-p.y)+24});
+function heatPipes(world,r,dt){
+  const burning=world.spills.filter(s=>s.fire>0),cold=[...world.water.filter(w=>!w.frozen),...world.spills.filter(s=>s.kind==='coolant')],gas=world.gas.filter(g=>g.lit>0);
+  for(const p of [REFINERY_INTAKE,...PIPES]){
+    const q=p.id===-1?r.feed:r.pipes[p.id],box=pipeBox(p);
+    const cooled=cold.some(s=>liquidTouches(s,box)),hot=burning.some(s=>liquidTouches(s,box))||gas.some(g=>g.x+g.r>box.x&&g.x-g.r<box.x+box.w&&g.y+g.r>box.y&&g.y-g.r<box.y+box.h);
+    q.temperature=clamp(q.temperature+dt*(cooled?-2.5:hot?.9:-.1),0,4);
+    if(!q.broken&&q.temperature>1.4){
+      for(const shell of world.platforms.filter(s=>s.refineryPipe===p.id&&live(s)))world.damageCover(shell,300);
+      shrapnel(world,p.id,{x:(p.x+p.ex)/2,y:(p.y+p.ey)/2,vx:0,vy:-160});
+      q.broken=true;
+      world.explode({x:(p.x+p.ex)/2,y:(p.y+p.ey)/2,kind:'grenade',weapon:'gas',owner:-1,refineryBurst:true,radius:75,damage:28,force:380});
+    }
+  }
+}
+function releaseFuel(world,kind,amount,at,hot){
+  // Hot hydrocarbon vents flash part of their actual feed into flammable gas.
+  // A full gas queue retains that portion; it never invents additional fuel.
+  const vapor=hot&&['oil','petrol'].includes(kind)?amount*.15:0;
+  return release(world,kind,amount-vapor,at,hot)+(vapor?release(world,'gas',vapor,{...at,vy:-240},true):0);
 }
 export function refineryDanger(world,x,y){
   return !!world.refinery?.tanks.some((q,i)=>q.warning>0&&Math.hypot(x-(TANKS[i].x+TANKS[i].w/2),y-(TANKS[i].y+TANKS[i].h/2))<refineryBlastRadius(i,q.volume)+50);
@@ -82,12 +105,13 @@ export function refineryLiquids(r){
   });
 }
 function shrapnel(world,id,at){
-  const p=PIPES[id],horizontal=p.y===p.ey;
+  const p=refineryPipeSpec(id),horizontal=p.y===p.ey;
   fractureProp(world,prepareProp({id:'pipe-break-'+id,kind:'cabinet',x:at.x-12,y:at.y-12,w:horizontal?32:24,h:horizontal?24:32,hp:0,maxHp:20,mass:7,vx:at.vx*.5,vy:-90,angle:0,spin:2}));
 }
 export function updateRefinery(world,dt){
   const r=world.refinery;if(!r||world.prediction||world.phase!=='fight'||!(dt>0))return;
   r.clock+=dt;
+  heatPipes(world,r,dt);
   // Process physics shares the liquid tick; stored contents and queues are
   // independent of render rate. Bounded substeps also support direct test ticks.
   // A depressurised liquid main draws much faster than the normal metered
@@ -99,6 +123,16 @@ export function updateRefinery(world,dt){
 }
 function advance(world,r,dt){
   const g=geometry(world),core=r.tanks[1];
+  // An off-screen field supplies crude continuously. Only admitted material
+  // enters the accounting; a full vessel or blocked vent applies backpressure.
+  if(g.feed){
+    if(!r.feed.broken){shrapnel(world,-1,g.feed);r.feed.broken=true;}
+    const n=releaseFuel(world,'oil',320*dt,g.feed,r.feed.temperature>.35);
+    r.feed.flow=n/dt;r.supplied+=n;r.released+=n;
+  }else{
+    const n=Math.max(0,Math.min(320*dt,TANKS[0].capacity-r.tanks[0].volume));
+    r.tanks[0].volume+=n;r.supplied+=n;r.feed.flow=n/dt;
+  }
   const burner=world.platforms.some(p=>p.refineryTank===1&&contains(p,1280,1312));
   r.heat=clamp(r.heat+dt*(burner&&core.volume>3&&!core.burst?.22:-.15),0,1);
   // Conversion is conservative and halts under downstream backpressure.
@@ -116,7 +150,7 @@ function advance(world,r,dt){
       const id=route.ids[k],q=r.pipes[id],p=PIPES[id],opening=g.pipes[id];q.flow=0;
       if(opening){
         if(!q.broken){shrapnel(world,id,opening);q.broken=true;}
-        const n=release(world,route.kind,Math.min(q.volume,route.leakRate*dt),opening);
+        const n=releaseFuel(world,route.kind,Math.min(q.volume,route.leakRate*dt),opening,q.temperature>.35);
         q.volume=Math.max(0,q.volume-n);q.flow=n/dt;r.released+=n;continue;
       }
       const next=r.pipes[route.ids[k+1]],dest=next||r.tanks[route.to],capacity=next?PIPES[next.id].capacity:TANKS[route.to].capacity;
@@ -177,8 +211,9 @@ function advance(world,r,dt){
 }
 export function validRefinery(r){
   const number=(n,a,b)=>Number.isFinite(n)&&n>=a&&n<=b;
-  return !!r&&number(r.clock,0,1e7)&&number(r.heat,0,1)&&number(r.processed,0,10000)&&number(r.released,0,10000)&&number(r.combusted,0,10000)&&
+  return !!r&&number(r.clock,0,1e7)&&number(r.heat,0,1)&&['processed','released','combusted','supplied'].every(k=>number(r[k],0,1e12))&&
+    !!r.feed&&number(r.feed.flow,0,320.01)&&number(r.feed.temperature,0,4)&&typeof r.feed.broken==='boolean'&&
     Array.isArray(r.products)&&r.products.length===3&&r.products.every(v=>number(v,0,80.01))&&
     Array.isArray(r.tanks)&&r.tanks.length===TANKS.length&&r.tanks.every((q,i)=>q&&q.id===i&&number(q.volume,0,TANKS[i].capacity+.01)&&number(q.temperature,0,4)&&number(q.pressure,0,2)&&number(q.warning,0,2.4)&&typeof q.burst==='boolean')&&
-    Array.isArray(r.pipes)&&r.pipes.length===PIPES.length&&r.pipes.every((q,i)=>q&&q.id===i&&number(q.volume,0,PIPES[i].capacity+.01)&&number(q.flow,0,ROUTES[PIPES[i].route].leakRate+.01)&&typeof q.broken==='boolean');
+    Array.isArray(r.pipes)&&r.pipes.length===PIPES.length&&r.pipes.every((q,i)=>q&&q.id===i&&number(q.volume,0,PIPES[i].capacity+.01)&&number(q.flow,0,ROUTES[PIPES[i].route].leakRate+.01)&&number(q.temperature,0,4)&&typeof q.broken==='boolean');
 }

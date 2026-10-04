@@ -89,13 +89,14 @@ test("late join receives carved platforms and spikes; malformed geometry is reje
   assert.ok(w.platforms.every(p=>!p.sourceId));
 });
 
-test("every platform in every arena can be carved, including structural walls, steps and lifts",()=>{
+test("every platform can be carved except the protected refinery earth basin",()=>{
   for(let arena=0;arena<ARENAS.length;arena++){
     const template=new World({arena});
     for(const source of template.platforms){
       const w=fixture();w.platforms=[structuredClone(source)];
       const x=source.x+source.w/2,y=source.y+source.h/2;
       blast(w,x,y,90);
+      if(source.refineryGround){assert.deepEqual(w.platforms,[source]);continue;}
       assert.ok(!w.platforms.some(p=>contains(p,x,y)),`${ARENAS[arena].name}: ${source.id}`);
     }
   }

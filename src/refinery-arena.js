@@ -1,4 +1,6 @@
 const deck=(x,y,w,h=20)=>({x,y,w,h,material:'metal',oneWay:true,refineryDeck:true});
+export const REFINERY_GROUND_Y=1424;
+export const REFINERY_INTAKE={id:-1,route:0,x:0,y:1150,ex:126,ey:1150,capacity:16};
 export const REFINERY_TANKS=[
   {name:'CRUDE',kind:'oil',x:110,y:1120,w:410,h:200,capacity:2200,initial:2100,color:'#b99b68'},
   {name:'CRACKER',kind:'oil',x:1110,y:1080,w:340,h:240,capacity:700,initial:0,color:'#f18952'},
@@ -26,7 +28,8 @@ REFINERY_ROUTES.forEach((route,r)=>{
     }
   }
 });
-const pipePanels=REFINERY_PIPES.map(p=>({x:Math.min(p.x,p.ex)-12,y:Math.min(p.y,p.ey)-12,w:Math.abs(p.ex-p.x)+24,h:Math.abs(p.ey-p.y)+24,
+export const refineryPipeSpec=id=>id===-1?REFINERY_INTAKE:REFINERY_PIPES[id];
+const pipePanels=[REFINERY_INTAKE,...REFINERY_PIPES].map(p=>({x:Math.min(p.x,p.ex)-12,y:Math.min(p.y,p.ey)-12,w:Math.abs(p.ex-p.x)+24,h:Math.abs(p.ey-p.y)+24,
   material:'metal',oneWay:true,destructible:true,panel:'metal',hp:95,maxHp:95,refineryPipe:p.id}));
 const tankPanels=REFINERY_TANKS.flatMap((t,i)=>[
   [t.x,t.y,t.w,16],[t.x,t.y+16,16,t.h-16],[t.x+t.w-16,t.y+16,16,t.h-16],[t.x,t.y+t.h-16,t.w,16],
@@ -34,7 +37,11 @@ const tankPanels=REFINERY_TANKS.flatMap((t,i)=>[
 export const REFINERY_ARENA={
   name:'REFINERY',theme:'refinery',color:'#19383d',refinery:true,
   platforms:[
-    {x:0,y:1320,w:2560,h:64,material:'stone',refineryDeck:true},
+    {x:0,y:REFINERY_GROUND_Y,w:2560,h:64,material:'stone',refineryDeck:true,refineryGround:true},
+    // Stepped earth forms the two banks of a sealed V-sided basin. These
+    // exact surviving faces also retain liquids and support physical bodies.
+    ...Array.from({length:8},(_,i)=>[0,1].map(side=>({x:side?2528-i*32:i*32,y:1200+i*28,w:32,h:288-i*28,material:'stone',refineryDeck:true,refineryGround:true}))).flat(),
+    ...REFINERY_TANKS.filter(t=>t.y>1000).flatMap(t=>[t.x+36,t.x+t.w-72].map(x=>({x,y:1320,w:36,h:104,material:'metal',refineryDeck:true}))),
     deck(20,1050,560),deck(1980,1050,560),deck(660,1080,370),deck(1500,1080,340),
     deck(70,810,460),deck(1980,810,490),deck(560,790,410),deck(1550,790,370),deck(1030,1000,500),
     deck(60,560,390),deck(2010,540,490),deck(500,520,380),deck(990,550,420),deck(1590,530,350),

@@ -1,5 +1,36 @@
 # Bonk Club — current handoff
 
+## Refinery fire basin (v0.75.0 / protocol 110)
+
+- The ground sits at the bottom of the arena, with stepped earth banks forming
+  a sealed V-sided basin. Earth survives blasts, beams, acid and black-hole
+  cuts; its artwork remains intact after crater rendering. Tank feet extend to
+  the new floor, while the existing pipe maze and upper routes remain usable.
+- An off-screen crude intake supplies up to 320 admitted volume units per
+  second indefinitely. Cutting the intake releases real oil at its opening.
+  Stored contents and output queues remain bounded and apply backpressure.
+  Accounting includes supplied material; no fuel is manufactured by combustion.
+- Oil, petrol and tar persist and slowly lose actual volume as they burn.
+  Large pool flames feed thick, rising foreground smoke derived from current
+  burning fuel. Ten smoke sources at most, cached art and seekable motion keep
+  rendering bounded; reduced motion freezes the animation. Water still quenches.
+- Fire heats pipe shells until they rupture. Hot hydrocarbon leaks flash part
+  of their real output into burning gas; liquid and gas continue feeding the
+  fire. Intake pumping, pouring, hissing and the fire roar share existing bounded
+  audio. Removed the floating cracker temperature readout.
+- Protocol 110 validates supplied volume, intake state, pipe temperatures and
+  exact protected earth geometry. Refresh every player's tab together.
+- Focused checks and all 1,336 regular checks pass. Desktop source relay QA
+  verifies equipped railgun rupture, lake formation, equipped flamethrower
+  ignition, burning-pool hot join, intact earth after a large blast, continuing
+  external feed, reset and reduced-motion desktop resizing without page errors.
+  Actual gameplay showed seven smoke columns, 24 burning gas parcels and a
+  180-unit-deep burning lake. Inspected normal, burning and resized scenes.
+- Evidence is in `desktop/test-results/refinery-inferno/`; source QA is
+  `desktop/tests/refinery-inferno-browser.mjs` with the configured Vite room and
+  TURN URLs. Source preview port 5413 is closed. Stress and release verification
+  are pending below before delivery.
+
 ## Rolling extinguishes fighters (v0.74.0 / protocol 109)
 
 - Actual movement while curled on the ground clears the fighter's burn on the

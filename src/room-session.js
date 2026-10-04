@@ -45,7 +45,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 109;
+export const PROTOCOL = 110;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -891,7 +891,9 @@ export function validSnapshot(s) {
         (p.colossusStone === undefined || (p.colossusStone === true && ARENAS[s.arenaIndex]?.colossus === true && p.material === 'stone')) &&
         (p.rocketDeck === undefined || (p.rocketDeck === true && ARENAS[s.arenaIndex]?.rocket === true && p.material === 'metal')) &&
         (p.refineryDeck === undefined || (p.refineryDeck === true && ARENAS[s.arenaIndex]?.refinery === true)) &&
-        (p.refineryPipe === undefined || (integer(p.refineryPipe,0,REFINERY_PIPES.length-1) && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'metal')) &&
+        (p.refineryGround === undefined || (p.refineryGround === true && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'stone' &&
+          ARENAS[s.arenaIndex].platforms.some(g=>g.refineryGround&&['x','y','w','h'].every(k=>g[k]===p[k])))) &&
+        (p.refineryPipe === undefined || (integer(p.refineryPipe,-1,REFINERY_PIPES.length-1) && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'metal')) &&
         (p.refineryTank === undefined || (integer(p.refineryTank,0,REFINERY_TANKS.length-1) && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'metal')) &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
