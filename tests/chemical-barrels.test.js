@@ -79,7 +79,7 @@ test('coolant puts out burning fuel, chills fighters, freezes water and suspends
 test('acid corrodes props once per contact interval, consumes liquid and makes ignitable gas only from metal',()=>{
  for(const kind of ['cabinet','crate','stone','acidBarrel']){
   const w=lab(),b=prop(kind);w.cover=[b];spill(w,'acid');const initial=w.spills.reduce((s,q)=>s+q.h,0);
-  tick(w);assert.equal(b.hp<85,['cabinet','crate'].includes(kind));
+  tick(w);assert.equal(b.hp<85,kind!=='acidBarrel');
   assert.equal(w.gas.length>0,kind==='cabinet');
   if(kind==='cabinet'){
    const hp=b.hp;tick(w,.1);assert.equal(b.hp,hp);assert.ok(w.spills.reduce((s,q)=>s+q.h,0)<initial);

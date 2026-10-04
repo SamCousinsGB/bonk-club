@@ -14,6 +14,7 @@ import { punctureContainer, leakOutlets, validContainerLeaks } from "./container
 import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact, blastLiquid } from './liquid.js';
 export { WATER_LIMIT, WATER_WIDTH } from './liquid.js';
 import { poweredWirePieces } from "./powerline-circuit.js";
+import { corrodeTerrain } from './terrain.js';
 
 // The host owns finite water and fuel. Guests receive only the bounded visible
 // state; neither fluid motion nor damage is re-simulated by a guest.
@@ -225,9 +226,6 @@ function chemistry(world,dt,bs,ps) {
     const next=corrosion.get(b)||0;if(world.time<next)continue;corrosion.set(b,world.time+.35);
     const origin=centre(q),before=b.hp;
     if(b.mass) {
-      // Only physical props and their wreckage corrode; structural map geometry
-      // keeps its existing destruction rules and protected machinery controllers.
-      if(!['metal','wood','fabric'].includes(b.material))continue;
       world.damageCover(b,8);
       if(b.material==='metal'&&b.hp<before&&world.gas.length<GAS_LIMIT) {
         world.gas.push({id:++world.reactionSerial,x:origin.x,y:origin.y-8,r:9,
@@ -236,6 +234,8 @@ function chemistry(world,dt,bs,ps) {
     } else world.hit(b,{...origin,vx:0,vy:0},7,0,0,0,{blast:true,cause:'acid',hitstop:0,stun:0});
     const used=Math.min(q.h,Math.max(0,before-b.hp)*.18);q.h-=used;q.y+=used;
   }
+  corrodeTerrain(world,acids);
+  world.spills=world.spills.filter(q=>q.h>1e-8);
 }
 
 export function meltIce(world, x, y, radius = 24) {
@@ -498,9 +498,9 @@ export function updateReactions(world, dt) {
     const box=b.mass?bodyBounds(b):playerBox(b);
     if(world.water.some(q=>!q.frozen&&q.h>1e-8&&liquidTouches(q,box)))wet(b);
   }
-  chemistry(world,dt,bs,ps);
   containers(world,dt,bs);
   updateSpills(world,dt,bs,ps);
+  chemistry(world,dt,bs,ps);
   // Flames are attached to actual bodies and their fragments. Contact spreads
   // ignition; finite fuel and water stop it. No map-wide fire damage field.
   const burning=[...bs,...world.platforms.filter(p=>p.destructible&&!p.wreckId)].filter(b=>b.fire>0&&b.hp>0);

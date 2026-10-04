@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.69.0",
-  "releaseNotes": "Crown mode: hold for 30 seconds total with infinite respawns",
+  "version": "0.70.0",
+  "releaseNotes": "Acid melts through floors and corrodes the layers and objects below",
   "private": true,
   "type": "module",
   "scripts": {

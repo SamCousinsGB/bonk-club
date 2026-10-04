@@ -1,5 +1,24 @@
 # Bonk Club — current handoff
 
+## Acid floor corrosion (v0.70.0 / protocol 105)
+
+- Acid makes successive shallow cuts in the surface supporting it, consuming
+  finite liquid. The remaining spill falls through the opening and can corrode
+  further floors, props and fighters below. Stone/glass props now corrode too;
+  acid casings retain their existing resistance. Water and coolant suppress
+  corrosion before the first contact tick. Remote controllers remain intact.
+- Cuts use existing stable terrain IDs, collision, support release and navigation
+  invalidation. Physical wreck collision damages its owning body, preventing
+  regenerated floors. No new wire fields or protocol change are needed.
+- Focused checks cover stacked floors, thick rock, material coverage, shielding,
+  finite volume, suppression, prediction authority, compact hot join and reset.
+  The regular suite and production build pass. Source desktop relay checks cover
+  actual barrel rupture, three successive floors, lower props, guest controls,
+  exact damaged-world hot join and reset, without page errors. Desktop gameplay
+  and reduced motion were inspected. CI/Pages and public parity remain pending.
+- Repeatable desktop source check: `desktop/tests/acid-browser.mjs`. Evidence is
+  written to ignored `desktop/test-results/acid/`.
+
 ## Crown mode (v0.69.0 / protocol 105)
 
 - Host-selectable Crown mode retains map/weapon pools and guest readiness. One
