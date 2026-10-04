@@ -1,4 +1,5 @@
 import test from 'node:test';
+import regressionCover from './fixtures/colossus-regression-cover.json' with {type:'json'};
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP} from '../src/engine.js';
 import {prepareProp,propSolids} from '../src/props.js';
@@ -86,6 +87,8 @@ test('a bot can jump over an opponent blocking its laser escape',()=>{
 
 test('a complete two-bot Colossus match keeps moving and fighting without any weapon drops',()=>{
  const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1],bots:[0,1],shuffle:false,random:()=>.45});
+ // Preserve the original physical reproduction when the barrel roster changes.
+ w.cover=structuredClone(regressionCover.two);
  w.drops=[];w.weaponTimer=w.grenadeTimer=999;
  const h=w.hazards[0],p=w.players[0];let warningX=null,escaped=false;
  for(let n=0;n<16/STEP&&w.round===1;n++){
@@ -106,6 +109,7 @@ test('a bot backs up to a usable takeoff after the real terrace has been blasted
  const random=()=>(seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296;
  const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1,2,3],bots:[0,1,2,3],
   weaponPool:['nuke'],shuffle:false,random});
+ w.cover=structuredClone(regressionCover.four);seed=regressionCover.seed;
  const h=w.hazards[0],p=w.players[0];let escaped=false,damagedTakeoff=false;
  for(let n=0;n<18/STEP&&w.round===1;n++){
   w.step(STEP);

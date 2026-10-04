@@ -53,7 +53,7 @@ export function drawReactiveProp(c,p) {
     c.fillStyle="#8decf388";c.fillRect(x+w*.12,y+h*.33,4,h*.43);
   } else {
     c.fillStyle=flashing?"#fff7d6":"#29323b";c.textAlign="center";c.textBaseline="middle";
-    c.font=`bold ${warning.count?Math.round(h*.33):Math.min(14,w*.25)}px sans-serif`;
+    c.font=`bold ${warning.count?Math.round(h*.33):Math.min(28,w*.25)}px sans-serif`;
     c.fillText(warning.count||type.label,x+w/2,y+h*.54,w*.67);
     if(p.kind==="canister") {
       circle(c,x+w*.78,y+h*.24,6,flashing?"#fff7d6":"#e0e5d6");
@@ -104,7 +104,7 @@ function flame(c,x,y,height,phase) {
 export function drawReactions(c,state,time,reduced=false) {
   c.save();
   drawWater(c,state,time,reduced);
-  drawSpills(c,state,time);
+  drawSpills(c,state,time,reduced);
   for(const b of [...(state.cover||[]),...(state.chunks||[]),...state.platforms.filter(p=>p.fire||p.charge)]) {
     if(b.hp===0)continue;
     if(b.fire) {
@@ -142,10 +142,18 @@ export function drawReactions(c,state,time,reduced=false) {
   c.restore();
 }
 
-function drawSpills(c,state,time) {
+function drawSpills(c,state,time,reduced=false) {
   for(const q of state.spills||[]) {
     c.save();
     if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),25+Math.sin(q.id+time*7)*6,time*8+q.id);
+    if(q.kind==='acid'||q.kind==='coolant') {
+      for(let i=0;i<2;i++) {
+        const age=reduced?.4:(time*.7+q.id*.13+i*.5)%1;
+        c.globalAlpha=(1-age)*.45;
+        circle(c,q.x+q.w*(.25+i*.5),q.y-age*(q.kind==='coolant'?22:8),
+          q.kind==='coolant'?3+age*6:1+age*2,SPILLS[q.kind].rim);
+      }
+    }
     c.restore();
   }
   // Sticky strands follow feet; oil sheen and tar stains stay on the fighter.

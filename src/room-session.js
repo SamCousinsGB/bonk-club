@@ -42,7 +42,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 103;
+export const PROTOCOL = 104;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -782,7 +782,7 @@ const physicalProp = c => (c.kind !== "car" || integer(c.carStage,0,31) && integ
   validReactionObject(c) && propSourceArt(c) && xy(c) && typeof c.id === "string" && c.id.length > 0 && c.id.length <= 80 &&
   [c.w,c.h,c.hp,c.maxHp,c.vx,c.vy,c.angle,c.spin,c.mass,c.dx,c.dy].every(finite) &&
   c.w > 0 && c.w <= 250 && c.h > 0 && c.h <= 200 && c.hp >= 0 && c.hp <= c.maxHp && c.maxHp <= 200 &&
-  c.mass > 0 && c.mass <= 250 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
+  c.mass > 0 && c.mass <= 1000 && Math.abs(c.vx) <= 1500.01 && Math.abs(c.vy) <= 1500.01 &&
   Math.abs(c.angle) <= Math.PI+.01 && Math.abs(c.spin) <= 18.01 && COVER_KINDS.includes(c.kind) &&
   typeof c.material === "string" && Object.hasOwn(PROP_MATERIALS,c.material) && propShape(c.shape);
 const validTrainCarriages = h => !h.derailed ? h.carriages === undefined :

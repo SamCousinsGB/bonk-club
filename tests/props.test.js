@@ -8,6 +8,7 @@ import { blackholeField, updateBlackhole, updateWreckage } from "../src/blackhol
 import { nuclearField, updateNuclear } from "../src/nuclear.js";
 import { hazardProps } from "../src/props.js";
 import { firePhaser } from "../src/phaser.js";
+import { BARRELS } from '../src/barrels.js';
 
 const floor = (id,x,y,w,h=24) => ({id,x,y,w,h,baseX:x,baseY:y,dx:0,dy:0});
 const prop = (kind="crate", extra={}) => prepareProp({id:"prop0",kind,x:500,y:950,w:90,h:50,hp:110,maxHp:110,...extra});
@@ -48,7 +49,7 @@ function advance(w,seconds) { for(let n=0;n<seconds/STEP;n++) { w.time+=STEP;w.u
 test("every arena prop starts with a material, mass, and resettable physical state",()=>{
   for(let arena=0;arena<ARENAS.length;arena++) {
     const w=new World({arena});
-    assert.ok(w.cover.every(c=>c.mass===(c.kind==='car'?140+(c.carStage&1?20:0)+(c.carStage&2?20:0)+(c.carStage&4?10:0)+(c.carStage&8?10:0):c.kind==='waterTank'?PROP_TYPES[c.kind].mass*c.w*c.h/(64*76):['oilBarrel','glueBarrel','tarBarrel'].includes(c.kind)?PROP_TYPES[c.kind].mass*c.w*c.h/(54*68):PROP_TYPES[c.kind].mass) && c.vx===0 && c.angle===0));
+    assert.ok(w.cover.every(c=>c.mass===(c.kind==='car'?140+(c.carStage&1?20:0)+(c.carStage&2?20:0)+(c.carStage&4?10:0)+(c.carStage&8?10:0):c.kind==='waterTank'?PROP_TYPES[c.kind].mass*c.w*c.h/(64*76):c.kind==='canister'?PROP_TYPES[c.kind].mass*c.w*c.h/(44*72):BARRELS[c.kind]?.contents?PROP_TYPES[c.kind].mass*c.w*c.h/(54*68):PROP_TYPES[c.kind].mass) && c.vx===0 && c.angle===0));
     assert.ok(validSnapshot(w.snapshot()),ARENAS[arena].name);
   }
 });

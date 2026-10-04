@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.67.1",
-  "releaseNotes": "Fix unarmed AI freezing on rubble and escaping the Colossus laser",
+  "version": "0.68.0",
+  "releaseNotes": "Large fuel containers, acid and cryogenic barrels, and rocket ignition",
   "private": true,
   "type": "module",
   "scripts": {

@@ -2,6 +2,7 @@ import {playerBox,segmentBox} from './collision.js';
 import {bodyBounds,damageProp,impulseProp} from './props.js';
 import {igniteFighter} from './weird-weapons.js';
 import {carryImpulse} from './impact.js';
+import {heatReactions} from './reactions.js';
 
 export const ROCKET = Object.freeze({idle:6,warning:3,fire:5,purge:3,cycle:17,pivotY:420,nozzle:230,length:1050,spread:110,rays:17});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -58,6 +59,7 @@ export function updateRocket(world,h,dt){
   if(!previous.active)world.event('hazard',{kind:'rocket',x:h.x,y:n.y});
   const plume=rocketPlume(h,world.platforms);
   h.hitTimer-=dt;const damageTick=h.hitTimer<=0;if(damageTick)h.hitTimer=.2;
+  heatReactions(world,box=>rocketTouches(plume,box),dt);
   for(const p of world.players){
     if(!rocketTouches(plume,playerBox(p),6))continue;
     if(p.alive&&damageTick)world.hit(p,{x:n.x,y:n.y,vx:0,vy:0},30,190,n.s,n.c,

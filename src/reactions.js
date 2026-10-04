@@ -8,7 +8,7 @@ import { bodyBounds, bodyInBlast, impulseProp, prepareProp, fractureProp } from 
 import { conductive, conductorNodes, conductorBounds, conductorsTouch } from "./conductors.js";
 import { carveRectangle } from "./nuclear.js";
 import { hazardZone } from "./hazards.js";
-import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel } from "./barrels.js";
+import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel, gasScale, gasBlastRadius } from "./barrels.js";
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
 import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact, blastLiquid } from './liquid.js';
@@ -49,27 +49,29 @@ export function resetReactions(world) {
   world.reactionHeatAt = 0;
   if (world.arena.survival) {randomizeLiquidContainers(world);return;}
 
-  const variants = ["barrel", "oilBarrel", "glueBarrel", "tarBarrel"];
+  const variants = ["barrel", "oilBarrel", "glueBarrel", "tarBarrel", "acidBarrel", "coolantBarrel"];
+  const rotation=world.arenaIndex+Math.max(0,(world.round||1)-1);
   let barrelIndex = 0;
   for (const b of world.cover) if (b.kind === "barrel") {
-    b.kind = variants[(world.arenaIndex + barrelIndex++) % variants.length];
+    b.kind = variants[(rotation + barrelIndex++) % variants.length];
     delete b.mass; prepareProp(b);
   }
   // Place a few readable opportunities on existing landings, outside spawns and
   // trap machinery. Layouts, routes and the opening weapon rotation stay intact.
-  const floors = world.platforms.filter(p => p.w >= 290 && p.h <= 65 && p.y > 320 &&
+  const floors = world.platforms.filter(p => p.w >= 200 && p.h <= 68 && p.y > 180 &&
     !p.move && !p.travel && !p.waterId && !p.destructible &&
     !(world.arena.bridge && p.bridgePart === 'road'));
   const used = new Set();
-  const kinds = ["canister", ...(world.arena.transmission?[]:["waterTank"]), "canister",
-    variants[world.arenaIndex % 4], variants[(world.arenaIndex + 1) % 4]];
+  const kinds = [variants[rotation % variants.length], "canister", ...(world.arena.transmission?[]:["waterTank"]), "canister",
+    variants[(rotation + 1) % variants.length],
+    variants[(rotation + 3) % variants.length]];
   for (const [index, kind] of kinds.entries()) {
     const size = kind === "canister" ? [44, 72] : kind === "waterTank" ? [88, 108] : [54, 68];
     let placed = false;
     for (let n = 0; n < floors.length && !placed; n++) {
       const f = floors[(n + world.arenaIndex + index * 3) % floors.length];
       if (used.has(f.id)) continue;
-      for (const fraction of [.25, .75, .5]) {
+      for (const fraction of [.25, .75, .5, .15, .85]) {
         const b = { x: f.x + f.w * fraction - size[0] / 2, y: f.y - size[1], w: size[0], h: size[1] };
         if (b.x < f.x+65 || b.x+b.w > f.x+f.w-65 ||
           world.platforms.some(p => (p.travel || p.move) && overlap(b, {
@@ -130,7 +132,7 @@ function ignite(b) {
 function armCylinder(b) {
   if (b.spent || b.leak > 0) return;
   punctureContainer(b);
-  b.leak = 1; b.fuse = b.kind === "barrel" ? 3 : 4.2; b.gasFuel = 3.6; b.gasAt = 0;
+  b.leak = 1; b.fuse = b.kind === "barrel" ? 3 : 4.2; b.gasFuel = 3.6*(b.kind==='canister'?gasScale(b):1); b.gasAt = 0;
   // Pressure pushes opposite the puncture; off-centre hits also create torque.
   if (b.kind === "canister") {
     const p = leakOutlets(b)[0];
@@ -185,6 +187,55 @@ function freezeWater(world, q) {
 function thawWater(world, q) {
   world.platforms = world.platforms.filter(p => p.waterId !== q.id);
   q.frozen = 0; q.grounded = false; world.terrainVersion++;
+}
+
+// Environmental heat uses the caller's actual clipped contact geometry. The
+// rocket shares these reactions with flames, hot spills and weapon explosions.
+export function heatReactions(world, touches, dt) {
+  if(world.prediction||world.phase!=='fight')return;
+  for(const b of bodies(world))if(touches(bodyBounds(b)))ignite(b);
+  for(const q of world.spills)if(touches(liquidBounds(q))) {
+    if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;
+    if(q.kind==='coolant')q.life=Math.max(0,q.life-dt*4);
+  }
+  for(const g of world.gas)if(!g.lit&&touches({x:g.x-g.r,y:g.y-g.r,w:g.r*2,h:g.r*2}))g.lit=.22;
+  for(const q of world.water)if(q.frozen&&touches(liquidBounds(q)))thawWater(world,q);
+}
+
+const corrosion = new WeakMap();
+function chemistry(world,dt,bs,ps) {
+  const coolants=world.spills.filter(q=>q.kind==='coolant'&&q.h>1e-8&&q.life>0);
+  // Cold first: it suppresses fire and corrosion for this whole reaction tick,
+  // independently of parcel order. Shared water becomes real breakable ice.
+  for(const q of coolants) {
+    const box=liquidBounds(q),touch=b=>liquidTouches(q,{x:b.x-2,y:b.y-2,w:b.w+4,h:b.h+4});
+    for(const b of bs)if(touch(bodyBounds(b))){wet(b,1);b.cold=Math.max(b.cold||0,2.4);}
+    for(const p of ps)if(touch(playerBox(p))){wet(p,1);p.chill=Math.max(p.chill||0,1.2);}
+    for(const water of world.water)if(touch(liquidBounds(water)))freezeWater(world,water);
+    for(const other of world.spills)if(other!==q&&touch(liquidBounds(other))){other.fire=0;other.cold=Math.max(other.cold||0,.4);}
+    for(const g of world.gas)if(overlap(box,{x:g.x-g.r,y:g.y-g.r,w:g.r*2,h:g.r*2})){
+      g.lit=0;g.life=Math.max(0,g.life-dt*3);
+    }
+  }
+  const acids=world.spills.filter(q=>q.kind==='acid'&&q.h>1e-8&&q.life>0&&!q.cold);
+  for(const b of [...bs,...ps]) {
+    if(b.hp<=0||b.cold>0||b.kind==='acidBarrel')continue;
+    const box=b.mass?bodyBounds(b):playerBox(b),q=acids.find(q=>q.h>.001&&liquidTouches(q,box));
+    if(!q)continue;
+    const next=corrosion.get(b)||0;if(world.time<next)continue;corrosion.set(b,world.time+.35);
+    const origin=centre(q),before=b.hp;
+    if(b.mass) {
+      // Only physical props and their wreckage corrode; structural map geometry
+      // keeps its existing destruction rules and protected machinery controllers.
+      if(!['metal','wood','fabric'].includes(b.material))continue;
+      world.damageCover(b,8);
+      if(b.material==='metal'&&b.hp<before&&world.gas.length<GAS_LIMIT) {
+        world.gas.push({id:++world.reactionSerial,x:origin.x,y:origin.y-8,r:9,
+          vx:(q.vx||0)*.1,vy:-35,life:3.2,lit:0,owner:0});
+      }
+    } else world.hit(b,{...origin,vx:0,vy:0},7,0,0,0,{blast:true,cause:'acid',hitstop:0,stun:0});
+    const used=Math.min(q.h,Math.max(0,before-b.hp)*.18);q.h-=used;q.y+=used;
+  }
 }
 
 export function meltIce(world, x, y, radius = 24) {
@@ -362,9 +413,9 @@ function containers(world, dt, bs) {
         -p.ny*b.mass*650*dt/outlets.length,p.x,p.y);
       b.gasAt=(b.gasAt||0)-dt;
       if(b.gasAt<=0&&world.gas.length<GAS_LIMIT) {
-        b.gasAt=.3;
+        const scale=gasScale(b);b.gasAt=.3/scale;
         const p=outlets[(b.gasPort||0)%outlets.length];b.gasPort=(b.gasPort||0)+1;
-        const r=clamp(Math.min(b.w,b.h)*.08,2,5);
+        const r=clamp(Math.min(b.w,b.h)*.08*scale,2,40);
         world.gas.push({id:++world.reactionSerial,x:p.x+p.nx*r,y:p.y+p.ny*r,
           vx:clamp(b.vx*.15+p.nx*130,-500,500),vy:clamp(b.vy*.15+p.ny*130-12,-500,500),
           r,life:3.2,lit:b.fire>0?.22:0,owner:0});
@@ -374,7 +425,7 @@ function containers(world, dt, bs) {
       b.spent=true;b.fire=0;b.leak=0;b.hp=0;world.terrainVersion++;
       const p=centre(b);
       world.explode({...p,kind:"grenade",weapon:b.kind,owner:0,
-        radius:b.kind==="barrel"?210:185,damage:125,force:1350});
+        radius:b.kind==="barrel"?210:gasBlastRadius(b),damage:125,force:1350});
       // Fracture after the pressure blast so the canister's own blast does not
       // immediately delete its casing. Its metal pieces retain incoming spin
       // and receive an outward impulse through the normal physical-body solver.
@@ -396,7 +447,7 @@ function updateSpills(world, dt, bs, ps) {
     const touchingWater=world.water.some(w=>!w.frozen&&overlap(box,liquidBounds(w),2)) || shipWaterAt(world,box.x+box.w/2,box.y+box.h);
     if(touchingWater){
       q.fire=0;q.cold=.25;
-      if(q.kind==="glue") {const wash=Math.min(q.h,dt*12);q.h-=wash;q.y+=wash;}
+      if(q.kind==="glue"||q.kind==='acid') {const wash=Math.min(q.h,dt*12);q.h-=wash;q.y+=wash;}
     }
     if(!q.life||q.h<=1e-8){q.h=0;continue;}
     if(q.kind==='molten') {
@@ -407,6 +458,7 @@ function updateSpills(world, dt, bs, ps) {
       }
       continue;
     }
+    if(q.kind==='acid'||q.kind==='coolant')continue;
     const origin=centre(box), heated=SPILLS[q.kind].burn&&!q.cold;
     if(heated&&!q.fire && (
       bs.some(b=>b.fire>0&&overlap(bodyBounds(b),box,10)&&clear(world,centre(b),origin)) ||
@@ -446,6 +498,7 @@ export function updateReactions(world, dt) {
     const box=b.mass?bodyBounds(b):playerBox(b);
     if(world.water.some(q=>!q.frozen&&q.h>1e-8&&liquidTouches(q,box)))wet(b);
   }
+  chemistry(world,dt,bs,ps);
   containers(world,dt,bs);
   updateSpills(world,dt,bs,ps);
   // Flames are attached to actual bodies and their fragments. Contact spreads
@@ -497,8 +550,8 @@ export function consumeReactionArea(world, blast) {
 export function reactionDanger(world, x, y) {
   return (world.ship?.charges.some(q=>q>0) && shipWaterAt(world,x,y) && world.ship.charges[shipWaterAt(world,x,y).i]>0) ||
     world.water.some(q=>q.charge&&!q.frozen&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
-    world.spills.some(q=>(q.fire>0||q.kind==='molten')&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
-    world.cover.some(b=>b.hp>0&&((explosiveBarrel(b)&&b.leak&&!b.cold&&b.fuse<1.5&&Math.hypot(x-centre(b).x,y-centre(b).y)<230)||
+    world.spills.some(q=>(q.fire>0||q.kind==='molten'||q.kind==='acid'&&!q.cold)&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
+    world.cover.some(b=>b.hp>0&&((explosiveBarrel(b)&&b.leak&&!b.cold&&b.fuse<1.5&&Math.hypot(x-centre(b).x,y-centre(b).y)<(b.kind==='canister'?gasBlastRadius(b)+35:230))||
       (b.fire&&near(b,x,y,65))));
 }
 

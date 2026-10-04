@@ -1,0 +1,22 @@
+{
+  "source": "v0.67.1 / 967aaf2: original two failing gameplay reproductions",
+  "two": [
+    {"kind":"stone","x":442,"y":956,"w":92,"h":64,"hp":110,"maxHp":110,"id":"cover0","dx":0,"dy":0,"mass":180,"material":"stone","vx":0,"vy":0,"angle":0,"spin":0},
+    {"kind":"stone","x":2026,"y":956,"w":92,"h":64,"hp":110,"maxHp":110,"id":"cover1","dx":0,"dy":0,"mass":180,"material":"stone","vx":0,"vy":0,"angle":0,"spin":0},
+    {"kind":"pallet","x":1228,"y":1286,"w":104,"h":34,"hp":55,"maxHp":55,"id":"cover2","dx":0,"dy":0,"mass":24,"material":"wood","vx":0,"vy":0,"angle":0,"spin":0},
+    {"x":725.5,"y":1098,"w":44,"h":72,"id":"reaction-prop0","kind":"canister","hp":85,"maxHp":85,"mass":32,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":1779,"y":1088,"w":67,"h":82,"id":"reaction-prop1","kind":"waterTank","hp":85,"maxHp":85,"waterLeft":555,"waterCapacity":555,"mass":88.10279605263158,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":368,"y":948,"w":44,"h":72,"id":"reaction-prop2","kind":"canister","hp":85,"maxHp":85,"mass":32,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":2143,"y":952,"w":54,"h":68,"id":"reaction-prop3","kind":"tarBarrel","hp":85,"maxHp":85,"mass":95,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0,"liquidCapacity":96,"liquidLeft":96}
+  ],
+  "four": [
+    {"kind":"stone","x":442,"y":956,"w":92,"h":64,"hp":110,"maxHp":110,"id":"cover0","dx":0,"dy":0,"mass":180,"material":"stone","vx":0,"vy":0,"angle":0,"spin":0},
+    {"kind":"stone","x":2026,"y":956,"w":92,"h":64,"hp":110,"maxHp":110,"id":"cover1","dx":0,"dy":0,"mass":180,"material":"stone","vx":0,"vy":0,"angle":0,"spin":0},
+    {"kind":"pallet","x":1228,"y":1286,"w":104,"h":34,"hp":55,"maxHp":55,"id":"cover2","dx":0,"dy":0,"mass":24,"material":"wood","vx":0,"vy":0,"angle":0,"spin":0},
+    {"x":725.5,"y":1098,"w":44,"h":72,"id":"reaction-prop0","kind":"canister","hp":85,"maxHp":85,"mass":32,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":1773,"y":1073,"w":79,"h":97,"id":"reaction-prop1","kind":"waterTank","hp":85,"maxHp":85,"waterLeft":774,"waterCapacity":774,"mass":122.88527960526316,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":368,"y":948,"w":44,"h":72,"id":"reaction-prop2","kind":"canister","hp":85,"maxHp":85,"mass":32,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0},
+    {"x":2148,"y":964,"w":44,"h":56,"id":"reaction-prop3","kind":"tarBarrel","hp":85,"maxHp":85,"mass":63.74727668845316,"material":"metal","vx":0,"vy":0,"angle":0,"spin":0,"dx":0,"dy":0,"liquidCapacity":64,"liquidLeft":64}
+  ],
+  "seed": 1693608728
+}

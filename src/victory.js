@@ -8,6 +8,7 @@ export const VICTORY_MESSAGES = Object.freeze({
   carwash: "By sending the opposition through the wash",
   bubble: "By bursting the opposition's bubble",
   gas: "By ignoring the hissing canister",
+  acid: "By surviving the acid spill",
   electrified: "By completing the circuit",
   gold: "By turning the opposition into gold",
   jelly: "By turning the opposition into jelly",

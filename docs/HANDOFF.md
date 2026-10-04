@@ -1,5 +1,30 @@
 # Bonk Club — current handoff
 
+## Systemic barrels (v0.68.0 / protocol 104)
+
+- Shared placements rotate oil, tar, TNT, glue, acid and cryogenic barrels across
+  all thirteen maps and successive rounds. Oil, gas and tar scale up to 2.6x when
+  safe headroom permits; mass and finite contents follow size. Gas clouds and
+  pressure-blast radius scale with the casing, capped at radius 320.
+- Acid corrodes physical wood, fabric and metal, including loose wreckage; metal
+  releases bounded flammable gas. Acid damages fighters with its own death cause.
+  Water dilutes it. Coolant suppresses corrosion and fire, chills fighters, holds
+  gas fuses, condenses gas and freezes shared water into real temporary ice.
+- The engine plume now ignites containers, released fuel and gas, and thaws ice.
+  Heat uses the same clipped rays as art/damage, preserving shielding and cuts.
+  All liquid and rubble budgets remain unchanged; guests never own reactions.
+- New tests cover all-map rotations, placement, gas scaling, shielding, chemistry,
+  compact hot join and reset. The two seeded Colossus regressions retain their
+  original v0.67.1 casing layouts in a fixture so barrel rotation cannot replace
+  those specific rubble/laser reproductions. Their existing assertions pass.
+- All 1,252 regular tests and the production build pass. Desktop source relay QA
+  passes guest controls, engine ignition, acid corrosion, coolant ice, exact
+  damaged-world hot join, reset and departure, without page errors. Inspected
+  six actual arena rounds plus the combined reaction scenarios and reduced motion.
+  Evidence is in this worktree's ignored `desktop/test-results/fuel/`. Verify the
+  remaining stress, CI and public checks before claiming this live.
+- Refresh every player tab for protocol 104.
+
 ## Unarmed Colossus AI (v0.67.1 / protocol 103)
 
 - Fixes the reproduced no-pickup stall on physical rubble. Occupied fragments

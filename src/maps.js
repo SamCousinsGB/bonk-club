@@ -11,7 +11,7 @@ export const COVER_KINDS = [
   "barrel",
   "canister",
   "waterTank",
-  "oilBarrel", "glueBarrel", "tarBarrel",
+  "oilBarrel", "glueBarrel", "tarBarrel", "acidBarrel", "coolantBarrel",
 
   "trolley",
   "generator",

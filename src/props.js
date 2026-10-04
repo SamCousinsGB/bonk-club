@@ -23,6 +23,8 @@ export const PROP_TYPES = {
   oilBarrel: { mass: 60, material: "metal" },
   glueBarrel: { mass: 72, material: "metal" },
   tarBarrel: { mass: 95, material: "metal" },
+  acidBarrel: { mass: 68, material: "metal" },
+  coolantBarrel: { mass: 56, material: "metal" },
   waterTank: { mass: 78, material: "metal" },
 
   trolley: { mass: 32, material: "metal" },
