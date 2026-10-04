@@ -10,7 +10,8 @@ export function grenadeLanding(p, weapon, angle, solids) {
     vy = Math.sin(angle) * weapon.speed - (weapon.lift ?? 330);
   const dt = 1 / 60,
     radius = weapon.r || 7;
-  for (let age = 0; age < weapon.life; age += dt) {
+  // Cluster rounds use the engine's default grenade fuse.
+  for (let age = 0; age < (weapon.life || 1.5); age += dt) {
     vy += 1100 * dt;
     const endX = x + vx * dt,
       endY = y + vy * dt;

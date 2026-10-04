@@ -335,11 +335,22 @@ export class BotController {
     }
     // Melee impulses outlive an attack; account for their protected momentum
     // before starting a punch, kick, finisher or weapon swing beside a drop.
-    if (i.attack && (!p.weapon || WEAPONS[p.weapon]?.kind === "melee") && !p.prone) {
+    if (i.attack && (!p.weapon || WEAPONS[p.weapon]?.kind === "melee")) {
       const boost = p.weapon ? 260 : COMBO[p.comboTime > 0 ? p.comboStep : 0].boost;
       const vx = clamp(p.vx + Math.cos(i.aim ?? 0) * boost, -620, 620);
       const end = p.x + vx * .23 + Math.sign(vx) * vx * vx / 3000;
-      if (end < left || end > right) i.attack = false;
+      if (end < left || end > right) {
+        const reach = p.weapon ? WEAPONS[p.weapon].range : COMBO[p.comboTime > 0 ? p.comboStep : 0].range;
+        const target = world.players.find(q => q.id === b.target && q.alive);
+        // Ordinary prone strikes have no lunge. Use them at contact on solid
+        // ledges, but never turn a strike into a slatted-platform drop-through.
+        if (target && distance(p,target) < reach && Math.abs(target.y-p.y) < 40 &&
+            !here.oneWay && here.material !== "cable" && !unsafePoint(world,p.x,p.y)) {
+          i.duck = true;
+          i.left = false; i.right = false; b.moveTo = null;
+          i.attack = !!p.prone;
+        } else if (!p.prone) i.attack = false;
+      }
     }
     if (i.attack && p.weapon && WEAPONS[p.weapon]?.kind !== "melee") {
       const recoil = firingRecoil(WEAPONS[p.weapon], p);
@@ -520,6 +531,7 @@ export class BotController {
         .filter(
           (d) =>
             !d.armed &&
+            !(b.failures.get(`pickup:${d.id}`) > world.time) &&
             !(d.lock > 0) &&
             !(d.owner === p.id && d.ownerLock > 0) &&
             d.ammo > 0,
@@ -591,6 +603,25 @@ export class BotController {
     }
     let moveTo = goal.x,
       edge = path?.edge;
+    // A shared floor can still be divided by a wall or tall machinery. Its
+    // zero-cost route says nothing about the walking lane to the pickup/enemy.
+    // Take a checked route onto/around the obstruction instead of pushing it.
+    if (here && destination?.id === here.id && !b.flight) {
+      const blocker = firstObstacle(solids,p,{x:goal.x,y:p.y-10});
+      if (blocker && !breakable(blocker)) {
+        const options = [...paths].map(([id,path]) => ({s:solids.find(s=>s.id===id),path}))
+          .filter(o=>o.s && o.path.edge &&
+            !firstObstacle(solids,p,{x:o.path.edge.startX,y:p.y-10}));
+        options.sort((a,c)=> {
+          const cost=o=>distance({x:o.path.x,y:o.s.y-30},goal)/RUN_SPEED+
+            o.path.cost+(b.visits.get(o.s.id)||0)*.4;
+          return cost(a)-cost(c);
+        });
+        if (options.length) {
+          destination=options[0].s;path=options[0].path;edge=path.edge;
+        }
+      }
+    }
     b.edge = null;
     const ride =
       here?.travel &&
@@ -623,7 +654,10 @@ export class BotController {
         if (
           edge.kind !== "walk" &&
           p.ground &&
-          Math.abs(p.x - moveTo) < 10 &&
+          // Walk-off traces often start six units from an edge, inside the
+          // eighteen-unit footing margin. Validate from the actual safe stance
+          // before crossing it, rather than waiting for an unreachable takeoff.
+          Math.abs(p.x - moveTo) < (edge.jumps === 0 ? 28 : 10) &&
           Math.abs(p.vx) < 45 &&
           !b.flight
         ) {
@@ -768,7 +802,7 @@ export class BotController {
     const dir = Number(i.right) - Number(i.left);
     const cover = solids.find(
       (s) =>
-        s.kind &&
+        breakable(s) &&
         !s.chunk &&
         s.hp > 0 &&
         (s.x + s.w / 2 - p.x) * dir > 0 &&
@@ -790,6 +824,15 @@ export class BotController {
       b.failures.set(b.edge.key, world.time + 9);
       b.think = 0;
       b.stuck = 0;
+    }
+    if (b.stuck > 1.2 && fetching && !b.edge && !b.flight) {
+      const blocker = firstObstacle(solids,p,{x:goal.x,y:p.y-10});
+      if (blocker && !breakable(blocker)) {
+        // A floor ID alone cannot prove access to a pickup. Temporarily abandon
+        // a blocked approach so nearby opponents or other weapons get a turn.
+        b.failures.set(`pickup:${goal.id}`,world.time+4);
+        b.pickup=null;b.think=0;b.stuck=0;
+      }
     }
     // Explore only flights with a real landing. A stale fight is never a reason
     // to jump into a fatal gap; wait for a reachable pickup or a changed route.
