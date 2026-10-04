@@ -12,12 +12,19 @@
   regenerated floors. No new wire fields or protocol change are needed.
 - Focused checks cover stacked floors, thick rock, material coverage, shielding,
   finite volume, suppression, prediction authority, compact hot join and reset.
-  The regular suite and production build pass. Source desktop relay checks cover
+  All 1,275 regular tests and the production build pass. Source desktop relay checks cover
   actual barrel rupture, three successive floors, lower props, guest controls,
   exact damaged-world hot join and reset, without page errors. Desktop gameplay
-  and reduced motion were inspected. CI/Pages and public parity remain pending.
+  and reduced motion were inspected.
+- Revision `e7b668a` passed [release workflow 37228903134](https://github.com/SamCousinsGB/bonk-club/actions/runs/37228903134):
+  shared/server tests, all six stress groups, Windows/Linux executable checks,
+  release verification and Pages. All 19 local, CI and public browser files
+  match exactly. Fresh public v0.70.0 host/guest controls, hot join and departure
+  pass over real relay routes without page errors; the menu and gameplay were
+  visually inspected. These checks use one machine, not separate ISPs.
 - Repeatable desktop source check: `desktop/tests/acid-browser.mjs`. Evidence is
-  written to ignored `desktop/test-results/acid/`.
+  written to ignored `desktop/test-results/acid/`, with the public browser report
+  at `desktop/test-results/browser-online.json`. The task preview server is stopped.
 
 ## Crown mode (v0.69.0 / protocol 105)
 
