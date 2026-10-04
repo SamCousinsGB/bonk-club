@@ -67,7 +67,7 @@ test('pickup text avoids fighters and other weapon labels',()=>{
 });
 test('bot routes build during countdown and no navigation work is scheduled for eliminated bots',()=>{
  const w=new World({players:[0,1],bots:[1],arena:7});
- w.step(STEP);assert.equal(w.ai.graph.size,1);assert.ok(w.ai.pendingNavigation);
+ w.step(STEP);assert.equal(w.ai.graph.size,0);assert.ok(w.ai.pendingNavigation);
  for(let n=0;n<150;n++)w.step(STEP);
  assert.ok(w.ai.graph.size>25);assert.equal(w.phase,'countdown');
  w.players[1].alive=false;w.step(STEP);assert.equal(w.ai.pendingNavigation,null);

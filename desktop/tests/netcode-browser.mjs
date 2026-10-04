@@ -40,7 +40,7 @@ async function hook(p) {
     const { World } = await import(url('engine')), { Renderer } = await import(url('renderer'));
     const { Room } = await import(url('network')), { GuestPrediction } = await import(url('guest-prediction'));
     const step = World.prototype.step, draw = Renderer.prototype.draw, emit = Room.prototype.emit, receive = GuestPrediction.prototype.receive;
-    World.prototype.step = function (...args) { qa.world = this; const at = performance.now(); const result = step.apply(this, args); if (qa.measuring) qa.steps.push(performance.now() - at); return result; };
+    World.prototype.step = function (...args) { qa.world = this; if (qa.trackDown && args[1]?.[1]?.duck) qa.downSeen = (qa.downSeen || 0) + 1; const at = performance.now(); const result = step.apply(this, args); if (qa.measuring) qa.steps.push(performance.now() - at); return result; };
     Renderer.prototype.draw = function (state, ...args) { qa.rendered = state; if (qa.skipDrawing) return; const at = performance.now(); const result = draw.call(this, state, ...args); if (qa.measuring) qa.draws.push(performance.now() - at); return result; };
     Room.prototype.emit = function (name, ...args) { qa.room = this; if (name === 'onNotice') qa.notices.push(args[0]); if (name === 'onState' && qa.measuring) qa.updates.push({ at: performance.now(), time: args[0].time, round: args[0].round }); return emit.call(this, name, ...args); };
     GuestPrediction.prototype.receive = function (...args) { qa.prediction = this; const at = performance.now(); const result = receive.apply(this, args); if (qa.measuring) qa.reconciles.push(performance.now() - at); return result; };
@@ -101,8 +101,25 @@ try {
   const guest = guests[0];
   await guest.keyboard.down('d'); await host.waitForFunction(() => qa.room.getInputs(performance.now(), false)[1]?.right);
   await guest.keyboard.up('d'); await host.waitForFunction(() => !qa.room.getInputs(performance.now(), false)[1]?.right);
+  // Lose every held-down packet. The released packet must still deliver one
+  // down edge into the real host simulation, just like jump/fire/parry/throw.
+  await host.evaluate(() => { qa.trackDown=true;qa.downSeen=0; });
+  await guest.evaluate(() => {
+    const channel=qa.room.connection.realtime,send=channel.send.bind(channel);
+    qa.downDropped=0;qa.restoreSend=()=>{channel.send=send;};
+    channel.send=data=>{
+      if(typeof data==='string') {const m=JSON.parse(data);if(m.t==='input'&&m.input.duck){qa.downDropped++;return;}}
+      send(data);
+    };
+  });
+  await guest.keyboard.down('s'); await guest.waitForFunction(()=>qa.downDropped>0);
+  await guest.keyboard.up('s'); await host.waitForFunction(()=>qa.downSeen>0);
+  await guest.evaluate(()=>qa.restoreSend());
+  await guest.waitForTimeout(100);
+  assert.equal(await host.evaluate(()=>qa.downSeen),1,'lost down tap is applied once');
+  await host.evaluate(()=>{qa.trackDown=false;});
   // A fourth player arrives after real terrain destruction.
-  await fixture(host, 'Platforms', 2);
+  await fixture(host, 'Arc Furnace', 2);
   await guest.waitForFunction(() => qa.rendered?.wreckage.length > 0);
   await host.waitForFunction(() => !qa.world.fields.some(f => f.kind === 'blackhole' && f.life > 0));
   const late = await page(); await late.goto(base + '?room=' + code); await hook(late); await late.locator('#join-invite').click();
@@ -112,7 +129,7 @@ try {
     await p.waitForFunction(() => !qa.room.worldState.fields.some(f => f.kind === 'blackhole' && f.life > 0));
     assert.deepEqual(await p.evaluate(() => qa.room.worldState.platforms.map(p => p.id).sort()), terrainIds);
   }
-  for (const [name, holes] of [['Platforms', 0], ['Car Assembly', 0], ['Platforms', 2]]) {
+  for (const [name, holes] of [['Arc Furnace', 0], ['Car Assembly', 0], ['Arc Furnace', 2]]) {
     await fixture(host, name, holes);
     await guest.waitForTimeout(400);
     for (const p of [host, ...guests]) await resetMetrics(p);
@@ -122,7 +139,7 @@ try {
   }
   // Isolate the guest's rendering cost from four arenas competing for one GPU.
   for (const p of [host, ...guests.slice(1)]) await p.evaluate(() => { qa.skipDrawing = true; });
-  await fixture(host, 'Platforms', 2); await guest.waitForTimeout(500);
+  await fixture(host, 'Arc Furnace', 2); await guest.waitForTimeout(500);
   await resetMetrics(guest); await guest.waitForTimeout(3000);
   await measure(guest, 'two black holes / one rendered viewport', 'guest');
   await guest.screenshot({ path: path.join(results, label + '-single-viewport.png') });
@@ -141,7 +158,7 @@ try {
       if (n % 17 === 0) setTimeout(deliver, 150);
     };
   }, hostSide);
-  await fixture(host, 'Platforms'); await guest.waitForTimeout(700);
+  await fixture(host, 'Arc Furnace'); await guest.waitForTimeout(700);
   for (const p of [host, guest]) await resetMetrics(p);
   await guest.keyboard.down('d'); await host.waitForFunction(() => qa.room.getInputs(performance.now(), false)[1]?.right);
   await guest.keyboard.up('d'); await host.waitForFunction(() => !qa.room.getInputs(performance.now(), false)[1]?.right);
@@ -163,6 +180,6 @@ try {
   const round = await host.evaluate(() => { qa.world.round++; qa.world.startRound(); return qa.world.round; });
   await late.waitForFunction(round => qa.room.emittedState?.round === round && qa.room.worldState.wreckage.length === 0, round);
   assert.deepEqual(errors, []);
-  await fs.writeFile(path.join(results, label + '.json'), JSON.stringify({ reports, errors, hotJoin: true, reset: true, stallRecoverySeconds: hostTime - guestTime,
+  await fs.writeFile(path.join(results, label + '.json'), JSON.stringify({ reports, errors, hotJoin: true, reset: true, lostDownTap: true, stallRecoverySeconds: hostTime - guestTime,
     scope: 'Four isolated contexts on one machine over real TURN. Injected impairments affect the tested host/guest link. Source-only hooks; not cross-ISP or Steam proof.' }, null, 2));
 } finally { await browser.close(); await server.close(); }

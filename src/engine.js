@@ -1416,19 +1416,18 @@ export class World {
       const shotSolids = [...this.solids(), ...furnaceHits(this), ...cableShotSolids(this)];
       for (const h of this.hazards) if (h.type === "train" && h.active && !h.done)
         trainCollisionBoxes(h).forEach((box,i)=>shotSolids.push({ ...box, id: `train${h.id}:${i}`, material: "metal" }));
-      const collisions = shotSolids.map((s) => ({
-        s,
-        hit: segmentBox(x, y, endX, endY, s, b.r),
-      }));
+      const collisions = [];
+      for (const s of shotSolids) {
+        const hit = segmentBox(x, y, endX, endY, s, b.r);
+        if (hit) collisions.push({ s, hit });
+      }
       collisions.push(...reactionContacts(this, b, x, y, endX, endY));
       if (b.kind !== "grenade")
         for (const p of this.players) {
           if (!p.alive || p.id === b.owner || b.hitIds?.includes(p.id))
             continue;
-          collisions.push({
-            p,
-            hit: segmentBox(x, y, endX, endY, playerBox(p), b.r),
-          });
+          const hit = segmentBox(x, y, endX, endY, playerBox(p), b.r);
+          if (hit) collisions.push({ p, hit });
         }
       collisions.sort((a, b) => (a.hit?.t ?? 2) - (b.hit?.t ?? 2));
       b.x = endX;

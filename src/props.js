@@ -58,17 +58,28 @@ export function prepareProp(c, id = c.id) {
   return c;
 }
 
+const rectangle = [[-.5, -.5], [.5, -.5], [.5, .5], [-.5, .5]];
 export function bodyPoints(b) {
   const p = center(b), c = Math.cos(b.angle || 0), s = Math.sin(b.angle || 0);
-  const shape = b.shape || [[-.5, -.5], [.5, -.5], [.5, .5], [-.5, .5]];
+  const shape = b.shape || rectangle;
   return shape.map(([x, y]) => ({
     x: p.x + x * b.w * c - y * b.h * s,
     y: p.y + x * b.w * s + y * b.h * c,
   }));
 }
 export function bodyBounds(b) {
-  const ps = bodyPoints(b), x = Math.min(...ps.map(p => p.x)), y = Math.min(...ps.map(p => p.y));
-  return { x, y, w: Math.max(...ps.map(p => p.x)) - x, h: Math.max(...ps.map(p => p.y)) - y };
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  const c = Math.cos(b.angle || 0), s = Math.sin(b.angle || 0);
+  let x = Infinity, y = Infinity, right = -Infinity, bottom = -Infinity;
+  // The same transformed vertices, without allocating points and four maps
+  // just to reject a non-contact. Custom fracture shapes remain exact.
+  for (const [px, py] of b.shape || rectangle) {
+    const qx = cx + px * b.w * c - py * b.h * s;
+    const qy = cy + px * b.w * s + py * b.h * c;
+    x = Math.min(x, qx); y = Math.min(y, qy);
+    right = Math.max(right, qx); bottom = Math.max(bottom, qy);
+  }
+  return { x, y, w: right - x, h: bottom - y };
 }
 export function bodyInBlast(b, f) {
   const ps = bodyPoints(b);
@@ -178,7 +189,9 @@ function contact(a, b) {
 function resolve(a, b, hit, dt, dynamic = false) {
   const { nx, ny, x, y } = hit, ac = center(a), bc = center(b);
   const ax = x - ac.x, ay = y - ac.y, bx = x - bc.x, by = y - bc.y;
-  const ia = 1 / a.mass, ib = dynamic ? 1 / b.mass : 0;
+  const ia = a.strapped ? 0 : 1 / a.mass, ib = dynamic && !b.strapped ? 1 / b.mass : 0;
+  if (!ia && !ib) return 0;
+  const inertiaA = ia ? inertia(a) : Infinity, inertiaB = ib ? inertia(b) : Infinity;
   const ra = cross(ax, ay, nx, ny), rb = cross(bx, by, nx, ny);
   const avx = a.vx - a.spin * ay, avy = a.vy + a.spin * ax;
   const bvx = dynamic ? b.vx - b.spin * by : (b.dx || 0) / dt;
@@ -190,14 +203,14 @@ function resolve(a, b, hit, dt, dynamic = false) {
   if (dynamic) { b.x -= nx * depth * ib; b.y -= ny * depth * ib; }
   if (speed >= 0) return 0;
   const bounce = speed < -100 ? Math.min(mat.bounce, other.bounce) : 0;
-  const j = -(1 + bounce) * speed / (ia + ib + ra * ra / inertia(a) + (dynamic ? rb * rb / inertia(b) : 0));
+  const j = -(1 + bounce) * speed / (ia + ib + ra * ra / inertiaA + rb * rb / inertiaB);
   impulseProp(a, j * nx, j * ny, x, y);
   if (dynamic) impulseProp(b, -j * nx, -j * ny, x, y);
   const tx = -ny, ty = nx, ta = cross(ax, ay, tx, ty), tb = cross(bx, by, tx, ty);
   const tangent = (a.vx - a.spin * ay - (dynamic ? b.vx - b.spin * by : bvx)) * tx +
     (a.vy + a.spin * ax - (dynamic ? b.vy + b.spin * bx : bvy)) * ty;
   const friction = b.ice ? .025 : Math.sqrt(mat.friction * other.friction);
-  const f = clamp(-tangent / (ia + ib + ta * ta / inertia(a) + (dynamic ? tb * tb / inertia(b) : 0)), -j * friction, j * friction);
+  const f = clamp(-tangent / (ia + ib + ta * ta / inertiaA + tb * tb / inertiaB), -j * friction, j * friction);
   impulseProp(a, f * tx, f * ty, x, y);
   if (dynamic) impulseProp(b, -f * tx, -f * ty, x, y);
   return -speed;
@@ -268,7 +281,7 @@ export function contactProp(world, p, s, nx, ny, dt) {
   const closing = (vx - p.vx) * nx + (vy - p.vy) * ny;
   if (closing <= 0) return;
   const r = cross(rx, ry, nx, ny);
-  const j = closing / (1 / 55 + 1 / b.mass + r * r / inertia(b));
+  const j = closing / (1 / 55 + (b.strapped ? 0 : 1 / b.mass + r * r / inertia(b)));
   impulseProp(b, -nx * j, -ny * j, x, y);
   p.vx += nx * j / 55;
   p.vy += ny * j / 55;
@@ -332,8 +345,9 @@ export function updateProps(world, dt) {
       // A removed/moving floor, another body or any impulse wakes it immediately.
       const carried = pullCarriedObject(world, b, sub);
       const rest = carried ? null : resting.get(b);
-      if (rest && floors.includes(rest) && !rest.dx && !rest.dy && overlaps(bodyBounds(b), rest, .2)) {
-        bounds.set(b, bodyBounds(b)); continue;
+      const restBounds = rest ? bodyBounds(b) : null;
+      if (rest && floors.includes(rest) && !rest.dx && !rest.dy && overlaps(restBounds, rest, .2)) {
+        bounds.set(b, restBounds); continue;
       }
       resting.delete(b);
       b.vy = Math.min(MAX_SPEED, b.vy + GRAVITY * sub);
@@ -343,16 +357,19 @@ export function updateProps(world, dt) {
       let support = null;
       for (let iteration = 0; iteration < 3; iteration++) {
         let box = bodyBounds(b);
+        let contacted = false;
         for (const floor of floors) {
           if (!overlaps(box, floor, .05)) continue;
           const hit = contact(b, floor);
           if (!hit) continue;
+          contacted = true;
           const speed = resolve(b, floor, hit, dt);
           if (hit.ny < -.65) support = floor;
           if (iteration === 0 && speed > 420 && !b.chunk)
             damageProp(world, b, (speed - 420) * b.mass / 650);
           box = bodyBounds(b);
         }
+        if (!contacted) break;
       }
       const points = bodyPoints(b), bottom = Math.max(...points.map(p=>p.y));
       const feet = points.filter(p=>p.y>bottom-.7), cx=b.x+b.w/2;

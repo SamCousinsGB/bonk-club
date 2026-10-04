@@ -81,7 +81,7 @@ try {
   assert.equal(await host.locator('#start-match').isDisabled(),true);
   await host.locator('#choose-maps').click();
   await host.locator('#select-none').click();
-  await host.getByRole('checkbox',{name:'PLATFORMS',exact:true}).check();
+  await host.getByRole('checkbox',{name:'WATERWORKS',exact:true}).check();
   await host.getByRole('checkbox',{name:'ARC FURNACE',exact:true}).check();
   await host.screenshot({path:path.join(results,'play-maps.png')});
   await host.locator('#selection-done').click();
@@ -93,7 +93,7 @@ try {
   await host.locator('#start-match').click();
   await guest.locator('body.playing').waitFor({ timeout: 30000 });
   await guest.waitForFunction(() => document.querySelectorAll('.score').length === 4);
-  assert.ok(['PLATFORMS','ARC FURNACE'].includes(await guest.locator('#arena-name').textContent()));
+  assert.ok(['WATERWORKS','ARC FURNACE'].includes(await guest.locator('#arena-name').textContent()));
   await guest.keyboard.down('KeyD'); await guest.waitForTimeout(400); await guest.keyboard.up('KeyD');
   await guest.keyboard.press('Space');
   await guest.mouse.move(640, 320); await guest.mouse.down(); await guest.waitForTimeout(500); await guest.mouse.up();

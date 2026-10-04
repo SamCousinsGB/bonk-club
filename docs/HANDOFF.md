@@ -1,5 +1,31 @@
 # Bonk Club — current handoff
 
+## Performance, networking and restraint physics (v0.64.7 / protocol 100)
+
+- Every AI route rebuild has a trace budget, with occupied supports planned
+  first. Countdown seeds routes at 64 traces per batch; combat uses 32 and
+  aircraft/ship/black-hole geometry retains 8. Live takeoff checks remain.
+- Reduces collision/prop geometry allocation, skips empty contact iterations,
+  reuses ragdoll scratch and electrical Canvas paths, and avoids deep cloning
+  immutable nested world data during guest reconciliation. Physics precision,
+  ragdoll iterations, visual layers and debris limits are unchanged.
+- Strapped cargo stays fixed under prop/fighter contacts until restraints break.
+  S/down now survives a lost input packet, including deferred host hitstop.
+  Refresh all players' tabs for protocol 100.
+- Regular tests, focused route/combat/physics tests, production build and
+  desktop relay host/guest readiness, controls, hot join and host departure
+  pass. Source relay QA also covers a deliberately lost down press, damaged
+  terrain, reset, 10% loss/reordering, a 1.2-second stall and 4x CPU throttling.
+- 360 paired prediction comparisons across all 12 arenas match every fighter
+  field. Twelve electrical Canvas comparisons match every pixel. The earlier
+  collision-only optimisation also retained exact seeded world hashes across
+  five arenas before the intentional AI scheduling/restraint corrections.
+- All six local arena stress groups pass, along with 1,141 regular tests.
+  Evidence is in the task worktree's ignored `desktop/test-results/`. See
+  `docs/NETCODE.md` and `npm run benchmark:performance` for measurement scope.
+  Release CI/Pages and public parity must pass before this
+  revision is described as live.
+
 ## Lower Colossus head (v0.64.6 / protocol 99)
 
 - Lowers the head by 12 rig units (6 world units, about 4 pixels at 1600px)

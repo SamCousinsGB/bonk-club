@@ -1,5 +1,8 @@
 import { segmentBox } from "./collision.js";
 
+// Private scratch follows the lifetime of a rig, never its transported state.
+const scratch = new WeakMap();
+
 // Shared passive-body solver. Particles, rather than a hidden upright rectangle,
 // carry a knocked-down fighter through walls, floors and moving wreckage.
 export function collidePoint(
@@ -65,9 +68,15 @@ export function passiveBody(
   dt,
   { gravity = 1800, anchor = null, restitution = 0, stiffness = .5, drag = .992, mass = 1, radii = null } = {},
 ) {
-  const origins = points.map((p) => ({ x: p.x, y: p.y }));
-  const carried = points.map(() => new Set());
-  for (const p of points) {
+  let work = scratch.get(points);
+  if (!work || work.origins.length !== points.length) {
+    work = { origins: points.map(() => ({x:0,y:0})), carried: points.map(() => new Set()) };
+    scratch.set(points, work);
+  }
+  const { origins, carried } = work, contactOptions = { restitution, mass };
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    origins[i].x = p.x; origins[i].y = p.y; carried[i].clear();
     const vx = (p.x - p.px) * drag,
       vy = (p.y - p.py) * drag;
     p.px = p.x;
@@ -89,7 +98,7 @@ export function passiveBody(
       b.y -= dy * k;
     }
     for (let i = 0; i < points.length; i++)
-      collidePoint(points[i], solids, radii?.[i] ?? (i === 0 ? 10 : 3), n === 0 ? origins[i] : points[i], carried[i], { restitution, mass });
+      collidePoint(points[i], solids, radii?.[i] ?? (i === 0 ? 10 : 3), n === 0 ? origins[i] : points[i], carried[i], contactOptions);
     if (anchor) {
       const p = points[anchor.point];
       p.x = p.px = anchor.x;

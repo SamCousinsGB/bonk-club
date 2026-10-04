@@ -197,12 +197,13 @@ export class BotController {
         time: world.time,
         spikes: world.spikes(),
         cache: this.navigationCache,
-        // A torn floor has hundreds of collision strips. Yield between flight
-        // traces so rebuilding its routes cannot monopolize a simulation tick.
+        priority: new Set(world.players.filter(p=>p.bot&&p.alive).map(p=>surfaceAt(solids,p)?.id)),
+        // Every layout has a finite trace budget, including stationary scenes.
+        // Keep the previous graph usable while rebuilding and check takeoffs
+        // against the live world. Torn geometry needs smaller trace batches.
         batchSize: world.arena.cargoPlane || world.arena.ship ? 8 : world.wreckage.some(w => w.hp > 0) ||
           world.fields.some(f => f.kind === "blackhole") ? 8 :
-          world.cables?.some(c => c.id.startsWith("tower")) ? 64 :
-          world.cover.some(c => Math.abs(c.vx)+Math.abs(c.vy)>5 || Math.abs(c.angle)>.02) ? 64 : Infinity,
+          world.phase === "countdown" ? 64 : 32,
       });
       this.builtAt = world.time;
       this.rebuildAt = world.time + 1.5;

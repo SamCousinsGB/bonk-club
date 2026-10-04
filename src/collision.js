@@ -12,22 +12,23 @@ export function segmentBox(x, y, endX, endY, box, radius = 0) {
     far = 1,
     nx = 0,
     ny = 0;
-  for (const [start, delta, min, max, axis] of [
-    [x, dx, minX, maxX, 0],
-    [y, dy, minY, maxY, 1],
-  ]) {
-    if (Math.abs(delta) < 1e-9) {
-      if (start < min || start > max) return null;
-      continue;
-    }
-    let a = (min - start) / delta,
-      b = (max - start) / delta;
-    if (a > b) [a, b] = [b, a];
-    if (a >= near) {
-      near = a;
-      nx = axis === 0 ? -Math.sign(delta) : 0;
-      ny = axis === 1 ? -Math.sign(delta) : 0;
-    }
+  // Scalar slabs avoid three temporary arrays on every swept contact. Keep the
+  // original x-then-y tie break so corner normals and bounces stay identical.
+  if (Math.abs(dx) < 1e-9) {
+    if (x < minX || x > maxX) return null;
+  } else {
+    let a = (minX - x) / dx, b = (maxX - x) / dx;
+    if (a > b) { const swap = a; a = b; b = swap; }
+    if (a >= near) { near = a; nx = -Math.sign(dx); }
+    far = Math.min(far, b);
+    if (near > far) return null;
+  }
+  if (Math.abs(dy) < 1e-9) {
+    if (y < minY || y > maxY) return null;
+  } else {
+    let a = (minY - y) / dy, b = (maxY - y) / dy;
+    if (a > b) { const swap = a; a = b; b = swap; }
+    if (a >= near) { near = a; nx = 0; ny = -Math.sign(dy); }
     far = Math.min(far, b);
     if (near > far) return null;
   }

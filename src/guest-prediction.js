@@ -61,13 +61,16 @@ export class GuestPrediction {
       q.px = q.x - (velocity?.x ?? p.vx * STEP);
       q.py = q.y - (velocity?.y ?? p.vy * STEP);
     }
-    const platforms = structuredClone(state.platforms);
+    // Prediction moves only these objects' scalar pose/velocity fields. Their
+    // nested geometry and the water/cable/ship snapshots are read-only. Avoid
+    // deep-copying the whole damaged arena on every actor update.
+    const platforms = state.platforms.map(p => ({ ...p }));
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
-      arena: ARENAS[state.arenaIndex], hazards: structuredClone(state.hazards),
-      ship: structuredClone(state.ship), water: structuredClone(state.water),
-      platforms, cover: structuredClone(state.cover), chunks: structuredClone(state.chunks),
-      cables: structuredClone(state.cables || []),
+      arena: ARENAS[state.arenaIndex], hazards: state.hazards.map(h => ({ ...h })),
+      ship: state.ship, water: state.water,
+      platforms, cover: state.cover.map(p => ({ ...p })), chunks: state.chunks.map(p => ({ ...p })),
+      cables: state.cables || [],
       players: [this.player], projectiles: [],
       projectileCount:state.projectiles.length,
       attack(p,alternate) { World.prototype.attack.call(this,p,alternate); },

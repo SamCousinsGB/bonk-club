@@ -170,13 +170,16 @@ export function navigation(
 
 export function* navigationSteps(
   solids,
-  { time = 0, spikes = [], cache = null, batchSize = Infinity } = {},
+  { time = 0, spikes = [], cache = null, batchSize = Infinity, priority = null } = {},
 ) {
   solids = solids.filter((p) => p.hp !== 0);
   const sameCable = (a,b) => a.material === "cable" && b.material === "cable" &&
     a.id.split(":")[0] === b.id.split(":")[0];
   let traces = 0;
-  for (const from of solids) {
+  // Build the fighters' current takeoffs first. Collision iteration still uses
+  // the original solids order, so scheduling does not change route geometry.
+  const sources = priority ? [...solids].sort((a,b)=>Number(priority.has(b.id))-Number(priority.has(a.id))) : solids;
+  for (const from of sources) {
     if(from.boundary||from.lethal)continue;
     const signature =
       cache &&

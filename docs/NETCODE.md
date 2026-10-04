@@ -6,7 +6,43 @@ and interpolate other actors. Browser discovery/transport is WebRTC; the shared
 room protocol is also the boundary for the future Steam adapter. See
 [`PLATFORMS.md`](PLATFORMS.md) for the unimplemented Steam/account work.
 
-## v0.46.1 changes
+## v0.64.7 performance and physics pass
+
+- Protocol **100** adds a fifth repeated input edge for S/down. A lost brief
+  press still reaches hanging/drop-through controls once; hitstop defers its
+  consumption and acknowledgement. Refresh every player's tab before joining.
+- Guest prediction copies mutable scalar poses while sharing read-only nested
+  geometry, water, ship and cable state. Deeply frozen snapshots across all
+  twelve arenas verify that replay and render lookahead cannot mutate authority.
+- All AI route rebuilds now yield after a bounded number of flight traces:
+  64 during countdown, 32 during combat and 8 for ship/aircraft or black-hole destruction. Fighters'
+  current supports are planned first; collision order and route geometry stay
+  unchanged. Previous routes remain usable with live takeoff safety checks.
+- Swept collision and rotated-body bounds avoid temporary arrays. Ragdolls
+  reuse private scratch space, empty prop-contact passes stop early, and shots
+  sort actual contacts instead of allocating entries for every missed surface.
+  Electrical glow strokes reuse their Canvas path. No solver passes, collision
+  precision, visual layers or physical debris limits were reduced.
+- Strapped cargo has zero inverse mass/inertia in contact resolution until its
+  restraints break. Loose bodies and fighters take the contact response; an
+  intact restraint can no longer slide when another prop hits it.
+- `npm run benchmark:performance` records seeded simulation CPU distributions
+  and state hashes across five demanding arenas. Set `BONK_BENCH_SRC` to a saved
+  baseline `src/` tree for comparison. Timings are diagnostics, not CI thresholds.
+  Scheduling and the restraint fix can change combat outcomes; low-level
+  collision-only changes were checked against identical seeded state hashes.
+- Browser QA now uses the current arena roster. The source harness checks a
+  deliberately lost down tap, four real relay peers, destroyed-terrain hot join,
+  reset, loss/reordering, a 1.2-second guest stall and 4x CPU throttling.
+
+On the Windows QA machine, 360 alternating before/after prediction replays
+across all twelve arenas matched every fighter field. Median receive/replay CPU
+time fell from 0.570 to 0.438 ms (23%); p95 fell from 1.492 to 1.299 ms (13%).
+Twelve electrical Canvas comparisons matched every pixel. These CPU measurements
+are not internet-latency claims. Real relay QA on the same machine passed loss,
+stall recovery, changed-world hot joining and reset without page errors.
+
+## v0.46.1 changes (historical)
 
 - Motion and world state have independent encoding jobs **and workers**. A
   blocked world encode/reconstruction cannot occupy the actor worker. Each lane

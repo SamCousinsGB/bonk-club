@@ -53,15 +53,22 @@ export function arcPoints(a,b,time,seed,amplitude=9) {
     return {x:a.x+dx*u-dy/len*offset,y:a.y+dy*u+dx/len*offset};
   });
 }
-function stroke(c,points,color,width) {
+function trace(c,points) {
   c.beginPath();points.forEach((p,i)=>i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));
+}
+function strokePath(c,color,width) {
   c.strokeStyle=color;c.lineWidth=width;c.stroke();
 }
+function stroke(c,points,color,width) {
+  trace(c,points);strokePath(c,color,width);
+}
 function channel(c,points,power=1) {
-  stroke(c,points,"#6a56f52a",13*power);
-  stroke(c,points,"#41ccff55",7*power);
-  stroke(c,points,"#70ebff",2.9*power);
-  stroke(c,points,"#f1ffff",1.25*power);
+  // All four glow layers use the same path. Canvas retains it across strokes.
+  trace(c,points);
+  strokePath(c,"#6a56f52a",13*power);
+  strokePath(c,"#41ccff55",7*power);
+  strokePath(c,"#70ebff",2.9*power);
+  strokePath(c,"#f1ffff",1.25*power);
 }
 export function electricArc(c,a,b,time,seed,power=1,branches=true) {
   const points=arcPoints(a,b,time,seed,Math.min(17,5+Math.hypot(b.x-a.x,b.y-a.y)*.15));
@@ -72,7 +79,7 @@ export function electricArc(c,a,b,time,seed,power=1,branches=true) {
     const reach=(14+noise(seed+i*9)*39)*power;
     const end={x:p.x+dx/len*reach*.4-dy/len*reach*side,y:p.y+dy/len*reach*.4+dx/len*reach*side};
     const fork=arcPoints(p,end,time,seed+71+i,6);
-    stroke(c,fork,"#6ee6ff80",3*power);stroke(c,fork,"#dcffffdd",.85*power);
+    trace(c,fork);strokePath(c,"#6ee6ff80",3*power);strokePath(c,"#dcffffdd",.85*power);
   }
   // Bright pulses travel along the channel, not a global screen flash.
   const u=(time*2.7+noise(seed))%1,p=points[Math.floor(u*(points.length-1))];

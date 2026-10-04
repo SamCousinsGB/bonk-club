@@ -76,9 +76,10 @@ export function updateRig(p, dt, platforms, time) {
   a += av * dt;
   p.bodyAngle = a;
   p.angularVelocity = av;
+  const cos = Math.cos(a), sin = Math.sin(a);
   const rotate = ([x, y]) => [
-    p.x + x * Math.cos(a) - y * Math.sin(a),
-    p.y + x * Math.sin(a) + y * Math.cos(a),
+    p.x + x * cos - y * sin,
+    p.y + x * sin + y * cos,
   ];
   const compression = clamp(p.landing || 0, 0, 1) * 9;
   p.landing = Math.max(0, (p.landing || 0) - dt * 5);

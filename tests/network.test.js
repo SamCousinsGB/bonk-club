@@ -173,6 +173,23 @@ test('rapid taps are acknowledged only after their press reaches a simulation ti
     assert.equal(host.getInputs()[1].jump, true); assert.equal(host.appliedInputs[1], press);
   } finally { guest.close(); host.close(); }
 });
+test("lost down taps reach hanging controls once and wait through host hitstop", async () => {
+  const host=new Room({},FakePeer),guest=new Room({},FakePeer);
+  try {
+    await host.create(); await guest.join(host.code); await readyGuests(host); host.start(); await tick();
+    const send=guest.connection.send.bind(guest.connection);
+    guest.connection.send=m=>{if(m.t!=='input'||!m.input.duck)send(m);};
+    guest.sendInput({duck:true}); await tick();
+    guest.sendInput({duck:false}); await tick();
+    assert.equal(host.getInputs(performance.now(),false)[1].duck,false);
+    assert.equal(host.appliedInputs[1],0);
+    assert.equal(host.getInputs()[1].duck,true);
+    assert.equal(host.getInputs()[1].duck,false);
+    guest.sendInput({duck:false}); await tick();
+    assert.equal(host.getInputs()[1].duck,false);
+  } finally { guest.close();host.close(); }
+});
+
 test("host acknowledges applied inputs, rejects stale sequences and never accepts guest movement authority", async () => {
   const states = [], host = new Room({}, FakePeer), guest = new Room({ onState: s => states.push(s) }, FakePeer);
   try {

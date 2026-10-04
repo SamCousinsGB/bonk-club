@@ -1,14 +1,14 @@
 // Repeat the sequence of each button press in later disposable inputs, so a
-// short jump/fire/parry/throw tap survives loss of the packet that first held it.
-const buttons = ["jump", "attack", "block", "throw"];
+// short jump/fire/parry/throw/down tap survives loss of its first held packet.
+const buttons = ["jump", "attack", "block", "throw", "duck"];
 export class InputDelivery {
-  constructor() { this.edges = [0, 0, 0, 0]; this.applied = [0, 0, 0, 0]; this.held = {}; }
+  constructor() { this.edges = buttons.map(() => 0); this.applied = buttons.map(() => 0); this.held = {}; }
   capture(input, seq) {
     buttons.forEach((key, i) => { if (input[key] && !this.held[key]) this.edges[i] = seq; });
     this.held = input; return [...this.edges];
   }
   receive(edges, seq) {
-    if (!Array.isArray(edges) || edges.length !== 4 || !edges.every(n =>
+    if (!Array.isArray(edges) || edges.length !== buttons.length || !edges.every(n =>
       Number.isSafeInteger(n) && n >= 0 && n <= seq)) return;
     edges.forEach((n, i) => { this.edges[i] = Math.max(this.edges[i], n); });
   }

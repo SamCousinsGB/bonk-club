@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.64.6",
-  "releaseNotes": "Lowered Colossus head for a shorter neck",
+  "version": "0.64.7",
+  "releaseNotes": "Smoother simulation, faster guest prediction and reliable down taps",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,8 @@
     "benchmark:netcode": "node scripts/benchmark-netcode.mjs",
     "desktop:build": "node scripts/build-desktop.mjs",
     "desktop:package": "node scripts/package-desktop.mjs",
-    "steam:prepare": "node scripts/prepare-steam.mjs"
+    "steam:prepare": "node scripts/prepare-steam.mjs",
+    "benchmark:performance": "node scripts/benchmark-performance.mjs"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

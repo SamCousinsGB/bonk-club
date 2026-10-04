@@ -4,7 +4,7 @@ import { InputDelivery } from "../src/input-delivery.js";
 import { cleanInput } from "../src/engine.js";
 
 test("a lost short tap reaches the host once via the next released input", () => {
-  for (const key of ["jump", "attack", "block", "throw"]) {
+  for (const key of ["jump", "attack", "block", "throw", "duck"]) {
     const guest = new InputDelivery(), host = new InputDelivery();
     guest.capture(cleanInput({ [key]: true }), 1); // lost
     host.receive(guest.capture(cleanInput({}), 2), 2);
@@ -22,6 +22,6 @@ test("held buttons never repeat edges, distinct taps get release ticks and stale
   host.receive(guest.capture(held, 3), 3);
   assert.equal(host.sample(held).jump, false); assert.equal(host.sample(held).jump, true);
   host.receive([NaN, 500, -1, {}], 4);
-  assert.deepEqual(host.edges, [3, 0, 0, 0]);
+  assert.deepEqual(host.edges, [3, 0, 0, 0, 0]);
   assert.equal(host.sample(cleanInput({}), true).jump, false);
 });
