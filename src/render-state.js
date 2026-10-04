@@ -109,7 +109,7 @@ export function interpolateStates(a, b, t, mode = "all") {
   const out = { ...b };
   if (mode !== "world") out.players = b.players.map(p => {
     const old = a.players.find(q => q.id === p.id);
-    return old && old.occupant === p.occupant && old.alive === p.alive &&
+    return old && old.occupant === p.occupant && old.lifeId === p.lifeId && old.alive === p.alive &&
       !!old.knockdown === !!p.knockdown && !!old.freeze === !!p.freeze && old.morph === p.morph &&
       old.hangSupport === p.hangSupport
       ? blend(old, p, t) : p;

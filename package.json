@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.68.0",
-  "releaseNotes": "Large fuel containers, acid and cryogenic barrels, and rocket ignition",
+  "version": "0.69.0",
+  "releaseNotes": "Crown mode: hold for 30 seconds total with infinite respawns",
   "private": true,
   "type": "module",
   "scripts": {

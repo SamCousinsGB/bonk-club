@@ -480,6 +480,7 @@ export class BotController {
       world.time,
       world.hazards,
     );
+    const crown = world.crown;
     const choices = world.players
       .filter((q) => q.alive && q.id !== p.id)
       .map((q) => {
@@ -494,10 +495,16 @@ export class BotController {
             (path ? path.cost : visible ? distance(p, q) / RUN_SPEED : 30) +
             distance(p, q) / 1400 +
             q.hp / 120 -
-            Math.min(1.5, (world.scores[q.id] || 0) * 0.04),
+            Math.min(1.5, (world.scores[q.id] || 0) * 0.04) - (crown?.holder===q.id ? 100 : 0),
         };
       })
       .sort((a, b) => a.score - b.score);
+    // During respawns the loose crown remains an objective even with no enemy.
+    if (!choices.length && crown && crown.holder===null) {
+      const floor=surfaceAt(solids,crown), path=floor&&paths.get(floor.id);
+      if(path && here?.id===floor.id) {b.moveTo=crown.x;Object.assign(i,steer(p,crown.x));}
+      return i;
+    }
     if (!choices.length) return i;
     const previous = choices.find((c) => c.q.id === b.target);
     const choice =
@@ -638,6 +645,13 @@ export class BotController {
           // falls back onto its owner and knocks it off the firing platform.
           i.aim = Math.atan2(-.25, p.x > goal.x ? 1 : -1);
         }
+      }
+    }
+    if(crown?.holder===null) {
+      const floor=surfaceAt(solids,crown), route=floor&&paths.get(floor.id);
+      if(route && !unsafePoint(world,crown.x,floor.y-30)) {
+        goal=crown; destination=floor; path=route; b.pickup=crown;
+        i.throw=false;
       }
     }
     const fetching = goal !== enemy;

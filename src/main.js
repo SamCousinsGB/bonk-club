@@ -1,4 +1,5 @@
 import { victoryMessage } from "./victory.js";
+import { GAME_MODES } from './crown.js';
 import { fighterStatuses, updateStatusHud } from './status-effects.js';
 import { loadPreferences } from "./preferences.js";
 import { ControllerMenu } from "./controller-menu.js";
@@ -311,7 +312,7 @@ function home() {
 function matchOptionsHtml() {
   const options = room.options;
   const count = (key, total) => options[key].length === total ? 'All' : options[key].length + ' selected';
-  return `<div class="match-options"><h3>Match options</h3><button id="choose-weapons" class="option-row"><span>Weapons</span><b id="weapon-count">${count('weapons', Object.keys(WEAPONS).length)}</b><span aria-hidden="true">↗</span></button><button id="choose-maps" class="option-row"><span>Maps</span><b id="map-count">${count('maps', ARENAS.length)}</b><span aria-hidden="true">↗</span></button><label class="difficulty-row" for="difficulty">AI difficulty<select id="difficulty" ${room.host ? '' : 'disabled'}>${['easy','normal','hard'].map(value=>`<option value="${value}" ${options.difficulty === value ? 'selected' : ''}>${value[0].toUpperCase()+value.slice(1)}</option>`).join('')}</select></label></div>`;
+  return `<div class="match-options"><h3>Match options</h3><label class="difficulty-row" for="game-mode">Game mode<select id="game-mode" ${room.host ? '' : 'disabled'}>${Object.entries(GAME_MODES).map(([value,label])=>`<option value="${value}" ${options.mode===value?'selected':''}>${label}</option>`).join('')}</select></label><p id="mode-help" class="mode-help"></p><button id="choose-weapons" class="option-row"><span>Weapons</span><b id="weapon-count">${count('weapons', Object.keys(WEAPONS).length)}</b><span aria-hidden="true">↗</span></button><button id="choose-maps" class="option-row"><span>Maps</span><b id="map-count">${count('maps', ARENAS.length)}</b><span aria-hidden="true">↗</span></button><label class="difficulty-row" for="difficulty">AI difficulty<select id="difficulty" ${room.host ? '' : 'disabled'}>${['easy','normal','hard'].map(value=>`<option value="${value}" ${options.difficulty === value ? 'selected' : ''}>${value[0].toUpperCase()+value.slice(1)}</option>`).join('')}</select></label></div>`;
 }
 function selectionMenu(kind) {
   if (!room || room.running) return;
@@ -345,7 +346,7 @@ function startWorld(ids) {
   world = new World({
     players: room ? activeSlots(room.slots, room.roster).map(p => p.id) : [0, 1, 2, 3],
     bots: room ? activeSlots(room.slots, room.roster).filter(p => p.bot).map(p => p.id) : [1, 2, 3],
-    fillSolo: false, difficulty: options.difficulty,
+    fillSolo: false, difficulty: options.difficulty, mode: options.mode,
     arena: pool[Math.floor(Math.random() * pool.length)],
     shuffle: pool.length > 1, arenaPool: pool, weaponPool: options.weapons,
   });
@@ -500,6 +501,8 @@ function updateLobby() {
   $('#weapon-count').textContent=options.weapons.length===Object.keys(WEAPONS).length?'All':options.weapons.length+' selected';
   $('#map-count').textContent=options.maps.length===ARENAS.length?'All':options.maps.length+' selected';
   $('#difficulty').value=options.difficulty;
+  $('#game-mode').value=options.mode;
+  $('#mode-help').textContent=options.mode==='crown' ? 'Hold the crown for 30 seconds total. Infinite respawns.' : '';
   const start=$('#start-match');
   if(start) {
     start.disabled=!room.canStart();
@@ -522,6 +525,7 @@ function lobby() {
   $('#choose-weapons').onclick=()=>selectionMenu('weapons');
   $('#choose-maps').onclick=()=>selectionMenu('maps');
   $('#difficulty').onchange=e=>{ if(!room.host)return; difficulty=cleanDifficulty(e.target.value); void persist({difficulty}); room.setOptions({...room.options,difficulty}); };
+  $('#game-mode').onchange=e=>{ if(room.host)room.setOptions({...room.options,mode:e.target.value}); };
   if($('#lobby-customise')) $('#lobby-customise').onclick=characterMenu;
   if($('#ready-up')) $('#ready-up').onclick=()=>room.setReady(!room.ready.has(room.id));
   $('#room-code').onclick=e=>e.target.select();
@@ -831,24 +835,25 @@ function ownPlayer(state = world || remote) {
 function updateHud(s) {
   $('#fighter-effects').classList.toggle('reduced-motion', renderer.reduced);
   updateStatusHud($('#fighter-effects'), playing ? fighterStatuses(s, ownPlayer(s)) : []);
-  const high = Math.max(...s.scores);
+  const totals = s.crown?.times || s.scores;
+  const high = Math.max(...totals);
   const leaders =
-    high > 0 ? s.players.filter((p) => s.scores[p.id] === high) : [];
+    high > 0 ? s.players.filter((p) => totals[p.id] === high) : [];
   setHtml($("#scoreboard"), s.players
     .map(
       (p) =>
-        `<div class="score ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.4}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${!p.bot && ((room && p.id === room.id) || (solo && p.id === 0)) ? "YOU" : ""}</em></span><b>${s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${Math.max(0, Math.ceil(p.hp))}%"></i></div>${equipmentInfo(p)}</div>`,
+        `<div class="score ${s.crown ? 'crown-score' : ''} ${s.crown?.holder===p.id ? 'crown-holder' : ''} ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.5}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${!p.bot && ((room && p.id === room.id) || (solo && p.id === 0)) ? "YOU" : ""}</em></span><b>${s.crown ? totals[p.id].toFixed(1)+'s' : s.scores[p.id]}</b></div><div class="health"><i style="background:${s.crown ? '#ffdb76' : p.color || COLORS[p.id]};width:${s.crown ? totals[p.id]/30*100 : Math.max(0, Math.ceil(p.hp))}%"></i></div>${s.crown && !p.alive ? `<small>${s.crown.respawn[p.id]>0 ? 'RESPAWN '+Math.ceil(s.crown.respawn[p.id])+'s' : 'WAITING FOR SAFE SPAWN'}</small>` : equipmentInfo(p)}</div>`,
     )
     .join(""));
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;
-  $("#round-label").textContent = `ROUND ${s.round}`;
+  $("#round-label").textContent = s.crown ? `CROWN · 30s · ROUND ${s.round}` : `ROUND ${s.round}`;
   $("#leader-label").textContent = leaders.length
     ? `${leaders.length > 1 ? "TIED" : "LEADER"}: ${leaders.map((p) => p.name || NAMES[p.id]).join(" / ")}`
     : "";
   const status = $("#round-status");
   const warning =
     s.fields.some(f => f.kind === "shockwave") ? "Nuclear blast" :
-    s.players.length >= 2 && s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
+    !s.crown && s.players.length >= 2 && s.phase === "fight" && s.elapsed >= SUDDEN_DEATH - 10
       ? s.elapsed >= SUDDEN_DEATH
         ? "Sudden death\nHealth draining"
         : `Sudden death in ${Math.ceil(SUDDEN_DEATH - s.elapsed)}`

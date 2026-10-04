@@ -61,6 +61,6 @@ export function victoryMessage(state, name) {
   if (state.winner === null) return { title: "DRAW", detail: "" };
   return {
     title: `${name.toUpperCase()} WON`,
-    detail: validVictoryCause(state.victoryCause) ? VICTORY_MESSAGES[state.victoryCause] || "" : "",
+    detail: state.mode === 'crown' ? '30 seconds with the crown' : validVictoryCause(state.victoryCause) ? VICTORY_MESSAGES[state.victoryCause] || "" : "",
   };
 }

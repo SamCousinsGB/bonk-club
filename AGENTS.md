@@ -33,6 +33,11 @@ Start new work from current `origin/main` in one clean worktree.
   slots, hot joining, saved validated profiles and occupant-owned scores.
 - The host may start a one-player test match when every opponent slot is empty or
   Closed. Normal populated lobbies retain their existing readiness rules.
+- Crown mode uses infinite two-second respawns and a central crown. First to 30
+  cumulative possession seconds wins the round. Death drops the crown without
+  clearing time; occupant changes clear that slot's time. Hide headgear while
+  wearing the crown and show a gold glow; restore appearance on loss. Crown
+  mode has no elimination or health-drain win condition.
 - The host selects weapon/map pools and Easy-by-default AI. Pools apply to all
   rounds and refills. Rounds continue indefinitely and show the current leader.
 - Preserve truthful death causes, draws and creative result-banner victory lines.

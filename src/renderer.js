@@ -1,4 +1,5 @@
 import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, colossusShake } from './colossus-art.js';
+import { drawCrown, drawCrownGlow, drawLooseCrown } from './crown-art.js';
 import {drawRocketBackground,drawRocketPlatform,drawRocketExhaust,rocketShake} from './rocket-art.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawBridgeHall, drawBridgeStructure, drawBridgePlatform, drawBridgeAtmosphere } from './bridge-art.js';
@@ -751,14 +752,20 @@ export class Renderer {
     }
     c.restore();
   }
-  fighter(p, time, scale = 1, showLabel = true) {
+  fighter(p, time, scale = 1, showLabel = true, crowned = false) {
     if (!p.alive || !p.rig) return;
+    if (crowned) {
+      // Presentation only: saved appearance and the transported profile survive.
+      p = {...p, accessory:'None', hair:'None'};
+      drawCrownGlow(this.ctx,p);
+    }
     if (p.strands) {
       drawDeath(this, { ...p, points:p.rig, effect:"singularity", life:1, deathAge:0 }, time);
       if (p.burn > 0) {
         this.ctx.save(); this.ctx.translate(p.x, p.y); drawBurning(this, p, time); this.ctx.restore();
       }
       if (p.weapon) this.weapon(p.weapon,p.rig[6].x,p.rig[6].y,1,p.aimAngle,.8);
+      if(crowned)drawCrown(this.ctx,p.rig[0].x,p.rig[0].y);
       return;
     }
     const c = this.ctx,
@@ -796,6 +803,7 @@ export class Renderer {
       Math.atan2(head.y - neck.y, head.x - neck.x) + Math.PI / 2,
       p.facing,
     );
+    if(crowned)drawCrown(c,head.x-p.x,head.y-p.y,Math.atan2(head.y-neck.y,head.x-neck.x)+Math.PI/2);
     const angle = p.aimAngle ?? (p.facing === 1 ? 0 : Math.PI);
     this.line(
       [
@@ -861,14 +869,15 @@ export class Renderer {
       c.stroke();
     }
     if (showLabel) {
+      const labelY = crowned ? Math.min(head.y-p.y-46, p.prone ? -35 : -64) : p.prone ? -35 : -64;
       c.font = "700 18px 'DM Sans',sans-serif";
       c.textAlign = "center";
       c.fillStyle = p.color || COLORS[p.id];
       c.strokeStyle = "#0c1729ee"; c.lineWidth = 5; c.lineJoin="round";
-      c.strokeText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
-      c.fillText(p.name || NAMES[p.id], 0, p.prone ? -35 : -64);
+      c.strokeText(p.name || NAMES[p.id], 0, labelY);
+      c.fillText(p.name || NAMES[p.id], 0, labelY);
       if(p.id===this.localId) {
-        c.fillStyle="#fff9df"; c.beginPath(); c.moveTo(-6,-88); c.lineTo(6,-88); c.lineTo(0,-81); c.fill();
+        c.fillStyle="#fff9df"; c.beginPath(); c.moveTo(-6,labelY-24); c.lineTo(6,labelY-24); c.lineTo(0,labelY-17); c.fill();
       }
       if(p.hp<100) {
         c.fillStyle="#081626cc";c.fillRect(-22,p.prone?-26:-56,44,4);
@@ -1072,7 +1081,8 @@ export class Renderer {
     }
     for (const f of state.fields) if (f.kind === "phaser") drawPhaser(this, f, time, state.players.find(p => p.id === f.owner));
     for (const p of state.players) if (p.alive) drawTrail(c, p, this.cosmetics.entries.get(p.id));
-    for (const p of state.players) {this.fighter(p, time, 1, !menuArena);drawStatus(this,p,time);}
+    drawLooseCrown(c,state,time,this.reduced);
+    for (const p of state.players) {this.fighter(p, time, 1, !menuArena, state.crown?.holder===p.id);drawStatus(this,p,time);}
     for (const cover of state.cover || []) if(cover.kind!=="car"||!arena.assembly)this.table(cover);
     if(arena.waterworks)drawWaterworksGenerators(c,state,this.reduced);
     drawHazards(c, state.hazards, time, arena.theme, "front", this.reduced, state.platforms);

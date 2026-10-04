@@ -1,7 +1,7 @@
 // Fighters, shots, pickups and combat outcomes retain their normal update rate
 // while large changing terrain uses its own bounded share of the connection.
 const keys = ["players", "projectiles", "drops", "scores", "phase", "phaseTime", "round", "arenaIndex",
-  "elapsed", "time", "winner", "victoryCause", "events", "inputAcks"];
+  "elapsed", "time", "winner", "victoryCause", "events", "inputAcks", "mode", "crown"];
 export function motionState(state) {
   return Object.fromEntries(keys.filter(k => state[k] !== undefined).map(k => [k, state[k]]));
 }

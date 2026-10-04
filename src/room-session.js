@@ -1,4 +1,5 @@
 import { TRAIN_Y, TRAIN_SPEED } from "./setpiece-arenas.js";
+import { validCrown } from './crown.js';
 import { validColossus } from './colossus.js';
 import { validRocket } from './rocket.js';
 import { validFurnace } from './furnace-parts.js';
@@ -42,7 +43,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 104;
+export const PROTOCOL = 105;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -808,7 +809,7 @@ export function validSnapshot(s) {
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
     [s.phaseTime, s.elapsed, s.time].every(finite) &&
     (s.winner === null || integer(s.winner, 0, 3)) &&
-    validVictoryCause(s.victoryCause) &&
+    validVictoryCause(s.victoryCause) && validCrown(s) &&
     list(
       s.players,
       4,
@@ -822,6 +823,7 @@ export function validSnapshot(s) {
         finite(p.oxygen) && p.oxygen>=0 && p.oxygen<=12 &&
         typeof p.submerged==='boolean' && typeof p.swimming==='boolean' && typeof p.swimStroke==='boolean' &&
         integer(p.occupant, 0, Number.MAX_SAFE_INTEGER) &&
+        integer(p.lifeId, 0, Number.MAX_SAFE_INTEGER) &&
         integer(p.actionSerial, 0, Number.MAX_SAFE_INTEGER) &&
         xy(p) &&
         [
@@ -1079,6 +1081,8 @@ export function validSnapshot(s) {
           "shoot",
           "explosion",
           "pickup",
+          "crown-drop",
+          "respawn",
           "throw",
           "coverhit",
           "break",

@@ -1,5 +1,30 @@
 # Bonk Club — current handoff
 
+## Crown mode (v0.69.0 / protocol 105)
+
+- Host-selectable Crown mode retains map/weapon pools and guest readiness. One
+  crown starts above central surviving geometry. Automatic contact pickup,
+  death drops and lost-crown recovery are host-owned. First to 30 accumulated
+  seconds wins; deaths keep possession time and respawn after two seconds.
+- No elimination or sudden-death health drain in Crown. Respawns use surviving
+  clear surfaces, reset physical state/inventory and preserve occupant identity.
+  Completely destroyed or sunk arenas rebuild only when everyone is waiting,
+  retaining possession totals. Slot changes never inherit another occupant's time.
+- Gold crown and steady body glow replace headwear while carried; saved appearance
+  returns on loss. HUD shows possession seconds, progress and respawn countdowns.
+  Bots seek the loose crown and prioritise its carrier using ordinary controls.
+- Crown state uses validated world/motion snapshots. Per-life identity prevents
+  guest prediction/interpolation from spanning a missed death and respawn.
+- Local validation: 17 focused Crown tests, the full regular suite, thirteen new
+  Crown arena stress cases and the production build pass. Source desktop relay
+  checks cover mode/readiness, guest controls, pickup, headgear restoration,
+  respawns, exact damaged-world hot join, 30-second victory and the next round.
+  Production-bundle Crown host/guest/hot-join/departure checks also pass.
+- Visual evidence and reports: `desktop/test-results/crown/`. The source preview
+  is stopped. Complete release CI/Pages and exact public artifact parity before
+  describing this version as live. Refresh all players for protocol 105.
+
+
 ## Systemic barrels (v0.68.0 / protocol 104)
 
 - Shared placements rotate oil, tar, TNT, glue, acid and cryogenic barrels across

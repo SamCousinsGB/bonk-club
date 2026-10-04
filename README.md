@@ -39,6 +39,14 @@ mouse to swim; controllers use the same aim/primary action. The oxygen
 bar above a submerged fighter drains over twelve seconds and refills in air.
 An empty bar causes drowning damage. Water also moves cargo and loose bodies.
 
+## Crown mode
+
+Choose **Crown** in the lobby's **Game mode** selection. Pick up the crown in the
+centre and hold it for **30 seconds total** to win the round. Dying drops it and
+respawns you after two seconds; your accumulated time stays. Respawns are unlimited.
+The carrier glows gold and their headgear is hidden until they lose the crown.
+A lost crown returns to the centre; the next round resets possession times.
+
 ## Combat
 
 - Oil, gas and tar containers vary up to 2.6 times their normal size where the landing has room. Large casings weigh more and hold more fuel; large gas cylinders emit denser clouds and have a wider bounded explosion. Barrel types rotate across every arena and successive rounds.

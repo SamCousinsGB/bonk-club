@@ -1193,3 +1193,9 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   .fighter-card h4 { margin-bottom: 6px; }
   .selection-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
 }
+
+.mode-help {font-size: .8rem; line-height: 1.4; color: var(--muted, #aebac4); margin: 0 0 12px;}
+.mode-help:empty {display: none;}
+.crown-score .score-top b {font-size: 1.35rem; white-space: nowrap;}
+.crown-holder {filter: drop-shadow(0 0 7px #ffcf5866);}
+.crown-holder .score-top b {color: #ffe69b;}

@@ -40,7 +40,7 @@ export class GuestPrediction {
     const p = state.players.find(p => p.id === id), old = this.player;
     const correctionDecay = Math.exp(-Math.max(0, now - this.correctionAt) * .02);
     const changed = this.id !== id || this.latest?.round !== state.round ||
-      this.latest?.arenaIndex !== state.arenaIndex || old?.occupant !== p?.occupant;
+      this.latest?.arenaIndex !== state.arenaIndex || old?.occupant !== p?.occupant || old?.lifeId !== p?.lifeId;
     if (!changed && this.latest && state.time <= this.latest.time) return;
     const stalled = this.lastAt !== null && now - this.lastAt > STALE_MS;
     if (changed || stalled) this.pending = [];

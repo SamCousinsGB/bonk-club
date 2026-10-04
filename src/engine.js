@@ -1,4 +1,5 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
+import { GAME_MODES, resetCrown, crownDeath, clearCrownPlayer, respawnCrownPlayers, updateCrown } from './crown.js';
 import { ROCKET_ARENA } from './rocket-arena.js';
 import { beginHang, climbFromHang, moveHanging } from "./hanging.js";
 import { movementShape, updatePosture } from "./curl.js";
@@ -122,6 +123,7 @@ export class World {
     weaponPool = null,
     difficulty = "easy",
     fillSolo = true,
+    mode = 'elimination',
   } = {}) {
     if (
       players.length < 1 ||
@@ -137,6 +139,8 @@ export class World {
         : bots,
     );
     this.occupants = [0, 0, 0, 0];
+    if (!Object.hasOwn(GAME_MODES, mode)) throw new Error('Choose a valid game mode.');
+    this.mode = mode;
     this.profiles = {};
     this.weaponPool = weaponPool === null ? Object.keys(WEAPONS) : [...new Set(weaponPool)].filter(key => Object.hasOwn(WEAPONS, key));
     if (!this.weaponPool.length) throw new Error('Choose at least one weapon.');
@@ -228,6 +232,7 @@ export class World {
     this.winner = null;
     this.lastDeathCause = null;
     this.victoryCause = null;
+    resetCrown(this);
     this.events = [];
   }
   playerProfile(id) {
@@ -248,6 +253,7 @@ export class World {
       ...this.playerProfile(id),
       bot: this.botIds.has(id),
       occupant: this.occupants[id],
+      lifeId: 0,
       x,
       y,
       vx: 0,
@@ -331,6 +337,7 @@ export class World {
     for (const id of [...this.ids]) {
       if (active.some(p => p.id === id)) continue;
       if (this.players.find(p => p.id === id)?.alive) this.lastDeathCause = null;
+      clearCrownPlayer(this, this.players.find(p => p.id === id));
       this.ids = this.ids.filter(n => n !== id);
       this.players = this.players.filter(p => p.id !== id);
       this.botIds.delete(id);
@@ -365,6 +372,7 @@ export class World {
     this.occupants[id]++;
     this.ai.forget(id);
     const previous = this.players.find((p) => p.id === id);
+    clearCrownPlayer(this, previous);
     if (previous.carryId) releaseObject(this, previous);
     // A live fighter is taken over in place. Eliminated arrivals enter at a clear spawn.
     const p =
@@ -470,6 +478,7 @@ export class World {
       }
       return;
     }
+    respawnCrownPlayers(this, dt);
     const active = this.phase === "fight";
     if (this.botIds.size) this.ai.prepare(this);
     if (active && this.botIds.size)
@@ -548,7 +557,7 @@ export class World {
         if (p.alive && this.arena.ship && shipSunk(this) && !shipEscapee(this,p))
           this.kill(p, { cause: "drowning" });
         for (const s of this.spikes()) impale(this,p,s);
-        if (this.players.length >= 2 && this.elapsed > SUDDEN_DEATH) {
+        if (this.mode !== 'crown' && this.players.length >= 2 && this.elapsed > SUDDEN_DEATH) {
           p.hp -= dt * 8;
           if (p.hp <= 0) this.kill(p, { cause: "sudden" });
         }
@@ -565,7 +574,7 @@ export class World {
         this.fields.some(f => ["shockwave","blackhole"].includes(f.kind) && f.life > 0);
       // A delayed blast can still turn one survivor into a draw, but once
       // everyone is already dead there is no combat outcome left to resolve.
-      if (alive.length <= 1 && !pendingJudgement && (alive.length === 0 || !pendingBlast) && (this.players.length >= 2 || alive.length === 0)) {
+      if (this.mode !== 'crown' && alive.length <= 1 && !pendingJudgement && (alive.length === 0 || !pendingBlast) && (this.players.length >= 2 || alive.length === 0)) {
         this.winner = alive[0]?.id ?? null;
         this.victoryCause = this.winner === null ? null : this.lastDeathCause;
         if (this.winner !== null) this.scores[this.winner]++;
@@ -574,6 +583,7 @@ export class World {
         this.event("round", { winner: this.winner });
       }
     }
+    if (active) updateCrown(this, dt);
     cleanCarriedObjects(this);
   }
   solids(carrier = null) {
@@ -1030,6 +1040,7 @@ export class World {
   }
   kill(p, {ash = false, sourceX = p.x, sourceY = p.y, effect = null, angle = 0, cause = null, source = null} = {}) {
     if (!p.alive) return;
+    crownDeath(this, p);
     if (p.carryId) releaseObject(this, p);
     if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
@@ -1579,6 +1590,8 @@ export class World {
     cleanCarriedObjects(this);
     return {
       players: this.players,
+      mode: this.mode,
+      crown: this.crown,
       ship: this.ship,
       platforms: this.platforms,
       assembly: assemblySnapshot(this.assembly, this.cover),
