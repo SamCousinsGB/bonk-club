@@ -27,7 +27,7 @@ export function drawCrownGlow(c,p) {
 
 export function drawLooseCrown(c,state,time,reduced) {
   const crown=state.crown;
-  if(!crown || crown.holder!==null)return;
+  if(!crown?.available || crown.holder!==null)return;
   const y=crown.y+(crown.loose||reduced?0:Math.sin(time*2.5)*4);
   c.save();
   const glow=c.createRadialGradient(crown.x,y,4,crown.x,y,55);

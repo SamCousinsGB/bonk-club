@@ -938,6 +938,8 @@ function frame(now) {
   sound.update(playing ? state : null);
   renderer.localId = room ? room.id : solo ? 0 : null;
   if (state) {
+    if(playing && state.events.some(e=>e.type==='arena-rebuilt'&&e.id>renderer.lastEvent))
+      toast('Arena rebuilt. Crown time kept.');
     const weapons = !world && room ? guestPrediction.weapons : null;
     renderer.events(state.events, sound, state.time, false, weapons ? e=>weapons.acceptEvent(e) : null);
     if (weapons) renderer.events(weapons.takeEvents(), sound, state.time, true);

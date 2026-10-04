@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {World,ARENAS,STEP,W} from '../src/engine.js';
-import {CROWN_TARGET,CROWN_RESPAWN,resetCrown,centreCrown,updateCrown,respawnCrownPlayers,crownSpawns} from '../src/crown.js';
+import {CROWN_TARGET,CROWN_RESPAWN,CROWN_RECOVERY_WAIT,resetCrown,centreCrown,updateCrown,respawnCrownPlayers,crownSpawns} from '../src/crown.js';
 import {validSnapshot,encodeState,decodeState} from '../src/room-session.js';
 import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
 import {compactSnapshot,expandSnapshot} from '../src/snapshot-wire.js';
@@ -149,6 +149,7 @@ test('malformed crown ownership, times, respawns and life identities are rejecte
   const w=fixture(),base=structuredClone(w.snapshot());
   assert.equal(validSnapshot(base),true);
   for(const mutate of [s=>s.mode='bad',s=>s.crown=null,s=>s.crown.holder=3,s=>s.crown.holder=.5,
+    s=>delete s.crown.available,s=>{s.crown.available=false;s.crown.holder=0;},
     s=>s.crown.times[0]=31,s=>s.crown.times[0]=NaN,s=>s.crown.respawn[0]=-1,
     s=>s.crown.respawn.push(0),s=>s.crown.x=Infinity,s=>s.players[0].lifeId=-1,
     s=>{s.crown.holder=0;s.players[0].alive=false;}]) {
@@ -236,4 +237,90 @@ test('an unclaimed crown follows moving support and falls when that support brea
   assert.equal(w.crown.y,y+4);assert.equal(w.crown.x,W/2+3);
   floor.hp=0;updateCrown(w,STEP);
   assert.equal(w.crown.loose,true);assert.ok(w.crown.vy>0);
+});
+
+function recoveryTicks(w,seconds) {
+  for(let n=0;n<seconds/STEP;n++)respawnCrownPlayers(w,STEP);
+}
+
+test('permanently unsafe surviving terrain cannot strand every player in respawn',()=>{
+  const w=fixture();w.crown.times=[7,19,0,0];w.scores=[2,3,0,0];
+  for(const p of w.players)w.kill(p);
+  w.fields=[{kind:'blackhole',x:1280,y:535,radius:3000}];
+  assert.ok(crownSpawns(w).length>0,'surviving geometry exists but cannot be used');
+  recoveryTicks(w,CROWN_RECOVERY_WAIT-1);
+  assert.equal(w.phase,'fight');assert.ok(w.players.every(p=>!p.alive));
+  recoveryTicks(w,2);
+  assert.equal(w.phase,'countdown');assert.equal(w.round,1);
+  assert.deepEqual(w.crown.times,[7,19,0,0]);assert.deepEqual(w.scores,[2,3,0,0]);
+  assert.ok(w.players.every(p=>p.alive&&p.lifeId===1));
+  assert.equal(w.events.filter(e=>e.type==='arena-rebuilt').length,1);
+  assert.equal(validSnapshot(w.snapshot()),true);
+  const joined=expandSnapshot(compactSnapshot(new RenderSnapshots().make(w.snapshot())),validSnapshot);
+  assert.equal(joined.phase,'countdown');assert.deepEqual(joined.crown.times,w.crown.times);
+  assert.ok(joined.events.some(e=>e.type==='arena-rebuilt'));
+});
+
+test('temporary danger clears without rebuilding or losing the destroyed layout',()=>{
+  const w=fixture();const geometry=w.platforms;
+  w.fields=[{kind:'blackhole',x:1280,y:535,radius:3000}];
+  for(const p of w.players)w.kill(p);
+  recoveryTicks(w,8);assert.ok(w.players.every(p=>!p.alive));
+  w.fields=[];recoveryTicks(w,5);
+  assert.ok(w.players.every(p=>p.alive));assert.equal(w.platforms,geometry);
+  assert.equal(w.phase,'fight');assert.equal(w.crownRecovery.spawnWait,null);assert.equal(w.crownRecovery.crownWait,null);
+  assert.ok(!w.events.some(e=>e.type==='arena-rebuilt'));
+});
+
+test('no crown placement recovers even with a stranded survivor, without inventing a floating spawn',()=>{
+  const w=fixture();w.platforms=[];w.crown.times[0]=11;
+  const before={x:w.crown.x+100,y:w.crown.y+75};Object.assign(w.crown,before);
+  assert.equal(centreCrown(w),false);assert.equal(w.crown.available,false);
+  assert.equal(w.crown.x,before.x);assert.equal(w.crown.y,before.y);
+  const unavailable=structuredClone(w.crown);
+  for(let n=0;n<120;n++)updateCrown(w,STEP);
+  assert.deepEqual(w.crown,unavailable,'unavailable crowns cannot fall forever or be picked up');
+  w.kill(w.players[1]);recoveryTicks(w,CROWN_RECOVERY_WAIT-1);
+  assert.equal(w.phase,'fight');assert.equal(w.players[0].alive,true);
+  recoveryTicks(w,2);assert.equal(w.phase,'countdown');
+  assert.equal(w.crown.times[0],11);assert.ok(w.players.every(p=>p.alive&&p.lifeId===1));
+});
+
+test('an unavailable crown returns when a temporary hazard clears, without resetting the arena',()=>{
+  const w=fixture(),geometry=w.platforms;
+  w.fields=[{kind:'blackhole',x:1280,y:535,radius:3000}];
+  assert.equal(centreCrown(w),false);recoveryTicks(w,3);assert.equal(w.crown.available,false);
+  w.fields=[];recoveryTicks(w,1);
+  assert.equal(w.crown.available,true);assert.equal(w.platforms,geometry);assert.equal(w.phase,'fight');
+  assert.equal(w.crownRecovery.crownWait,null);
+});
+
+test('crown recovery chooses a safe surviving alternative to a blocked centre',()=>{
+  const w=fixture();w.fields=[{kind:'blackhole',x:1280,y:535,radius:250}];
+  assert.equal(centreCrown(w),true);assert.ok(Math.abs(w.crown.x-1280)>290);
+  const geometry=w.platforms;recoveryTicks(w,CROWN_RECOVERY_WAIT+2);
+  assert.equal(w.platforms,geometry);assert.equal(w.phase,'fight');
+});
+
+test('a carrier can finish on ruined terrain; lack of scoring on a playable map never triggers recovery',()=>{
+  const w=fixture();w.crown.holder=0;w.platforms=[];
+  recoveryTicks(w,CROWN_RECOVERY_WAIT+2);assert.equal(w.phase,'fight');assert.equal(w.crown.holder,0);
+  w.crown.times[0]=29.9;updateCrown(w,.1);assert.equal(w.phase,'result');assert.equal(w.winner,0);
+  const idle=fixture(),geometry=idle.platforms;
+  recoveryTicks(idle,45);assert.equal(idle.phase,'fight');assert.equal(idle.platforms,geometry);
+  assert.deepEqual(idle.crown.times,[0,0,0,0]);
+});
+
+test('all thirteen destroyed arenas rebuild the same round with valid possession and player identities',()=>{
+  for(let arena=0;arena<ARENAS.length;arena++) {
+    const w=new World({mode:'crown',arena,players:[0,1,2,3],shuffle:false,random:()=>.4});
+    w.phase='fight';w.crown.times=[2,4,6,8];w.scores=[1,2,3,4];
+    w.platforms=[];w.cover=[];w.chunks=[];w.cables=[];w.spikeTerrain=[];
+    for(const p of w.players)w.kill(p);
+    respawnCrownPlayers(w,2.1);
+    assert.equal(w.phase,'countdown',w.arena.name);assert.equal(w.arenaIndex,arena);assert.equal(w.round,1);
+    assert.deepEqual(w.crown.times,[2,4,6,8]);assert.deepEqual(w.scores,[1,2,3,4]);
+    assert.ok(w.players.every(p=>p.alive&&p.lifeId===1));assert.equal(validSnapshot(w.snapshot()),true);
+    assert.equal(centreCrown(w),true,w.arena.name+' has a usable rebuilt objective');
+  }
 });

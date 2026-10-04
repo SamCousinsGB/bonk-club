@@ -47,6 +47,10 @@ respawns you after two seconds; your accumulated time stays. Respawns are unlimi
 The carrier glows gold and their headgear is hidden until they lose the crown.
 A lost crown returns to the centre; the next round resets possession times.
 
+If destruction makes the arena unplayable, it rebuilds automatically. Blocked
+respawns or crown placements get twelve seconds to clear; an empty arena rebuilds
+once everyone is waiting to respawn. Crown time and round scores are kept.
+
 ## Combat
 
 - Oil, gas and tar containers vary up to 2.6 times their normal size where the landing has room. Large casings weigh more and hold more fuel; large gas cylinders emit denser clouds and have a wider bounded explosion. Barrel types rotate across every arena and successive rounds.

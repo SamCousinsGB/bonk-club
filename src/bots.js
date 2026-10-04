@@ -502,7 +502,7 @@ export class BotController {
     // Keep the full traversal/survival logic during other players' respawns.
     // The self placeholder supplies combat fields, but never receives an attack.
     const alone = !choices.length;
-    if (alone && crown?.holder!==null) return i;
+    if (alone && (!crown?.available || crown.holder!==null)) return i;
     const previous = choices.find((c) => c.q.id === b.target);
     const choice =
       previous &&
@@ -644,7 +644,7 @@ export class BotController {
         }
       }
     }
-    if(crown?.holder===null) {
+    if(crown?.available && crown.holder===null) {
       const floor=surfaceAt(solids,crown), route=floor&&paths.get(floor.id);
       // Approach a fixed deck while its graph is being built. Moving props and
       // live wires need a complete route before committing to their crossing.

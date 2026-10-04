@@ -1,5 +1,28 @@
 # Bonk Club — current handoff
 
+## Crown automatic arena recovery (v0.70.2 / protocol 106)
+
+- Empty/sunk arenas still rebuild once every player awaits respawn. A host-only
+  check also recovers after 12 seconds with all respawns blocked by danger, or
+  with no safe crown placement even if a stranded survivor remains alive.
+- Crown placement now prefers safe surviving alternatives. A validated available
+  flag keeps an unplaceable crown out of play until a safe site returns. Hazard
+  recovery cancels the wait; inactivity or absent scoring alone never causes a
+  reset. A living
+  carrier can finish its hold despite lost terrain.
+- Rebuild the same arena/round with the existing countdown, profiles, match
+  options, round scores and accumulated Crown seconds. Increment life identities
+  so guests reset prediction/interpolation. A validated arena-rebuilt event shows
+  "Arena rebuilt. Crown time kept." to host and guests. Refresh for protocol 106.
+- Local validation: 1,286 regular checks, 28 focused Crown checks, all 26 Crown
+  stress cases, and production browser multiplayer pass. The earlier full stress
+  run also passed all 53 cases. Source relay QA joins a guest during a failed
+  plane round, then verifies automatic recovery, preserved times/wins, exact
+  rebuilt-world agreement and guest controls. Actual desktop before/after
+  gameplay and the recovery notice were inspected. CI/Pages verification is pending.
+- Repeatable check: `desktop/tests/crown-recovery-browser.mjs`; evidence is in
+  `desktop/test-results/crown-recovery/`. Task preview servers are stopped.
+
 ## Crown plane respawns and bot pursuit (v0.70.1 / protocol 105)
 
 - Crown respawns exclude boundary walls, plane hull/wings and ship hull/bulkheads.

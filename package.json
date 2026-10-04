@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.70.1",
-  "releaseNotes": "Crown: cabin respawns and improved bot pursuit",
+  "version": "0.70.2",
+  "releaseNotes": "Crown rounds recover when the arena becomes unplayable",
   "private": true,
   "type": "module",
   "scripts": {
