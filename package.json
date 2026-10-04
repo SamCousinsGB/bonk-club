@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.66.0",
-  "releaseNotes": "Faster liquids, surface impacts, body wakes and explosive splashes",
+  "version": "0.66.1",
+  "releaseNotes": "Fix head and body stretching when jumping beneath platforms",
   "private": true,
   "type": "module",
   "scripts": {

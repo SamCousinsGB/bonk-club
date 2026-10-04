@@ -6,6 +6,7 @@ import { GuestPrediction } from "../src/guest-prediction.js";
 import { validSnapshot, encodeState, decodeState } from "../src/network.js";
 import { compactSnapshot, expandSnapshot } from "../src/snapshot-wire.js";
 import { prepareProp } from "../src/props.js";
+import { JOINTS } from "../src/puppet.js";
 
 function fixture() {
   const w = new World({ players: [0, 1], random: () => .5 });
@@ -20,6 +21,37 @@ function fixture() {
   return { w, snapshot, prediction, s };
 }
 const advance = (p, input, seq, now = 1000 + seq * 1000 / 60) => p.advance(cleanInput(input), seq, now);
+
+for (const oneWay of [false, true]) test(`guest ceiling jumps keep a connected rig with ${oneWay ? "slatted" : "solid"} platforms`, () => {
+  const { w, snapshot, prediction } = fixture();
+  w.hazards = []; w.drops = []; w.weaponTimer = w.grenadeTimer = 999;
+  Object.assign(w.players[0], { x: 2000, y: 470, ground: true, support: "floor", rig: null });
+  const y = oneWay ? 320 : 380;
+  w.platforms.push({ id: "ceiling", x: 250, y, w: 400, h: 16, baseX: 250, baseY: y, dx: 0, dy: 0, oneWay });
+  w.time += STEP;
+  prediction.receive(snapshot(), 1, 1000);
+  let headCleared = false;
+  for (let seq = 1; seq <= 180; seq++) {
+    const input = { jump: seq === 15 || seq === 80 }, now = 1000 + seq * 1000 / 60;
+    advance(prediction, input, seq, now);
+    for (let tick = 0; tick < 2; tick++) w.step(STEP, { 1: input });
+    const state = snapshot(seq), before = structuredClone(state);
+    const sampled = prediction.sample(state, now + 8).players.find(p => p.id === 1);
+    for (const p of [w.players[1], prediction.player, sampled]) {
+      for (const [a, b, length] of JOINTS)
+        assert.ok(Math.hypot(p.rig[a].x - p.rig[b].x, p.rig[a].y - p.rig[b].y) < length + 8,
+          `connected joint ${a}-${b} at input ${seq}`);
+      if (!oneWay) assert.ok(p.rig[0].y - 10 >= y + 16 - .01,
+        `head ${p.rig[0].y} below ceiling at input ${seq}, body ${p.y}`);
+    }
+    headCleared ||= prediction.player.rig[0].y + 10 < y;
+    assert.deepEqual(state, before, "prediction leaves the host snapshot intact");
+    if (seq % 4 === 0) prediction.receive(state, 1, now);
+  }
+  assert.equal(headCleared, oneWay);
+  assert.equal(w.players[1].support, "floor");
+  assert.equal(prediction.player.support, "floor");
+});
 
 test("high refresh movement samples advance smoothly between input ticks without changing replay or crossing walls", () => {
   const { w, snapshot, prediction } = fixture();

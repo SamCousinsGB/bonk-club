@@ -1,6 +1,6 @@
 import { meleePose } from "./melee-pose.js";
 import { collidePoint } from "./body-physics.js";
-import { curlRotation } from "./curl.js";
+import { curlRotation, movementShape } from "./curl.js";
 // An active ragdoll: eleven Verlet particles, ten distance joints and spring motors.
 // Motors suggest a pose; inertia, joints, impacts and ground contacts determine it.
 export const JOINTS = [
@@ -212,7 +212,7 @@ export function updateRig(p, dt, platforms, time) {
     q.x += (targets[i][0] - q.x) * motor * unfold;
     q.y += (targets[i][1] - q.y) * motor * unfold;
   }
-  const nearby = [];
+  const nearby = [], { top, bottom } = movementShape(p);
   for (let n = 0; n < 7; n++) {
     for (const [ai, bi, len] of JOINTS) {
       const a = rig[ai],
@@ -239,6 +239,17 @@ export function updateRig(p, dt, platforms, time) {
         radius = i === 0 ? 10 : 3;
       for (const s of nearby) {
         if (q.x < s.x || q.x > s.x + s.w) continue;
+        // A limb clearing a ledge is not a landing. Until the gameplay body's
+        // feet clear its top, jump-through floors must let the whole rig pass
+        // back down too; otherwise they pin the head above a falling torso.
+        if (p.y + bottom > s.y + 3) {
+          if (!s.oneWay && s.material !== "cable" &&
+              p.y - top >= s.y + s.h - 3 && q.y - radius < s.y + s.h) {
+            q.y = s.y + s.h + radius;
+            q.py = Math.min(q.py, q.y);
+          }
+          continue;
+        }
         if (
           q.py + radius <= s.y + 12 &&
           q.y + radius > s.y &&

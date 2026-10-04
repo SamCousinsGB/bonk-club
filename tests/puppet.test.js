@@ -2,7 +2,7 @@ import { combatFloor } from "./helpers.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { World, STEP, cleanInput } from "../src/engine.js";
-import { JOINTS } from "../src/puppet.js";
+import { JOINTS, makeRig } from "../src/puppet.js";
 import { validSnapshot } from "../src/network.js";
 function setup() {
   const w = new World({ shuffle: false });
@@ -42,6 +42,42 @@ test("an active skeleton has independent limbs and stable joint lengths", () => 
   }
   assert.ok(validSnapshot(w.snapshot()));
 });
+
+for (const kind of ["solid", "slatted", "cable"]) for (const gap of [80, 120, 180]) {
+  test(`jumping below a ${kind} platform ${gap} units overhead cannot pin the head or stretch limbs`, () => {
+    const w = new World({ players: [0], bots: [], fillSolo: false, shuffle: false, random: () => .5 });
+    w.phase = "fight";
+    combatFloor(w);
+    w.spikes = () => [];
+    const ceiling = { id: "ceiling", x: 400, y: 800 - gap, w: 400, h: 16,
+      oneWay: kind === "slatted", material: kind === "cable" ? "cable" : "metal" };
+    if (kind === "cable") ceiling.circuit = 0;
+    w.platforms = [{ id: "floor", x: 0, y: 800, w: 2500, h: 30 }, ceiling];
+    for (const s of w.platforms) Object.assign(s, { baseX: s.x, baseY: s.y, dx: 0, dy: 0 });
+    const p = w.players[0];
+    Object.assign(p, { x: 600, y: 770, vx: 0, vy: 0, ground: true, support: "floor" });
+    p.rig = makeRig(p);
+    let landedAbove = false, headCleared = false;
+    for (let n = 0; n < 360; n++) {
+      w.step(STEP, { 0: { jump: n === 30 || n === 160 } });
+      for (const [a, b, length] of JOINTS) {
+        const distance = Math.hypot(p.rig[a].x - p.rig[b].x, p.rig[a].y - p.rig[b].y);
+        assert.ok(distance < length + 6, `frame ${n}, joint ${a}-${b} stretched to ${distance}`);
+      }
+      if (kind === "solid") assert.ok(p.rig[0].y - 10 >= ceiling.y + ceiling.h,
+        "the physical head stays below the solid ceiling");
+      landedAbove ||= p.support === ceiling.id;
+      headCleared ||= p.rig[0].y + 10 < ceiling.y;
+    }
+    assert.equal(landedAbove, kind !== "solid" && gap < 180);
+    if (kind !== "solid" && gap === 180) {
+      assert.ok(headCleared, "reproduce a jump where the head clears but the feet do not");
+      assert.equal(p.support, "floor", "the entire rig returns to the lower floor");
+      assert.ok(p.rig[0].y > ceiling.y + ceiling.h);
+    }
+    assert.ok(validSnapshot(w.snapshot()));
+  });
+}
 test("a hit imparts angular momentum and limb impulses", () => {
   const w = setup(),
     [p, q] = w.players;

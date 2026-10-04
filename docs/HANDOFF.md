@@ -1,5 +1,21 @@
 # Bonk Club — current handoff
 
+## Platform head stretching (v0.66.1 / protocol 102)
+
+- Active limbs can land on a platform only after the fighter's feet clear its
+  top. A failed jump through slats or wires now falls back through as one body;
+  solid ceilings keep the head beneath their underside instead of trapping it
+  above the torso. Hanging, tuck and passive ragdoll solvers remain unchanged.
+- Regression checks cover repeated jumps at three heights beneath solid, slatted
+  and cable platforms, successful landings, failed jumps, and guest prediction
+  with reconciliation and rendering. Refresh all tabs for protocol 102.
+- The 1,172 regular tests and production build pass. Desktop source host/guest
+  jumps over real relay routes retain connected physical and rendered rigs, with
+  no browser errors; ceiling contact and failed slatted jumps were inspected.
+- Full stress and release verification are pending. Evidence is in this task
+  worktree's ignored `desktop/test-results/head-stretch/`; the repeatable desktop
+  source check is `desktop/tests/platform-head-browser.mjs`.
+
 ## Liquid physics and rendering (v0.66.0 / protocol 101)
 
 - Liquid collision and body-contact queries use local horizontal bins rebuilt
