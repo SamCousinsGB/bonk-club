@@ -63,7 +63,7 @@ function release(world,kind,amount,at,hot=false){
     else return 0;
     return accepted;
   }
-  return emitLiquid(world,kind,at.x,at.y,amount,{vx:at.vx||0,vy:at.vy||100,depth:36,centered:true,fire:hot});
+  return emitLiquid(world,kind,at.x,at.y,amount,{vx:at.vx||0,vy:at.vy||100,depth:36,columns:1,centered:true,fire:hot});
 }
 export function heatRefinery(world,touches,amount){
   const r=world.refinery;if(!r||world.prediction||world.phase!=='fight')return;
@@ -90,7 +90,11 @@ export function updateRefinery(world,dt){
   r.clock+=dt;
   // Process physics shares the liquid tick; stored contents and queues are
   // independent of render rate. Bounded substeps also support direct test ticks.
-  const ticks=Math.ceil(dt/.05),step=dt/ticks;
+  // A depressurised liquid main draws much faster than the normal metered
+  // process. Smaller hydraulic steps carry that volume through short elbows
+  // without bypassing their finite storage or emitting a huge queued slab.
+  const leaking=geometry(world).pipes.some((hole,id)=>hole&&PIPES[id].route!==2);
+  const ticks=Math.ceil(dt/(leaking?1/120:.05)),step=dt/ticks;
   for(let tick=0;tick<ticks;tick++)advance(world,r,step);
 }
 function advance(world,r,dt){
@@ -101,8 +105,9 @@ function advance(world,r,dt){
   const yields=[.5,.3,.2],amount=Math.min(core.volume,26*r.heat*dt,...r.products.map((v,i)=>(80-v)/yields[i]));
   if(amount>0&&!core.burst){core.volume-=amount;r.processed+=amount;r.products.forEach((_,i)=>r.products[i]+=amount*yields[i]);}
   for(const route of ROUTES){
+    const rate=route.ids.some(id=>g.pipes[id])?route.leakRate:route.rate;
     const rIndex=PIPES[route.ids[0]].route,source=rIndex?r.products[rIndex-1]:r.tanks[0].volume;
-    const first=r.pipes[route.ids[0]],admit=Math.max(0,Math.min(source,route.rate*dt,PIPES[first.id].capacity-first.volume));
+    const first=r.pipes[route.ids[0]],admit=Math.max(0,Math.min(source,rate*dt,PIPES[first.id].capacity-first.volume));
     if(rIndex)r.products[rIndex-1]-=admit;else r.tanks[0].volume-=admit;
     first.volume+=admit;
     // Reverse order prevents one simulation tick from teleporting feed through
@@ -111,12 +116,12 @@ function advance(world,r,dt){
       const id=route.ids[k],q=r.pipes[id],p=PIPES[id],opening=g.pipes[id];q.flow=0;
       if(opening){
         if(!q.broken){shrapnel(world,id,opening);q.broken=true;}
-        const n=release(world,route.kind,Math.min(q.volume,32*dt),opening);
+        const n=release(world,route.kind,Math.min(q.volume,route.leakRate*dt),opening);
         q.volume=Math.max(0,q.volume-n);q.flow=n/dt;r.released+=n;continue;
       }
       const next=r.pipes[route.ids[k+1]],dest=next||r.tanks[route.to],capacity=next?PIPES[next.id].capacity:TANKS[route.to].capacity;
       const head=Math.max(0,q.volume/p.capacity-dest.volume/capacity*.65);
-      const n=Math.max(0,Math.min(q.volume,capacity-dest.volume,route.rate*dt*Math.min(1,head*4)));
+      const n=Math.max(0,Math.min(q.volume,capacity-dest.volume,rate*dt*Math.min(1,head*4)));
       q.volume-=n;dest.volume+=n;q.flow=n/dt;
     }
   }
@@ -175,5 +180,5 @@ export function validRefinery(r){
   return !!r&&number(r.clock,0,1e7)&&number(r.heat,0,1)&&number(r.processed,0,10000)&&number(r.released,0,10000)&&number(r.combusted,0,10000)&&
     Array.isArray(r.products)&&r.products.length===3&&r.products.every(v=>number(v,0,80.01))&&
     Array.isArray(r.tanks)&&r.tanks.length===TANKS.length&&r.tanks.every((q,i)=>q&&q.id===i&&number(q.volume,0,TANKS[i].capacity+.01)&&number(q.temperature,0,4)&&number(q.pressure,0,2)&&number(q.warning,0,2.4)&&typeof q.burst==='boolean')&&
-    Array.isArray(r.pipes)&&r.pipes.length===PIPES.length&&r.pipes.every((q,i)=>q&&q.id===i&&number(q.volume,0,PIPES[i].capacity+.01)&&number(q.flow,0,32.01)&&typeof q.broken==='boolean');
+    Array.isArray(r.pipes)&&r.pipes.length===PIPES.length&&r.pipes.every((q,i)=>q&&q.id===i&&number(q.volume,0,PIPES[i].capacity+.01)&&number(q.flow,0,ROUTES[PIPES[i].route].leakRate+.01)&&typeof q.broken==='boolean');
 }

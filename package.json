@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.72.0",
-  "releaseNotes": "Escaping refinery gas can sustain spreading flames",
+  "version": "0.73.0",
+  "releaseNotes": "Broken crude mains flood the refinery with burnable oil",
   "private": true,
   "type": "module",
   "scripts": {

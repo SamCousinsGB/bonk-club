@@ -455,7 +455,10 @@ function containers(world, dt, bs) {
 
 function updateSpills(world, dt, bs, ps) {
   for(const q of world.spills) {
-    q.life=Math.max(0,q.life-dt);q.cold=Math.max(0,q.cold-dt);
+    const retainedFuel=world.arena?.refinery&&['oil','petrol'].includes(q.kind);
+    // Refinery fuel forms reservoirs on the surviving floor. It leaves through
+    // real breaches or combustion, rather than evaporating on a prop timer.
+    q.life=retainedFuel?SPILLS[q.kind].life:Math.max(0,q.life-dt);q.cold=Math.max(0,q.cold-dt);
     const box=liquidBounds(q);
     const touchingWater=world.water.some(w=>!w.frozen&&overlap(box,liquidBounds(w),2)) || shipWaterAt(world,box.x+box.w/2,box.y+box.h);
     if(touchingWater){
@@ -485,7 +488,8 @@ function updateSpills(world, dt, bs, ps) {
     if(!q.fire)continue;
     // Consume the actual finite spill volume, so extinguished/re-lit puddles
     // cannot create new fuel. Flames only reach through open space.
-    const used=q.h*Math.min(1,dt/q.fire);q.h-=used;q.y+=used;q.fire=Math.max(0,q.fire-dt);
+    const used=retainedFuel?Math.min(q.h,dt*(q.kind==='oil'?3:5)):q.h*Math.min(1,dt/q.fire);
+    q.h-=used;q.y+=used;q.fire=retainedFuel&&q.h>1e-8?SPILLS[q.kind].burn:Math.max(0,q.fire-dt);
     for(const other of world.spills)if(other!==q&&!other.fire&&!other.cold&&SPILLS[other.kind].burn&&
       overlap(box,liquidBounds(other),5)&&clear(world,origin,centre(other)))other.fire=SPILLS[other.kind].burn;
     for(const b of bs)if(overlap(bodyBounds(b),box,10)&&clear(world,origin,centre(b)))ignite(b);

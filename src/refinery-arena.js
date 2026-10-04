@@ -14,7 +14,7 @@ const paths=[
   [[1330,1090],[1330,520],[1520,520],[1520,300],[1890,300],[1890,500],[2210,500],[2210,580]],
   [[1210,1090],[1210,800],[1040,800],[1040,590],[740,590],[740,390],[980,390],[980,180],[1630,180],[1630,820],[2280,820],[2280,1130]],
 ];
-export const REFINERY_ROUTES=paths.map((points,i)=>({from:i?1:0,to:i?i+1:1,kind:['oil','petrol','gas','acid'][i],points,rate:i?18:30}));
+export const REFINERY_ROUTES=paths.map((points,i)=>({from:i?1:0,to:i?i+1:1,kind:['oil','petrol','gas','acid'][i],points,rate:i?18:30,leakRate:[240,96,32,64][i]}));
 export const REFINERY_PIPES=[];
 REFINERY_ROUTES.forEach((route,r)=>{
   route.ids=[];

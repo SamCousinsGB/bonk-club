@@ -128,9 +128,9 @@ test('refinery recordings are original bounded distinct signals with silent endp
 test('sound seeks to live process time, caps voices, and stops on mute or reset',()=>{
   const played=[],stops=[],sound={context:{currentTime:10},ready:()=>true,sample:(name,d,o)=>{played.push({name,...o});return {stopped:false,gain:{gain:{setTargetAtTime(){},cancelScheduledValues(){}}},source:{stop(){stops.push(name);}}};}};
   const w=fixture();advance(w,13);const s=w.snapshot(),audio=new RefinerySound();s.refinery.pipes[2].broken=true;s.refinery.tanks[2].warning=2;
-  audio.update(sound,s);assert.equal(played.length,3);assert.ok(played.every(v=>Math.abs(v.offset-1)<.001));for(let i=0;i<30;i++)audio.update(sound,s);assert.equal(played.length,3);
-  sound.ready=()=>false;audio.update(sound,s);assert.equal(stops.length,3);assert.equal(audio.voices.size,0);
-  sound.ready=()=>true;audio.update(sound,s);assert.equal(played.length,6);
+  audio.update(sound,s);assert.equal(played.length,4);assert.ok(played.every(v=>Math.abs(v.offset-1)<.001));for(let i=0;i<30;i++)audio.update(sound,s);assert.equal(played.length,4);
+  sound.ready=()=>false;audio.update(sound,s);assert.equal(stops.length,4);assert.equal(audio.voices.size,0);
+  sound.ready=()=>true;audio.update(sound,s);assert.equal(played.length,8);
   for(const v of audio.voices.values())v.voice.stopped=true;
-  audio.update(sound,s);audio.update(sound,s);assert.equal(played.length,6,'a frozen last snapshot cannot restart expired recordings');
+  audio.update(sound,s);audio.update(sound,s);assert.equal(played.length,8,'a frozen last snapshot cannot restart expired recordings');
 });

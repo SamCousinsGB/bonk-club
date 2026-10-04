@@ -1,5 +1,33 @@
 # Bonk Club — current handoff
 
+## Refinery oil flooding (v0.73.0 / protocol 109)
+
+- Crude and cracker contents use the shared oil palette, matching oil released
+  from barrels. Broken liquid mains depressurise into a faster flow: crude
+  draws up to 240 volume units per second from its finite supply. Normal
+  metered process rates remain unchanged. Smaller hydraulic steps carry that
+  flow through every real pipe section; a blocked outlet retains its contents.
+- Refinery oil and petrol persist until drained, burned or reset. Deep fuel
+  burns from its surface at a finite rate rather than losing its entire depth
+  to the old seven-second prop-spill timer. Actual floor breaches drain pools;
+  upper grating routes remain open. Tank contents are not replenished.
+- High-flow outlets stay within one liquid column per emission, preventing
+  large time steps or a blocked throat from painting a sideways slab. Existing
+  shared pooling, currents, buoyancy, ignition and cooling remain in use.
+  Pouring has its own seekable sound; burning pools share the bounded fire roar.
+- Protocol 109 validates the higher per-route flow limits. Refresh every
+  player's tab together. New regression coverage checks every crude section
+  after shots and cuts, lake depth and persistence, real projectile ignition,
+  sustained surface combustion, drainage, bounded admission and hot-join state.
+- All 1,326 regular checks pass. Desktop source relay QA verifies an equipped
+  railgun rupture, substantial pooling, equipped flamethrower ignition,
+  matching burning fuel for a late join, active pouring/fire audio, real floor
+  drainage, reset and reduced-motion desktop resizing without page errors.
+  Tank oil, pouring, pooled fuel and host/guest fire scenes were inspected.
+  Stress and publication checks are pending.
+  Evidence is under `desktop/test-results/refinery-flood/`; repeat the actual
+  weapon, flood, ignition and hot-join check with `desktop/tests/refinery-flood-browser.mjs`.
+
 ## Flammable refinery gas sprays (v0.72.0 / protocol 108)
 
 - Escaping refinery gas now sustains a visible moving flame when ignited by

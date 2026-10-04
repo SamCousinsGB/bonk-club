@@ -163,7 +163,7 @@ export function drawReactions(c,state,time,reduced=false) {
 function drawSpills(c,state,time,reduced=false) {
   for(const q of state.spills||[]) {
     c.save();
-    if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),25+Math.sin(q.id+time*7)*6,time*8+q.id);
+    if(q.fire)flame(c,q.x+q.w/2,q.y+Math.min(3,q.h),(q.grounded?Math.min(65,25+q.h*.45):Math.min(40,10+q.h*2))+Math.sin(q.id+time*7)*6,time*8+q.id);
     if(q.kind==='acid'||q.kind==='coolant') {
       for(let i=0;i<2;i++) {
         const age=reduced?.4:(time*.7+q.id*.13+i*.5)%1;

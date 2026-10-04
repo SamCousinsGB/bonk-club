@@ -65,7 +65,7 @@ export function emitLiquid(world,kind,x,y,amount,velocity={}) {
   // Admit a compact body of water, not a map-wide row of thin puddles. Retain
   // unaccepted volume in the tank when the bounded simulation is occupied.
   const depth=Math.min(y+200,clamp(velocity.depth??Math.sqrt(amount*WATER_WIDTH)*.65,24,velocity.depth?WATER_DEPTH:160));
-  for(let n=0;n<WATER_LIMIT && left>1e-8;n++) {
+  for(let n=0;n<Math.min(WATER_LIMIT,velocity.columns??WATER_LIMIT) && left>1e-8;n++) {
     const offset=n?Math.ceil(n/2)*(n%2?1:-1):0;
     const column=(velocity.centered?x-WATER_WIDTH/2:Math.floor(x/WATER_WIDTH)*WATER_WIDTH)+offset*WATER_WIDTH;
     if(column<0 || column+WATER_WIDTH>W)continue;

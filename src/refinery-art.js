@@ -1,5 +1,6 @@
 import {REFINERY_TANKS as TANKS,REFINERY_PIPES as PIPES} from './refinery-arena.js';
 import {refineryLiquids} from './refinery.js';
+import {SPILLS} from './barrels.js';
 const TAU=Math.PI*2,COLORS=['#b99b68','#e6ba58','#77cfce','#b8d566'];
 const line=(c,pts,color,w=2)=>{c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.strokeStyle=color;c.lineWidth=w;c.stroke();};
 const oval=(c,x,y,rx,ry,color)=>{c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fillStyle=color;c.fill();};
@@ -96,12 +97,13 @@ export function drawRefineryProcess(c,state,reduced){
   // chemical contact, and become ordinary moving parcels through real holes.
   for(const q of refineryLiquids(r)){
     const t=TANKS.find(t=>t.kind===q.kind&&(q.kind!=='oil'||Math.abs(q.x-t.x-16)<1));
-    if(!t)continue;const g=c.createLinearGradient(0,q.y,0,q.y+q.h);g.addColorStop(0,t.color+'bb');g.addColorStop(1,t.color+'35');c.fillStyle=g;c.fillRect(q.x,q.y,q.w,q.h);
-    line(c,[[q.x,q.y],[q.x+q.w,q.y]],t.color,2);
+    if(!t)continue;const liquid=SPILLS[q.kind],g=c.createLinearGradient(0,q.y,0,q.y+q.h);
+    g.addColorStop(0,liquid.rim);g.addColorStop(.12,liquid.color);g.addColorStop(1,liquid.color);c.fillStyle=g;c.fillRect(q.x,q.y,q.w,q.h);
+    line(c,[[q.x,q.y],[q.x+q.w,q.y]],liquid.rim,2);
   }
   for(const p of surviving){
     if(p.refineryPipe===undefined)continue;const spec=PIPES[p.refineryPipe],q=r.pipes[spec.id],ratio=q.volume/spec.capacity;if(ratio<.015)continue;
-    const dx=spec.ex-spec.x,dy=spec.ey-spec.y,len=Math.hypot(dx,dy),color=COLORS[spec.route];
+    const dx=spec.ex-spec.x,dy=spec.ey-spec.y,len=Math.hypot(dx,dy),color=spec.route===0?SPILLS.oil.color:COLORS[spec.route];
     c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
     line(c,[[spec.x,spec.y],[spec.x+dx*ratio,spec.y+dy*ratio]],color+'b0',8);
     if(q.flow>.1){const phase=time*Math.min(180,40+q.flow*5);for(let n=0;n<len;n+=44){const v=((n+phase)%len)/len;if(v>ratio)continue;line(c,[[spec.x+dx*v,spec.y+dy*v],[spec.x+dx*(v-8/len),spec.y+dy*(v-8/len)]],'#ecf5c9',3);}}
