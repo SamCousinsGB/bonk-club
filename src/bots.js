@@ -50,6 +50,13 @@ const fists = { range: 92, value: 3, damage: 25 };
 const center = (s) => ({ x: s.x + s.w / 2, y: s.y + s.h / 2 });
 function walkingSpan(here,solids) {
   if(!here)return null;
+  // Low debris on a continuous floor is a step, not a platform over a void.
+  // Use that floor's edges for braking while retaining the real takeoff height.
+  if(here.chunk){
+    const floor=solids.find(s=>!s.chunk&&!s.lethal&&s.y>=here.y&&s.y-here.y<=36&&
+      s.x<=here.x-18&&s.x+s.w>=here.x+here.w+18);
+    if(floor)return walkingSpan(floor,solids);
+  }
   let left=here.x,right=here.x+here.w,changed=true;
   while(changed){changed=false;for(const s of solids){
     if(Math.abs(s.y-here.y)>3||s.x>right+4||s.x+s.w<left-4)continue;
@@ -78,6 +85,40 @@ function safeFlight(world, ...args) {
   // All traversal, dodge and recovery takeoffs use the same live safety check.
   while (args.length < 11) args.push(undefined);
   return traceFlight(...args, (x,y) => unsafePoint(world,x,y));
+}
+function colossusEscape(world, p, here, solids, hazard) {
+  if (!here || !p.ground) return null;
+  const exits = (point, support) => {
+    const span=walkingSpan(support,solids),zone=hazardZone(hazard,point.y);
+    return [point.x,zone.x-48,zone.x+zone.w+48].filter(x=>
+      x>span.x+18&&x<span.x+span.w-18&&!unsafePoint(world,x,point.y)&&
+      !world.players.some(q=>q.id!==p.id&&q.alive&&Math.abs(q.y-point.y)<55&&
+        (q.x-point.x)*(x-point.x)>0&&Math.abs(q.x-point.x)<Math.abs(x-point.x)+30)&&
+      !solids.some(s=>s.id!==support.id&&[point.y-25,point.y,point.y+27].some(y=>
+        segmentBox(point.x,y,x,y,s))))
+      .sort((a,b)=>Math.abs(a-point.x)-Math.abs(b-point.x));
+  };
+  const walking=exits(p,here)[0];
+  if(walking!=null)return {x:walking};
+  // A warning does no damage yet. A checked step/jump may cross it only when
+  // there is enough time to land AND run outside the entire upcoming sweep.
+  // Other hazards remain unsafe throughout, and active beams are never ignored.
+  const otherHazards=world.hazards.filter(h=>h!==hazard);
+  const unsafe=(x,y,age)=>botDanger(otherHazards,x,y)||reactionDanger(world,x,y)||
+    world.fields.some(f=>f.kind==='blackhole'&&distance({x,y},f)<f.radius+30)||
+    (!(hazard.warning>age+.25)&&botDanger([hazard],x,y));
+  const options=[];
+  for(const dir of [-1,1])for(const jumps of [0,1,2]){
+    const flight=traceFlight(solids,here,p.x,dir,jumps,.38,world.time,world.spikes(),p.vx,null,true,unsafe);
+    if(!flight)continue;
+    const support=solids.find(s=>s.id===flight.to);
+    const point={x:flight.endX,y:support.y-30},x=exits(point,support)[0];
+    if(x==null)continue;
+    const duration=flight.duration+Math.abs(x-point.x)/RUN_SPEED+.3;
+    if(hazard.warning>0&&duration>=hazard.warning)continue;
+    options.push({flight,x,duration});
+  }
+  return options.sort((a,b)=>a.duration-b.duration)[0]||null;
 }
 // Find space to use a dangerous weapon, including across checked platform routes.
 // Score every opponent so backing away from one does not run into another.
@@ -191,7 +232,10 @@ export class BotController {
       (!this.pendingNavigation && this.revision !== world.terrainVersion &&
         world.time > this.builtAt + 0.15)
     ) {
-      const solids=world.solids().filter(s=>!s.chunk).map(s=>({...s}));
+      // A fighter standing on rubble still needs an outgoing route. Keep the
+      // rest of the debris out of the graph, but include occupied fragments.
+      const occupied=new Set(world.players.filter(p=>p.bot&&p.alive).map(p=>p.support));
+      const solids=world.solids().filter(s=>!s.chunk||occupied.has(s.id)).map(s=>({...s}));
       if(world.arena.cargoPlane||world.arena.ship)solids.sort((a,b)=>Number(!!a.planeHull||!!a.shipHull||!!a.shipBulkhead)-Number(!!b.planeHull||!!b.shipHull||!!b.shipBulkhead));
       this.pendingNavigation = navigationSteps(solids, {
         time: world.time,
@@ -681,8 +725,8 @@ export class BotController {
           }
         }
       } else {
-        const pad=Math.min(22,here.w/3);
-        moveTo = clamp(goal.x, here.x + pad, here.x + here.w - pad);
+        const pad=Math.min(22,footing.w/3);
+        moveTo = clamp(goal.x, footing.x + pad, footing.x + footing.w - pad);
       }
     } else {
       b.edge = null;
@@ -803,7 +847,6 @@ export class BotController {
     const cover = solids.find(
       (s) =>
         breakable(s) &&
-        !s.chunk &&
         s.hp > 0 &&
         (s.x + s.w / 2 - p.x) * dir > 0 &&
         Math.abs(s.x + s.w / 2 - p.x) < s.w / 2 + 72 &&
@@ -1023,12 +1066,18 @@ export class BotController {
     }
     if (hazard && !b.flight) {
       const z=hazardZone(hazard,p.y);
-      if(hazard.type==='colossus'||hazard.type==='rocket'){
+      if(hazard.type==='rocket'){
         // The long warning permits walking to surviving support. Never turn a
         // laser dodge into an unchecked jump into the hole it just carved.
         const candidates=here?[z.x-48,z.x+z.w+48].filter(x=>x>here.x+24&&x<here.x+here.w-24&&
           !unsafePoint(world,x,p.y)&&!firstObstacle(solids,p,{x,y:p.y-10})).sort((a,c)=>Math.abs(a-p.x)-Math.abs(c-p.x)):[];
         if(candidates.length){Object.assign(i,steer(p,candidates[0]));i.jump=false;i.attack=false;i.duck=false;i.block=false;}
+      }else if(hazard.type==='colossus'){
+        const escape=colossusEscape(world,p,here,solids,hazard);
+        if(escape){
+          if(escape.flight)b.flight={...escape.flight,started:world.time};
+          Object.assign(i,steer(p,escape.x));i.jump=false;i.attack=false;i.duck=false;i.block=false;
+        }
       }else{
       let away=p.x<z.x+z.w/2?-1:1;
       if(hazard.type==="conveyor")away=-hazard.dir;

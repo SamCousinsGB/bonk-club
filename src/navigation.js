@@ -63,7 +63,7 @@ export function traceFlight(
     ground = !jumps,
     clearAt = jumps ? 0 : null;
   const dt = 1 / 60;
-  let leftDanger = !unsafe?.(x, y);
+  let leftDanger = !unsafe?.(x, y, 0);
   const nearby = solids.filter(
     (p) =>
       (p.hp !== 0 &&
@@ -100,7 +100,7 @@ export function traceFlight(
     ground = false;
     if (x < 18 || x > W - 18 || y > H - 20) return null;
     // Escapes may begin in danger, but must leave it and never re-enter it.
-    const inDanger = unsafe?.(x, y);
+    const inDanger = unsafe?.(x, y, age);
     if (inDanger && leftDanger) return null;
     if (!inDanger) leftDanger = true;
     if (
@@ -128,9 +128,12 @@ export function traceFlight(
       )
         continue;
       if (vy >= 0 && oldY + 30 <= p.y + 5) {
-        if (unsafe?.(x, p.y - 30)) return null;
+        if (unsafe?.(x, p.y - 30, age)) return null;
         if (p.lethal) return null;
-        if (raw.id === from.id) {
+        // Collision strips belong to one physical body. Walking across its
+        // sloping top is still the takeoff, not a landing on an eight-unit ledge.
+        const sameBody = from.propId && raw.propId === from.propId;
+        if (raw.id === from.id || sameBody) {
           if (jumps && !allowReturn) return null;
           if (!jumps) {
             y = p.y - 30;
