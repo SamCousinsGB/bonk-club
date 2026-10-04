@@ -1,5 +1,25 @@
 # Bonk Club — current handoff
 
+## Unarmed Colossus AI (v0.67.1 / protocol 103)
+
+- Fixes the reproduced no-pickup stall on physical rubble. Occupied fragments
+  get outgoing navigation routes; low debris above continuous ground uses that
+  ground's edges for movement and braking. Bots can clear obstructing rubble.
+  Collision strips belonging to one prop remain one walking takeoff.
+- Colossus escape planning checks walking, step-downs and jumps, including a
+  jump over an opponent blocking the exit. Warning-time routes must allow time
+  to land and run clear; real landings, other hazards and fatal-drop checks stay
+  in force. Rocket Test Stand retains its separate existing hazard behavior.
+- Seven regressions cover simple/irregular rubble, damaged terraces, blocked
+  escapes and a full seeded match without weapon drops. Five fail on v0.66.2.
+  The full reproduction now reaches fist combat and avoids the laser instead of
+  standing on debris. No health, difficulty, physics controls or wire fields change.
+- All 1,244 regular tests pass. The 25 pre-integration stress checks and both
+  added Rocket Test Stand stress cases pass. Desktop source gameplay with no
+  pickups was visually inspected; both bots traverse and fight before discharge.
+  Evidence: ignored `desktop/test-results/colossus-*` files in enemy-ai worktree.
+- Release CI, public artifact parity and public browser checks remain pending.
+
 ## Rocket Test Stand (v0.67.0 / protocol 103)
 
 - Adds a thirteenth arena with an articulated engine, upper gantry, two open

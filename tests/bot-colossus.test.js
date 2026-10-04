@@ -98,4 +98,5 @@ test('a complete two-bot Colossus match keeps moving and fighting without any we
  assert.ok(escaped,'leave the actual debris field before the first sweep');
  assert.ok(p.x>warningX+200,'make useful escape progress instead of standing on rubble');
  assert.ok(w.players[1].hp<100,'reach and hit an opponent using fists alone');
+ assert.ok(!h.hitIds.includes(p.id),'the previously stranded bot avoids the laser');
 });

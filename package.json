@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.67.0",
-  "releaseNotes": "Rocket Test Stand: sweeping exhaust, destructible crossings and engine audio",
+  "version": "0.67.1",
+  "releaseNotes": "Fix unarmed AI freezing on rubble and escaping the Colossus laser",
   "private": true,
   "type": "module",
   "scripts": {
