@@ -38,11 +38,12 @@
 - Task preview servers are stopped. The worktree is clean after this handoff
   commit. This was one-machine relay QA, not separate-ISP testing.
 
-## Crown HUD and respawn feedback (v0.70.3 / protocol 106)
+## Crown HUD and respawn feedback (v0.71.1 / protocol 107)
 
 - A centred Crown panel follows the current holder and counts down their actual
   remaining hold time. When loose, it clearly labels the leader's remaining
   requirement; inactive possession never implies that the clock is running.
+- Room join/leave notices sit above chat during Crown play, clear of the timer.
 - Four colour-coded player cards retain cumulative Crown time, equipment and
   health. The last five seconds highlight the holder, pulse the central timer
   and play bounded ascending countdown tones. Snapshot repeats, late joins,
@@ -54,7 +55,8 @@
   relay QA covers possession/loose states, real respawn, countdown audio calls,
   hot join, reduced motion and 1600/1280/960-wide desktop window layouts. Source
   screenshots were inspected. Production build and bundle multiplayer pass.
-  CI/Pages and public release verification pending.
+  The final notice-placement fix incorporates the Refinery release and protocol
+  107. Integrated CI/Pages and public release verification pending.
 - Repeatable check: `desktop/tests/crown-hud-browser.mjs`, with the repository's
   VITE_ROOM_SERVICE_URL and VITE_TURN_CREDENTIALS_URL set. Evidence is under
   `desktop/test-results/crown-hud/`.

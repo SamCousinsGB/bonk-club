@@ -1231,6 +1231,7 @@ button.lobby-player:hover, button.lobby-player[aria-expanded="true"] { border-co
   box-shadow: 0 5px 22px #0004; color: #ffe396; text-shadow: none; overflow: hidden;
 }
 #crown-focus.hidden { display: none; }
+body.playing:has(#hud.crown-mode) #room-notifications { top: auto; bottom: 48px; left: 16px; transform: none; }
 #crown-focus > svg { width: 26px; fill: #ffcf58; stroke: #fff0b1; stroke-width: 2; stroke-linejoin: round; }
 .crown-focus-person { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .crown-focus-person small { font-size: 8px; letter-spacing: .7px; color: #dfd5b9; white-space: nowrap; }

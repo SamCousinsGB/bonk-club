@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.71.0",
-  "releaseNotes": "Refinery with flowing fuel, breakable pipes and pressure explosions",
+  "version": "0.71.1",
+  "releaseNotes": "Clearer Crown countdowns and respawn markers",
   "private": true,
   "type": "module",
   "scripts": {

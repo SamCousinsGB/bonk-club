@@ -111,6 +111,15 @@ try {
   const late = await page(); await late.goto(base + '?room=' + code); await late.locator('#join-invite').click();
   await late.locator('body.playing').waitFor({ timeout: 45000 });
   await late.waitForFunction(() => document.querySelectorAll('.score').length === 4);
+  if(crown) {
+    await host.locator('.room-notice').first().waitFor({timeout:2000});
+    assert.ok(await host.evaluate(()=>{
+      const timer=document.querySelector('#crown-focus').getBoundingClientRect();
+      return [...document.querySelectorAll('.room-notice')].every(e=>{
+        const notice=e.getBoundingClientRect();return notice.bottom<=timer.top||notice.top>=timer.bottom||notice.right<=timer.left||notice.left>=timer.right;
+      });
+    }),'Room notices leave the Crown countdown visible');
+  }
   const selected = { host: await routes(host), guest: await routes(guest), hotJoin: await routes(late) };
   for (const pairs of Object.values(selected)) assert.ok(pairs.some(p => p.local === 'relay' && p.remote === 'relay'));
   await host.screenshot({ path: path.join(results, 'browser-host.png') });
