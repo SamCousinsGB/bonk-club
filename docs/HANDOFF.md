@@ -14,8 +14,20 @@
 - Regression coverage includes damaged-cabin respawns, empty-hull recovery,
   a sole bot climbing for the crown, incomplete routes and gun deployment.
   Every arena also simulates bots actually collecting and holding the crown.
-- Release verification is in progress; source/relay evidence is saved in
-  `desktop/test-results/crown-plane/`. No network fields changed.
+- Local checks: 1,279 regular tests, 26 Crown stress cases, source desktop relay
+  cabin respawns/bot pickup/guest controls/damaged-world hot join, and production
+  browser checks pass. The pre-integration full stress run passed all 53 cases;
+  the final integrated revision also passed every CI stress shard.
+- Revision `757a29e` passed [release workflow 37229166047](https://github.com/SamCousinsGB/bonk-club/actions/runs/37229166047),
+  including shared/server tests, all six stress shards, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files match
+  byte for byte. Fresh public Crown play on Cargo Plane Hold passed bot pickup,
+  guest controls, hot join and host departure over real relay routes, without
+  page errors. Public desktop gameplay was visually inspected.
+- Evidence is in `desktop/test-results/crown-plane/`, including source checks,
+  local/CI/public parity and the public browser report. All task preview servers
+  are stopped. This is one-machine relay QA, not separate-ISP testing.
+  No network fields changed; refresh tabs for v0.70.1.
 
 ## Acid floor corrosion (v0.70.0 / protocol 105)
 
