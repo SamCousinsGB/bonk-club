@@ -1,5 +1,6 @@
 import { victoryMessage } from "./victory.js";
 import { GAME_MODES } from './crown.js';
+import { updateCrownHud, crownRemaining, crownSeconds } from './crown-hud.js';
 import { fighterStatuses, updateStatusHud } from './status-effects.js';
 import { loadPreferences } from "./preferences.js";
 import { ControllerMenu } from "./controller-menu.js";
@@ -833,6 +834,9 @@ function ownPlayer(state = world || remote) {
   return state?.players.find((p) => p.id === (room ? room.id : 0));
 }
 function updateHud(s) {
+  $('#hud').classList.toggle('crown-mode', !!s.crown);
+  $('#hud').classList.toggle('reduced-motion', renderer.reduced);
+  updateCrownHud($('#crown-focus'), s, renderer.localId);
   $('#fighter-effects').classList.toggle('reduced-motion', renderer.reduced);
   updateStatusHud($('#fighter-effects'), playing ? fighterStatuses(s, ownPlayer(s)) : []);
   const totals = s.crown?.times || s.scores;
@@ -842,7 +846,7 @@ function updateHud(s) {
   setHtml($("#scoreboard"), s.players
     .map(
       (p) =>
-        `<div class="score ${s.crown ? 'crown-score' : ''} ${s.crown?.holder===p.id ? 'crown-holder' : ''} ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="opacity:${p.alive ? 1 : 0.5}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${!p.bot && ((room && p.id === room.id) || (solo && p.id === 0)) ? "YOU" : ""}</em></span><b>${s.crown ? totals[p.id].toFixed(1)+'s' : s.scores[p.id]}</b></div><div class="health"><i style="background:${s.crown ? '#ffdb76' : p.color || COLORS[p.id]};width:${s.crown ? totals[p.id]/30*100 : Math.max(0, Math.ceil(p.hp))}%"></i></div>${s.crown && !p.alive ? `<small>${s.crown.respawn[p.id]>0 ? 'RESPAWN '+Math.ceil(s.crown.respawn[p.id])+'s' : 'WAITING FOR SAFE SPAWN'}</small>` : equipmentInfo(p)}</div>`,
+        `<div class="score ${s.crown ? 'crown-score' : ''} ${s.crown?.holder===p.id ? 'crown-holder' : ''} ${s.crown && crownRemaining(totals[p.id])<=5 ? 'crown-near' : ''} ${leaders.some((q) => q.id === p.id) ? "leader" : ""}" style="--player-color:${p.color || COLORS[p.id]};opacity:${p.alive || s.crown ? 1 : 0.5}"><div class="score-top" style="color:${p.color || COLORS[p.id]}"><span>${esc(p.name || NAMES[p.id])}<em>${[!p.bot && p.id === renderer.localId ? "YOU" : "", s.crown?.holder===p.id ? "HOLDING" : ""].filter(Boolean).join(" · ")}</em></span><b>${s.crown ? totals[p.id].toFixed(1)+'s' : s.scores[p.id]}</b></div><div class="health"><i style="background:${p.color || COLORS[p.id]};width:${s.crown ? totals[p.id]/30*100 : Math.max(0, Math.ceil(p.hp))}%"></i></div>${s.crown && !p.alive ? `<small class="crown-respawn">${s.crown.respawn[p.id]>0 ? 'RESPAWN '+Math.ceil(s.crown.respawn[p.id])+'s' : 'WAITING FOR SAFE SPAWN'}</small>` : s.crown && crownRemaining(totals[p.id])<=5 ? `<small class="crown-close-label">${crownSeconds(crownRemaining(totals[p.id]))}s TO WIN</small>${equipmentInfo(p)}` : equipmentInfo(p)}</div>`,
     )
     .join(""));
   $("#arena-name").textContent = ARENAS[s.arenaIndex].name;

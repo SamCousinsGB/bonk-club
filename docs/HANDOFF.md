@@ -1,5 +1,26 @@
 # Bonk Club — current handoff
 
+## Crown HUD and respawn feedback (v0.70.3 / protocol 106)
+
+- A centred Crown panel follows the current holder and counts down their actual
+  remaining hold time. When loose, it clearly labels the leader's remaining
+  requirement; inactive possession never implies that the clock is running.
+- Four colour-coded player cards retain cumulative Crown time, equipment and
+  health. The last five seconds highlight the holder, pulse the central timer
+  and play bounded ascending countdown tones. Snapshot repeats, late joins,
+  possession changes and stalls cannot replay old ticks; mute is respected.
+- A red pulsing YOU arrow follows the local fighter for 2.8 seconds after spawn
+  or respawn, keyed by round, occupant and life identity. Reduced motion keeps
+  both the marker and the urgent timer steady. No simulation or wire fields change.
+- Focused feedback/Crown/audio checks and 1,294 regular checks pass. Desktop
+  relay QA covers possession/loose states, real respawn, countdown audio calls,
+  hot join, reduced motion and 1600/1280/960-wide desktop window layouts. Source
+  screenshots were inspected. Production build and bundle multiplayer pass.
+  CI/Pages and public release verification pending.
+- Repeatable check: `desktop/tests/crown-hud-browser.mjs`, with the repository's
+  VITE_ROOM_SERVICE_URL and VITE_TURN_CREDENTIALS_URL set. Evidence is under
+  `desktop/test-results/crown-hud/`.
+
 ## Crown automatic arena recovery (v0.70.2 / protocol 106)
 
 - Empty/sunk arenas still rebuild once every player awaits respawn. A host-only

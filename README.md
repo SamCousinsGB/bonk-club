@@ -46,6 +46,8 @@ centre and hold it for **30 seconds total** to win the round. Dying drops it and
 respawns you after two seconds; your accumulated time stays. Respawns are unlimited.
 The carrier glows gold and their headgear is hidden until they lose the crown.
 A lost crown returns to the centre; the next round resets possession times.
+The central HUD shows the holder's time left to win, with visual and audio cues
+in the last five seconds. A red YOU arrow marks your fighter after respawning.
 
 If destruction makes the arena unplayable, it rebuilds automatically. Blocked
 respawns or crown placements get twelve seconds to clear; an empty arena rebuilds

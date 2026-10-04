@@ -1,4 +1,5 @@
 import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, colossusShake } from './colossus-art.js';
+import { RespawnCue, drawRespawnCue } from './respawn-cue.js';
 import { drawCrown, drawCrownGlow, drawLooseCrown } from './crown-art.js';
 import {drawRocketBackground,drawRocketPlatform,drawRocketExhaust,rocketShake} from './rocket-art.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
@@ -62,6 +63,7 @@ export class Renderer {
     this.shake = 0;
     this.lastEvent = 0;
     this.deathCues = new DeathCues();
+    this.respawnCue = new RespawnCue();
     this.hazardBreaks = new HazardBreaks();
     this.trainCrash = new TrainCrashEffects();
     this.cosmetics = new CosmeticMotion();
@@ -895,6 +897,7 @@ export class Renderer {
   draw(state, dt, time, menuArena = null) {
     this.cosmetics.update(state, dt, this.reduced);
     const deathCues = this.deathCues.update(state);
+    const respawnCue = this.respawnCue.update(menuArena ? null : state, this.localId);
     const hazardBreaks = this.hazardBreaks.update(state);
     this.trainCrash.update(state,this.reduced);
     const c = this.ctx;
@@ -1218,6 +1221,7 @@ export class Renderer {
     drawSpacetimeWarp(this, state.fields);
     if (!menuArena) for (const cue of deathCues) drawDeathCue(c, cue, this.reduced);
     if (!menuArena) drawChat(c, state, this.chatMessages || []);
+    if (!menuArena) drawRespawnCue(c, respawnCue, this.reduced);
     c.restore();
     if (menuArena) {
       const { width, height } = this.menuSize;

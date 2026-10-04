@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.70.2",
-  "releaseNotes": "Crown rounds recover when the arena becomes unplayable",
+  "version": "0.70.3",
+  "releaseNotes": "Clearer Crown countdowns and respawn markers",
   "private": true,
   "type": "module",
   "scripts": {

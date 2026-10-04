@@ -99,7 +99,10 @@ try {
   await guest.locator('body.playing').waitFor({ timeout: 30000 });
   await guest.waitForFunction(() => document.querySelectorAll('.score').length === 4);
   assert.ok((crown?[crownArena]:rocket?['ROCKET TEST STAND']:['WATERWORKS','ARC FURNACE']).includes(await guest.locator('#arena-name').textContent()));
-  if(crown){assert.equal(await guest.locator('.crown-score').count(),4);assert.match(await guest.locator('#round-label').textContent(),/CROWN/);}
+  if(crown){assert.equal(await guest.locator('.crown-score').count(),4);assert.match(await guest.locator('#round-label').textContent(),/CROWN/);
+    assert.equal(await guest.locator('#crown-focus').isVisible(),true);
+    assert.match(await guest.locator('#crown-focus strong').textContent(),/^\d+\.\ds$/);
+    assert.ok(await guest.locator('#crown-focus').evaluate(e=>Math.abs(e.getBoundingClientRect().x+e.getBoundingClientRect().width/2-innerWidth/2)<1));}
   await guest.keyboard.down('KeyD'); await guest.waitForTimeout(400); await guest.keyboard.up('KeyD');
   await guest.keyboard.press('Space');
   await guest.mouse.move(640, 320); await guest.mouse.down(); await guest.waitForTimeout(500); await guest.mouse.up();

@@ -1,3 +1,4 @@
+import { CrownCountdown } from './crown-hud.js';
 import { TrainSound } from './train-sound.js';
 import { RocketSound, synthesizeRocket } from './rocket-sound.js';
 import { ColossusSound, synthesizeColossus } from './colossus-sound.js';
@@ -18,6 +19,7 @@ export class Sound {
     this.nextNukeId = 0;
     this.alarm = null;
     this.landings = new Landings();
+    this.crownCountdown = new CrownCountdown();
     this.furnace = new FurnaceSound();
     this.train = new TrainSound();
     this.colossus = new ColossusSound();
@@ -145,6 +147,12 @@ export class Sound {
     this.alarm = null;
   }
   update(state) {
+    const crownTick = this.crownCountdown.update(state);
+    if (crownTick !== null && this.ready() && this.active < 44) {
+      const note = 720 + (5 - crownTick) * 110;
+      this.tone(note, note, .11, .15, 'triangle');
+      if (crownTick === 1) this.tone(note * 1.5, note * 1.5, .16, .12, 'sine', .12);
+    }
     this.furnace.update(this, state);
     this.train.update(this, state);
     this.colossus.update(this, state);
