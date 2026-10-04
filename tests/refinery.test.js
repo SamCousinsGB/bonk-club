@@ -39,6 +39,27 @@ test('gas and acid are carried in distinct pipes and emerge only from their brok
     assert.ok(validSnapshot(transport(w)));
   }
 });
+test('shooting out every pipe section releases its stored chemical through the exposed fitting',()=>{
+  for(const p of PIPES){
+    const w=fixture();advance(w,30);
+    const panel=w.platforms.find(q=>q.refineryPipe===p.id),kind=ROUTES[p.route].kind,total=stored(w.refinery);
+    w.damageCover(panel,200);assert.equal(panel.hp,0);
+    advance(w,1);
+    assert.ok(w.refinery.released>.05,`pipe ${p.id} (${kind}) must not trap its contents inside an overlapping fitting`);
+    assert.ok(kind==='gas'?w.gas.length:w.spills.some(q=>q.kind===kind),`pipe ${p.id} releases ${kind}`);
+    assert.ok(Math.abs(stored(w.refinery)-total)<1e-7);
+    assert.ok(validSnapshot(transport(w)));
+  }
+});
+test('a narrow cut emits within its missing bore and solid walls still block liquid admission',()=>{
+  const w=fixture(),id=ROUTES[1].ids[3],p=PIPES[id],x=(p.x+p.ex)/2;
+  advance(w,20);carveExplosion(w,{x,y:p.y,radius:9});
+  const hole=pipeOpening(w.platforms,id);assert.ok(hole&&Math.abs(hole.x-x)<9);
+  w.platforms.push({id:'plug',x:hole.x-35,y:hole.y-35,w:70,h:70,material:'stone',baseX:hole.x-35,baseY:hole.y-35,dx:0,dy:0});w.terrainVersion++;
+  advance(w,1);assert.equal(w.refinery.released,0,'solid cover cannot be bypassed by an emitter');
+  w.platforms=w.platforms.filter(q=>q.id!=='plug');w.terrainVersion++;
+  advance(w,1);assert.ok(w.refinery.released>0);
+});
 test('breached tanks drain down to the real opening and a roof cut only vents gas',()=>{
   const w=fixture(),t=TANKS[0];
   carveExplosion(w,{x:t.x+t.w/2,y:t.y,radius:35});assert.ok(tankOpenings(w.platforms,0).some(h=>h.roof));

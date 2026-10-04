@@ -32,6 +32,7 @@ export const waterWireContact = q => contacts.get(q) === true;
 export const liquids = world => [...(world.water||[]),...(world.spills||[])];
 const kindOf = q => q.kind||'water';
 const listFor = (world,kind) => kind==='water'?world.water:world.spills;
+const porous = (world,p) => p.oneWay && (world.arena?.waterworks || world.arena?.refinery || world.arena?.theme==='foundry');
 const properties = kind => kind==='water'?{frozen:0,spark:0,charge:0,fallDistance:0}:
   {fallDistance:0,kind,life:SPILLS[kind].life,fire:0,cold:0,spark:0,charge:0};
 export const liquidDrag = (dt,immersion,rate=9,mass=55) => 1-Math.exp(-dt*immersion*rate*Math.sqrt(55/mass));
@@ -68,7 +69,7 @@ export function emitLiquid(world,kind,x,y,amount,velocity={}) {
     const offset=n?Math.ceil(n/2)*(n%2?1:-1):0;
     const column=(velocity.centered?x-WATER_WIDTH/2:Math.floor(x/WATER_WIDTH)*WATER_WIDTH)+offset*WATER_WIDTH;
     if(column<0 || column+WATER_WIDTH>W)continue;
-    if(world.platforms.some(p=>p.hp!==0 && !p.waterId &&
+    if(world.platforms.some(p=>p.hp!==0 && !p.waterId && !porous(world,p) &&
       segmentBox(x,y-1,column+WATER_WIDTH/2,y-1,p)))continue;
     let q=list.find(q=>kindOf(q)===kind && !q.frozen && Math.abs(q.x-column)<.01 && Math.abs(q.y+q.h-y)<4);
     if(q && q.h>=depth)continue;
@@ -117,7 +118,7 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
   const steps=Math.ceil(dt/(1/60)),step=dt/steps;
   for(let tick=0;tick<steps;tick++) {
     const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable' &&
-      !((world.arena?.waterworks || world.arena?.refinery || world.arena?.theme==='foundry') && p.oneWay));
+      !porous(world,p));
     // The halo covers a neighbour, swept travel and landing alignment. Querying
     // one bin avoids both a full terrain scan and per-parcel candidate arrays.
     const parcels=liquids(world),terrain=parcels.length>8?liquidColumns(solids,undefined,80):{at:()=>solids};

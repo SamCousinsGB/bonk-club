@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.71.1",
-  "releaseNotes": "Clearer Crown countdowns and respawn markers",
+  "version": "0.71.2",
+  "releaseNotes": "Broken refinery pipes release their chemicals",
   "private": true,
   "type": "module",
   "scripts": {

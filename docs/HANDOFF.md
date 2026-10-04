@@ -1,5 +1,26 @@
 # Bonk Club — current handoff
 
+## Refinery pipe leaks (v0.71.2 / protocol 107)
+
+- Whole-section weapon damage now releases the pipe's own finite chemical.
+  Previously its outlet sat inside the preceding flange or vessel port, so
+  the liquid admission check rejected every liquid section's spill. The outlet
+  now clears that lip while remaining inside the actual missing bore; narrow
+  cuts retain an outlet inside their smaller opening.
+- Liquid emission and movement share the existing porous-grating rule for
+  Refinery, Waterworks and Scrap Foundry. Solid walls still block emission.
+  Gas retains its distinct venting path. No wire fields or protocol change.
+- Regression coverage shoots out all 49 loaded pipe sections, checks the
+  correct chemical, finite contents and valid transport, and checks a narrow
+  cut plus a solid obstruction. The desktop relay check now fires actual
+  railgun shots through complete petrol and acid sections before a late join.
+- All 1,311 regular checks pass. Desktop source relay QA passes real shots,
+  visible petrol/acid leaks, matching broken sections for existing and late
+  guests, pressure rupture, reset, pump audio, controls and bot combat. The
+  rendered leak and hot-join scenes were inspected at 1600 x 900.
+- Evidence and desktop screenshots are under
+  `desktop/test-results/refinery-leaks/`. Release verification pending.
+
 ## Crown HUD and respawn feedback (v0.71.1 / protocol 107)
 
 - A centred Crown panel follows the current holder and counts down their actual

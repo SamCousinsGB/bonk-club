@@ -24,10 +24,13 @@ export function pipeOpening(platforms,id){
       const a=vertical?q.y:q.x,b=a+(vertical?q.h:q.w);
       return sign>0?[a-start,b-start]:[start-b,start-a];
     }).sort((a,b)=>a[0]-b[0]);
-  let reached=0;
-  for(const [a,b] of intervals){if(a>reached+.5)break;reached=Math.max(reached,b);}
+  let reached=0,gapEnd=length;
+  for(const [a,b] of intervals){if(a>reached+.5){gapEnd=Math.min(length,a);break;}reached=Math.max(reached,b);}
   if(reached>=length-.5)return null;
-  const t=clamp(reached+4,0,length)/length;
+  // A removed section starts inside the preceding flange or vessel port.
+  // Release beyond that lip, while remaining inside the actual missing bore.
+  // Small blast cuts keep the outlet centred inside their narrower opening.
+  const t=clamp(reached+Math.min(16,(gapEnd-reached)/2),0,length)/length;
   return {x:p.x+(p.ex-p.x)*t,y:p.y+(p.ey-p.y)*t,vx:vertical?0:sign*200,vy:vertical?sign*200:30};
 }
 export function tankOpenings(platforms,id){
