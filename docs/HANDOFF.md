@@ -12,9 +12,16 @@
 - The 1,172 regular tests and production build pass. Desktop source host/guest
   jumps over real relay routes retain connected physical and rendered rigs, with
   no browser errors; ceiling contact and failed slatted jumps were inspected.
-- Full stress and release verification are pending. Evidence is in this task
-  worktree's ignored `desktop/test-results/head-stretch/`; the repeatable desktop
-  source check is `desktop/tests/platform-head-browser.mjs`.
+- All 25 local stress checks pass. Revision `8c8d875` passed
+  [release workflow 37213633113](https://github.com/SamCousinsGB/bonk-club/actions/runs/37213633113),
+  including shared/server tests, six stress shards, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files match
+  byte for byte. Fresh public relay host/guest controls, hot join and departure
+  pass without browser errors; public menu and gameplay were visually inspected.
+- Evidence is in this task worktree's ignored `desktop/test-results/head-stretch/`
+  and `desktop/test-results/browser-online.json`. The repeatable desktop source
+  check is `desktop/tests/platform-head-browser.mjs`; its preview is stopped.
+  Relay QA used one machine and does not establish separate-ISP latency.
 
 ## Liquid physics and rendering (v0.66.0 / protocol 101)
 
