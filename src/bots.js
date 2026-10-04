@@ -86,9 +86,11 @@ function safeFlight(world, ...args) {
   while (args.length < 11) args.push(undefined);
   return traceFlight(...args, (x,y) => unsafePoint(world,x,y));
 }
-function colossusEscape(world, p, here, solids, hazard) {
+function colossusEscape(world, p, here, solids, hazard, edges = []) {
   if (!here || !p.ground) return null;
   const exits = (point, support) => {
+    // A validated landing that is already clear needs no additional walk.
+    if(!unsafePoint(world,point.x,point.y))return [point.x];
     const span=walkingSpan(support,solids),zone=hazardZone(hazard,point.y);
     return [point.x,zone.x-48,zone.x+zone.w+48].filter(x=>
       x>span.x+18&&x<span.x+span.w-18&&!unsafePoint(world,x,point.y)&&
@@ -107,16 +109,32 @@ function colossusEscape(world, p, here, solids, hazard) {
   const unsafe=(x,y,age)=>botDanger(otherHazards,x,y)||reactionDanger(world,x,y)||
     world.fields.some(f=>f.kind==='blackhole'&&distance({x,y},f)<f.radius+30)||
     (!(hazard.warning>age+.25)&&botDanger([hazard],x,y));
-  const options=[];
-  for(const dir of [-1,1])for(const jumps of [0,1,2]){
-    const flight=traceFlight(solids,here,p.x,dir,jumps,.38,world.time,world.spikes(),p.vx,null,true,unsafe);
+  const options=[],pad=Math.min(28,here.w/3);
+  // A blast can leave the current edge beneath an overhang. Include nearby
+  // checked takeoffs, and budget the walk back before committing to the jump.
+  const starts=[...new Set([p.x,here.x+pad,here.x+here.w/2,here.x+here.w-pad,
+    ...edges.map(e=>e.startX)])].sort((a,b)=>Math.abs(a-p.x)-Math.abs(b-p.x)).slice(0,12);
+  for(const startX of starts){
+   const approach=Math.abs(startX-p.x)/RUN_SPEED;
+   if(startX!==p.x){
+    if(hazard.warning<=approach+.5||solids.some(s=>s.id!==here.id&&
+      [p.y-25,p.y,p.y+27].some(y=>segmentBox(p.x,y,startX,y,s))))continue;
+    let blocked=false;
+    for(let t=0;t<=1;t+=.1)blocked ||= unsafe(p.x+(startX-p.x)*t,p.y,approach*t);
+    if(blocked)continue;
+   }
+   for(const dir of [-1,1])for(const jumps of [0,1,2]){
+    const flight=traceFlight(solids,here,startX,dir,jumps,.38,world.time+approach,
+      world.spikes(),startX===p.x?p.vx:0,null,true,(x,y,age)=>unsafe(x,y,age+approach));
     if(!flight)continue;
     const support=solids.find(s=>s.id===flight.to);
     const point={x:flight.endX,y:support.y-30},x=exits(point,support)[0];
     if(x==null)continue;
-    const duration=flight.duration+Math.abs(x-point.x)/RUN_SPEED+.3;
+    const duration=approach+flight.duration+Math.abs(x-point.x)/RUN_SPEED+.3;
     if(hazard.warning>0&&duration>=hazard.warning)continue;
-    options.push({flight,x,duration});
+    options.push(startX===p.x?{flight,x,duration}:{x:startX,duration});
+   }
+   if(startX===p.x&&options.length)break;
   }
   return options.sort((a,b)=>a.duration-b.duration)[0]||null;
 }
@@ -1051,6 +1069,7 @@ export class BotController {
       i.duck = false;
       i.block = false;
     }
+    let hazardMoveTo=null;
     const hazard = world.hazards.find(h=>{
       if(world.arena.survival || h.type === "loader")return false;
       if(!dangerous(h))return false;
@@ -1073,9 +1092,10 @@ export class BotController {
           !unsafePoint(world,x,p.y)&&!firstObstacle(solids,p,{x,y:p.y-10})).sort((a,c)=>Math.abs(a-p.x)-Math.abs(c-p.x)):[];
         if(candidates.length){Object.assign(i,steer(p,candidates[0]));i.jump=false;i.attack=false;i.duck=false;i.block=false;}
       }else if(hazard.type==='colossus'){
-        const escape=colossusEscape(world,p,here,solids,hazard);
+        const escape=colossusEscape(world,p,here,solids,hazard,this.graph?.get(here?.id));
         if(escape){
           if(escape.flight)b.flight={...escape.flight,started:world.time};
+          hazardMoveTo=escape.x;
           Object.assign(i,steer(p,escape.x));i.jump=false;i.attack=false;i.duck=false;i.block=false;
         }
       }else{
@@ -1158,7 +1178,7 @@ export class BotController {
     survivalControls(world, p, b, i, solids);
     // Recompute ordinary steering at physics frequency. Combat/hazard overrides
     // keep their own controls, instead of being silently replaced by a waypoint.
-    b.moveTo = i.left === movement.left && i.right === movement.right && !i.duck ? moveTo : null;
+    b.moveTo = hazardMoveTo ?? (i.left === movement.left && i.right === movement.right && !i.duck ? moveTo : null);
     return i;
   }
 }

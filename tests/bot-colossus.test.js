@@ -100,3 +100,23 @@ test('a complete two-bot Colossus match keeps moving and fighting without any we
  assert.ok(w.players[1].hp<100,'reach and hit an opponent using fists alone');
  assert.ok(!h.hitIds.includes(p.id),'the previously stranded bot avoids the laser');
 });
+
+test('a bot backs up to a usable takeoff after the real terrace has been blasted apart',()=>{
+ let seed=4781;
+ const random=()=>(seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296;
+ const w=new World({arena:ARENAS.findIndex(a=>a.colossus),players:[0,1,2,3],bots:[0,1,2,3],
+  weaponPool:['nuke'],shuffle:false,random});
+ const h=w.hazards[0],p=w.players[0];let escaped=false,damagedTakeoff=false;
+ for(let n=0;n<18/STEP&&w.round===1;n++){
+  w.step(STEP);
+  if(h.warning>0){
+   damagedTakeoff ||= p.support?.startsWith('cut');
+   escaped ||= p.alive&&!botDanger(w.hazards,p.x,p.y);
+  }
+ }
+ assert.ok(damagedTakeoff,'exercise the destroyed upper terrace');
+ assert.ok(escaped,'walk back and jump out before the warning expires');
+ assert.ok(!h.hitIds.includes(p.id),'survive the complete laser sweep');
+ assert.equal(p.alive,true);
+ assert.ok(p.actionSerial>5,'resume unarmed fighting after the escape');
+});
