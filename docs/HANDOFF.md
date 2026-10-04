@@ -19,12 +19,21 @@
   Waterworks, containment and material checks pass.
 - Oxygen bars render on all arenas. Submerged fighters have a subdued pass
   clipped to opaque liquid, beneath surface flames and smoke, for readability.
-- All 1,349 regular checks pass. Desktop source relay QA verifies a sustained
+- All 1,349 regular checks and all 57 stress cases pass. Desktop source relay QA verifies a sustained
   refinery leak spreading past both tanks, host/guest breath loss in oil, an
-  upward guest swim, oxygen recovery in air, changed-world late join and reset.
+  176-unit upward guest swim, oxygen recovery in air, changed-world late join
+  and reset without page errors. Flow, submerged fighters, oxygen bars and
+  burning-pool swimming were visually inspected.
+- Revision `115aa7f` passed [release workflow 37239878574](https://github.com/SamCousinsGB/bonk-club/actions/runs/37239878574),
+  including game/server checks, all six stress shards, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files
+  match byte for byte. Fresh public host/guest controls, hot join and departure
+  pass over relay without page errors; public desktop gameplay was inspected.
+  This verifies one-machine relay play, not cross-ISP latency.
   Source and release evidence: `desktop/test-results/liquid-swimming/`;
   repeat source QA with `desktop/tests/liquid-swimming-browser.mjs` using the
-  configured Vite room-service and TURN URLs. Release verification is pending.
+  configured Vite room-service and TURN URLs. Task preview port 5414 is closed;
+  worktree clean after this handoff commit.
 
 ## Refinery fire basin (v0.75.0 / protocol 110)
 
