@@ -1,18 +1,24 @@
 // Host-authored movement state needed to replay unacknowledged controls. These
 // values never arrive from a guest; positions, hits and world state stay on host.
 const numbers = ["dropThrough", "coyote", "jumpBuffer", "stun", "impactTime", "angularVelocity",
-  "landing", "gaitSpeed", "cooldown", "pickupCooldown", "hangX"];
+  "landing", "gaitSpeed", "cooldown", "pickupCooldown", "hangX", "curlDirection", "curlRecovery"];
 const flags = ["jumpHeld", "blockHeld", "airLunge", "throwHeld", "duckHeld"];
 export function motionState(p) {
   return { ...Object.fromEntries(numbers.map(k => [k, p[k] || 0])),
     ...Object.fromEntries(flags.map(k => [k, !!p[k]])), support: p.support ?? null,
     hangSupport: p.hangSupport ?? null,
+    curlVelocity: (p.curl || p.curlRecovery>0) && p.rig ? p.rig.map(q => ({x:q.x-q.px, y:q.y-q.py})) : null,
     hangMotion: p.hangSupport ? {...p.hangMotion} : null,
     hangVelocity: p.hangSupport && p.rig ? p.rig.map(q => ({x:q.x-q.px, y:q.y-q.py})) : null };
 }
 export function validMotion(m) {
   return m && numbers.every(k => Number.isFinite(m[k]) && Math.abs(m[k]) <= 10000) &&
     m.dropThrough >= 0 && m.dropThrough <= .22 &&
+    [-1,0,1].includes(m.curlDirection) &&
+    m.curlRecovery>=0 && m.curlRecovery<=.18 &&
+    (m.curlVelocity === null || Array.isArray(m.curlVelocity) && m.curlVelocity.length === 11 &&
+      m.curlVelocity.every(q => q && Number.isFinite(q.x) && Number.isFinite(q.y) &&
+        Math.abs(q.x)<=100 && Math.abs(q.y)<=100)) &&
     (m.hangSupport===null ? m.hangMotion===null : validHangMotion(m.hangMotion)) &&
     (m.hangSupport === null ? m.hangVelocity === null : Array.isArray(m.hangVelocity) &&
       m.hangVelocity.length === 11 && m.hangVelocity.every(q => q &&

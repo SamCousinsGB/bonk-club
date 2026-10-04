@@ -41,7 +41,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 100;
+export const PROTOCOL = 101;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -855,6 +855,7 @@ export function validSnapshot(s) {
         p.hp <= 100 &&
         (p.facing === 1 || p.facing === -1) &&
         typeof p.alive === "boolean" &&
+        typeof p.curl === "boolean" &&
         (p.hangSupport === null || typeof p.hangSupport === "string" && p.hangSupport.length > 0 && p.hangSupport.length <= 160 && p.alive && !p.ground && !p.prone) &&
         (p.carryId === null || (typeof p.carryId === "string" && p.carryId.length > 0 && p.carryId.length <= 80 &&
           p.alive && p.weapon === null && p.knockdown === 0 && p.freeze === 0)) &&

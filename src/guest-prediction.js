@@ -2,12 +2,13 @@ import { applyPlanePlayer, worldBreaches } from "./plane.js";
 import { previewTesla } from "./tesla.js";
 import { World, ARENAS, STEP, cleanInput } from "./engine.js";
 import { updateRig } from "./puppet.js";
+import { movementShape } from "./curl.js";
 import { validMotion, validInputSequence } from "./prediction-state.js";
 import { blend } from "./render-state.js";
 import { WeaponPrediction } from "./weapon-prediction.js";
 
 const INPUT_STEP = 1 / 60, MAX_PENDING = 30, STALE_MS = 250;
-const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "hangSupport", "facing", "aimAngle",
+const motionKeys = ["x", "y", "vx", "vy", "ground", "prone", "curl", "hangSupport", "facing", "aimAngle",
   "walk", "gaitSpeed", "rig", "bodyAngle", "angularVelocity", "landing", "swing",
   "swingDuration", "meleeMove", "comboStep", "comboTime", "recoilTime", "block", "blockTime", "carryPoint"];
 const controllable = p => p?.alive && !p.knockdown && !p.freeze && !p.strands && !p.morph;
@@ -57,7 +58,7 @@ export class GuestPrediction {
     // Hanging needs each loose limb's own momentum when replaying a host pose.
     // Other active poses can reconstruct omitted history from body velocity.
     for (const [i, q] of (this.player.rig || []).entries()) {
-      const velocity = p.motion.hangVelocity?.[i];
+      const velocity = p.motion.curlVelocity?.[i] || p.motion.hangVelocity?.[i];
       q.px = q.x - (velocity?.x ?? p.vx * STEP);
       q.py = q.y - (velocity?.y ?? p.vy * STEP);
     }
@@ -100,7 +101,7 @@ export class GuestPrediction {
       if (input.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.carryId && !p.hangSupport)
         World.prototype.throwWeapon.call(w,p);
       p.throwHeld=input.throw;
-      if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.hangSupport) {
+      if (!input.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.curl && !p.hangSupport) {
         if (input.block && p.weapon) World.prototype.attack.call(w, p, true);
         else if (input.attack) World.prototype.attack.call(w, p);
       }
@@ -156,7 +157,7 @@ export class GuestPrediction {
       let { x: dx, y: dy } = this.correction;
       const decay = Math.exp(-Math.max(0, Math.min(now, this.lastAt + STALE_MS) - this.correctionAt) * .02);
       dx *= decay; dy *= decay;
-      const radius = local.prone ? 34 : 15, top = local.prone ? 10 : 28, bottom = local.prone ? 10 : 30;
+      const {radius,top,bottom} = movementShape(local);
       if (this.context.solids(this.player).some(s => local.x + dx + radius > s.x &&
           local.x + dx - radius < s.x + s.w && local.y + dy + bottom > s.y + .1 &&
           local.y + dy - top < s.y + s.h)) dx = dy = 0;

@@ -125,7 +125,7 @@ const roomOptions = () => ({ profile, difficulty });
 
 let ping = 0;
 let searchId = 0;
-const mouse = { x: 640, y: 360, active: false, attack: false, block: false };
+const mouse = { x: 640, y: 360, active: false, attack: false, curl: false };
 const keyboardMaps = {
   keyboard1: {
     left: "KeyA",
@@ -135,6 +135,7 @@ const keyboardMaps = {
     block: "KeyG",
     throw: "KeyF",
     duck: "KeyS",
+    curl: "ShiftLeft",
   },
 };
 const usedKeys = new Set([
@@ -155,8 +156,8 @@ function readInput(device) {
     i.jump = pad.buttons[0]?.pressed === true;
     i.attack =
       pad.buttons[2]?.pressed === true || pad.buttons[7]?.pressed === true;
-    i.block =
-      pad.buttons[1]?.pressed === true || pad.buttons[6]?.pressed === true;
+    i.block = pad.buttons[1]?.pressed === true;
+    i.curl = pad.buttons[6]?.pressed === true;
     i.throw = pad.buttons[3]?.pressed === true;
     i.duck =
       pad.buttons[13]?.pressed === true || pad.buttons[4]?.pressed === true;
@@ -171,7 +172,7 @@ function readInput(device) {
   if (device === "keyboard1") {
     i.jump ||= keys.has("Space");
     i.attack ||= mouse.attack;
-    i.block ||= mouse.block;
+    i.curl ||= mouse.curl;
     const controlledId = room ? room.id : 0;
     const p = (!world && guestPrediction.player) || (world?.players || remote?.players || []).find(
       (p) => p.id === controlledId,
@@ -789,7 +790,7 @@ function gameMenu(forceOpen = false) {
   showPanel(
     "game-menu",
     heading("Game menu") +
-      `<p>The game continues while this menu is open.</p><button id="resume" class="button primary">BACK TO GAME</button>${room && !room.offline ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CUSTOMISE</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
+      `<p>The game continues while this menu is open.</p><p>Hold right mouse / Shift to curl. A/D rolls or flips. G grabs, parries or uses alternate fire. Controller: hold LT to curl; B / circle for grab or alternate action.</p><button id="resume" class="button primary">BACK TO GAME</button>${room && !room.offline ? '<button id="menu-invite" class="button secondary">INVITE PLAYERS</button><button id="connection-details" class="button secondary">CONNECTION DETAILS</button>' : ""}<button id="edit-character" class="button secondary">CUSTOMISE</button><button id="leave" class="button secondary">${room ? "LEAVE ROOM" : "MAIN MENU"}</button>${room?.host ? '<p class="subtle">Closing the host’s game ends this room.</p>' : ""}`,
   );
   $("#back").onclick = hidePanel;
   $("#resume").onclick = () => {

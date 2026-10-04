@@ -42,6 +42,8 @@ export function knockDown(p, type) {
   p.comboTime = 0;
   p.freeze = 0;
   p.prone = false;
+  p.curl = false;
+  p.curlDirection = 0;
   p.ground = false;
   p.support = null;
   p.hangSupport = null;

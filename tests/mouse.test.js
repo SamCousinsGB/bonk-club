@@ -10,7 +10,7 @@ function setup() {
     releasePointerCapture() { this.captured = null; }
   }
   const canvas = new Surface(), root = new EventTarget();
-  const state = { attack: false, block: false };
+  const state = { attack: false, curl: false };
   const context = { enabled: true, wakes: 0, point: null };
   const controls = bindMouseControls(canvas, state, {
     root,
@@ -27,7 +27,7 @@ function setup() {
     // EventTarget has no DOM bubbling; reproduce the canvas-to-window path.
     if (target === canvas) root.dispatchEvent(make());
   };
-  const held = (attack, block) => assert.deepEqual(state, { attack, block });
+  const held = (attack, curl) => assert.deepEqual(state, { attack, curl });
   return { canvas, root, state, context, controls, event, held };
 }
 

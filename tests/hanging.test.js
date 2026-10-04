@@ -101,13 +101,13 @@ test("hanging limbs collide with solid scenery while hands follow a moving suppo
 
 test("the fighter sits with bent knees before releasing the hips into the drop",()=>{
   const {p,deck,advance}=fixture();
-  advance(36,{duck:true});
+  advance(18,{duck:true});
   const seated=p.rig[2].y;
   assert.ok(Math.abs(seated-(deck.y-5))<3,"hips rest on the platform");
   assert.ok(p.rig[0].y<deck.y-30&&p.rig[8].y>deck.y+10);
   assert.ok(distance(p.rig[2],p.rig[8])<35,"legs bend over the edge");
-  advance(12,{duck:true});
-  assert.ok(Math.abs(p.rig[2].y-seated)<2,"brief seated pause");
+  advance(14,{duck:true});
+  assert.ok(p.rig[2].y>seated+10,"the hips immediately continue down instead of pausing");
   advance(70,{duck:true});
   assert.ok(p.rig[2].y>deck.y+40,"the body then drops below the grip");
 });
@@ -132,7 +132,7 @@ test("lowering and climbing form continuous paths without jumping the body onto 
     }
     assert.equal(p.hangSupport,null);assert.equal(p.support,deck.id);
     assert.equal(p.y,deck.y-30);assert.equal(p.ground,true);
-    assert.ok(maxStep<6,`every limb moves continuously: ${maxStep}`);
+    assert.ok(maxStep<8,`every limb moves continuously: ${maxStep}`);
   }
 });
 

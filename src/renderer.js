@@ -809,10 +809,11 @@ export class Renderer {
       "#18262c",
       2,
     );
-    if (p.weapon && p.hangSupport) {
-      // Both hands stay on the ledge; the equipped weapon hangs at the belt.
-      this.weapon(p.weapon, rig[2].x - p.x + p.facing * 13,
-        rig[2].y - p.y + 5, 1, p.facing * 1.4, .72);
+    if (p.weapon && (p.hangSupport || p.curl)) {
+      // Free both hands for the grip/tuck; the weapon follows the body's belt.
+      const turn=p.curl?p.bodyAngle:0;
+      this.weapon(p.weapon, rig[2].x - p.x + p.facing * 13*Math.cos(turn),
+        rig[2].y - p.y + 5 + p.facing * 13*Math.sin(turn), 1, turn+p.facing * 1.4, .72);
     } else if (p.weapon) {
       const hand = rig[6];
       const melee = meleePose(p);

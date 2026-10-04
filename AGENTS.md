@@ -45,7 +45,8 @@ Start new work from current `origin/main` in one clean worktree.
   speed. Do not clamp away recoil, blasts or death momentum.
 - Keep procedural physical fighters and usable keyboard/mouse and controller
   controls. Left click attacks or throws a carried object, S lies down, F throws,
-  and weapon pickups are automatic. Right-click/G or the secondary action picks up,
+  and weapon pickups are automatic. Hold right-click / Shift / LT to curl, roll and flip; A/D or the left stick steers.
+  G / B / circle picks up,
   drops or throws a reachable prop/fragment; with none available it parries or uses
   alternate fire. Carried bodies keep their weight, collision, damage and reactions;
   heavy objects slow movement and throw less far. Knockdown, death, destruction,

@@ -25,7 +25,8 @@ Choose **Single player** to start immediately against three AI opponents. **Onli
 | Aim                               | Mouse            | Right stick         |
 | Double jump                       | W / Space        | A / cross           |
 | Punch / fire                      | Left mouse / E   | X / square or RT    |
-| Parry with fists / alternate fire | Right mouse / G  | B / circle or LT    |
+| Grab / parry / alternate fire     | G                | B / circle          |
+| Curl, roll and flip                | Hold right mouse / Shift | Hold LT      |
 | Lie down                          | Hold S           | LB or D-pad down    |
 | Throw weapon                      | F                | Y / triangle        |
 
@@ -41,6 +42,7 @@ An empty bar causes drowning damage. Water also moves cargo and loose bodies.
 ## Combat
 
 - Active ragdolls with 11 independently simulated particles, 10 bone constraints, pose springs, inertia and platform contacts. Knockouts preserve the current body pose and velocity.
+- Hold right mouse, Shift or controller LT to tuck. A/D or the left stick steers ground rolls and airborne flips. Releasing unfolds the body where there is room; tucking keeps momentum and adds modest horizontal jump range without extra jumps. G / B / circle retains grabbing, parrying and alternate fire.
 - Impulse combat, landing compression, flailing limbs, recoil and double jumps. With empty hands, press parry for a 160 ms window that stops one melee hit or reflects one bullet, then closes. The cooldown is 850 ms from activation, with a recovery bar under the fighter. Release before pressing again: holding never repeats or guards. Holding any weapon, including a bat or sword, prevents parrying. Explosions cannot be parried.
 - Jump input is buffered for 120 ms, including presses just before landing. Walking off a ledge allows a 90 ms ground-jump grace period, then leaves one air jump. Holding jump does not repeat it. Small head catches at a platform edge are corrected only if the adjacent space is clear. The second jump now has a 680-unit impulse; route landings generally span 180-240 units vertically, with ledges moved clear of overhangs. Outside city stairs have one intermediate landing between each 320-unit storey.
 - Holding down makes a fighter lie flat and lowers their collision shape. Release to stand when there is headroom.

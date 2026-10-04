@@ -1,4 +1,6 @@
 import { meleePose } from "./melee-pose.js";
+import { collidePoint } from "./body-physics.js";
+import { curlRotation } from "./curl.js";
 // An active ragdoll: eleven Verlet particles, ten distance joints and spring motors.
 // Motors suggest a pose; inertia, joints, impacts and ground contacts determine it.
 export const JOINTS = [
@@ -66,12 +68,15 @@ export function updateRig(p, dt, platforms, time) {
     p.rig=p.freezePose.map(q=>({x:p.x+q.x,y:p.y+q.y,px:p.x+q.x,py:p.y+q.y}));
     return;
   }
+  if (p.curl) { updateCurlRig(p, dt, platforms); return; }
+  p.curlRecovery = Math.max(0, (p.curlRecovery || 0) - dt);
+  const unfold = 1 - p.curlRecovery / .18;
   const rig = p.rig,
     prone = !!p.prone;
   const desired = p.swimming && !p.ground ? (p.swimStroke ? (p.aimAngle??0)+Math.PI/2 : clamp(p.vx*.003,-.8,.8)) : prone ? p.facing * 1.5 : clamp(p.vx * 0.00065, -0.27, 0.27);
   let a = p.bodyAngle || 0,
     av = p.angularVelocity || 0;
-  const strength = p.stun > 0 ? 8 : prone ? 36 : p.ground ? 100 : 35;
+  const strength = p.stun > 0 ? 8 : prone ? 150 : p.ground ? 100 : 35;
   av += (Math.sin(desired - a) * strength - av * (p.stun > 0 ? 1.2 : 7)) * dt;
   a += av * dt;
   p.bodyAngle = a;
@@ -196,7 +201,7 @@ export function updateRig(p, dt, platforms, time) {
       p.stun > 0
         ? 0.012
         : prone
-          ? 0.045
+          ? 0.14
           : i < 3
             ? 0.23
             : i === 4 || i === 6
@@ -204,8 +209,8 @@ export function updateRig(p, dt, platforms, time) {
               : i >= 7 && p.ground
                 ? 0.16
                 : 0.065;
-    q.x += (targets[i][0] - q.x) * motor;
-    q.y += (targets[i][1] - q.y) * motor;
+    q.x += (targets[i][0] - q.x) * motor * unfold;
+    q.y += (targets[i][1] - q.y) * motor * unfold;
   }
   const nearby = [];
   for (let n = 0; n < 7; n++) {
@@ -221,8 +226,8 @@ export function updateRig(p, dt, platforms, time) {
       b.x -= dx * correction;
       b.y -= dy * correction;
     }
-    rig[2].x += (hip[0] - rig[2].x) * 0.65;
-    rig[2].y += (hip[1] - rig[2].y) * 0.65;
+    rig[2].x += (hip[0] - rig[2].x) * 0.65 * unfold;
+    rig[2].y += (hip[1] - rig[2].y) * 0.65 * unfold;
     // Contacts only change y. Select the exact horizontal candidates again
     // after each joint pass, retaining platform order and every solver pass.
     let left = Infinity, right = -Infinity;
@@ -253,6 +258,50 @@ export function updateRig(p, dt, platforms, time) {
       q.y = p.y + (q.y - p.y) * 0.6;
       q.px = q.x;
       q.py = q.y;
+    }
+  }
+}
+
+// Muscle-driven tuck, with separate head, arms and bent legs. Springs fold the
+// existing particles into the pose without resetting their velocities. Contacts
+// and distance joints can still bend/displace each limb independently.
+const curlScratch = new WeakMap();
+function updateCurlRig(p, dt, platforms) {
+  curlRotation(p, dt);
+  const rig = p.rig, f = p.facing, a = p.bodyAngle;
+  const c = Math.cos(a), s = Math.sin(a);
+  const rotate = ([x,y]) => [p.x+x*f*c-y*s, p.y+x*f*s+y*c];
+  const head = rotate([7,-13]), neck = rotate([-10,-7]), hip = rotate([-8,16]);
+  const footA = rotate([14,-1]), footB = rotate([20,7]);
+  const handA = rotate([15,3]), handB = rotate([17,11]);
+  const targets = [head,neck,hip,elbow(neck,handA,17,19,-f),handA,
+    elbow(neck,handB,17,19,-f),handB,
+    elbow(hip,footA,18,19,f),footA,elbow(hip,footB,18,19,f),footB];
+  let work = curlScratch.get(rig);
+  if (!work) {
+    work = {origins:rig.map(()=>({x:0,y:0})), contacts:rig.map(()=>new Set())};
+    curlScratch.set(rig,work);
+  }
+  for (const [i,q] of rig.entries()) {
+    const origin=work.origins[i]; origin.x=q.x;origin.y=q.y;work.contacts[i].clear();
+    const vx=(q.x-q.px)*.84,vy=(q.y-q.py)*.84;
+    q.px=q.x;q.py=q.y;q.x+=vx;q.y+=vy+1800*dt*dt;
+    const motor=1-Math.exp(-(i<3?29:23)*dt);
+    q.x+=(targets[i][0]-q.x)*motor;q.y+=(targets[i][1]-q.y)*motor;
+  }
+  // Jump-through floors only catch limbs approaching their upper face.
+  const nearby=platforms.filter(b => b.x<p.x+85 && b.x+b.w>p.x-85 && b.y<p.y+85 && b.y+b.h>p.y-85);
+  const collisions=rig.map((q,i)=>nearby.filter(b => !b.oneWay && b.material!=='cable' ||
+    work.origins[i].y+(i===0?10:3)<=b.y+3 && p.vy>=0));
+  for(let pass=0;pass<7;pass++) {
+    for(const [ai,bi,length] of JOINTS) {
+      const q=rig[ai],r=rig[bi],dx=r.x-q.x,dy=r.y-q.y;
+      const d=Math.hypot(dx,dy)||1,k=(d-length)/d*.5;
+      q.x+=dx*k;q.y+=dy*k;r.x-=dx*k;r.y-=dy*k;
+    }
+    for(const [i,q] of rig.entries()) {
+      const radius=i===0?10:3,origin=work.origins[i];
+      collidePoint(q,collisions[i],radius,pass===0?origin:q,work.contacts[i]);
     }
   }
 }

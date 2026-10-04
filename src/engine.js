@@ -1,5 +1,6 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
 import { beginHang, climbFromHang, moveHanging } from "./hanging.js";
+import { movementShape, updatePosture } from "./curl.js";
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
 import { BRIDGE_ARENA } from "./bridge-arena.js";
 import { updateBridge } from "./bridge.js";
@@ -95,6 +96,7 @@ export const emptyInput = () => ({
   jump: false,
   attack: false,
   block: false,
+  curl: false,
   throw: false,
   duck: false,
   aim: null,
@@ -292,6 +294,9 @@ export class World {
       gaitSpeed: 0,
       flash: 0,
       prone: false,
+      curl: false,
+      curlDirection: 0,
+      curlRecovery: 0,
       aimAngle: id % 2 ? Math.PI : 0,
       rig: null,
       bodyAngle: 0,
@@ -505,7 +510,7 @@ export class World {
       const i = actions.get(p.id);
       if (i.throw && !p.throwHeld && p.stun <= 0 && !p.freeze && !p.knockdown && !p.hangSupport) this.throwWeapon(p);
       p.throwHeld = i.throw;
-      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.freeze && !p.knockdown && !p.hangSupport) {
+      if (!i.throw && p.cooldown <= 0 && p.stun <= 0 && !p.block && !p.curl && !p.freeze && !p.knockdown && !p.hangSupport) {
         if (i.block && p.weapon && WEAPONS[p.weapon].alt) this.attack(p, true);
         else if (i.attack) this.attack(p);
       }
@@ -659,7 +664,7 @@ export class World {
       p.vy = Math.max(p.vy, 80);
       hanging = null;
     }
-    if (!p.bot && duckPressed && !p.freeze && p.stun <= 0 && support && thin(support) && !p.carryId) {
+    if (!p.bot && duckPressed && !i.curl && !p.curl && !p.freeze && p.stun <= 0 && support && thin(support) && !p.carryId) {
       const hangY = support.y + support.h + 62;
       if (!solids.some(s => s !== support && !thin(s) && p.x + 15 > s.x && p.x - 15 < s.x + s.w &&
           hangY + 30 > s.y && hangY - 28 < s.y + s.h)) {
@@ -698,23 +703,8 @@ export class World {
     }
     if (p.dropThrough > 0 || p.bot && i.duck && !p.freeze && p.stun <= 0)
       solids = solids.filter(s => !thin(s));
-    const prone = !!i.duck && !p.swimming && !p.hangSupport;
-    if (prone !== p.prone) {
-      // Keep the feet fixed even when a hit has just cleared ground/support.
-      // Growing downward from a prone airborne centre can start inside a floor,
-      // beyond the incoming-side checks used by movement collision below.
-      const y = p.y + (prone ? 20 : -20),
-        radius = prone ? 34 : 15, bottom = prone ? 10 : 30, top = prone ? 10 : 28;
-      // Validate the entire new body, including headroom and prone width.
-      if (!solids.some(s => !thin(s) && p.x + radius > s.x && p.x - radius < s.x + s.w &&
-          y + bottom > s.y && y - top < s.y + s.h)) {
-        p.y = y;
-        p.prone = prone;
-      }
-    }
-    const radius = p.prone ? 34 : 15,
-      bottom = p.prone ? 10 : 30,
-      top = p.prone ? 10 : 28;
+    updatePosture(p, i, solids);
+    const {radius, bottom, top} = movementShape(p);
 
     p.cooldown = Math.max(0, p.cooldown - dt);
     p.recoilTime = Math.max(0, p.recoilTime - dt);
@@ -723,7 +713,8 @@ export class World {
     if (p.weapon && p.ammo === 0 && p.swing === 0) p.weapon = null;
     p.flash = Math.max(0, p.flash - dt);
     p.impactTime = Math.max(0, (p.impactTime || 0) - dt);
-    updateParry(p, i.block, dt);
+    updateParry(p, i.block && !p.curl, dt);
+    if (p.curl) p.blockHeld = !!i.block;
     p.stamina = clamp(p.stamina + 25 * dt, 0, 100);
     const momentum = p.recoilTime > 0 || p.impactTime > 0 || p.rush > 0;
     p.coyote = p.ground ? 0.09 : Math.max(0, p.coyote - dt);
@@ -735,25 +726,25 @@ export class World {
     const slippery = p.ground && p.oiled > 0;
     if (sticky) p.vx *= Math.exp(-dt * (p.glued > 0 ? 11 : 5));
     if (dir && p.stun <= 0) {
-      p.facing = dir;
+      if (!p.curl) p.facing = dir;
       const max =
-        (p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
+        (p.curl ? RUN_SPEED * 1.18 : p.prone ? CRAWL_SPEED : p.block ? GUARD_SPEED : RUN_SPEED) *
         (p.chill > 0 ? 0.58 : 1) * (sticky ? p.glued > 0 ? .25 : .5 : 1) * carrySpeed(this, p);
       const acceleration =
-        (p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1) * (slippery ? .24 : 1);
+        (p.curl ? 800 : p.prone ? 400 : p.ground ? 1500 : 950) * (momentum ? 0.22 : 1) * (slippery ? .24 : 1);
       // Input approaches the run speed. External hit/recoil velocity can exceed it,
       // but holding a direction must never add more speed above that limit.
       if (p.vx * dir < max)
         p.vx += dir * Math.min(acceleration * dt, max - p.vx * dir);
       else
         p.vx +=
-          (dir * max - p.vx) * Math.min(1, dt * (momentum ? 0.4 : slippery ? .3 : 3));
+          (dir * max - p.vx) * Math.min(1, dt * (momentum ? 0.4 : p.curl ? .18 : slippery ? .3 : 3));
     } else if (p.ground)
       p.vx *= Math.pow(
-        momentum ? 0.994 : slippery ? 0.998 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
+        momentum ? 0.994 : slippery ? 0.998 : p.curl ? 0.994 : p.ice ? 0.985 : p.prone ? 0.984 : 0.86,
         dt * 120,
       );
-    else p.vx *= Math.pow(0.996, dt * 120);
+    else p.vx *= Math.pow(p.curl ? 0.999 : 0.996, dt * 120);
     if (p.jumpBuffer > 0 && p.stun <= 0 && (p.coyote > 0 || p.jumps < 2)) {
       p.vy = p.jumps === 0 ? -JUMP_SPEED : -AIR_JUMP_SPEED;
       p.jumps++;
@@ -765,7 +756,7 @@ export class World {
     }
     p.jumpHeld = i.jump;
     p.aimAngle = i.aim === null ? (p.facing === 1 ? 0 : Math.PI) : i.aim;
-    if (i.aim !== null && Math.abs(Math.cos(i.aim)) > 0.1)
+    if (!p.curl && i.aim !== null && Math.abs(Math.cos(i.aim)) > 0.1)
       p.facing = Math.sign(Math.cos(i.aim));
     p.vy = p.bubble > 0
       ? p.vy + (-175 - p.vy) * Math.min(1, dt * 5)
@@ -839,7 +830,7 @@ export class World {
     }
     // Use actual travel after collision, excluding lifts, blocked motion and
     // airborne drift. Hits still move the body without making its legs pedal.
-    const running = p.ground && !p.prone && !p.freeze && p.stun <= 0 && dir !== 0;
+    const running = p.ground && !p.prone && !p.curl && !p.freeze && p.stun <= 0 && dir !== 0;
     const travel = running ? clamp(p.x - oldX, -RUN_SPEED * dt, RUN_SPEED * dt) : 0;
     const gait = Math.abs(travel) / Math.max(dt, 0.000001) / RUN_SPEED;
     p.gaitSpeed += (gait - p.gaitSpeed) * (1 - Math.exp(-dt * 18));
@@ -850,11 +841,11 @@ export class World {
       !a.alive ||
       !b.alive ||
       a.knockdown > 0 || b.knockdown > 0 ||
-      Math.abs(a.y - b.y) > (a.prone ? 10 : 28) + (b.prone ? 10 : 28)
+      Math.abs(a.y - b.y) > movementShape(a).top + movementShape(b).top
     )
       return;
     const dx = b.x - a.x,
-      overlap = (a.prone ? 33 : 15) + (b.prone ? 33 : 15) - Math.abs(dx);
+      overlap = (a.curl ? 26 : a.prone ? 33 : 15) + (b.curl ? 26 : b.prone ? 33 : 15) - Math.abs(dx);
     if (overlap <= 0) return;
     const sign = dx >= 0 ? 1 : -1;
     a.x -= sign * overlap * 0.5;
@@ -1041,6 +1032,7 @@ export class World {
     if (p.carryId) releaseObject(this, p);
     if (this.phase === "fight") this.lastDeathCause = cause || hitCause({ effect });
     p.alive = false;
+    p.curl = false; p.curlDirection = 0;
     p.hangSupport = null;
     p.hp = 0;
     if (this.phase === "fight") this.onKill?.({ victim: p, source, cause: this.lastDeathCause });

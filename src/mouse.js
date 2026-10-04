@@ -8,7 +8,7 @@ export function bindMouseControls(
     const previous = pointerId;
     pointerId = null;
     state.attack = false;
-    state.block = false;
+    state.curl = false;
     if (previous !== null && element.hasPointerCapture(previous))
       element.releasePointerCapture(previous);
   };
@@ -20,7 +20,7 @@ export function bindMouseControls(
     }
     // Chorded presses/releases arrive as pointermove, even without movement.
     state.attack = (e.buttons & 1) !== 0;
-    state.block = (e.buttons & 2) !== 0;
+    state.curl = (e.buttons & 2) !== 0;
   };
   const point = (e) => {
     if (e.pointerType !== "touch") aim(e);

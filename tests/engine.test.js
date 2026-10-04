@@ -25,13 +25,14 @@ test("single player fills empty slots with AI and invalid slots cannot start", (
 });
 test("network input only accepts literal booleans, never player position or damage", () => {
   assert.deepEqual(
-    cleanInput({ attack: true, left: 1, block: "yes", x: 700, hp: 500 }),
+    cleanInput({ attack: true, left: 1, block: "yes", curl: "yes", x: 700, hp: 500 }),
     {
       left: false,
       right: false,
       jump: false,
       attack: true,
       block: false,
+      curl: false,
       throw: false,
       duck: false,
       aim: null,
