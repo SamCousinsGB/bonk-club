@@ -1,6 +1,8 @@
 import { COLOSSUS_ARENA } from './colossus-arena.js';
 import { GAME_MODES, resetCrown, crownDeath, clearCrownPlayer, respawnCrownPlayers, updateCrown } from './crown.js';
 import { ROCKET_ARENA } from './rocket-arena.js';
+import { REFINERY_ARENA } from './refinery-arena.js';
+import { resetRefinery } from './refinery.js';
 import { beginHang, climbFromHang, moveHanging } from "./hanging.js";
 import { movementShape, updatePosture } from "./curl.js";
 import { WATERWORKS_ARENA } from "./waterworks-arena.js";
@@ -90,7 +92,7 @@ export { W, H } from "./scale.js";
 export const STEP = 1 / 120;
 export const COLORS = ["#55baff", "#f7d747", "#ff7393", "#81edb0"];
 export const NAMES = ["BLUE", "YELLOW", "PINK", "MINT"];
-export const ARENAS = [TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA, COLOSSUS_ARENA, ROCKET_ARENA];
+export const ARENAS = [TRANSMISSION_ARENA, FURNACE_ARENA, ASSEMBLY_ARENA, TURBINE_ARENA, TRAIN_ARENA, FOUNDRY_ARENA, CARGO_PLANE_ARENA, CAR_WASH_ARENA, SHIP_ARENA, WATERWORKS_ARENA, BRIDGE_ARENA, COLOSSUS_ARENA, ROCKET_ARENA, REFINERY_ARENA];
 export const DEFAULT_ARENA = ARENAS.findIndex(arena => arena.carWash);
 export const emptyInput = () => ({
   left: false,
@@ -219,6 +221,7 @@ export class World {
     this.debris = [];
     this.hazards = createHazards(this);
     resetReactions(this);
+    resetRefinery(this);
     resetWaterworks(this);
     createAssembly(this);
     this.ragdolls = [];
@@ -1373,7 +1376,7 @@ export class World {
         Math.sign(p.x - b.x) || 1,
         -0.7,
         { blast: true, hitstop: 0.018, effect:projectileEffect(b), weapon: b.weapon, source: b,
-          cause: b.trainWreck ? "train" : ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
+          cause: b.refineryBurst ? "refinery" : b.trainWreck ? "train" : ["canister", "gas"].includes(b.weapon) ? "gas" : undefined },
       );
     }
     for (const c of cover) {
@@ -1593,6 +1596,7 @@ export class World {
       mode: this.mode,
       crown: this.crown,
       ship: this.ship,
+      refinery: this.refinery,
       platforms: this.platforms,
       assembly: assemblySnapshot(this.assembly, this.cover),
       cables: cableSnapshot(this.cables),

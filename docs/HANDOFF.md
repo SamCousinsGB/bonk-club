@@ -1,5 +1,35 @@
 # Bonk Club — current handoff
 
+## Refinery (v0.71.0 / protocol 107)
+
+- Adds a fourteenth arena: a tall fractionation column surrounded by four pipe
+  routes, high catwalks and lower tank crossings. Every spawn can reach every
+  contested opening pickup through ordinary controls.
+- A finite crude supply warms the cracker. Conservative conversion splits it
+  into petrol, gas and acid; 49 independently damageable pipe sections hold
+  material, delay its travel and transmit backpressure. Full output buffers
+  stop conversion. Cuts use the surviving bore and spill at the actual break.
+- Five vessels retain finite contents. Breaches below the level release
+  pressure-driven shared liquid; roof holes vent gas. Contained liquid also
+  applies shared buoyancy/drag and acid contact. Water and coolant cool heated
+  tanks. Sustained heat or blocked products raise pressure, give a 2.4-second
+  warning and rupture the shell into bounded physical metal before the blast.
+- Original Canvas art shows fractionation trays, fluid sight lines, tank levels,
+  gauges, pump motion, cut pipe shells and heater light. Three original seekable
+  sound layers cover pumping, leaks and pressure alarms. Reduced motion stops
+  decorative movement. Host state, validation, deltas, interpolation, joins,
+  bots and reset include the process; guests cannot advance it.
+- All regular tests, all 57 stress cases and a final four-case Refinery stress
+  pass succeed. Desktop source relay QA verifies controls, exact damaged pipe
+  geometry on hot join, process phase agreement, cracker rupture, cooling,
+  reset, reduced motion, resizing and actual bot combat. Three real browsers
+  use TURN relay on one machine. Observed Canvas draw p95 was 4.9 ms in that run;
+  it is a rendering measurement, not network latency.
+- Refresh all player tabs for protocol 107. Evidence and desktop source
+  screenshots are under desktop/test-results/refinery.
+- Release verification is in progress; append the actual revision, workflow
+  and public artifact/browser results after publication.
+
 ## Crown HUD and respawn feedback (v0.70.3 / protocol 106)
 
 - A centred Crown panel follows the current holder and counts down their actual

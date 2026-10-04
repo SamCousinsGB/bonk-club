@@ -35,7 +35,7 @@ test('Crown is a host-selected lobby option and changing it clears readiness',()
   }finally{room.close();}
 });
 
-test('all thirteen arenas start with one central crown and valid reachable-height spawn candidates',()=>{
+test('all arenas start with one central crown and valid reachable-height spawn candidates',()=>{
   for(let arena=0;arena<ARENAS.length;arena++) {
     const w=new World({arena,mode:'crown'});
     assert.equal(w.crown.x,W/2,ARENAS[arena].name);
@@ -311,7 +311,7 @@ test('a carrier can finish on ruined terrain; lack of scoring on a playable map 
   assert.deepEqual(idle.crown.times,[0,0,0,0]);
 });
 
-test('all thirteen destroyed arenas rebuild the same round with valid possession and player identities',()=>{
+test('all destroyed arenas rebuild the same round with valid possession and player identities',()=>{
   for(let arena=0;arena<ARENAS.length;arena++) {
     const w=new World({mode:'crown',arena,players:[0,1,2,3],shuffle:false,random:()=>.4});
     w.phase='fight';w.crown.times=[2,4,6,8];w.scores=[1,2,3,4];

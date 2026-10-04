@@ -72,7 +72,7 @@ Start new work from current `origin/main` in one clean worktree.
 
 - The playable arena roster is Transmission Towers, Arc Furnace, Car Assembly,
   Turbine Hall, Bullet Train, Scrap Foundry, Cargo Plane Hold, Car Wash, Ocean
-  Liner, Waterworks, Suspension Bridge, Colossus and Rocket Test Stand. Keep removed arena assets
+  Liner, Waterworks, Suspension Bridge, Colossus, Rocket Test Stand and Refinery. Keep removed arena assets
   out of the browser build and map pools.
 - Maps must vary in theme and topology. Preserve traversal headroom, clear takeoffs,
   double-jump routes, alternatives and elevators; avoid tower repetition and head traps.
@@ -107,6 +107,15 @@ Start new work from current `origin/main` in one clean worktree.
 
 ### Arena-specific rules
 
+- **Refinery:** finite crude feeds a heated cracking column through 49 breakable
+  pipe sections. Separate petrol, gas and acid routes fill five bounded vessels;
+  each section stores material and advances it with pressure and backpressure.
+  Real bore cuts disconnect routes and release finite contents at actual breaks.
+  Tank openings drain by liquid head; roof breaches vent gas. Heat and blocked
+  outlets warn before pressure failure; water/coolant cool the vessels. Burst
+  shells become bounded physical metal before the blast is traced. Preserve
+  shared liquid forces, fire/acid reactions, traversable grating routes, original
+  process audio, reduced motion, host authority, damaged-world joins and reset.
 - **Rocket Test Stand:** a remote gimballed engine sweeps exhaust beneath the
   upper gantry. Keep the 6 idle / 3 warning / 5 firing / 3 purge cycle, alternating
   sweeps and the shared clipped fan for art, shielding, damage and thrust.

@@ -108,7 +108,16 @@ test("bullet-destroyed panels persist through guest transport and interpolation,
     const wire = new RenderSnapshots(), before = wire.make(w.snapshot());
     const panels = w.platforms.filter(p => p.destructible);
     for (const panel of panels) {
-      if(panel.planeHull || panel.shipHull || panel.shipBulkhead || panel.waterworksPipe!==undefined) {
+      if(panel.refineryPipe!==undefined || panel.refineryTank!==undefined){
+        // Pipe racks cross behind catwalks; shoot the exposed face instead of
+        // repeatedly firing into the structural deck shielding the other side.
+        for(let n=0;n<12&&panel.hp>0;n++){
+          const side=n%4,angle=[0,Math.PI,-Math.PI/2,Math.PI/2][side];
+          const x=side<2?(side?panel.x+panel.w:panel.x):panel.x+panel.w/2;
+          const y=side>=2?(side===2?panel.y+panel.h:panel.y):panel.y+panel.h/2;
+          shot(w,{x,y},angle,'railgun');
+        }
+      } else if(panel.planeHull || panel.shipHull || panel.shipBulkhead || panel.waterworksPipe!==undefined) {
         const left=panel.x<1280;
         // Wing attachment plates must also be reachable from inside the cabin.
         for(let n=0;n<8&&panel.hp>0;n++) {

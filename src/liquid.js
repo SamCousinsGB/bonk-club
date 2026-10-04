@@ -117,7 +117,7 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
   const steps=Math.ceil(dt/(1/60)),step=dt/steps;
   for(let tick=0;tick<steps;tick++) {
     const solids=world.platforms.filter(p=>p.hp!==0 && p.material!=='cable' &&
-      !((world.arena?.waterworks || world.arena?.theme==='foundry') && p.oneWay));
+      !((world.arena?.waterworks || world.arena?.refinery || world.arena?.theme==='foundry') && p.oneWay));
     // The halo covers a neighbour, swept travel and landing alignment. Querying
     // one bin avoids both a full terrain scan and per-parcel candidate arrays.
     const parcels=liquids(world),terrain=parcels.length>8?liquidColumns(solids,undefined,80):{at:()=>solids};
@@ -264,8 +264,8 @@ export function blastLiquid(world,blast) {
   }
 }
 
-export function liquidForces(world,dt) {
-  const all=liquids(world).filter(q=>!q.frozen).map(q=>({liquid:q,box:liquidBounds(q)}));
+export function liquidForces(world,dt,reservoirs=[]) {
+  const all=[...liquids(world),...reservoirs].filter(q=>!q.frozen).map(q=>({liquid:q,box:liquidBounds(q)}));
   if(world.prediction || !all.length)return;
   const columns=liquidColumns(all,q=>q.box);
   const actors=[...world.players.filter(p=>p.alive),...world.cover.filter(p=>p.hp>0),
@@ -284,7 +284,7 @@ export function liquidForces(world,dt) {
     }
     // Bodies entrain the water they actually intersect. The mass of a deep
     // column resists the same motion more than a shallow film does.
-    for(const {q,area:a} of wetted)if(q.grounded && q.h>2) {
+    for(const {q,area:a} of wetted)if(!q.reservoir && q.grounded && q.h>2) {
       const coupling=1-Math.exp(-dt*a/(q.w*q.h)*2.4),relative=(b.vx||0)-(q.vx||0);
       q.vx=clamp((q.vx||0)+relative*coupling,-900,900);
       if(splashes<8 && (b.vy||0)>180 && box.y<q.y && box.y+box.h>q.y &&

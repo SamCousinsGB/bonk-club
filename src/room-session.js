@@ -2,6 +2,8 @@ import { TRAIN_Y, TRAIN_SPEED } from "./setpiece-arenas.js";
 import { validCrown } from './crown.js';
 import { validColossus } from './colossus.js';
 import { validRocket } from './rocket.js';
+import { validRefinery } from './refinery.js';
+import { REFINERY_PIPES, REFINERY_TANKS } from './refinery-arena.js';
 import { validFurnace } from './furnace-parts.js';
 import { validVictoryCause } from "./victory.js";
 import { validAssembly } from "./assembly.js";
@@ -43,7 +45,7 @@ import {
 } from "./identity.js";
 import { cleanInput, ARENAS, WEAPONS } from "./engine.js";
 import { defaultMatchOptions, validMatchOptions, copyMatchOptions, validLobbyState } from './match-options.js';
-export const PROTOCOL = 106;
+export const PROTOCOL = 107;
 // Shared traffic budgets protect the host's upload; the browser transport also
 // needs headroom below its current relay allocation cap.
 const STATE_BYTES_PER_SECOND = 60000, MOTION_BYTES_PER_SECOND = 28000;
@@ -804,6 +806,7 @@ export function validSnapshot(s) {
     validCables(s.cables, ARENAS[s.arenaIndex]) &&
     (ARENAS[s.arenaIndex]?.assembly ? s.assembly != null && validAssembly(s.assembly) : s.assembly == null) &&
     (ARENAS[s.arenaIndex]?.ship ? validShip(s.ship) : s.ship == null) &&
+    (ARENAS[s.arenaIndex]?.refinery ? validRefinery(s.refinery) : s.refinery == null) &&
     ["countdown", "fight", "result"].includes(s.phase) &&
     integer(s.arenaIndex, 0, ARENAS.length - 1) &&
     integer(s.round, 1, Number.MAX_SAFE_INTEGER) &&
@@ -887,6 +890,9 @@ export function validSnapshot(s) {
           p.material === 'metal' && [p.bridgeVx??0,p.bridgeVy??0,p.bridgeOffsetX??0,p.bridgeOffsetY??0].every(finite))) &&
         (p.colossusStone === undefined || (p.colossusStone === true && ARENAS[s.arenaIndex]?.colossus === true && p.material === 'stone')) &&
         (p.rocketDeck === undefined || (p.rocketDeck === true && ARENAS[s.arenaIndex]?.rocket === true && p.material === 'metal')) &&
+        (p.refineryDeck === undefined || (p.refineryDeck === true && ARENAS[s.arenaIndex]?.refinery === true)) &&
+        (p.refineryPipe === undefined || (integer(p.refineryPipe,0,REFINERY_PIPES.length-1) && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'metal')) &&
+        (p.refineryTank === undefined || (integer(p.refineryTank,0,REFINERY_TANKS.length-1) && ARENAS[s.arenaIndex]?.refinery === true && p.material === 'metal')) &&
         (p.assemblyCar === undefined || (integer(p.assemblyCar, 1, 10000000) &&
           s.assembly?.cars.some(c => c.id === p.assemblyCar) && ["chassis", "body", "cabin", "rearWheel", "frontWheel"].includes(p.assemblyPart))) &&
         (p.assemblyBelt === undefined || (p.assemblyBelt === true && !!s.assembly)) &&

@@ -49,9 +49,9 @@ test('only the selected arenas remain available for matches',()=>{
  assert.deepEqual(ARENAS.map(a=>a.name),[
   'TRANSMISSION TOWERS','ARC FURNACE','CAR ASSEMBLY','TURBINE HALL',
   'BULLET TRAIN','SCRAP FOUNDRY','CARGO PLANE HOLD','CAR WASH',
-  'OCEAN LINER','WATERWORKS','SUSPENSION BRIDGE','COLOSSUS','ROCKET TEST STAND',
+  'OCEAN LINER','WATERWORKS','SUSPENSION BRIDGE','COLOSSUS','ROCKET TEST STAND','REFINERY',
  ]);
- assert.equal(new Set(ARENAS.map(a=>a.name)).size,13);
+ assert.equal(new Set(ARENAS.map(a=>a.name)).size,14);
  for(const a of ARENAS)assert.ok(a.platforms.length>0&&a.spawns.length===4,a.name);
 });
 test('featured nuclear pickup rotates among contested interior locations',()=>{

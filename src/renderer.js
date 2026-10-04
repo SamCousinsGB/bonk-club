@@ -2,6 +2,7 @@ import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, 
 import { RespawnCue, drawRespawnCue } from './respawn-cue.js';
 import { drawCrown, drawCrownGlow, drawLooseCrown } from './crown-art.js';
 import {drawRocketBackground,drawRocketPlatform,drawRocketExhaust,rocketShake} from './rocket-art.js';
+import {drawRefineryBackground,drawRefineryPlatform,drawRefineryProcess} from './refinery-art.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawBridgeHall, drawBridgeStructure, drawBridgePlatform, drawBridgeAtmosphere } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
@@ -429,6 +430,7 @@ export class Renderer {
     if (p.hp === 0) return;
     if(p.colossusStone){drawColossusStone(this.ctx,p);return;}
     if(p.rocketDeck){drawRocketPlatform(this.ctx,p);return;}
+    if(p.refineryDeck||p.refineryPipe!==undefined||p.refineryTank!==undefined){drawRefineryPlatform(this.ctx,p);return;}
     if(p.bridgePart){drawBridgePlatform(this.ctx,p);return;}
     if(p.shipHull || p.shipDeck || p.shipBulkhead){drawShipPlatform(this.ctx,p);return;}
     if (p.planeHull) return;
@@ -939,6 +941,8 @@ export class Renderer {
 
     if (menuArena) {
       // The continuous menu arena has its own background and camera above.
+    } else if(arena.refinery) {
+      drawRefineryBackground(c,state,this.reduced);
     } else if(arena.rocket) {
       drawRocketBackground(c,state,this.reduced);
     } else if(arena.colossus) {
@@ -992,7 +996,7 @@ export class Renderer {
       }
       c.drawImage(this.scenery.get(state.arenaIndex),0,0);
     }
-    if (!menuArena && !arena.cargoPlane && !arena.ship && !arena.colossus && !arena.rocket) ambientDetail(this, arena, time);
+    if (!menuArena && !arena.cargoPlane && !arena.ship && !arena.colossus && !arena.rocket && !arena.refinery) ambientDetail(this, arena, time);
     if (state.elapsed > SUDDEN_DEATH - 10) {
       c.fillStyle = `rgba(239,99,67,${Math.min(0.14, (state.elapsed - (SUDDEN_DEATH - 10)) * 0.007)})`;
       c.fillRect(0, 0, W, H);
@@ -1035,6 +1039,7 @@ export class Renderer {
     drawGas(c, state, time);
     drawHazards(c, state.hazards, time, arena.theme, "back", this.reduced, state.platforms);
     if(arena.rocket)drawRocketExhaust(c,state,this.reduced);
+    if(arena.refinery)drawRefineryProcess(c,state,this.reduced);
     for (const d of state.drops) {
       if (d.life < 3 && Math.sin(time * 18) < 0) continue;
       const art = this.pickup(d.type);

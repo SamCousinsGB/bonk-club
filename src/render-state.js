@@ -116,6 +116,10 @@ export function interpolateStates(a, b, t, mode = "all") {
   });
   out.time = lerp(a.time,b.time,t);
   if (mode !== "actors") {
+    if(a.refinery && b.refinery)out.refinery={...b.refinery,
+      clock:lerp(a.refinery.clock,b.refinery.clock,t),heat:lerp(a.refinery.heat,b.refinery.heat,t),
+      tanks:b.refinery.tanks.map((q,i)=>({...q,volume:lerp(a.refinery.tanks[i].volume,q.volume,t),pressure:lerp(a.refinery.tanks[i].pressure,q.pressure,t)})),
+      pipes:b.refinery.pipes.map((q,i)=>q.broken!==a.refinery.pipes[i].broken?q:{...q,volume:lerp(a.refinery.pipes[i].volume,q.volume,t)})};
     if(a.ship && b.ship) out.ship={...b.ship,
       angle:lerp(a.ship.angle,b.ship.angle,t),sink:lerp(a.ship.sink,b.ship.sink,t),age:lerp(a.ship.age,b.ship.age,t),
       volumes:b.ship.volumes.map((v,i)=>lerp(a.ship.volumes[i],v,t)),currents:b.ship.currents.map((v,i)=>lerp(a.ship.currents[i],v,t))};

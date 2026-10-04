@@ -9,6 +9,7 @@ import { conductive, conductorNodes, conductorBounds, conductorsTouch } from "./
 import { carveRectangle } from "./nuclear.js";
 import { hazardZone } from "./hazards.js";
 import { BARRELS, SPILLS, SPILL_LIMIT, explosiveBarrel, gasScale, gasBlastRadius } from "./barrels.js";
+import { updateRefinery, heatRefinery, refineryDanger, refineryLiquids } from './refinery.js';
 import { igniteFighter } from "./weird-weapons.js";
 import { punctureContainer, leakOutlets, validContainerLeaks } from "./container-leaks.js";
 import { WATER_LIMIT, WATER_WIDTH, WATER_DEPTH, TANK_CAPACITY, emitWater, emitLiquid, moveLiquid, liquidForces, liquidTouches, waterWireContact, blastLiquid } from './liquid.js';
@@ -194,6 +195,7 @@ function thawWater(world, q) {
 // rocket shares these reactions with flames, hot spills and weapon explosions.
 export function heatReactions(world, touches, dt) {
   if(world.prediction||world.phase!=='fight')return;
+  heatRefinery(world,touches,dt*.8);
   for(const b of bodies(world))if(touches(bodyBounds(b)))ignite(b);
   for(const q of world.spills)if(touches(liquidBounds(q))) {
     if(SPILLS[q.kind].burn&&!q.fire&&!q.cold)q.fire=SPILLS[q.kind].burn;
@@ -255,6 +257,11 @@ export function meltIce(world, x, y, radius = 24) {
 }
 
 export function surfaceReaction(world, shot, surface) {
+  if(surface.refineryTank!==undefined){
+    const t=world.refinery?.tanks[surface.refineryTank];
+    if(t&&['flame','spark','plasma','tesla','frost'].includes(shot.kind))
+      t.temperature=Math.max(0,Math.min(4,t.temperature+(shot.kind==='frost'?-.8:.28)));
+  }
   const b = world.cover.find(b => b.id === (surface.propId || surface.id)) ||
     world.chunks.find(b => b.id === (surface.propId || surface.id)) || surface;
   const contents = BARRELS[b.kind]?.contents;
@@ -317,6 +324,7 @@ export function contactReaction(world, shot, collision) {
 
 export function explosionReaction(world, b) {
   const radius = b.radius || 145;
+  heatRefinery(world,t=>near(t,b.x,b.y,radius),b.weapon==='cryo'?-3:.85);
   if (b.nuclear) return;
   const cold = b.weapon === "cryo";
   if(!cold)blastLiquid(world,b);
@@ -466,7 +474,7 @@ function updateSpills(world, dt, bs, ps) {
       world.hazards.some(h=>h.type==="geyser"&&h.active&&!h.done&&overlap(box,hazardZone(h)))
     ))q.fire=SPILLS[q.kind].burn;
     for(const p of ps)if(!(p.soaked>0)&&overlap(playerBox(p),box,2)) {
-      const key=q.kind==="oil"?"oiled":q.kind==="glue"?"glued":"tarred";
+      const key=["oil","petrol"].includes(q.kind)?"oiled":q.kind==="glue"?"glued":"tarred";
       p[key]=Math.max(p[key]||0,q.kind==="glue"?.55:q.kind==="tar"?.8:.3);
     }
     if(!q.fire)continue;
@@ -488,9 +496,10 @@ export function updateReactions(world, dt) {
   if(world.reactionClock<.05-1e-8)return;
   dt=Math.min(.075,world.reactionClock);world.reactionClock=0;
   updateWaterworks(world,dt);
+  updateRefinery(world,dt);
   const wires=poweredWirePieces(world);
   moveLiquid(world,dt,wires,thawWater);
-  liquidForces(world,dt);
+  liquidForces(world,dt,refineryLiquids(world.refinery));
   const bs=bodies(world), ps=world.players.filter(p=>p.alive);
   for(const b of [...bs,...ps]) {
     b.soaked=Math.max(0,(b.soaked||0)-dt);b.cold=Math.max(0,(b.cold||0)-dt);
@@ -548,7 +557,7 @@ export function consumeReactionArea(world, blast) {
 }
 
 export function reactionDanger(world, x, y) {
-  return (world.ship?.charges.some(q=>q>0) && shipWaterAt(world,x,y) && world.ship.charges[shipWaterAt(world,x,y).i]>0) ||
+  return refineryDanger(world,x,y) || (world.ship?.charges.some(q=>q>0) && shipWaterAt(world,x,y) && world.ship.charges[shipWaterAt(world,x,y).i]>0) ||
     world.water.some(q=>q.charge&&!q.frozen&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
     world.spills.some(q=>(q.fire>0||q.kind==='molten'||q.kind==='acid'&&!q.cold)&&overlap({x:x-18,y:y-28,w:36,h:60},liquidBounds(q),6)) ||
     world.cover.some(b=>b.hp>0&&((explosiveBarrel(b)&&b.leak&&!b.cold&&b.fuse<1.5&&Math.hypot(x-centre(b).x,y-centre(b).y)<(b.kind==='canister'?gasBlastRadius(b)+35:230))||

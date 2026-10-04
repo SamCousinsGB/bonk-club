@@ -2,6 +2,7 @@
 export const SPILLS = {
   molten: { color: "#ff842b", rim: "#fff1b0", flow: .8, life: 3600, burn: 0 },
   oil: { color: "#423f32", rim: "#b5a568", flow: 1.4, life: 35, burn: 7 },
+  petrol: { color: "#bc8735", rim: "#ffe1a0", flow: 1.9, life: 30, burn: 9 },
   glue: { color: "#d3dba0", rim: "#fbffd0", flow: .35, life: 24, burn: 0 },
   tar: { color: "#27222e", rim: "#826782", flow: .6, life: 40, burn: 11 },
   acid: { color: "#769c26", rim: "#deee70", flow: 1.05, life: 28, burn: 0 },
