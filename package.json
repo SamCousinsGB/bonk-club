@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.75.0",
-  "releaseNotes": "Refinery fire basin, endless crude and burning pipe ruptures",
+  "version": "0.76.0",
+  "releaseNotes": "Swimming in every liquid and improved sideways flow",
   "private": true,
   "type": "module",
   "scripts": {

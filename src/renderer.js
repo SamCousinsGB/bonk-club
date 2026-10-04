@@ -7,7 +7,7 @@ import {drawRefinerySmoke} from './refinery-smoke.js';
 import { drawWaterworksHall, drawWaterworksPipes, drawWaterworksGenerators } from './waterworks-art.js';
 import { drawBridgeHall, drawBridgeStructure, drawBridgePlatform, drawBridgeAtmosphere } from './bridge-art.js';
 import { drawTurbineHall } from "./turbine-art.js";
-import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell } from './ship-art.js';
+import { drawShipSky, transformShip, drawShipInterior, drawShipLifeboats, drawShipPlatform, drawShipWater, drawShipDetails, drawShipShell, drawOxygen } from './ship-art.js';
 import { drawPlaneSky, transformPlane, drawPlaneInterior, PlaneHullLayer, drawPlanePlatform, drawPlaneOutflows } from "./plane-art.js";
 import { drawCompactSetpieceHall, drawCarWashStructure } from "./compact-setpiece-art.js";
 import { drawSetpieceHall, drawTrack } from "./setpiece-art.js";
@@ -1102,8 +1102,18 @@ export class Renderer {
     if(arena.ship){drawShipDetails(c,state,time,this.reduced);drawShipWater(c,state,time,this.reduced,true);}
     this.fragments(state.debris);
     drawChunks(this, state.chunks);
-    drawReactions(c, state, this.reduced ? 0 : time, this.reduced);
+    drawReactions(c, state, this.reduced ? 0 : time, this.reduced,()=>{
+      // Opaque fuels keep their colour while submerged fighters stay legible.
+      // Clip the subdued pass to liquid, before surface flames and smoke.
+      if(!state.spills.length)return;
+      c.save();c.beginPath();
+      for(const q of state.spills)if(q.grounded&&q.h>0)c.rect(q.x,q.y,q.w,q.h);
+      c.clip();c.globalAlpha=.72;
+      for(const p of state.players)if(p.swimming||p.submerged)this.fighter(p,time,1,!menuArena,state.crown?.holder===p.id);
+      c.restore();
+    });
     if(arena.refinery)drawRefinerySmoke(c,state,this.reduced);
+    drawOxygen(c,state);
     drawBlood(this,state.blood);
     drawFields(this, state.fields.filter(f => f.kind !== "blackhole"), time);
     for (const rag of state.ragdolls) {

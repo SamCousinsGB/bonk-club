@@ -87,6 +87,10 @@ Start new work from current `origin/main` in one clean worktree.
 - Barrels and spills keep finite, distinct contents and physical casing fragments.
   Living fighters burn for three seconds after last exposure; re-exposure refreshes,
   while water/ice extinguish immediately.
+- Every unfrozen liquid pool and liquid-filled refinery vessel supports shared
+  swimming controls and head-based breath. Air lasts twelve seconds and restores
+  above the surface; only the host applies drowning. Preserve material hazards,
+  guest prediction, visible swimmers/oxygen bars, hot joins and reset.
 - AI uses human controls, health, ammo and physics. Easy aim/reactions remain imperfect.
   Bots seek reachable weapons, avoid attacks across gaps and never jump into fatal
   drops from boredom. Explosive/black-hole users first create safe firing distance.

@@ -1,5 +1,31 @@
 # Bonk Club — current handoff
 
+## Swimming in all liquids and sideways flow (v0.76.0 / protocol 111)
+
+- Swimming and head-based breath now apply to every unfrozen liquid pool on
+  every arena, plus liquid-filled refinery vessels. Aim and primary action
+  provide strokes while combat remains available. Twelve seconds of oxygen
+  drains under the surface, restores in air and causes host-owned drowning
+  damage when empty. Oil/fuel retain fire; acid, molten metal, glue and coolant
+  retain their existing material effects. Swimming no longer implies water.
+- Guests read spills and refinery contents for the same movement, without
+  changing health, oxygen or world liquid state. Existing actor fields carry
+  swimming and breath through hot joins and reset. Protocol 111 separates the
+  changed movement rules; refresh every player's tab together.
+- The old lateral-flow midpoint test let tank walls block a whole deep column
+  despite real gaps underneath or over the roof. Exchange now uses actual open
+  vertical faces, bounded by each opening's ceiling. Liquid keeps its volume,
+  respects solid walls, and spills to both sides of the refinery. Shared ship,
+  Waterworks, containment and material checks pass.
+- Oxygen bars render on all arenas. Submerged fighters have a subdued pass
+  clipped to opaque liquid, beneath surface flames and smoke, for readability.
+- All 1,349 regular checks pass. Desktop source relay QA verifies a sustained
+  refinery leak spreading past both tanks, host/guest breath loss in oil, an
+  upward guest swim, oxygen recovery in air, changed-world late join and reset.
+  Source and release evidence: `desktop/test-results/liquid-swimming/`;
+  repeat source QA with `desktop/tests/liquid-swimming-browser.mjs` using the
+  configured Vite room-service and TURN URLs. Release verification is pending.
+
 ## Refinery fire basin (v0.75.0 / protocol 110)
 
 - The ground sits at the bottom of the arena, with stepped earth banks forming

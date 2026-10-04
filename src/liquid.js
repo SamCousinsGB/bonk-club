@@ -39,6 +39,24 @@ export const liquidDrag = (dt,immersion,rate=9,mass=55) => 1-Math.exp(-dt*immers
 export const liquidPressureSpeed = (head,gravity=1000) => Math.sqrt(gravity*Math.max(0,head));
 export const liquidTransfer = (amount,available,space) => Math.max(0,Math.min(amount,available,space));
 
+// Open vertical faces between adjacent columns. A submerged beam can leave
+// flow both below and above it; testing a single midpoint makes a false dam.
+function flowFaces(q,nx,solids){
+  const left=Math.min(q.x,nx)+q.w/2,right=Math.max(q.x,nx)+q.w/2;
+  let faces=[{top:-Infinity,bottom:q.y+q.h}];
+  for(const p of solids){
+    if(p.waterId||p.x>=right||p.x+p.w<=left)continue;
+    const next=[];
+    for(const f of faces){
+      if(p.y>=f.bottom||p.y+p.h<=f.top){next.push(f);continue;}
+      if(p.y>f.top)next.push({top:f.top,bottom:p.y});
+      if(p.y+p.h<f.bottom)next.push({top:p.y+p.h,bottom:f.bottom});
+    }
+    faces=next;if(!faces.length)break;
+  }
+  return faces.reverse();
+}
+
 // Large containers use reservoir cells rather than thousands of free parcels.
 // Geometry supplies each opening's pressure head; this engine owns conservative
 // exchange and admission, including an unbounded external ocean (j === -1).
@@ -198,37 +216,35 @@ export function moveLiquid(world,dt,wires=[],thaw=()=>{}) {
     const ordered=[...pools.values()].sort((a,b)=>(tick%2?1:-1)*(a.x-b.x));
     for(const q of ordered) {
       if(q.h<=.04)continue;
-      const floorY=q.y+q.h,nearby=terrain.at(q.x);
+      const nearby=terrain.at(q.x);
       for(const dir of tick%2?[1,-1]:[-1,1]) {
         const nx=q.x+dir*q.w;if(nx<0 || nx+q.w>W)continue;
-        let outletY=floorY;
-        for(const p of nearby)if(!p.waterId && p.y<floorY && p.y+p.h>=floorY-.5 &&
-          segmentBox(q.x+q.w/2,floorY-.2,nx+q.w/2,floorY-.2,p))outletY=Math.min(outletY,p.y);
-        const available=q.h-(floorY-outletY);
-        if(available<=.02)continue;
-        let other=pools.get(key(q,nx,outletY));
-        const head=available-(other?.h||0);
-        const speed=clamp(liquidPressureSpeed(head)*dir+(q.vx||0)*.45,-900,900);
-        const flow=SPILLS[q.kind]?.flow||1;
-        // Deep water exchanges across its wetted face, not just the height
-        // difference. A diffusion-only term makes continuously fed basins form
-        // tall columns instead of levelling and overflowing their retaining wall.
-        const face=Math.min(available,Math.max(other?.h||0,available*.35));
-        const pressure=liquidPressureSpeed(Math.max(0,head-.12))*face*step/q.w;
-        let flux=Math.min(available*.22,flow*(pressure + Math.max(0,head-.12)*step*5 + Math.max(0,(q.vx||0)*dir)*available*step/q.w*.24));
-        if(flux<.008 || other && other.h>=WATER_DEPTH)continue;
-        const surface=outletY-Math.min(available,Math.max(other?.h||0,.5))*.5;
-        if(nearby.some(p=>!p.waterId && segmentBox(q.x+q.w/2,surface,nx+q.w/2,surface,p)))continue;
-        if(!other) {
-          if(world.water.length+world.spills.length>=WATER_LIMIT)continue;
-          other={id:++world.reactionSerial,x:nx,y:outletY,w:q.w,h:0,vx:speed,vy:0,
-            grounded:false,...properties(kindOf(q)),...(q.kind?{life:q.life,fire:q.fire,cold:q.cold}:{})};
-          listFor(world,kindOf(q)).push(other);pools.set(key(q,nx,outletY),other);
+        for(const face of flowFaces(q,nx,nearby)){
+          const outletY=face.bottom,capacity=Math.min(WATER_DEPTH,face.bottom-face.top);
+          const available=Math.min(q.h,outletY-q.y);
+          if(available<=.02)continue;
+          let other=pools.get(key(q,nx,outletY));
+          const head=available-(other?.h||0);
+          const speed=clamp(liquidPressureSpeed(head)*dir+(q.vx||0)*.45,-900,900);
+          const flow=SPILLS[q.kind]?.flow||1;
+          // Deep water exchanges across its wetted face, not just the height
+          // difference. A diffusion-only term makes continuously fed basins form
+          // tall columns instead of levelling and overflowing their retaining wall.
+          const wetted=Math.min(capacity,available,Math.max(other?.h||0,available*.35));
+          const pressure=liquidPressureSpeed(Math.max(0,head-.12))*wetted*step/q.w;
+          let flux=Math.min(available*.22,flow*(pressure + Math.max(0,head-.12)*step*5 + Math.max(0,(q.vx||0)*dir)*available*step/q.w*.24));
+          if(flux<.008 || other && other.h>=capacity)continue;
+          if(!other) {
+            if(world.water.length+world.spills.length>=WATER_LIMIT)continue;
+            other={id:++world.reactionSerial,x:nx,y:outletY,w:q.w,h:0,vx:speed,vy:0,
+              grounded:false,...properties(kindOf(q)),...(q.kind?{life:q.life,fire:q.fire,cold:q.cold}:{})};
+            listFor(world,kindOf(q)).push(other);pools.set(key(q,nx,outletY),other);
+          }
+          flux=liquidTransfer(flux,available,capacity-other.h);
+          other.vx=((other.vx||0)*other.h+speed*flux)/(other.h+flux);
+          q.h-=flux;q.y+=flux;other.h+=flux;other.y-=flux;
+          // A conductive stream remains live only through present contacts.
         }
-        flux=liquidTransfer(flux,available,WATER_DEPTH-other.h);
-        other.vx=((other.vx||0)*other.h+speed*flux)/(other.h+flux);
-        q.h-=flux;q.y+=flux;other.h+=flux;other.y-=flux;
-        // A conductive stream remains live only through present contacts.
       }
       q.vx*=Math.exp(-step*2.5/(SPILLS[q.kind]?.flow||1));
     }
@@ -280,7 +296,7 @@ export function liquidForces(world,dt,reservoirs=[]) {
       const a=Math.max(0,Math.min(box.x+box.w,q.x+q.w)-Math.max(box.x,q.x))*
         Math.max(0,Math.min(box.y+box.h,q.y+q.h)-Math.max(box.y,q.y));
       wetted.push({q:liquid,area:a});
-      if(fighter && world.arena?.waterworks && liquid.grounded && liquid.h>22)continue;
+      if(fighter && b.swimming && liquid.grounded)continue;
       area+=a;vx+=a*(liquid.vx||0);vy+=a*liquid.vy;depth=Math.max(depth,liquid.h);
     }
     // Bodies entrain the water they actually intersect. The mass of a deep

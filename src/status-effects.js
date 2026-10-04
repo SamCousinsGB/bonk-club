@@ -23,7 +23,7 @@ export function fighterStatuses(state, player) {
     add('flammable', 'Flammable', fed ? null : Math.max(player.tarred || 0, player.oiled || 0));
   }
   if (player.soaked > 0) {
-    const fed = player.swimming || (state.water || []).some(q => !q.frozen && q.h > 0 && liquidTouches(q, box));
+    const fed = (state.ship && player.swimming) || (state.water || []).some(q => !q.frozen && q.h > 0 && liquidTouches(q, box));
     add('wet', 'Wet', fed ? null : player.soaked);
   }
   if (player.bubble > 0) add('bubble', 'Bubbled', player.bubble);

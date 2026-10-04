@@ -121,9 +121,10 @@ function flame(c,x,y,height,phase,width=6) {
   c.quadraticCurveTo(x+8,y-height*.2,x+3,y);c.fillStyle="#ffe794";c.fill();
   c.restore();
 }
-export function drawReactions(c,state,time,reduced=false) {
+export function drawReactions(c,state,time,reduced=false,drawImmersed=null) {
   c.save();
   drawWater(c,state,time,reduced);
+  drawImmersed?.();
   drawSpills(c,state,time,reduced);
   for(const b of [...(state.cover||[]),...(state.chunks||[]),...state.platforms.filter(p=>p.fire||p.charge)]) {
     if(b.hp===0)continue;

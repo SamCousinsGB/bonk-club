@@ -164,11 +164,6 @@ export function drawShipWater(c,state,time,reduced,foreground=false,interiorOnly
     c.restore();
   }
   if(foreground) {
-    for(const p of state.players)if(p.alive&&(p.submerged||p.oxygen<11.98)) {
-      const x=p.x,y=Math.min(p.y-68,(p.rig?.[0]?.y??p.y-40)-22),ratio=p.oxygen/12;
-      rect(c,x-28,y-2,56,10,'#071724ee');rect(c,x-26,y,52,6,'#214455');rect(c,x-26,y,52*ratio,6,ratio<.25?'#ff9b69':'#99e5eb');
-      c.fillStyle='#d6f8ef';c.font='600 11px "DM Sans",sans-serif';c.textAlign='center';c.fillText('O₂',x,y-6);
-    }
     // Ingress jets originate only at actual open underwater shell rays.
     for(const b of shipOpenings(state).filter(b=>b.j<0)) {
       const head=b.y-seaLevel(s,b.x);if(head<=0||compartmentLevelAt(s,levels,b.i,b.x)<seaLevel(s,b.x)+3)continue;
@@ -177,6 +172,15 @@ export function drawShipWater(c,state,time,reduced,foreground=false,interiorOnly
       if(!reduced)for(let k=0;k<3;k++){const t=(time*2+k/3)%1;circle(c,b.x+dir*reach*t,b.y-60*t+51*t*t,2.5,'#d5f5e9b0');}
     }
   }
+}
+export function drawOxygen(c,state){
+  c.save();
+  for(const p of state.players)if(p.alive&&(p.submerged||p.oxygen<11.98)) {
+    const x=p.x,y=Math.min(p.y-108,(p.rig?.[0]?.y??p.y-40)-70),ratio=p.oxygen/12;
+    rect(c,x-28,y-2,56,10,'#071724ee');rect(c,x-26,y,52,6,'#214455');rect(c,x-26,y,52*ratio,6,ratio<.25?'#ff9b69':'#99e5eb');
+    c.fillStyle='#d6f8ef';c.font='600 11px "DM Sans",sans-serif';c.textAlign='center';c.fillText('O₂',x,y-6);
+  }
+  c.restore();
 }
 function compartmentLevelAt(s,levels,i,x){return levels[i]-Math.tan(s.angle)*(x-1280);}
 

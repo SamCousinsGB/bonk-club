@@ -69,7 +69,7 @@ export class GuestPrediction {
     this.context = {
       prediction: true, phase: "prediction", time: state.time, round:state.round,
       arena: ARENAS[state.arenaIndex], hazards: state.hazards.map(h => ({ ...h })),
-      ship: state.ship, water: state.water,
+      ship: state.ship, water: state.water, spills: state.spills, refinery: state.refinery,
       platforms, cover: state.cover.map(p => ({ ...p })), chunks: state.chunks.map(p => ({ ...p })),
       cables: state.cables || [],
       players: [this.player], projectiles: [],

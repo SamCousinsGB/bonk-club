@@ -1,5 +1,6 @@
 import { liquidBounds } from './liquid-geometry.js';
-import { flowLiquidReservoirs, liquidDrag, liquidTransfer } from './liquid.js';
+import { flowLiquidReservoirs, liquidDrag, liquidTransfer, liquids } from './liquid.js';
+import { refineryLiquids } from './refinery.js';
 import { segmentBox } from './collision.js';
 import { impulseProp } from './props.js';
 
@@ -97,13 +98,12 @@ export function shipEscapee(world,p) {
   return shipWaterAt(world,p.x,p.y+16)?.i === -1;
 }
 export const shipSunk = world => (world.ship?.sink||0)>=SHIP.escapeSink;
-// The same controls and host-owned oxygen apply in Waterworks' free pool.
+// Pools of every material and refinery vessels share swimming and breath.
 export function swimmingWaterAt(world,x,y) {
-  if(world.ship)return shipWaterAt(world,x,y);
-  if(!world.arena?.waterworks)return null;
-  for(const q of world.water||[])if(!q.frozen && q.grounded && q.h>22) {
+  const sea=shipWaterAt(world,x,y);if(sea)return {...sea,kind:'water'};
+  for(const q of [...liquids(world),...refineryLiquids(world.refinery)])if(!q.frozen && q.grounded && q.h>0) {
     const b=liquidBounds(q);
-    if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return {depth:y-b.y,vx:q.vx||0};
+    if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h)return {depth:y-b.y,vx:q.vx||0,kind:q.kind||'water'};
   }
   return null;
 }
@@ -152,12 +152,11 @@ export function updateShip(world,dt) {
 
 // Called by shared host/guest movement; only authority changes oxygen/health.
 export function swimPlayer(world,p,input,dt) {
-  if(!world.ship&&!world.arena?.waterworks)return input;
   const wet=swimmingWaterAt(world,p.x,p.y+16),head=swimmingWaterAt(world,p.rig?.[0]?.x??p.x,p.rig?.[0]?.y??p.y-40);
-  p.submerged=!!head;p.swimming=!!wet&&wet.depth>22;
+  p.submerged=!!head;p.swimming=!!wet&&wet.depth>22;p.swimStroke=false;
   if(!world.prediction) {
     p.oxygen=clamp((p.oxygen??12)+(head?-dt:dt*3),0,12);
-    if(wet)p.burn=0;
+    if(wet&&(wet.kind==='water'||wet.kind==='coolant'))p.burn=0;
     if(head&&p.oxygen===0&&world.phase==='fight'){p.hp=Math.max(0,p.hp-dt*16);if(!p.hp)world.kill(p,{cause:'drowning'});}
   }
   const angle=world.ship?.angle||0;
