@@ -20,9 +20,15 @@
   checks cover mode/readiness, guest controls, pickup, headgear restoration,
   respawns, exact damaged-world hot join, 30-second victory and the next round.
   Production-bundle Crown host/guest/hot-join/departure checks also pass.
-- Visual evidence and reports: `desktop/test-results/crown/`. The source preview
-  is stopped. Complete release CI/Pages and exact public artifact parity before
-  describing this version as live. Refresh all players for protocol 105.
+- Revision `7a68154` passed [release workflow 37227876432](https://github.com/SamCousinsGB/bonk-club/actions/runs/37227876432):
+  shared/server tests, all six stress shards, Windows/Linux executable checks,
+  release verification and Pages. All 40 local stress checks also pass.
+- All 19 local, CI and public browser files match byte for byte. Fresh public
+  v0.69.0 Crown host/guest controls, mode/readiness, hot join and host departure
+  pass through real relay routes without page errors. Public gameplay was viewed.
+  These checks use one machine, not separate ISPs. Refresh all tabs for protocol 105.
+- Visual evidence and reports: `desktop/test-results/crown/`, including source
+  browser checks and public parity. All task preview servers are stopped.
 
 
 ## Systemic barrels (v0.68.0 / protocol 104)
