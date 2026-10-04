@@ -12,6 +12,8 @@ import {createOfflineRoom} from '../src/offline-room.js';
 import {combatFloor} from './helpers.js';
 import {victoryMessage} from '../src/victory.js';
 import {surfaceAt} from '../src/navigation.js';
+import {PLANE} from '../src/plane.js';
+import {carveExplosion} from '../src/terrain.js';
 
 function fixture(options={}) {
   const w=new World({players:[0,1],mode:'crown',shuffle:false,random:()=>.4,...options});
@@ -177,4 +179,61 @@ test('bots seek the loose crown and prioritise its carrier through ordinary cont
 test('elimination retains its normal winner and never creates a crown',()=>{
   const w=fixture({mode:'elimination'});assert.equal(w.crown,null);
   w.kill(w.players[1]);ticks(w,1);assert.equal(w.winner,0);assert.equal(w.phase,'result');
+});
+
+test('plane respawns stay on surviving cabin surfaces, including after hull and deck damage',()=>{
+  const w=new World({mode:'crown',players:[0,1,2,3],arena:ARENAS.findIndex(a=>a.cargoPlane),random:()=>.4});
+  w.phase='fight';
+  assert.equal(surfaceAt(w.solids(),w.crown).id,w.platforms.find(p=>p.oneWay&&p.y===410).id);
+  for(let round=0;round<5;round++) {
+    if(round===2)carveExplosion(w,{x:900,y:910,radius:120});
+    if(round===3)carveExplosion(w,{x:530,y:710,radius:110});
+    const points=crownSpawns(w);assert.ok(points.length>0);
+    for(const q of points) {
+      const s=w.solids().find(s=>s.id===q.support);
+      assert.ok(!s.planeHull&&!s.planeWing&&!s.boundary);
+      for(const dx of [-17,17])for(const dy of [-34,31])
+        assert.ok(((q.x+dx-PLANE.x)/PLANE.innerX)**2+((q.y+dy-PLANE.y)/PLANE.innerY)**2<1);
+    }
+    for(const p of [...w.players]) {w.kill(p);respawnCrownPlayers(w,2.1);}
+    assert.ok(w.players.every(p=>p.alive&&points.some(q=>q.x===p.x&&q.y===p.y)));
+    assert.equal(validSnapshot(w.snapshot()),true);
+  }
+  w.platforms=w.platforms.filter(s=>s.planeHull||s.planeWing);w.cover=[];
+  assert.equal(crownSpawns(w).length,0,'an empty hull must not become an exterior respawn');
+  for(const p of w.players)w.kill(p);respawnCrownPlayers(w,2.1);
+  assert.equal(w.phase,'countdown','rebuild when all cabin routes are gone');
+});
+
+test('a lone bot follows jumps to the crown while opponents are respawning',()=>{
+  const w=fixture({players:[1],bots:[1],fillSolo:false});
+  w.platforms=[{id:'lower',x:500,y:950,w:500,h:25},
+    {id:'upper',x:1050,y:750,w:450,h:25}];
+  Object.assign(w.players[0],{x:800,y:920,support:'lower',ground:true});
+  Object.assign(w.crown,{x:1280,y:713,lock:0});
+  let held=false;
+  for(let n=0;n<120*14&&!held;n++){w.step(STEP);held=w.crown.holder===1;}
+  assert.equal(held,true,'the sole living bot must use ordinary jumps, not wait on its floor');
+});
+
+test('bots keep the crown objective before a full route exists and do not stop to deploy a gun',()=>{
+  const w=fixture({players:[0,1],bots:[1]});
+  w.platforms=[{id:'lower',x:500,y:950,w:500,h:25},
+    {id:'upper',x:1050,y:750,w:450,h:25}];
+  Object.assign(w.players[1],{x:800,y:920,support:'lower',ground:true,weapon:'machinegun',ammo:100});
+  Object.assign(w.players[0],{x:560,y:920,support:'lower',ground:true});
+  Object.assign(w.crown,{x:1280,y:713,lock:0});
+  w.ai.inputs(w,STEP);
+  const b=w.ai.bots.get(1);
+  assert.equal(b.pickup,w.crown,'an incomplete graph must not redirect the bot into a fight');
+  assert.equal(b.input.duck,false,'fetching takes priority over deploying a stationary gun');
+  assert.ok(b.moveTo>800,'approach the objective using the safe current footing');
+});
+
+test('an unclaimed crown follows moving support and falls when that support breaks',()=>{
+  const w=fixture();const floor=w.platforms[0],y=w.crown.y;
+  floor.y+=4;floor.dx=3;updateCrown(w,STEP);
+  assert.equal(w.crown.y,y+4);assert.equal(w.crown.x,W/2+3);
+  floor.hp=0;updateCrown(w,STEP);
+  assert.equal(w.crown.loose,true);assert.ok(w.crown.vy>0);
 });

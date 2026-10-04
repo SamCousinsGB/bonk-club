@@ -11,6 +11,8 @@ const base = 'https://samcousinsgb.github.io/bonk-club/';
 const published = process.argv.includes('--public');
 const rocket = process.argv.includes('--rocket');
 const crown = process.argv.includes('--crown');
+const plane = process.argv.includes('--plane');
+const crownArena = plane ? 'CARGO PLANE HOLD' : 'COLOSSUS';
 const results = path.join(root, 'desktop/test-results');
 await fs.mkdir(results, { recursive: true });
 const { version } = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
@@ -83,7 +85,7 @@ try {
   assert.equal(await host.locator('#start-match').isDisabled(),true);
   await host.locator('#choose-maps').click();
   await host.locator('#select-none').click();
-  for (const name of crown ? ['COLOSSUS'] : rocket ? ['ROCKET TEST STAND'] : ['WATERWORKS','ARC FURNACE']) await host.getByRole('checkbox',{name,exact:true}).check();
+  for (const name of crown ? [crownArena] : rocket ? ['ROCKET TEST STAND'] : ['WATERWORKS','ARC FURNACE']) await host.getByRole('checkbox',{name,exact:true}).check();
   await host.screenshot({path:path.join(results,'play-maps.png')});
   await host.locator('#selection-done').click();
   await host.locator('#difficulty').selectOption('normal');
@@ -96,11 +98,12 @@ try {
   await host.locator('#start-match').click();
   await guest.locator('body.playing').waitFor({ timeout: 30000 });
   await guest.waitForFunction(() => document.querySelectorAll('.score').length === 4);
-  assert.ok((crown?['COLOSSUS']:rocket?['ROCKET TEST STAND']:['WATERWORKS','ARC FURNACE']).includes(await guest.locator('#arena-name').textContent()));
+  assert.ok((crown?[crownArena]:rocket?['ROCKET TEST STAND']:['WATERWORKS','ARC FURNACE']).includes(await guest.locator('#arena-name').textContent()));
   if(crown){assert.equal(await guest.locator('.crown-score').count(),4);assert.match(await guest.locator('#round-label').textContent(),/CROWN/);}
   await guest.keyboard.down('KeyD'); await guest.waitForTimeout(400); await guest.keyboard.up('KeyD');
   await guest.keyboard.press('Space');
   await guest.mouse.move(640, 320); await guest.mouse.down(); await guest.waitForTimeout(500); await guest.mouse.up();
+  if(crown&&plane)await guest.waitForFunction(()=>[...document.querySelectorAll('.crown-score .score-top b')].some(b=>parseFloat(b.textContent)>.2),{},{timeout:45000});
   const late = await page(); await late.goto(base + '?room=' + code); await late.locator('#join-invite').click();
   await late.locator('body.playing').waitFor({ timeout: 45000 });
   await late.waitForFunction(() => document.querySelectorAll('.score').length === 4);

@@ -1,5 +1,22 @@
 # Bonk Club — current handoff
 
+## Crown plane respawns and bot pursuit (v0.70.1 / protocol 105)
+
+- Crown respawns exclude boundary walls, plane hull/wings and ship hull/bulkheads.
+  Plane candidates must fit the whole standing fighter inside the cabin and
+  retain real surviving support/headroom. Total cabin loss rebuilds only when
+  all fighters await respawn; exterior airframe pieces cannot prevent recovery.
+- The central crown prefers fixed platforms over movable props. An unclaimed
+  crown follows moving support and falls immediately when it loses that support.
+  Bots approach a fixed deck while routes are incomplete, using checked landings;
+  moving props/wires retain complete-route checks. The same traversal runs with
+  no living opponent. Stationary guns no longer stop bots fetching the crown.
+- Regression coverage includes damaged-cabin respawns, empty-hull recovery,
+  a sole bot climbing for the crown, incomplete routes and gun deployment.
+  Every arena also simulates bots actually collecting and holding the crown.
+- Release verification is in progress; source/relay evidence is saved in
+  `desktop/test-results/crown-plane/`. No network fields changed.
+
 ## Acid floor corrosion (v0.70.0 / protocol 105)
 
 - Acid makes successive shallow cuts in the surface supporting it, consuming

@@ -499,19 +499,16 @@ export class BotController {
         };
       })
       .sort((a, b) => a.score - b.score);
-    // During respawns the loose crown remains an objective even with no enemy.
-    if (!choices.length && crown && crown.holder===null) {
-      const floor=surfaceAt(solids,crown), path=floor&&paths.get(floor.id);
-      if(path && here?.id===floor.id) {b.moveTo=crown.x;Object.assign(i,steer(p,crown.x));}
-      return i;
-    }
-    if (!choices.length) return i;
+    // Keep the full traversal/survival logic during other players' respawns.
+    // The self placeholder supplies combat fields, but never receives an attack.
+    const alone = !choices.length;
+    if (alone && crown?.holder!==null) return i;
     const previous = choices.find((c) => c.q.id === b.target);
     const choice =
       previous &&
       previous.score < choices[0].score + (world.time < b.targetUntil ? 2 : .8)
         ? previous
-        : choices[0];
+        : choices[0] || {q:p,floor:here,path:here&&paths.get(here.id)};
     if (choice.q.id !== b.target) {
       b.target = choice.q.id;
       b.targetUntil = world.time + 1.4;
@@ -649,9 +646,13 @@ export class BotController {
     }
     if(crown?.holder===null) {
       const floor=surfaceAt(solids,crown), route=floor&&paths.get(floor.id);
-      if(route && !unsafePoint(world,crown.x,floor.y-30)) {
+      // Approach a fixed deck while its graph is being built. Moving props and
+      // live wires need a complete route before committing to their crossing.
+      const stable=floor && world.platforms.some(s=>s.id===floor.id&&!s.move&&!s.travel&&!s.boundary);
+      if(floor && (route||stable) && !unsafePoint(world,crown.x,floor.y-30)) {
         goal=crown; destination=floor; path=route; b.pickup=crown;
         i.throw=false;
+        if(alone || range>220)i.attack=false;
       }
     }
     const fetching = goal !== enemy;
@@ -1048,7 +1049,7 @@ export class BotController {
       }
     }
     i.duck = world.time < b.crouchUntil && !b.flight;
-    if (WEAPONS[p.weapon]?.proneOnly && !b.flight) {
+    if (WEAPONS[p.weapon]?.proneOnly && !b.flight && !fetching) {
       const deploy =
         !!here &&
         range > 190 &&
@@ -1189,6 +1190,7 @@ export class BotController {
       i.aim = Math.atan2(Math.sin(i.aim + error), Math.cos(i.aim + error));
     }
     if (i.block && !p.weapon) i.block = !p.blockHeld && p.parryCooldown <= 0;
+    if (alone) { i.attack=false; i.throw=false; i.block=false; }
     survivalControls(world, p, b, i, solids);
     // Recompute ordinary steering at physics frequency. Combat/hazard overrides
     // keep their own controls, instead of being silently replaced by a waypoint.

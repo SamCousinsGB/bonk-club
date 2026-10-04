@@ -3,21 +3,27 @@ import { segmentBox } from './collision.js';
 import { botDanger } from './bot-danger.js';
 import { reactionDanger } from './reactions.js';
 import { shipSunk } from './ship.js';
+import { PLANE } from './plane.js';
 
 export const GAME_MODES = { elimination: 'Elimination', crown: 'Crown' };
 export const CROWN_TARGET = 30;
 export const CROWN_RESPAWN = 2;
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const spawnSurface = s => s.hp !== 0 && !s.lethal && !s.chunk && !s.boundary &&
+  !s.planeHull && !s.planeWing && !s.shipHull && !s.shipBulkhead;
+const insideArena = (world, q) => !world.arena.cargoPlane || [-17,17].every(dx =>
+  [-34,31].every(dy => ((q.x+dx-PLANE.x)/PLANE.innerX)**2 +
+    ((q.y+dy-PLANE.y)/PLANE.innerY)**2 < 1));
 
 // Use surviving collision, including wires and moving decks. Spawn candidates
 // need standing headroom and cannot be inside a hazard, liquid or another prop.
 export function crownSpawns(world) {
   const solids = world.solids();
-  return solids.filter(s => s.hp !== 0 && !s.lethal && !s.chunk && s.w >= 48 &&
+  return solids.filter(s => spawnSurface(s) && s.w >= 48 &&
     s.y > 80 && s.y < H - 45 && s.x + s.w > 35 && s.x < W - 35)
     .flatMap(s => [...new Set([clamp(W / 2, s.x + 24, s.x + s.w - 24), s.x + 24, s.x + s.w - 24])]
       .map(x => ({ x: clamp(x, 35, W - 35), y: s.y - 31, support: s.id })))
-    .filter(q => !solids.some(s => s.id !== q.support && s.hp !== 0 &&
+    .filter(q => insideArena(world,q) && !solids.some(s => s.id !== q.support && s.hp !== 0 &&
       q.x + 17 > s.x && q.x - 17 < s.x + s.w && q.y + 29 > s.y && q.y - 34 < s.y + s.h) &&
       !world.spikes().some(s => q.x > s.x - 24 && q.x < s.x + s.w + 24 && Math.abs(q.y + 31 - s.y) < 45));
 }
@@ -29,16 +35,17 @@ export function centreCrown(world) {
   const c = world.crown;
   if (!c) return;
   const solids=world.solids();
-  const central=solids.filter(s=>s.hp!==0&&!s.lethal&&s.x<=W/2&&s.x+s.w>=W/2&&s.y>80&&s.y<H-45)
+  const central=solids.filter(s=>spawnSurface(s)&&s.x<=W/2&&s.x+s.w>=W/2&&s.y>80&&s.y<H-45)
     .map(s=>({x:W/2,y:s.y-31,support:s.id}))
-    .filter(q=>!solids.some(s=>s.id!==q.support&&s.hp!==0&&q.x+17>s.x&&q.x-17<s.x+s.w&&
+    .filter(q=>insideArena(world,q)&&!solids.some(s=>s.id!==q.support&&s.hp!==0&&q.x+17>s.x&&q.x-17<s.x+s.w&&
       q.y+29>s.y&&q.y-34<s.y+s.h));
   const points = crownSpawns(world);
   points.sort((a,b) => Math.abs(a.x-W/2)*4 + Math.abs(a.y-H/2) -
     Math.abs(b.x-W/2)*4 - Math.abs(b.y-H/2));
   // Prefer a platform actually under the middle, rather than projecting a
   // nearby ledge's height out over a void where bots cannot collect the crown.
-  central.sort((a,b)=>Math.abs(a.y-H/2)-Math.abs(b.y-H/2));
+  const fixed=new Set(world.platforms.filter(spawnSurface).map(s=>s.id));
+  central.sort((a,b)=>Number(fixed.has(b.support))-Number(fixed.has(a.support)) || Math.abs(a.y-H/2)-Math.abs(b.y-H/2));
   const q = central[0] || points[0];
   Object.assign(c, { holder: null, x: q?.x ?? W/2, y: q ? q.y - 6 : H/2, vx: 0, vy: 0,
     loose: false, age: 0, lock: .25 });
@@ -124,6 +131,14 @@ export function updateCrown(world, dt) {
   }
   if(c.holder!==null)centreCrown(world);
   c.age+=dt;
+  if(!c.loose) {
+    // Follow the actual support as wires sag and platforms move. If it breaks
+    // or moves away, fall immediately instead of hovering beyond pickup reach.
+    const support=world.solids().filter(s=>s.hp!==0&&!s.lethal&&c.x>=s.x&&c.x<=s.x+s.w&&
+      s.y>=c.y+12&&s.y<=c.y+60).sort((a,b)=>a.y-b.y)[0];
+    if(support) {c.x+=support.dx||0;c.y=support.y-37;}
+    else {c.loose=true;c.age=0;}
+  }
   if(c.loose) {
     const oldX=c.x,oldY=c.y; c.vy+=1100*dt;
     const endX=c.x+c.vx*dt,endY=c.y+c.vy*dt;

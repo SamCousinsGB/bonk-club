@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.70.0",
-  "releaseNotes": "Acid melts through floors and corrodes the layers and objects below",
+  "version": "0.70.1",
+  "releaseNotes": "Crown: cabin respawns and improved bot pursuit",
   "private": true,
   "type": "module",
   "scripts": {

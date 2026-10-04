@@ -25,3 +25,11 @@ for(let arena=0;arena<ARENAS.length;arena++)if(arena%total===shard)test(`Crown r
  }
  assert.ok(respawns>0,'players return to a changing arena');
 });
+
+for(let arena=0;arena<ARENAS.length;arena++)if(arena%total===shard)test(`Crown bots collect the objective: ${ARENAS[arena].name}`,()=>{
+ let seed=8123+arena;const w=new World({arena,mode:'crown',players:[0,1,2,3],bots:[0,1,2,3],shuffle:false,
+  random:()=>((seed=Math.imul(seed,1664525)+1013904223>>>0)/4294967296)});
+ for(let n=0;n<120*40&&!w.crown.times.some(t=>t>=.25);n++)w.step(STEP);
+ assert.ok(w.crown.times.some(t=>t>=.25),'bots must actually reach and hold the crown through ordinary physics');
+ assert.equal(validSnapshot(new RenderSnapshots().make(w.snapshot())),true);
+});
