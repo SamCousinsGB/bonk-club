@@ -656,6 +656,11 @@ export class BotController {
       }
     }
     const fetching = goal !== enemy;
+    if(fetching){
+      const d=distance(p,goal), progress=b.pickupProgress;
+      if(!progress||progress.goal!==goal||distance(progress,goal)>100||d<progress.distance-35)
+        b.pickupProgress={goal,x:goal.x,y:goal.y,distance:d,at:world.time};
+    }else b.pickupProgress=null;
     if (fetching) {
       b.recovery = null;
       if (!p.weapon) i.attack = false;
@@ -912,17 +917,22 @@ export class BotController {
     }
     // Explore only flights with a real landing. A stale fight is never a reason
     // to jump into a fatal gap; wait for a reachable pickup or a changed route.
-    if (!b.flight && !ride && !fetching && !spacing && p.ground && here && staleAttack && !b.recovery &&
+    // A surviving objective can outlast the route graph after destruction.
+    // Recover a stalled approach with the same checked flights as combat;
+    // retaining the pickup forever must not suppress all exploration.
+    const stalledPickup=fetching&&world.time-b.pickupProgress.at>3;
+    if (!b.flight && !ride && (!fetching||stalledPickup) && !spacing && p.ground && here && (staleAttack||stalledPickup) && !b.recovery &&
         world.time >= (b.exploreAt || 0) &&
-        (world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
+        (stalledPickup || world.time - b.approachAt > 5 || (!edge && b.stuck > 1.2))) {
       const attempt = b.recoveryAttempts || 0;
-      let direction = Math.sign(enemy.x - p.x) || (p.id % 2 ? 1 : -1);
+      const approachGoal=fetching?goal:enemy;
+      let direction = Math.sign(approachGoal.x - p.x) || (p.id % 2 ? 1 : -1);
       const roof = solids.find(s => s.id !== here?.id && s.y + s.h < p.y - 25 &&
         s.y + s.h > p.y - 180 && p.x + 20 > s.x && p.x - 20 < s.x + s.w);
       if (roof) {
         const left = roof.x - 45, right = roof.x + roof.w + 45;
-        direction = Math.abs(p.x - left) + Math.abs(enemy.x - left) * 0.25 <
-          Math.abs(p.x - right) + Math.abs(enemy.x - right) * 0.25 ? -1 : 1;
+        direction = Math.abs(p.x - left) + Math.abs(approachGoal.x - left) * 0.25 <
+          Math.abs(p.x - right) + Math.abs(approachGoal.x - right) * 0.25 ? -1 : 1;
       }
       if (attempt % 2) direction *= -1;
       const landing = [direction, -direction].flatMap(dir => [1, 2].map(jumps =>

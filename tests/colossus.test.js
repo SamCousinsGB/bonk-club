@@ -73,6 +73,14 @@ test('colossus terraces connect every spawn to contested weapons with the distan
   assert.ok(validSnapshot(w.snapshot()));
 });
 
+test('the central Colossus terrace has a jump route to both upper decks without the side galleries',()=>{
+  const w=fixture();w.cover=[];
+  w.platforms=w.platforms.filter(p=>p.y===910||p.y===1060);
+  const solids=w.solids(),graph=navigation(solids,{time:0,spikes:[]}),p={x:1280,y:1030};
+  const paths=routesFrom(graph,solids,surfaceAt(solids,p),p.x,new Map(),0);
+  for(const x of [990,1570])assert.ok(paths.has(surfaceAt(solids,{x,y:875})?.id),`central exit to ${x}`);
+});
+
 test('gaze has mechanical lag, stays bounded, and follows players without moving the locked attack',()=>{
   const w=fixture(),h=w.hazards[0];
   w.hit=()=>{}; // Measure tracking independently of the now-targeted stationary fighters dying.

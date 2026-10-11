@@ -10,7 +10,9 @@ export const COLOSSUS_ARENA = {
   platforms: [
     terrace(60, 1320, 2440, 64),
     terrace(80, 1020, 620, 38), terrace(1860, 1020, 620, 38),
-    terrace(860, 910, 840, 40),
+    // Leave a standing-width jump route above the lower central terrace. A
+    // single broad roof trapped that approach after either side route was cut.
+    terrace(860, 910, 340, 40), terrace(1360, 910, 340, 40),
     terrace(630, 1170, 470), terrace(1460, 1170, 470),
     terrace(120, 1180, 200, 24), terrace(2240, 1180, 200, 24),
     terrace(550, 870, 180, 24), terrace(1830, 870, 180, 24),

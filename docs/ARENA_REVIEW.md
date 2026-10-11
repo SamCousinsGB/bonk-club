@@ -2,8 +2,8 @@
 
 Reviewed the fourteen arenas in the current release at desktop resolutions.
 The pass concentrates on readable surfaces, unobstructed opening routes and
-artwork that follows surviving collision geometry. Existing arena topology,
-hazard timing, movement and destruction rules are preserved.
+artwork that follows surviving collision geometry. Colossus gains a central
+jump opening; hazard timing, movement and destruction rules are preserved.
 
 ## Shared corrections
 
@@ -11,6 +11,10 @@ hazard timing, movement and destruction rules are preserved.
   platform edges clear. Placement is checked again after random resizing.
 - Car Assembly no longer moves three already-validated containers onto fixed
   maintenance-ledge positions after clearance checks.
+- Bots recover stalled pickup/crown approaches using collision- and
+  hazard-checked flights, including when damage leaves navigation incomplete.
+- Colossus's upper terrace has a central opening so the lower central route
+  is no longer trapped under one broad roof when side galleries are cut.
 - Metal, concrete and grating have distinct faces and restrained depth.
   Metal panels no longer inherit the wooden-panel colours. Stone no longer
   falls through to the renderer's large rectangular shadow.
@@ -36,7 +40,7 @@ movement and a late join into actual transported blast damage.
 | Ocean Liner | Checked compartment cuts, water and deck routes; surviving static deck art keeps its original anchor. |
 | Waterworks | Clearer basin concrete and catwalks; checked broken mains, flooding and platform cuts. |
 | Suspension Bridge | Checked moving road spans, surviving cables and maintenance bays after cuts; retained the bridge's independent moving art. |
-| Colossus | Checked active beam, foreground routes and cut stone faces; retained the statue and landscape artwork. |
+| Colossus | Split the upper terrace to provide a jump exit from the lower centre; checked active beam, foreground routes and cut stone faces. Retained the statue and landscape artwork. |
 | Rocket Test Stand | Deck art is clipped to surviving bounds; checked plume and damaged stand routes. |
 | Refinery | Deck stripes are clipped to surviving bounds; checked pipes, vessels, basin and damaged process geometry. |
 
@@ -63,6 +67,16 @@ Evidence is written to ignored `desktop/test-results/arena-review/` and
 `desktop/test-results/`. The new placement regression covers all fourteen
 arenas, three random-size selections and rounds 1, 3 and 6, including snapshot
 round trips and immutable arena templates.
+
+The stress pass exposed Crown approaches stalling on Car Wash and Colossus.
+Both original scenarios now pass. Additional regressions check objective
+recovery with an incomplete route graph and the central Colossus route with
+both side galleries absent. The older two-bot Colossus debris reproduction
+allows two more seconds for the added crossing (the first contact in the
+revised layout occurs at 16.04 seconds); its escape and combat assertions stay.
+
+Protocol 112 separates the revised Colossus platform/art indices from older
+clients. Refresh all players' tabs together when updating.
 
 Browser relay evidence uses separate contexts on one desktop machine. It does
 not establish cross-ISP latency or Steam connectivity. Visual captures and

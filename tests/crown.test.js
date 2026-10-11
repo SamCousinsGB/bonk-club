@@ -47,6 +47,23 @@ test('all arenas start with one central crown and valid reachable-height spawn c
   }
 });
 
+test('a bot recovers a stalled crown approach with a real checked jump while navigation is incomplete',()=>{
+  const w=fixture({bots:[1]});
+  w.platforms=[{id:'lower',x:700,y:1000,w:350,h:25},{id:'upper',x:1200,y:930,w:400,h:25}];
+  Object.assign(w.players[0],{x:1500,y:900,support:'upper'});
+  Object.assign(w.players[1],{x:970,y:970,support:'lower'});
+  resetCrown(w);
+  w.ai.graph=new Map([['lower',[]],['upper',[]]]);
+  w.ai.revision=w.terrainVersion;w.ai.rebuildAt=Infinity;
+  let airborne=false;
+  for(let n=0;n<12/STEP&&w.crown.times[1]<.25;n++){
+    w.step(STEP);airborne ||= !w.players[1].ground;
+  }
+  assert.ok(airborne,'use the normal jump controls');
+  assert.ok(w.crown.times[1]>=.25,'reach the upper deck and actually hold the crown');
+  assert.equal(w.players[1].alive,true);
+});
+
 test('automatic pickup requires living contact and line of sight; touching a carrier does not steal it',()=>{
   const w=fixture(),p=w.players[0];
   Object.assign(p,{x:w.crown.x,y:w.crown.y+12});w.crown.lock=0;

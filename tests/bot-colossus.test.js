@@ -91,7 +91,9 @@ test('a complete two-bot Colossus match keeps moving and fighting without any we
  w.cover=structuredClone(regressionCover.two);
  w.drops=[];w.weaponTimer=w.grenadeTimer=999;
  const h=w.hazards[0],p=w.players[0];let warningX=null,escaped=false;
- for(let n=0;n<16/STEP&&w.round===1;n++){
+ // The split upper terrace adds a crossing; include its return to combat while
+ // still testing the same first laser sweep and physical debris reproduction.
+ for(let n=0;n<18/STEP&&w.round===1;n++){
   w.step(STEP);
   if(h.warning>0){
    warningX??=p.x;
