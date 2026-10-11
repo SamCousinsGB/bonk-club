@@ -1,7 +1,7 @@
 {
   "name": "bonk-club",
-  "version": "0.76.0",
-  "releaseNotes": "Swimming in every liquid and improved sideways flow",
+  "version": "0.76.1",
+  "releaseNotes": "Clearer arena routes, materials and damaged scenery",
   "private": true,
   "type": "module",
   "scripts": {

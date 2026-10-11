@@ -34,8 +34,8 @@ function addCar(world,x,stage=0){
 export function createAssembly(world) {
   world.assembly = world.arena.assembly ? { clock: 0, serial: 0, completed: 0, cars: [] } : null;
   if (!world.assembly) return;
-  // Keep loose supplies on maintenance ledges, clear of controls and tooling.
-  world.cover.forEach((b,i)=>{const x=[1120,600,1710][i];if(x!==undefined){b.x=x-b.w/2;b.y=565-b.h;}});
+  // Supplies already passed the shared spawn, pickup and machinery clearance.
+  // Do not move resized containers back onto the contested maintenance ledges.
   // Work already in progress makes the first finished car visible in this round.
   for (const [x, stage] of [[140, 0], [410, 0], [930, 1], [1470, 3], [2030, 15]]) addCar(world, x, stage);
   for (const h of world.hazards) {

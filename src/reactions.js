@@ -1,6 +1,6 @@
 import { updateWaterworks, generatorPhase } from "./waterworks.js";
 import { absorbShipWater, shipWaterAt, shipWaterRegions } from './ship.js';
-import { randomizeLiquidContainers } from './liquid-containers.js';
+import { randomizeLiquidContainers, blocksOpeningPickup } from './liquid-containers.js';
 import { liquidBounds, isLiquid, liquidPolygonHit } from './liquid-geometry.js';
 import { W, H } from "./scale.js";
 import { segmentBox, playerBox } from "./collision.js";
@@ -76,6 +76,7 @@ export function resetReactions(world) {
       for (const fraction of [.25, .75, .5, .15, .85]) {
         const b = { x: f.x + f.w * fraction - size[0] / 2, y: f.y - size[1], w: size[0], h: size[1] };
         if (b.x < f.x+65 || b.x+b.w > f.x+f.w-65 ||
+          blocksOpeningPickup(world,b) ||
           world.platforms.some(p => (p.travel || p.move) && overlap(b, {
             x:p.baseX-Math.abs(p.move||0)-18, y:Math.min(p.baseY,p.baseY+(p.travel||0))-95,
             w:p.w+Math.abs(p.move||0)*2+36, h:Math.abs(p.travel||0)+p.h+105 })) ||

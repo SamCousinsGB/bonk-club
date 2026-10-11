@@ -16,12 +16,14 @@ function carWashHall(c){
     for(let n=1;n<4;n++)line(c,[[x+n*90,70],[x+n*90,300]],'#173845',9);
     line(c,[[x+12,182],[x+358,182]],'#173845',8);line(c,[[x+24,84],[x+143,285]],'#b9e6df1b',17);
   }
-  rect(c,0,545,2560,605,'#83a8a7');
+  const tiles=c.createLinearGradient(0,545,0,1150);
+  tiles.addColorStop(0,'#547e83');tiles.addColorStop(1,'#355f69');
+  rect(c,0,545,2560,605,tiles);
   for(let y=548;y<1140;y+=74){
     line(c,[[0,y],[2560,y]],'#476e763b',2);
     for(let x=(Math.floor(y/74)%2)*64;x<2560;x+=128)line(c,[[x,y],[x,y+74]],'#476e7633',2);
   }
-  rect(c,0,552,2560,18,'#d7ddd0');rect(c,0,574,2560,9,'#d88374');rect(c,0,1110,2560,42,'#35666e');
+  rect(c,0,552,2560,12,'#a6b8b0');rect(c,0,574,2560,6,'#a76e63');rect(c,0,1110,2560,42,'#294f5c');
   for(const x of [30,500,1000,1510,2020,2500]){
     rect(c,x,0,24,1150,'#1c424e');rect(c,x+3,0,5,1150,'#527e84');for(const y of [332,526,1090])bolts(c,x-4,y,32);
   }
@@ -45,10 +47,14 @@ function carWashHall(c){
 export function drawCompactSetpieceHall(c,arena){if(arena.compactSetpiece==='car-wash')carWashHall(c);}
 
 // Follow surviving collision pieces, including cuts received by hot-joining guests.
-export function drawCarWashStructure(c,state){
+export function drawCarWashStructure(c,state,arena){
   for(const p of state.platforms){
     if(p.hp===0||p.wreckId)continue;
+    const id=/^floor(\d+)$/.exec(p.sourceId||p.id||'');
+    const original=id&&arena?.platforms[Number(id[1])];
     if(p.oneWay){
+      // A lower collision slice is not a new catwalk with its own guard rail.
+      if(original&&Math.abs(p.y-original.y)>.1)continue;
       c.save();c.beginPath();c.rect(p.x,32,p.w,p.y+p.h+45-32);c.clip();
       if(p.y<500)for(let x=(p.baseX??p.x)+22;x<p.x+p.w;x+=170){line(c,[[x,32],[x,p.y+10]],'#17333e',10);line(c,[[x-2,32],[x-2,p.y+10]],'#91aca9',3);}
       for(let x=p.x+15;x<p.x+p.w;x+=72)line(c,[[x,p.y-52],[x,p.y]],'#38626b',4);
@@ -57,9 +63,10 @@ export function drawCarWashStructure(c,state){
       for(let x=p.x+7;x<p.x+p.w;x+=16)rect(c,x,p.y+6,5,7,'#779b9e');
       rect(c,p.x,p.y+p.h-3,p.w,3,'#e2ab64');line(c,[[p.x+10,p.y+19],[p.x+p.w/2,p.y+43],[p.x+p.w-10,p.y+19]],'#355c65',7);c.restore();
     }else if(p.washFloor){
+      const y=original?.y??p.y,h=original?.h??p.h;
       c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();rect(c,p.x,p.y,p.w,p.h,'#274852');
-      for(let x=Math.floor(p.x/34)*34;x<p.x+p.w;x+=34){rect(c,x,p.y+5,27,p.h-10,'#658d92');rect(c,x+2,p.y+7,3,p.h-14,'#9fc8c6');}
-      rect(c,p.x,p.y,p.w,4,'#d2efdf');rect(c,p.x,p.y+p.h-6,p.w,6,'#172f3b');c.restore();
+      for(let x=Math.floor(p.x/34)*34;x<p.x+p.w;x+=34){rect(c,x,y+5,27,h-10,'#658d92');rect(c,x+2,y+7,3,h-14,'#9fc8c6');}
+      rect(c,p.x,y,p.w,4,'#d2efdf');rect(c,p.x,y+h-6,p.w,6,'#172f3b');c.restore();
     }
   }
 }

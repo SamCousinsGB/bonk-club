@@ -7,6 +7,29 @@ import {createHazards,updateHazards,HAZARD_TYPES} from "../src/hazards.js";
 import {validSnapshot} from "../src/network.js";
 import {combatFloor} from "./helpers.js";
 import {prepareProp,updateProps} from "../src/props.js";
+import {bodyBounds} from '../src/props.js';
+import {compactSnapshot,expandSnapshot} from '../src/snapshot-wire.js';
+
+test('all arena rotations leave opening pickup approaches and takeoff edges clear after container resizing',()=>{
+  const templates=JSON.stringify(ARENAS);
+  for(let arena=0;arena<ARENAS.length;arena++)for(const random of [()=>.05,()=>.5,()=>.95]){
+    const w=new World({arena,players:[0,1,2,3],shuffle:false,random});
+    for(const round of [1,3,6]){
+      w.round=round;w.startRound();
+      for(const b of w.cover.filter(b=>b.id.startsWith('reaction-prop'))){
+        const box=bodyBounds(b);
+        for(const [x,y]of w.arena.weapons)assert.ok(!(x>box.x-70&&x<box.x+box.w+70&&y>box.y-60&&y<box.y+box.h+30),`${w.arena.name}: ${b.id} blocks opening pickup`);
+        const floor=w.platforms.find(p=>Math.abs(p.y-box.y-box.h)<.1&&box.x>=p.x&&box.x+box.w<=p.x+p.w);
+        assert.ok(floor,`${w.arena.name}: ${b.id} unsupported`);
+        assert.ok(box.x>=floor.x+64.9&&box.x+box.w<=floor.x+floor.w-64.9,`${w.arena.name}: takeoff obstructed`);
+      }
+      const s=w.snapshot(),copy=expandSnapshot(compactSnapshot(s),validSnapshot);
+      assert.ok(copy,`${w.arena.name}: transport`);
+      assert.deepEqual(copy.cover.map(b=>[b.id,b.x,b.y,b.w,b.h]),s.cover.map(b=>[b.id,b.x,b.y,b.w,b.h]));
+    }
+  }
+  assert.equal(JSON.stringify(ARENAS),templates);
+});
 
 test("round starts are unarmed with only contested pickups away from starting positions",()=>{
   for(let arena=0;arena<ARENAS.length;arena++)for(const round of [1,2,3,4]){

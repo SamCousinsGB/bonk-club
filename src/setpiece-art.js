@@ -1,4 +1,4 @@
-import { TRAIN_Y } from "./setpiece-arenas.js";
+import { TRAIN_Y, TRAIN_ARENA } from "./setpiece-arenas.js";
 import { drawTrainCarriage } from './train-wreck-art.js';
 import { ladlePose, LADLE_LIP } from "./foundry.js";
 import { trainBodies, carriageShape } from "./trains.js";
@@ -74,8 +74,11 @@ export function drawTrain(c,h,time,reduced){
   c.restore();
 }
 export function drawTrack(c,state){
-  for(const p of state.platforms)if(p.hp!==0){
-    c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
+  for(const piece of state.platforms)if(piece.hp!==0&&!piece.wreckId&&!piece.waterId){
+    const id=/^floor(\d+)$/.exec(piece.sourceId||'');
+    const original=id&&TRAIN_ARENA.platforms[Number(id[1])];
+    const p=original?{...piece,x:original.x,y:original.y,w:original.w,h:original.h}:piece;
+    c.save();c.beginPath();c.rect(piece.x,piece.y,piece.w,piece.h);c.clip();
     if(p.y===TRAIN_Y){
       const concrete=c.createLinearGradient(0,p.y,0,p.y+p.h);concrete.addColorStop(0,"#a0aaa6");concrete.addColorStop(.18,"#74878b");concrete.addColorStop(1,"#344a56");
       c.fillStyle=concrete;c.fillRect(p.x,p.y,p.w,p.h);

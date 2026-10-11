@@ -1,5 +1,6 @@
 import { warmColossusArt, drawColossusSky, drawColossusStone, drawColossusBeam, colossusShake } from './colossus-art.js';
 import { RespawnCue, drawRespawnCue } from './respawn-cue.js';
+import { drawGrating, drawMetalPanel } from './surface-art.js';
 import { drawCrown, drawCrownGlow, drawLooseCrown } from './crown-art.js';
 import {drawRocketBackground,drawRocketPlatform,drawRocketExhaust,rocketShake} from './rocket-art.js';
 import {drawRefineryBackground,drawRefineryPlatform,drawRefineryProcess} from './refinery-art.js';
@@ -22,7 +23,7 @@ import { drawWreckage, drawRifts, drawBlackhole } from "./blackhole-art.js";
 import { warmBlackholeLens } from "./blackhole-lens.js";
 import { warmSpacetimeWarp, drawSpacetimeWarp } from "./spacetime-warp.js";
 import { drawCraters, clipCraters, drawScorchedPlatforms, drawAshSkeleton, warmNuclearArt } from "./nuclear-art.js";
-import { drawTransmissionTowers, drawPowerlines } from "./transmission-art.js";
+import { drawTransmissionSky, drawTransmissionTowers, drawPowerlines } from "./transmission-art.js";
 import { PARRY } from "./impact.js";
 import { sceneDetail, ambientDetail, pickupLabels } from "./scene-detail.js";
 import { drawAppearance } from "./identity.js";
@@ -429,6 +430,14 @@ export class Renderer {
   }
   platform(p, time) {
     if (p.hp === 0) return;
+    const source=/^floor(\d+)$/.exec(p.sourceId || '');
+    const original=source&&this.drawingArena?.platforms[Number(source[1])];
+    if(original&&!original.move&&!original.travel&&!p.bridgePart&&!p.wreckId&&!p.waterId){
+      const c=this.ctx;c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
+      try{this.platform({...p,x:original.x,y:original.y,w:original.w,h:original.h,sourceId:null},time);}
+      finally{c.restore();}
+      return;
+    }
     if(p.colossusStone){drawColossusStone(this.ctx,p);return;}
     if(p.rocketDeck){drawRocketPlatform(this.ctx,p);return;}
     if(p.refineryDeck||p.refineryPipe!==undefined||p.refineryTank!==undefined){drawRefineryPlatform(this.ctx,p);return;}
@@ -438,11 +447,7 @@ export class Renderer {
     if (this.planeFrame && !p.wreckId && !p.waterId) { drawPlanePlatform(this.ctx,p); return; }
     if (p.assemblyCar || p.assemblyBelt || p.assemblyHead) return;
     if (p.oneWay) {
-      const c=this.ctx;
-      c.fillStyle="#263945";c.fillRect(p.x,p.y,p.w,p.h);
-      c.fillStyle="#c2d5d6";c.fillRect(p.x,p.y,p.w,3);
-      c.fillStyle="#91a8ac";
-      for(let x=p.x+5;x<p.x+p.w-3;x+=14)c.fillRect(x,p.y+5,3,Math.max(1,p.h-5));
+      drawGrating(this.ctx,p);
       return;
     }
     if (p.material === "cable") {
@@ -450,6 +455,7 @@ export class Renderer {
       c.fillStyle="#a1b0b6";c.fillRect(p.x,p.y,p.w,2);return;
     }
     if (p.destructible) {
+      if(p.panel==='metal'){drawMetalPanel(this.ctx,p);return;}
       const c = this.ctx,
         glass = p.panel === "glass",
         wear = 1 - p.hp / p.maxHp;
@@ -920,6 +926,7 @@ export class Renderer {
       return;
     }
     const arena = menuArena || ARENAS[state.arenaIndex];
+    this.drawingArena=arena;
     this.shipFrame=arena.ship?state.ship:null;
     this.planeFrame = arena.cargoPlane ? state.hazards.find(h=>h.type==="airflow") || {age:0} : null;
     c.save();
@@ -973,6 +980,7 @@ export class Renderer {
         layer.height = H;
         drawEnvironment(layer.getContext("2d"), arena);
         sceneDetail(layer.getContext("2d"), arena);
+        if (arena.transmission) drawTransmissionSky(layer.getContext("2d"));
         if (arena.waterworks) drawWaterworksHall(layer.getContext("2d"));
         if (arena.bridge) drawBridgeHall(layer.getContext("2d"));
         if (arena.furnace) drawFurnaceHall(layer.getContext("2d"));
@@ -1017,7 +1025,7 @@ export class Renderer {
     }
     c.save(); clipCraters(c,state);
     drawScorchedPlatforms(this,state.platforms,time);
-    if(arena.carWash)drawCarWashStructure(c,state);
+    if(arena.carWash)drawCarWashStructure(c,state,arena);
     if(arena.waterworks)drawWaterworksPipes(c,state);
     if(arena.cargoPlane)(this.planeHullLayer ||= new PlaneHullLayer()).draw(c,state.platforms);
     if(arena.ship)drawShipShell(c,state.platforms);

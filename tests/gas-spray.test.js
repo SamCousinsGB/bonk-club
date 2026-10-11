@@ -10,6 +10,7 @@ import {RenderSnapshots,interpolateStates} from '../src/render-state.js';
 import {compactSnapshot,expandSnapshot} from '../src/snapshot-wire.js';
 import {SnapshotHistory} from '../src/snapshot-delta.js';
 import {RefinerySound} from '../src/refinery-sound.js';
+import {explosiveBarrel} from '../src/barrels.js';
 const fixture=()=>{const w=new World({arena:ARENAS.findIndex(a=>a.refinery),players:[0,1],shuffle:false,random:()=>.42});w.phase='fight';return w;};
 const advance=(w,t)=>{for(let i=0;i<Math.round(t/.05);i++){w.time+=.05;updateReactions(w,.05);}};
 const gas=(w,x=800,y=600,extra={})=>{const g={id:++w.reactionSerial,x,y,r:26,vx:0,vy:0,life:3.2,lit:0,owner:0,spray:true,...extra};w.gas.push(g);return g;};
@@ -24,11 +25,16 @@ test('all eleven gas pipe sprays ignite from a flame and sustain fire on newly e
     const w=fixture();for(let i=0;i<600;i++)updateRefinery(w,.05);
     w.damageCover(w.platforms.find(p=>p.refineryPipe===id),200);advance(w,.15);
     const g=w.gas.find(g=>g.spray);assert.ok(g,`pipe ${id} emits spray`);for(const [dx,dy] of [[0,1],[1,0],[-1,0],[0,-1]]){if(g.lit)break;shoot(w,g,'flame',dx,dy);}assert.ok(g.lit,`pipe ${id} ignites`);
+    const containers=w.cover.filter(explosiveBarrel).map(b=>({kind:b.kind,x:b.x+b.w/2,y:b.y+b.h/2}));
     const first=new Set(w.gas.map(g=>g.id)),blasts=[],explode=w.explode.bind(w);w.explode=b=>{blasts.push(b);explode(b);};advance(w,3);
     assert.ok(w.gas.some(g=>g.lit&&!first.has(g.id)),`pipe ${id} lights newly emitted gas`);
     assert.ok(w.gas.length<=24);assert.ok(validSnapshot(transport(w)));
-    assert.ok(blasts.every(b=>b.refineryBurst),'sprays only cause actual heated machinery ruptures');
-    assert.ok(blasts.length<=w.refinery.pipes.filter(q=>q.broken).length+w.refinery.tanks.filter(q=>q.burst).length+1);
+    // A different supply layout can put a real gas cylinder in the flame front.
+    // Every blast still needs a finite physical source; the spray itself never
+    // creates an explosion merely because another gas parcel caught fire.
+    assert.ok(blasts.every(b=>b.refineryBurst||containers.some(c=>c.kind===b.weapon&&Math.hypot(c.x-b.x,c.y-b.y)<1)),
+      'sprays only rupture machinery or ignite an actual explosive container');
+    assert.ok(blasts.length<=w.refinery.pipes.filter(q=>q.broken).length+w.refinery.tanks.filter(q=>q.burst).length+containers.length+1);
   }
 });
 test('sprays accept sparks, plasma, flame, Tesla and environmental heat',()=>{

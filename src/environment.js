@@ -1,4 +1,5 @@
 import { W, H } from "./scale.js";
+import { drawStructuralSurface } from './surface-art.js';
 export { drawHazards } from "./trap-art.js";
 const polygon = (c, points, color) => {
   c.beginPath();
@@ -56,6 +57,7 @@ export function drawEnvironment(c, arena) {
 }
 
 export function drawSurface(c, p) {
+  if(!p.elevator&&drawStructuralSurface(c,p))return true;
   const colors = MATERIALS[p.material];
   if (!colors || p.elevator) return false;
   c.fillStyle = "#07142133";

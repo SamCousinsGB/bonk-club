@@ -120,6 +120,7 @@ export function drawRocketBackground(c,state,reduced){
   }
 }
 export function drawRocketPlatform(c,p){
+  c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
   c.fillStyle=p.oneWay?'#304b59':'#263e4b';c.fillRect(p.x,p.y,p.w,p.h);
   c.fillStyle='#98a6a1';c.fillRect(p.x,p.y,p.w,Math.min(3,p.h));
   if(p.oneWay){for(let x=Math.ceil(p.x/15)*15;x<p.x+p.w-4;x+=15){c.fillStyle='#0d2330';c.fillRect(x,p.y+5,7,Math.max(1,p.h-7));}}
@@ -127,6 +128,7 @@ export function drawRocketPlatform(c,p){
     c.fillStyle='#132c39';c.fillRect(p.x,p.y+p.h-5,p.w,Math.min(5,p.h));
     for(let x=Math.ceil(p.x/75)*75+6;x<p.x+p.w-6;x+=75){ellipse(c,x,p.y+Math.min(14,p.h/2),3,3,'#879791');}
   }
+  c.restore();
 }
 export function drawRocketExhaust(c,state,reduced){
   const h=state.hazards.find(h=>h.type==='rocket');if(!h||!h.active||state.phase!=='fight')return;

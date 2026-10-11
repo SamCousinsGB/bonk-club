@@ -13,6 +13,27 @@ function beam(c,pts,width=13) {
 }
 const supported=(s,x,y)=>s.platforms.some(p=>p.hp!==0&&!p.wreckId&&p.x<=x&&p.x+p.w>=x&&Math.abs(p.y-y)<2);
 
+export function drawTransmissionSky(c) {
+  const sky=c.createLinearGradient(0,0,0,1440);
+  sky.addColorStop(0,'#12283e');sky.addColorStop(.55,'#384e5f');sky.addColorStop(1,'#1c3445');
+  c.fillStyle=sky;c.fillRect(0,0,2560,1440);
+  const haze=c.createRadialGradient(1300,760,80,1300,760,1200);
+  haze.addColorStop(0,'#a5b6ae1a');haze.addColorStop(1,'#718d9a00');
+  c.fillStyle=haze;c.fillRect(0,0,2560,1440);
+  // Low distant ridges establish the open span; their muted silhouettes cannot
+  // be confused with the two physical conductor crossings.
+  for(let layer=0;layer<3;layer++){
+    c.beginPath();c.moveTo(0,1440);
+    for(let x=0;x<=2560;x+=64)c.lineTo(x,1010+layer*125+Math.sin(x*.003+layer*2)*65+Math.sin(x*.009+layer)*21);
+    c.lineTo(2560,1440);c.closePath();c.fillStyle=['#304958','#263f50','#1b3345'][layer];c.fill();
+  }
+  for(const x of [1030,1505]){
+    line(c,[[x-45,1330],[x,1090],[x+45,1330]],'#50636c40',4);
+    line(c,[[x-52,1160],[x+52,1160]],'#62757b30',3);
+    line(c,[[x-32,1210],[x+32,1265],[x-42,1310]],'#52666e30',2);
+  }
+}
+
 // Broad tapered steelwork fills the arena. Each bay belongs to its supporting
 // deck, so rear lattice and insulator art agree with actual destruction.
 export function drawTransmissionTowers(c,state) {

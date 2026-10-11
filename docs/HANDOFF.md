@@ -1,5 +1,23 @@
 # Bonk Club — current handoff
 
+## Arena readability and route clearance (v0.76.1 / protocol 111)
+
+- Reviewed all fourteen current arenas in intact, active and damaged scenes.
+  See `docs/ARENA_REVIEW.md` for arena-specific coverage and repeatable checks.
+- Generated supplies now keep opening pickups and takeoff edges clear after
+  resizing. Removed Car Assembly's later relocation that bypassed those checks.
+  Material faces distinguish metal, concrete and grating; cut artwork keeps
+  its original face anchor. Fixed sliced train guideway and Car Wash floor
+  trim, clipped rocket/refinery deck art, improved Car Wash contrast and gave
+  Transmission Towers a subdued outdoor background.
+- Full regular checks and a production browser build pass. Desktop visual QA
+  validates 42 scenes and ten pixel regressions. Real public relay QA passes
+  guest movement and exact damaged geometry/container late joins on all
+  fourteen arenas, plus reset, reduced-motion desktop resizing and departure.
+  The production-bundle host/guest/hot-join/departure check also passes with no
+  page errors. Protocol 111 remains unchanged: no transport fields or shared
+  guest movement rules changed. Release stress and publication evidence follows.
+
 ## Swimming in all liquids and sideways flow (v0.76.0 / protocol 111)
 
 - Swimming and head-based breath now apply to every unfrozen liquid pool on

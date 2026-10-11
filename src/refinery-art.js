@@ -91,10 +91,12 @@ export function drawRefineryPlatform(c,p){
     for(let x=tank.x+8;x<tank.x+tank.w;x+=26)for(const y of [tank.y+8,tank.y+tank.h-8])oval(c,x,y,2.5,2.5,'#273f49');
     c.restore();return;
   }
+  c.save();c.beginPath();c.rect(p.x,p.y,p.w,p.h);c.clip();
   c.fillStyle=p.material==='stone'?'#4b5b59':'#274652';c.fillRect(p.x,p.y,p.w,p.h);
   c.fillStyle='#c1ba8c';c.fillRect(p.x,p.y,p.w,3);
   if(p.oneWay)for(let x=Math.ceil(p.x/18)*18;x<p.x+p.w-6;x+=18){c.fillStyle='#0b2b37';c.fillRect(x,p.y+6,8,p.h-8);}
   else for(let x=Math.ceil(p.x/85)*85;x<p.x+p.w;x+=85){line(c,[[x,p.y+8],[x+20,p.y+30]],'#263f47',9);}
+  c.restore();
 }
 function gauge(c,x,y,value,color){
   oval(c,x,y,21,21,'#132d39');oval(c,x,y,17,17,'#bac9ac');
