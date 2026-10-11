@@ -15,15 +15,25 @@
   The Colossus upper terrace is split around a central jump opening, preserving
   an exit from the lower centre after side routes are cut. Both scenarios pass;
   new regressions cover incomplete navigation and the central escape route.
-- Full regular checks and a production browser build pass. Desktop visual QA
+- All 1,352 regular checks and all 57 stress cases pass. Desktop visual QA
   validates 42 scenes and ten pixel regressions. Real public relay QA passes
   guest movement and exact damaged geometry/container late joins on all
   fourteen arenas, plus reset, reduced-motion desktop resizing and departure.
   The production-bundle host/guest/hot-join/departure check also passes with no
   page errors. Protocol 112 prevents older clients from applying the previous
   Colossus platform/art indices to the changed layout; refresh every player's
-  tab together. Transport fields and movement rules remain unchanged. Release
-  stress and publication evidence follows.
+  tab together. Transport fields and movement rules remain unchanged.
+- Revision `790ca37` passed [release workflow 38185109442](https://github.com/SamCousinsGB/bonk-club/actions/runs/38185109442),
+  including game/server checks, all six stress shards, Windows/Linux executable
+  checks, release verification and Pages. All 19 local, CI and public files
+  match byte for byte. Fresh public Elimination and Colossus Crown sessions
+  pass host/guest controls, hot join and departure through relay without page
+  errors. Public menu and gameplay were visually inspected. This is one-machine
+  relay evidence, not cross-ISP latency or Steam connectivity validation.
+- Source captures, relay reports, local test logs, downloaded CI files and
+  release parity evidence are in `desktop/test-results/arena-review/`.
+  Task preview ports 5420, 5421 and 5422 are closed; the original checkout was
+  preserved clean. Worktree clean after this handoff commit.
 
 ## Swimming in all liquids and sideways flow (v0.76.0 / protocol 111)
 
